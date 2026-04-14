@@ -275,14 +275,6 @@ if league and not club:
         </script>
         """, height=_table_height, scrolling=False)
 
-# ── Additional filters ────────────────────────────────────────
-year_filter = st.multiselect(
-    "Filter by year",
-    sorted(pd.to_datetime(df["published_at"], utc=True).dt.year.unique(), reverse=True),
-)
-if year_filter:
-    df["pub_year"] = pd.to_datetime(df["published_at"], utc=True).dt.year
-    df = df[df["pub_year"].isin(year_filter)]
 
 filtered = df.sort_values("view_count", ascending=False).head(100).reset_index(drop=True)
 
