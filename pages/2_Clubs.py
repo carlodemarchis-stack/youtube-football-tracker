@@ -72,11 +72,13 @@ if league is None and _scope == "Overall":
             s = league_stats[lg_name]
             avg_v = s["total_views"] // max(s["total_videos"], 1)
             vps = s['total_views'] // max(s['total_subs'], 1)
+            avg_club_subs = s['clubs_subs'] // max(s['clubs'], 1)
             rows_html += f"""<tr>
                 <td style="padding:6px 12px">{lg_name}</td>
                 <td style="padding:6px 12px;text-align:right">{s['clubs']}+{s['leagues']}</td>
                 <td style="padding:6px 12px;text-align:right">{fmt_num(s['total_subs'])}</td>
                 <td style="padding:6px 12px;text-align:right">{fmt_num(s['clubs_subs'])}</td>
+                <td style="padding:6px 12px;text-align:right">{fmt_num(avg_club_subs)}</td>
                 <td style="padding:6px 12px;text-align:right">{fmt_num(s['league_subs'])}</td>
                 <td style="padding:6px 12px;text-align:right">{fmt_num(s['total_views'])}</td>
                 <td style="padding:6px 12px;text-align:right">{fmt_num(vps)}</td>
@@ -94,6 +96,7 @@ if league is None and _scope == "Overall":
             <th style="padding:6px 12px;text-align:right">Channels</th>
             <th style="padding:6px 12px;text-align:right">Subscribers</th>
             <th style="padding:6px 12px;text-align:right">Subs Clubs</th>
+            <th style="padding:6px 12px;text-align:right">Avg Subs/Club</th>
             <th style="padding:6px 12px;text-align:right">Subs League</th>
             <th style="padding:6px 12px;text-align:right">Total Views</th>
             <th style="padding:6px 12px;text-align:right">Views/Sub</th>
