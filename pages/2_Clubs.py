@@ -67,48 +67,96 @@ if league is None and _scope == "Overall":
 
     if league_stats:
         st.subheader("Leagues")
+        # Sort by total subs descending by default
+        sorted_leagues = sorted(league_stats.items(), key=lambda kv: kv[1]["total_subs"], reverse=True)
         rows_html = ""
-        for lg_name in sorted(league_stats.keys()):
-            s = league_stats[lg_name]
+        for lg_name, s in sorted_leagues:
             avg_v = s["total_views"] // max(s["total_videos"], 1)
             vps = s['total_views'] // max(s['total_subs'], 1)
             avg_club_subs = s['clubs_subs'] // max(s['clubs'], 1)
+            channels_val = s['clubs'] + s['leagues']
             rows_html += f"""<tr>
-                <td style="padding:6px 12px">{lg_name}</td>
-                <td style="padding:6px 12px;text-align:right">{s['clubs']}+{s['leagues']}</td>
-                <td style="padding:6px 12px;text-align:right">{fmt_num(s['total_subs'])}</td>
-                <td style="padding:6px 12px;text-align:right">{fmt_num(s['clubs_subs'])}</td>
-                <td style="padding:6px 12px;text-align:right">{fmt_num(avg_club_subs)}</td>
-                <td style="padding:6px 12px;text-align:right">{fmt_num(s['league_subs'])}</td>
-                <td style="padding:6px 12px;text-align:right">{fmt_num(s['total_views'])}</td>
-                <td style="padding:6px 12px;text-align:right">{fmt_num(vps)}</td>
-                <td style="padding:6px 12px;text-align:right">{fmt_num(s['total_videos'])}</td>
-                <td style="padding:6px 12px;text-align:right">{fmt_num(s['long'])}</td>
-                <td style="padding:6px 12px;text-align:right">{fmt_num(s['shorts'])}</td>
-                <td style="padding:6px 12px;text-align:right">{fmt_num(avg_v)}</td>
+                <td style="padding:6px 12px" data-val="{lg_name}">{lg_name}</td>
+                <td style="padding:6px 12px;text-align:right" data-val="{channels_val}">{s['clubs']}+{s['leagues']}</td>
+                <td style="padding:6px 12px;text-align:right" data-val="{s['total_subs']}">{fmt_num(s['total_subs'])}</td>
+                <td style="padding:6px 12px;text-align:right" data-val="{s['clubs_subs']}">{fmt_num(s['clubs_subs'])}</td>
+                <td style="padding:6px 12px;text-align:right" data-val="{avg_club_subs}">{fmt_num(avg_club_subs)}</td>
+                <td style="padding:6px 12px;text-align:right" data-val="{s['league_subs']}">{fmt_num(s['league_subs'])}</td>
+                <td style="padding:6px 12px;text-align:right" data-val="{s['total_views']}">{fmt_num(s['total_views'])}</td>
+                <td style="padding:6px 12px;text-align:right" data-val="{vps}">{fmt_num(vps)}</td>
+                <td style="padding:6px 12px;text-align:right" data-val="{s['total_videos']}">{fmt_num(s['total_videos'])}</td>
+                <td style="padding:6px 12px;text-align:right" data-val="{s['long']}">{fmt_num(s['long'])}</td>
+                <td style="padding:6px 12px;text-align:right" data-val="{s['shorts']}">{fmt_num(s['shorts'])}</td>
+                <td style="padding:6px 12px;text-align:right" data-val="{avg_v}">{fmt_num(avg_v)}</td>
             </tr>"""
 
-        st.markdown(f"""
-        <table style="width:100%;border-collapse:collapse;font-size:14px">
+        _lg_table_height = len(sorted_leagues) * 37 + 100
+        components.html(f"""
+        <style>
+            .lg-table {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
+                         font-family:"Source Sans Pro",sans-serif; background:transparent; }}
+            .lg-table th {{ padding:6px 12px; user-select:none; }}
+            .lg-table th[data-col] {{ cursor:pointer; }}
+            .lg-table th[data-col]:hover {{ color:#636EFA; }}
+            .lg-table td {{ padding:6px 12px; border-bottom:1px solid #262730; }}
+            .lg-table .active {{ color:#636EFA; }}
+        </style>
+        <table class="lg-table">
         <thead>
         <tr style="border-bottom:2px solid #444">
-            <th style="padding:6px 12px;text-align:left">League</th>
-            <th style="padding:6px 12px;text-align:right">Channels</th>
-            <th style="padding:6px 12px;text-align:right">Subscribers</th>
-            <th style="padding:6px 12px;text-align:right">Subs Clubs</th>
-            <th style="padding:6px 12px;text-align:right">Avg Subs/Club</th>
-            <th style="padding:6px 12px;text-align:right">Subs League</th>
-            <th style="padding:6px 12px;text-align:right">Total Views</th>
-            <th style="padding:6px 12px;text-align:right">Views/Sub</th>
-            <th style="padding:6px 12px;text-align:right">Videos</th>
-            <th style="padding:6px 12px;text-align:right">Long</th>
-            <th style="padding:6px 12px;text-align:right">Shorts</th>
-            <th style="padding:6px 12px;text-align:right">Views/Video</th>
+            <th data-col="0" data-type="str" style="text-align:left">League</th>
+            <th data-col="1" data-type="num" style="text-align:right">Channels</th>
+            <th data-col="2" data-type="num" style="text-align:right" class="active">Subscribers ▼</th>
+            <th data-col="3" data-type="num" style="text-align:right">Subs Clubs</th>
+            <th data-col="4" data-type="num" style="text-align:right">Avg Subs/Club</th>
+            <th data-col="5" data-type="num" style="text-align:right">Subs League</th>
+            <th data-col="6" data-type="num" style="text-align:right">Total Views</th>
+            <th data-col="7" data-type="num" style="text-align:right">Views/Sub</th>
+            <th data-col="8" data-type="num" style="text-align:right">Videos</th>
+            <th data-col="9" data-type="num" style="text-align:right">Long</th>
+            <th data-col="10" data-type="num" style="text-align:right">Shorts</th>
+            <th data-col="11" data-type="num" style="text-align:right">Views/Video</th>
         </tr>
         </thead>
         <tbody>{rows_html}</tbody>
         </table>
-        """, unsafe_allow_html=True)
+        <script>
+        (function() {{
+            const table = document.querySelector('.lg-table');
+            const tbody = table.querySelector('tbody');
+            const headers = table.querySelectorAll('th[data-col]');
+            let currentCol = 2;
+            let currentAsc = false;
+            function sortTable(colIdx, type) {{
+                const rows = Array.from(tbody.rows);
+                const isStr = type === 'str';
+                if (colIdx === currentCol) {{ currentAsc = !currentAsc; }}
+                else {{ currentCol = colIdx; currentAsc = isStr; }}
+                rows.sort((a, b) => {{
+                    const va = a.cells[colIdx].dataset.val || '';
+                    const vb = b.cells[colIdx].dataset.val || '';
+                    let cmp;
+                    if (isStr) cmp = va.localeCompare(vb, undefined, {{sensitivity:'base'}});
+                    else cmp = (parseFloat(va) || 0) - (parseFloat(vb) || 0);
+                    return currentAsc ? cmp : -cmp;
+                }});
+                rows.forEach(r => tbody.appendChild(r));
+                headers.forEach(h => {{
+                    h.classList.remove('active');
+                    h.textContent = h.textContent.replace(/ [▲▼]/g, '');
+                }});
+                const a = table.querySelector('th[data-col="' + colIdx + '"]');
+                a.classList.add('active');
+                a.textContent += currentAsc ? ' ▲' : ' ▼';
+            }}
+            headers.forEach(h => {{
+                h.addEventListener('click', function() {{
+                    sortTable(parseInt(this.dataset.col), this.dataset.type || 'num');
+                }});
+            }});
+        }})();
+        </script>
+        """, height=_lg_table_height, scrolling=False)
 
         # League comparison charts — one per table dimension
         lg_df = pd.DataFrame([
