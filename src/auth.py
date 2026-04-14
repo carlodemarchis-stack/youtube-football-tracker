@@ -55,7 +55,11 @@ def require_admin():
     user = get_current_user()
     if user is None:
         st.warning("Please sign in to access this page.")
-        st.login("google")
+        try:
+            if st.button("Sign in with Google"):
+                st.login("google")
+        except Exception as e:
+            st.error(f"Login unavailable: {e}")
         st.stop()
     if user.get("role") != "admin":
         st.error("Admin access required.")
@@ -77,4 +81,8 @@ def show_auth_sidebar():
     else:
         with st.sidebar:
             st.markdown("---")
-            st.login("google")
+            try:
+                if st.button("Sign in with Google"):
+                    st.login("google")
+            except Exception as e:
+                st.caption(f"Login unavailable: {e}")
