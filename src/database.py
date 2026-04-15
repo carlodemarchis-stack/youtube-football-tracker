@@ -210,14 +210,26 @@ class Database:
     # ── Videos ────────────────────────────────────────────────
 
     def get_known_video_ids(self, channel_db_id: str) -> set[str]:
-        """Return set of youtube_video_id already stored for this channel."""
-        resp = (
-            self.client.table("videos")
-            .select("youtube_video_id")
-            .eq("channel_id", channel_db_id)
-            .execute()
-        )
-        return {r["youtube_video_id"] for r in (resp.data or [])}
+        """Return set of youtube_video_id already stored for this channel.
+        Paginated to bypass Supabase's default 1000-row limit — without this,
+        channels with >1000 videos get false 'new video' reports on every run."""
+        known: set[str] = set()
+        page_size = 1000
+        offset = 0
+        while True:
+            resp = (
+                self.client.table("videos")
+                .select("youtube_video_id")
+                .eq("channel_id", channel_db_id)
+                .range(offset, offset + page_size - 1)
+                .execute()
+            )
+            batch = resp.data or []
+            known.update(r["youtube_video_id"] for r in batch)
+            if len(batch) < page_size:
+                break
+            offset += page_size
+        return known
 
     def get_top_video_ids_for_channel(self, channel_db_id: str, limit: int = 100) -> list[str]:
         """Return youtube_video_ids of the current top N by views for a channel."""
