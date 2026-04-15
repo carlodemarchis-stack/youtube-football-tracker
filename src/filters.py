@@ -80,6 +80,12 @@ def render_header_filter(channels: list[dict]) -> tuple[str | None, dict | None]
             st.query_params["scope"] = selected_scope
         elif "scope" in st.query_params:
             del st.query_params["scope"]
+        _caption_map = {
+            "Overall": "Showing all leagues aggregated (clubs and league channels).",
+            "Leagues only": "Showing only league-level channels.",
+            "All clubs": "Showing every club across all leagues.",
+        }
+        st.caption(_caption_map.get(selected_scope, ""))
         return None, None
     else:
         st.session_state["_filter_scope"] = "Overall"
@@ -114,14 +120,17 @@ def render_header_filter(channels: list[dict]) -> tuple[str | None, dict | None]
 
     if selected_club == "All Clubs":
         st.session_state["_filter_include_league"] = False
+        st.caption(f"Showing **{selected_league}**: all clubs.")
         return selected_league, None
 
     if selected_club == "All Clubs + League":
         st.session_state["_filter_include_league"] = True
+        st.caption(f"Showing **{selected_league}**: all clubs and the league channel.")
         return selected_league, None
 
     st.session_state["_filter_include_league"] = False
     club_dict = next((ch for ch in clubs if ch["name"] == selected_club), None)
+    st.caption(f"Showing **{selected_club}** ({selected_league}).")
     return selected_league, club_dict
 
 
