@@ -42,7 +42,12 @@ def main() -> int:
         log("FATAL: missing YOUTUBE_API_KEY / SUPABASE_URL / SUPABASE_KEY")
         return 2
 
-    log("Starting daily channel snapshot")
+    # Sanitize common paste artifacts
+    sb_url = sb_url.strip().strip('"').strip("'")
+    sb_key = sb_key.strip().strip('"').strip("'")
+    yt_key = yt_key.strip().strip('"').strip("'")
+
+    log(f"Starting daily channel snapshot — url_len={len(sb_url)} key_len={len(sb_key)} yt_len={len(yt_key)} url_prefix={sb_url[:8]!r}")
     yt = YouTubeClient(yt_key)
     db = Database(sb_url, sb_key)
 
