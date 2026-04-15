@@ -156,6 +156,25 @@ class Database:
             offset += page_size
         return all_rows
 
+    def get_all_video_rows(self) -> list[dict]:
+        """Every video in the DB (minimal cols). Paginated."""
+        all_rows: list[dict] = []
+        page_size = 1000
+        offset = 0
+        while True:
+            resp = (
+                self.client.table("videos")
+                .select("id,youtube_video_id")
+                .range(offset, offset + page_size - 1)
+                .execute()
+            )
+            batch = resp.data or []
+            all_rows.extend(batch)
+            if len(batch) < page_size:
+                break
+            offset += page_size
+        return all_rows
+
     def get_all_snapshots(self, since_date: str | None = None) -> list[dict]:
         """All snapshots, optionally from a given ISO date (YYYY-MM-DD)."""
         q = self.client.table("channel_snapshots").select("*")
