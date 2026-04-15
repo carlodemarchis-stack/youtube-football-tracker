@@ -41,28 +41,35 @@ import pandas as pd
 _THEME_RULES: list[tuple[str, "re.Pattern"]] = [
     # Highlights (all common languages) — must check BEFORE Full Match so
     # "Juventus vs Inter | Highlights" classifies correctly even if duration
-    # is long (some clubs upload 15-min cuts).
+    # is long (some clubs upload 15-min cuts). Also catches "tous les buts"
+    # / "top arrêts" / "top saves" which are effectively highlight reels.
     ("Highlights", re.compile(
         r"highlight|sintesi|resumen|zusammenfassung|r[ée]sum[ée]|"
-        r"hoogtepunten|melhores momentos|\bgoles del partido\b"
+        r"hoogtepunten|melhores momentos|\bgoles del partido\b|"
+        r"tous les buts|top arr[êe]ts|top saves|\btop\s?10\s?(goals|buts|gols)"
     )),
-    # Press conference
+    # Press conference (add Catalan / German "PK" / post-partit variants)
     ("Press Conference", re.compile(
         r"press\s?conference|press\s?conf|presser|conferenza\s?stampa|"
-        r"rueda de prensa|pressekonferenz|conf[ée]rence de presse|coletiva"
+        r"rueda de prensa|pressekonferenz|conf[ée]rence de presse|coletiva|"
+        r"roda de premsa|\bpk\b\s*(mit|con|with|post|pre)|post\s?partit"
     )),
-    # Interview
+    # Interview & post-match reactions
     ("Interview", re.compile(
-        r"interview|intervista|entrevista|entretien|interviu|\bparla\b|\bhabla\b"
+        r"interview|intervista|entrevista|entretien|interviu|"
+        r"\bparla\b|\bhabla\b|r[ée]actions?\b|post[- ]?match|post[- ]?game|"
+        r"post[- ]?partido|declaraciones|dichiarazioni"
     )),
     # Training
     ("Training", re.compile(
         r"\btraining\b|allenamento|entrenamiento|entra[îi]nement|treino|\bprep\b|warm.?up"
     )),
-    # Transfer / Welcome / Signing
+    # Transfer / Welcome / Signing (extended)
     ("Transfer & Signings", re.compile(
         r"\bwelcome\b|signing|ufficiale|oficial|offiziell|officiel|"
-        r"\bmercato\b|\bfichaje\b|transfer|transfer[êe]ncia|unveil|presentazione|presentaci[oó]n"
+        r"\bmercato\b|\bfichaje\b|transfer|transfer[êe]ncia|unveil|"
+        r"presentazione|presentaci[oó]n|\bis here\b|ya es\b|vuelve a\b|"
+        r"de retour|bienvenu|bienvenido|benvenuto|willkommen"
     )),
     # Women's football (flag before Academy since both can appear)
     ("Women's Football", re.compile(
@@ -77,21 +84,81 @@ _THEME_RULES: list[tuple[str, "re.Pattern"]] = [
     ("Matchday", re.compile(
         r"matchday|gameday|giornata|d[ií]a de partido|spieltag|jour de match|"
         r"pre\s?match|pre.?game|\blineup\b|starting\s?xi|convocat|"
-        r"teamnews|team\s?news"
+        r"teamnews|team\s?news|arrivo allo stadio|llegada al estadio"
     )),
-    # Behind the scenes / inside
+    # Behind the scenes / inside / locker room / "no comment"
     ("Behind the Scenes", re.compile(
         r"behind the scene|dietro le quinte|detr[aá]s de|hinter den kulissen|"
-        r"coulisses|\bvlog\b|\binside\b|backstage|tunnel cam|bts\b"
+        r"coulisses|\bvlog\b|\binside\b|backstage|tunnel cam|\bbts\b|"
+        r"no comment|vestiaire|dressing.?room|locker.?room|spogliatoio"
+    )),
+    # Documentary / series (episodic content) — before Trailer so 'Ep2' sticks
+    ("Documentary & Series", re.compile(
+        r"\bdoku\b|documentary|documental|documentario|\blong.?format\b|"
+        r"\b[ée]pisode\s?\d|\bepisode\s?\d|\bep\.?\s?\d|\bsaison\s?\d|"
+        r"\bseason\s?\d|\bseries\b|\bserie\s?\d|\bcap[ií]tulo\s?\d|"
+        r"all about\s|\bthe howl\b|made in paris|the film|il film"
     )),
     # Trailer / promo
     ("Trailer & Promo", re.compile(
         r"\btrailer\b|\bpromo\b|\bteaser\b|\bpreview\b|anteprima|avance|vorschau"
     )),
-    # Goals & skills (lower priority — many titles mention "goal")
+    # Merch & Kit
+    ("Merch & Kit", re.compile(
+        r"\bkit\b|\bshirt\b|\bjersey\b|\bmaillot\b|\bcamiseta\b|\btrikot\b|"
+        r"\bmerch\b|\bcollection\b|\bcollezione\b|\bvintage\b|\bhome kit\b|"
+        r"\baway kit\b|\bthird kit\b|nuev[ao] camiseta|new kit"
+    )),
+    # Throwback / retro
+    ("Throwback", re.compile(
+        r"\b#?tb\b|throwback|flashback|\bprime\s\w+|top\s?1?\d+\s+(goal|buts|gols|skill|save)|"
+        r"\bremember\b|classic\b|storico|histórico|hist[óo]rica|"
+        r"\bvintage goals?\b|legendary|\blegendario\b"
+    )),
+    # Community / CSR / foundation
+    ("Community & CSR", re.compile(
+        r"\bcommunity\b|fondazione|fundaci[óo]n|fundazioa|fondation|stiftung|"
+        r"foundation|\bcharity\b|\bcsr\b|visite?\s+(à|au|de|en|del|della|dello)|"
+        r"hospital|b[ée]n[ée]vol|voluntari|awareness|donation|"
+        r"\blap of appreciation\b"
+    )),
+    # Player Spotlight / Player Cam
+    ("Player Spotlight", re.compile(
+        r"in focus|player cam|player of the (week|month|year)|\bpotm\b|"
+        r"spotlight|focus on\b|riflettori|profilo|\bprofile\b|close.?up|"
+        r"every angle|\bposter\b|\bday with\b|une journ[ée]e avec|un d[ií]a con"
+    )),
+    # Quiz / games
+    ("Quiz & Games", re.compile(
+        r"\bquiz+\b|\bquizz?\b|¿qui[eé]n|tu pr[ée]f[èe]res|ti preferisci|"
+        r"\bchallenge\b|\bdefi\b|\bsfida\b|who knows|connais.?tu|"
+        r"guess the|adivina|indovina"
+    )),
+    # Entertainment / comedy / pop-culture
+    ("Entertainment", re.compile(
+        r"half.?time show|bad bunny|squid game|\bfilter\b|\bprank\b|"
+        r"comedia|comedy|\bblooper\b|tu ris tu perds|funny moments|"
+        r"mr beast|concert"
+    )),
+    # Goals & skills (viral short plays) — keep broad; this is the catch-all
+    # for "Szobo's strike", "Too Cold from Palmer", poetry-in-motion clips
     ("Goals & Skills", re.compile(
-        r"\bbest goal|\btop goal|\bskill\b|dribbl|nutmeg|\btrick\b|\bassist\b|\bsave\b|\bparata\b|"
-        r"compilation|\bfree.?kick\b|\bpunizione\b|golazo|gola[çc]o"
+        r"\bbest goal|\btop goal|\bskill\b|dribbl|nutmeg|\btrick\b|\bassist\b|"
+        r"\bsave\b|\bparata\b|compilation|\bfree.?kick\b|\bpunizione\b|"
+        r"golazo|gola[çc]o|\bstunner\b|\bscreamer\b|\bbanger\b|"
+        r"wonder.?goal|long.?range|\bvolley\b|bicycle kick|chilena|"
+        r"\bstrike\b|\bgoalazo\b|poetry in motion|\bclass[ie]c goals?\b|"
+        r"\brocket\b|\bthunderbolt\b"
+    )),
+    # Match Recap (narrative, usually has team names + score + outcome verb).
+    # Runs late so Highlights / Full Match grab theirs first.
+    ("Match Recap", re.compile(
+        r"\b\d\s?[-–]\s?\d\b|\bvittoria\b|\bvictoria\b|\bvictoire\b|"
+        r"\bsconfitta\b|\bd[ée]faite\b|\bdefeat\b|\bderrota\b|"
+        r"\brimonta\b|\bcomeback\b|\bremontada\b|\bremonta\b|"
+        r"\bpareggio\b|\bempate\b|\bdraw\b|\b[ée]crase\b|\bdouche\b|"
+        r"\baccroche\b|accrochent|\bbat(s|tu|tent)\b|\bb[ae]ts\b|"
+        r"\bwin\b|\bwins\b|\bloss\b|\bhome win\b|\baway win\b"
     )),
 ]
 
