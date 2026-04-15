@@ -136,14 +136,25 @@ class Database:
 
     def get_season_video_rows(self, since: str = "2025-08-01") -> list[dict]:
         """All videos with published_at >= since (minimal columns).
-        Used by daily cron to decide which videos to snapshot."""
-        resp = (
-            self.client.table("videos")
-            .select("id,youtube_video_id,channel_id,published_at")
-            .gte("published_at", since)
-            .execute()
-        )
-        return resp.data or []
+        Used by daily cron to decide which videos to snapshot.
+        Paginates to bypass Supabase's default 1000-row limit."""
+        all_rows: list[dict] = []
+        page_size = 1000
+        offset = 0
+        while True:
+            resp = (
+                self.client.table("videos")
+                .select("id,youtube_video_id,channel_id,published_at")
+                .gte("published_at", since)
+                .range(offset, offset + page_size - 1)
+                .execute()
+            )
+            batch = resp.data or []
+            all_rows.extend(batch)
+            if len(batch) < page_size:
+                break
+            offset += page_size
+        return all_rows
 
     def get_all_snapshots(self, since_date: str | None = None) -> list[dict]:
         """All snapshots, optionally from a given ISO date (YYYY-MM-DD)."""
