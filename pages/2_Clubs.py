@@ -222,7 +222,8 @@ if league is None and _scope == "Overall":
     # ── Growth by League (from channel_snapshots) ───────────────
     from src.growth import group_by_channel as _gbc_l1, delta as _gdelta_l1, _parse_date as _pd_l1
     _since_l1 = (pd.Timestamp.utcnow().normalize() - pd.Timedelta(days=60)).strftime("%Y-%m-%d")
-    _snap_rows_l1 = db.get_all_snapshots(since_date=_since_l1)
+    with st.spinner("Loading growth snapshots…"):
+        _snap_rows_l1 = db.get_all_snapshots(since_date=_since_l1)
     # Map channel_id → league
     _ch_to_league = {c["id"]: get_league_for_channel(c) for c in all_channels}
 
@@ -493,7 +494,8 @@ elif club is None:
     from src.growth import group_by_channel as _gbc, delta as _gdelta
     _all_ids = [c["id"] for c in clubs_only]
     _since = (pd.Timestamp.utcnow().normalize() - pd.Timedelta(days=60)).strftime("%Y-%m-%d")
-    _snap_rows = db.get_all_snapshots(since_date=_since)
+    with st.spinner("Loading growth snapshots…"):
+        _snap_rows = db.get_all_snapshots(since_date=_since)
     _snap_rows = [r for r in _snap_rows if r["channel_id"] in set(_all_ids)]
     _by_ch = _gbc(_snap_rows)
 
@@ -707,7 +709,8 @@ else:
 
     # ── Growth (from channel_snapshots) ─────────────────────────
     from src.growth import delta as _gdelta, delta_since as _gdelta_since, days_covered as _gdays
-    _snaps = db.get_channel_snapshots(channel["id"])
+    with st.spinner(f"Loading {channel.get('name','club')} snapshots…"):
+        _snaps = db.get_channel_snapshots(channel["id"])
 
     st.subheader("Growth")
     if not _snaps or len(_snaps) < 2:

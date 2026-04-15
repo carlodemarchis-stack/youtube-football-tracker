@@ -46,12 +46,12 @@ day_iso = day.isoformat()
 prev_iso = prev_day.isoformat()
 
 # ── Load snapshots for day and the previous day ───────────────
-chan_snaps = db.get_all_snapshots(since_date=prev_iso)
+with st.spinner(f"Loading snapshots for {day_iso}…"):
+    chan_snaps = db.get_all_snapshots(since_date=prev_iso)
+    vid_snaps_day = db.get_video_snapshots_for_date(day_iso)
+    vid_snaps_prev = db.get_video_snapshots_for_date(prev_iso)
 chan_day = {s["channel_id"]: s for s in chan_snaps if s["captured_date"] == day_iso}
 chan_prev = {s["channel_id"]: s for s in chan_snaps if s["captured_date"] == prev_iso}
-
-vid_snaps_day = db.get_video_snapshots_for_date(day_iso)
-vid_snaps_prev = db.get_video_snapshots_for_date(prev_iso)
 vmap_day = {s["video_id"]: s for s in vid_snaps_day}
 vmap_prev = {s["video_id"]: s for s in vid_snaps_prev}
 

@@ -56,7 +56,8 @@ if club:
     # One club
     from src.filters import render_club_header
     render_club_header(club, all_channels)
-    raw_videos = db.get_videos_by_channel(club["id"])
+    with st.spinner(f"Loading {club['name']} videos…"):
+        raw_videos = db.get_videos_by_channel(club["id"])
     if not raw_videos:
         st.warning(f"No videos for {club['name']} yet.")
         st.stop()
@@ -68,7 +69,8 @@ elif league:
     # One league — fetch top-N only for that league's channels
     league_channels = get_channels_for_filter(all_channels, league)
     ch_ids = tuple(ch["id"] for ch in league_channels)
-    all_videos = _load_top_videos_for_channels(ch_ids, limit=500)
+    with st.spinner(f"Loading top videos for {league}…"):
+        all_videos = _load_top_videos_for_channels(ch_ids, limit=500)
     df = pd.DataFrame(all_videos)
     if df.empty:
         df["channel_name"] = []
@@ -81,7 +83,8 @@ elif league:
 else:
     # All leagues — fetch global top-N only
     scope = get_all_leagues_scope()
-    all_videos = _load_top_videos_global(limit=500)
+    with st.spinner("Loading top videos across all leagues…"):
+        all_videos = _load_top_videos_global(limit=500)
     df = pd.DataFrame(all_videos)
     df["channel_name"] = df["channels"].apply(lambda c: c["name"] if c else "Unknown")
     ch_by_name = {ch["name"]: ch for ch in all_channels}

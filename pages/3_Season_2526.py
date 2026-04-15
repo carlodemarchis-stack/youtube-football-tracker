@@ -51,7 +51,8 @@ if league is None and _scope == "Overall":
             return db.get_season_videos(since=since)
         # Fallback: old deploy without the helper
         return [v for v in db.get_all_videos() if (v.get("published_at") or "") >= since]
-    season_vids = _load_season_vids(SEASON_SINCE)
+    with st.spinner("Loading season videos across all leagues…"):
+        season_vids = _load_season_vids(SEASON_SINCE)
 
     # map channel_id → league
     ch_by_id = {c["id"]: c for c in all_channels}
@@ -200,7 +201,9 @@ if club is None:
 
     # Compute season stats per channel
     season_rows = []
-    for ch in clubs_only:
+    _prog = st.progress(0.0, text=f"Loading season videos for {len(clubs_only)} clubs…")
+    for _i, ch in enumerate(clubs_only, 1):
+        _prog.progress(_i / max(len(clubs_only), 1), text=f"Loading {ch['name']} ({_i}/{len(clubs_only)})…")
         season_vids = db.get_season_videos_by_channel(ch["id"], since=SEASON_SINCE)
 
         # Split by format (use 'format' field if available, fallback to duration < 60s)
@@ -242,6 +245,7 @@ if club is None:
             "likes": likes, "comments": comments, "eng_rate": eng_rate,
         })
 
+    _prog.empty()
     df = pd.DataFrame(season_rows)
 
     # Totals banner
@@ -582,7 +586,8 @@ else:
     from src.filters import render_club_header
     render_club_header(club, all_channels)
 
-    vids = db.get_season_videos_by_channel(club["id"], since=SEASON_SINCE)
+    with st.spinner(f"Loading {club['name']} season videos…"):
+        vids = db.get_season_videos_by_channel(club["id"], since=SEASON_SINCE)
     if not vids:
         st.info(f"No season videos for {club['name']} yet.")
         st.stop()
