@@ -58,7 +58,21 @@ _THEME_RULES: list[tuple[str, "re.Pattern"]] = [
     ("Interview", re.compile(
         r"interview|intervista|entrevista|entretien|interviu|"
         r"\bparla\b|\bhabla\b|r[ée]actions?\b|post[- ]?match|post[- ]?game|"
-        r"post[- ]?partido|declaraciones|dichiarazioni"
+        r"post[- ]?partido|declaraciones|dichiarazioni|"
+        r"\bstimmen\s+(nach|vor|zum|aus|zu)|zona\s?mixta|zone\s?mixte|"
+        r"flash\s?interview|les\s?[ée]motions"
+    )),
+    # Podcast & Talk — long-format conversational shows (catch before Interview? No — FPL podcast uses "podcast" keyword so safe)
+    ("Podcast & Talk", re.compile(
+        r"\bpodcast\b|fpl\s?podcast|radio\s?tv\s?serie\s?a|storie di serie a con|"
+        r"\bcharlamos\b|l['’]int[ée]grale|talk\s?show|\btertulia\b"
+    )),
+    # Tribute & Farewell — retirement, memorials, legacy goodbyes
+    ("Tribute & Farewell", re.compile(
+        r"merci\s+\w+\s*[!?¡]|\babschieds(spiel|rede|party)\b|hommage|"
+        r"\bfarewell\b|\badi[oó]s\b|\bdespedida\b|\baddio\b|in memory|in memoriam|"
+        r"\btribute\b|\btributo\b|\blegenda\b|legacy of|\bsuperga\b|"
+        r"retirement|retires?\b|ritira|se retira"
     )),
     # Training
     ("Training", re.compile(
@@ -69,7 +83,10 @@ _THEME_RULES: list[tuple[str, "re.Pattern"]] = [
         r"\bwelcome\b|signing|ufficiale|oficial|offiziell|officiel|"
         r"\bmercato\b|\bfichaje\b|transfer|transfer[êe]ncia|unveil|"
         r"presentazione|presentaci[oó]n|\bis here\b|ya es\b|vuelve a\b|"
-        r"de retour|bienvenu|bienvenido|benvenuto|willkommen"
+        r"de retour|bienvenu|bienvenido|benvenuto|willkommen|"
+        r"extends until|\brenew(al|s|ed)?\b|\brinnova\b|\brenueva\b|"
+        r"prolong(e|ation|aci[oó]n|amento)|prolunga|"
+        r"promesse\s+[\w\s]+\s?20\d{2}"
     )),
     # Women's football (flag before Academy since both can appear)
     ("Women's Football", re.compile(
@@ -84,13 +101,18 @@ _THEME_RULES: list[tuple[str, "re.Pattern"]] = [
     ("Matchday", re.compile(
         r"matchday|gameday|giornata|d[ií]a de partido|spieltag|jour de match|"
         r"pre\s?match|pre.?game|\blineup\b|starting\s?xi|convocat|"
-        r"teamnews|team\s?news|arrivo allo stadio|llegada al estadio"
+        r"teamnews|team\s?news|arrivo allo stadio|llegada al estadio|"
+        r"\barrive[sd]?\s+(for|at)\b|\bh[- ]?\d+\s?avant\b|\bambiance\b|"
+        r"\bderby\b|\bderbi\b|\bklassiker\b|\bel\s?cl[áa]sico\b|"
+        r"ankunft|arrivée|llegada"
     )),
     # Behind the scenes / inside / locker room / "no comment"
     ("Behind the Scenes", re.compile(
         r"behind the scene|dietro le quinte|detr[aá]s de|hinter den kulissen|"
         r"coulisses|\bvlog\b|\binside\b|backstage|tunnel cam|\bbts\b|"
-        r"no comment|vestiaire|dressing.?room|locker.?room|spogliatoio"
+        r"no comment|vestiaire|dressing.?room|locker.?room|spogliatoio|"
+        r"travel\s?asmr|zimmerduell|kabinen[- ]?(ansprache|insights|talk)|"
+        r"\binside training\b|inside the club"
     )),
     # Documentary / series (episodic content) — before Trailer so 'Ep2' sticks
     ("Documentary & Series", re.compile(
@@ -113,14 +135,18 @@ _THEME_RULES: list[tuple[str, "re.Pattern"]] = [
     ("Throwback", re.compile(
         r"\b#?tb\b|throwback|flashback|\bprime\s\w+|top\s?1?\d+\s+(goal|buts|gols|skill|save)|"
         r"\bremember\b|classic\b|storico|histórico|hist[óo]rica|"
-        r"\bvintage goals?\b|legendary|\blegendario\b"
+        r"\bvintage goals?\b|legendary|\blegendario\b|"
+        r"\banniversaire\b|\banniversary\b|\bgeburtstag\b|\bcumplea[ñn]os\b|"
+        r"\d+\s?years ago|\bin memory\b|\bon this day\b|\botd\b|"
+        r"joyeux anniversaire|feliz cumple"
     )),
     # Community / CSR / foundation
     ("Community & CSR", re.compile(
         r"\bcommunity\b|fondazione|fundaci[óo]n|fundazioa|fondation|stiftung|"
         r"foundation|\bcharity\b|\bcsr\b|visite?\s+(à|au|de|en|del|della|dello)|"
         r"hospital|b[ée]n[ée]vol|voluntari|awareness|donation|"
-        r"\blap of appreciation\b"
+        r"\blap of appreciation\b|d[ií]a internacional|\bsamaritans\b|"
+        r"together against|\bmovember\b|world cup of kindness"
     )),
     # Player Spotlight / Player Cam
     ("Player Spotlight", re.compile(
@@ -132,7 +158,10 @@ _THEME_RULES: list[tuple[str, "re.Pattern"]] = [
     ("Quiz & Games", re.compile(
         r"\bquiz+\b|\bquizz?\b|¿qui[eé]n|tu pr[ée]f[èe]res|ti preferisci|"
         r"\bchallenge\b|\bdefi\b|\bsfida\b|who knows|connais.?tu|"
-        r"guess the|adivina|indovina"
+        r"guess the|adivina|indovina|"
+        r"fifa\s?\d*\s?ratings|fifa\s?\d*\s?prediction|uno\s?showdown|"
+        r"petit\s?bac|\ba[- ]?to[- ]?z\b|a[- ]z\s+(of|player)|"
+        r"build your perfect|rate the|who['’]s your pick|\btier list\b"
     )),
     # Entertainment / comedy / pop-culture
     ("Entertainment", re.compile(
