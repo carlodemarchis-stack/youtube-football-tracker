@@ -155,11 +155,11 @@ class YouTubeClient:
         return counts
 
     def get_video_ids_since_by_format(self, channel_id: str, since: str) -> dict[str, list[str]]:
-        """Fetch season video IDs split by format using UULF + UUSH playlists.
+        """Fetch season video IDs split by format using UULF + UUSH + UULV playlists.
         Walks each playlist newest-first, stops at cutoff date.
-        Returns {"long": [...], "shorts": [...]}."""
-        result = {"long": [], "shorts": []}
-        for key, prefix in [("long", self.PREFIX_LONG), ("shorts", self.PREFIX_SHORTS)]:
+        Returns {"long": [...], "shorts": [...], "live": [...]}."""
+        result = {"long": [], "shorts": [], "live": []}
+        for key, prefix in [("long", self.PREFIX_LONG), ("shorts", self.PREFIX_SHORTS), ("live", self.PREFIX_LIVE)]:
             pl_id = self._playlist_id(channel_id, prefix)
             next_page = None
             while True:

@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 from src.database import Database
 from src.analytics import compute_channel_comparison, compute_tier_stats, compute_theme_distribution, fmt_num
-from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel, get_include_league, get_global_color_map, get_global_color_map_dual
+from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope
 from src.channels import COUNTRY_TO_LEAGUE
 
 load_dotenv()
@@ -38,6 +38,8 @@ league, club = get_global_filter()
 # ── Get videos based on filter ────────────────────────────────
 if club:
     # One club
+    from src.filters import render_club_header
+    render_club_header(club, all_channels)
     raw_videos = db.get_videos_by_channel(club["id"])
     if not raw_videos:
         st.warning(f"No videos for {club['name']} yet.")
@@ -57,17 +59,29 @@ elif league:
     color_field = "channel_name"
     color_map = get_global_color_map()
 else:
-    # All leagues
+    # All leagues — honor scope dropdown
+    scope = get_all_leagues_scope()
     all_videos = db.get_all_videos()
     df = pd.DataFrame(all_videos)
     df["channel_name"] = df["channels"].apply(lambda c: c["name"] if c else "Unknown")
-    # Add league column for coloring
-    ch_to_league = {}
-    for ch in all_channels:
-        ch_to_league[ch["name"]] = get_league_for_channel(ch)
-    df["league"] = df["channel_name"].map(ch_to_league).fillna("Other")
-    color_field = "league"
-    color_map = None
+    ch_by_name = {ch["name"]: ch for ch in all_channels}
+    if scope == "Leagues only":
+        keep = {n for n, c in ch_by_name.items() if c.get("entity_type") == "League"}
+        df = df[df["channel_name"].isin(keep)]
+        color_field = "channel_name"
+        color_map = get_global_color_map()
+    elif scope == "All clubs":
+        keep = {n for n, c in ch_by_name.items() if c.get("entity_type") != "League"}
+        df = df[df["channel_name"].isin(keep)]
+        ch_to_league = {n: get_league_for_channel(c) for n, c in ch_by_name.items()}
+        df["league"] = df["channel_name"].map(ch_to_league).fillna("Other")
+        color_field = "league"
+        color_map = None
+    else:
+        ch_to_league = {n: get_league_for_channel(c) for n, c in ch_by_name.items()}
+        df["league"] = df["channel_name"].map(ch_to_league).fillna("Other")
+        color_field = "league"
+        color_map = None
 
 if df.empty:
     st.warning("No video data for this selection.")

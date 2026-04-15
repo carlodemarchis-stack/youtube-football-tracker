@@ -298,6 +298,7 @@ def process_channel(ch, is_full, top_n, progress, chan_idx, chan_total, stop_fla
 
     channel_row = db.upsert_channel({**ch, **stats})
     channel_db_id = channel_row["id"]
+    db.snapshot_channel(channel_db_id, stats)
 
     if st.session_state.get(stop_flag_key):
         return 0, True
@@ -401,7 +402,9 @@ if start and selected and refresh_modes:
                     progress.progress((i - 1) / chan_total, text=f"[{i}/{chan_total}] {ch['name']}: updating stats...")
                     stats = yt.get_channel_stats(ch["youtube_channel_id"])
                     if stats:
-                        db.upsert_channel({**ch, **stats})
+                        row = db.upsert_channel({**ch, **stats})
+                        if row.get("id"):
+                            db.snapshot_channel(row["id"], stats)
                         channels_ok += 1
                         completed_names.append(ch["name"])
                         st.session_state["_run_remaining"] = [n for n in all_names if n not in completed_names]
@@ -433,17 +436,25 @@ if start and selected and refresh_modes:
 
                     channel_row = db.upsert_channel({**ch, **stats})
                     channel_db_id = channel_row["id"]
+                    db.snapshot_channel(channel_db_id, stats)
 
                     progress.progress((i - 1) / chan_total, text=f"{prefix}: fetching season video IDs (long + shorts)...")
                     season = yt.get_video_ids_since_by_format(channel_id, SEASON_SINCE)
                     long_ids = season["long"]
                     short_ids = season["shorts"]
+                    live_ids = season.get("live", [])
 
                     if st.session_state.get(STOP_KEY):
                         cancelled = True
                         break
 
-                    all_season_ids = long_ids + short_ids
+                    # De-dup (some live videos may also appear in long playlist)
+                    seen = set()
+                    all_season_ids = []
+                    for vid in long_ids + short_ids + live_ids:
+                        if vid not in seen:
+                            seen.add(vid)
+                            all_season_ids.append(vid)
                     if not all_season_ids:
                         results_area.caption(f"  {ch['name']} — no videos since {SEASON_SINCE}")
                         channels_ok += 1
@@ -452,7 +463,9 @@ if start and selected and refresh_modes:
                         continue
 
                     long_id_set = set(long_ids)
-                    progress.progress((i - 1) / chan_total, text=f"{prefix}: fetching details for {len(long_ids)} long + {len(short_ids)} shorts...")
+                    short_id_set = set(short_ids)
+                    live_id_set = set(live_ids)
+                    progress.progress((i - 1) / chan_total, text=f"{prefix}: fetching details for {len(long_ids)} long + {len(short_ids)} shorts + {len(live_ids)} live...")
                     season_videos = []
                     for batch_start in range(0, len(all_season_ids), 50):
                         if st.session_state.get(STOP_KEY):
@@ -461,7 +474,14 @@ if start and selected and refresh_modes:
                         batch = all_season_ids[batch_start : batch_start + 50]
                         batch_videos = yt.get_video_details(batch)
                         for v in batch_videos:
-                            v["format"] = "long" if v["youtube_video_id"] in long_id_set else "short"
+                            vid = v["youtube_video_id"]
+                            # Live takes precedence over long (live videos may appear in both playlists)
+                            if vid in live_id_set:
+                                v["format"] = "live"
+                            elif vid in short_id_set:
+                                v["format"] = "short"
+                            else:
+                                v["format"] = "long"
                         season_videos.extend(batch_videos)
                         done = min(batch_start + 50, len(all_season_ids))
                         pct = (i - 1 + done / max(len(all_season_ids), 1)) / chan_total

@@ -1,0 +1,37 @@
+name: Daily channel snapshot
+
+on:
+  schedule:
+    # 03:15 UTC daily. GitHub cron can drift up to ~15 min under load.
+    - cron: "15 3 * * *"
+  workflow_dispatch: {}  # manual "Run workflow" button in the Actions tab
+
+concurrency:
+  group: daily-refresh
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run daily snapshot
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          SUPABASE_URL:    ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY:    ${{ secrets.SUPABASE_KEY }}
+        run: python scripts/daily_refresh.py

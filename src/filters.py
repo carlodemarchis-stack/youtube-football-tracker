@@ -62,7 +62,7 @@ def render_header_filter(channels: list[dict]) -> tuple[str | None, dict | None]
         st.session_state["_filter_club"] = "All Clubs"
         _sync_query_params(selected_league, "All Clubs")
         # Secondary scope dropdown
-        scope_options = ["Overall", "Leagues only", "Clubs only"]
+        scope_options = ["Overall", "Leagues only", "All clubs"]
         if "_filter_scope" not in st.session_state:
             st.session_state["_filter_scope"] = st.query_params.get("scope", "Overall")
         if st.session_state["_filter_scope"] not in scope_options:
@@ -240,7 +240,7 @@ def _load_colors() -> dict[str, tuple[str, str]]:
 
 
 def get_all_leagues_scope() -> str:
-    """When league == 'All Leagues', returns 'Overall' | 'Leagues only' | 'Clubs only'."""
+    """When league == 'All Leagues', returns 'Overall' | 'Leagues only' | 'All clubs'."""
     return st.session_state.get("_filter_scope", "Overall")
 
 
@@ -250,7 +250,7 @@ def get_channels_for_filter(channels: list[dict], league: str | None) -> list[di
         scope = get_all_leagues_scope()
         if scope == "Leagues only":
             return [ch for ch in channels if ch.get("entity_type") == "League"]
-        if scope == "Clubs only":
+        if scope == "All clubs":
             return [ch for ch in channels if ch.get("entity_type") != "League"]
         return channels
     return [
@@ -262,3 +262,33 @@ def get_channels_for_filter(channels: list[dict], league: str | None) -> list[di
 def get_league_for_channel(ch: dict) -> str:
     """Get league name for a channel."""
     return COUNTRY_TO_LEAGUE.get(ch.get("country", ""), ch.get("country", ""))
+
+
+def render_club_header(channel: dict, all_channels: list[dict]) -> None:
+    """Render a club's name with inline subscriber ranks (league + overall)."""
+    clubs = [c for c in all_channels if c.get("entity_type") != "League"]
+    clubs.sort(key=lambda c: c.get("subscriber_count", 0), reverse=True)
+    overall_rank = next((i + 1 for i, c in enumerate(clubs) if c["id"] == channel["id"]), None)
+    overall_total = len(clubs)
+    ch_league = COUNTRY_TO_LEAGUE.get((channel.get("country") or "").upper(), "")
+    peers = [c for c in clubs if COUNTRY_TO_LEAGUE.get((c.get("country") or "").upper(), "") == ch_league]
+    peers.sort(key=lambda c: c.get("subscriber_count", 0), reverse=True)
+    league_rank = next((i + 1 for i, c in enumerate(peers) if c["id"] == channel["id"]), None)
+    league_total = len(peers)
+
+    bits = []
+    if league_rank and ch_league:
+        bits.append(f"#{league_rank}/{league_total} in {ch_league}")
+    if overall_rank:
+        bits.append(f"#{overall_rank}/{overall_total} overall")
+    launched = (channel.get("launched_at") or "")[:10]
+    if launched:
+        bits.append(f"launched {launched}")
+    rank_html = (
+        f"<span style='color:#888;font-size:0.95rem;font-weight:400;margin-left:14px'>"
+        f"{' · '.join(bits)}</span>" if bits else ""
+    )
+    st.markdown(
+        f"<h3 style='margin:0'>{channel['name']}{rank_html}</h3>",
+        unsafe_allow_html=True,
+    )

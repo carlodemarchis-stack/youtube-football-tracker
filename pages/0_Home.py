@@ -15,7 +15,7 @@ st.markdown(
       *scope*:
         - *Overall* — everything aggregated by league
         - *Leagues only* — just league channels
-        - *Clubs only* — all clubs across every league
+        - *All clubs* — all clubs across every league
     - **One League** — narrows to a single competition; a club dropdown lets you
       also pick *All Clubs* or *All Clubs + League channel*
     - **One Club** — focuses every page on a single channel

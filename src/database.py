@@ -65,6 +65,39 @@ class Database:
         )
         return resp.data[0] if resp.data else {}
 
+    def snapshot_channel(self, channel_db_id: str, stats: dict):
+        """Append a daily snapshot row. Unique on (channel_id, captured_date)
+        so re-runs on the same day no-op via upsert."""
+        today = datetime.now(timezone.utc).date().isoformat()
+        row = {
+            "channel_id": channel_db_id,
+            "captured_date": today,
+            "subscriber_count": stats.get("subscriber_count", 0),
+            "total_views": stats.get("total_views", 0),
+            "video_count": stats.get("video_count", 0),
+            "long_form_count": stats.get("long_form_count", 0),
+            "shorts_count": stats.get("shorts_count", 0),
+            "live_count": stats.get("live_count", 0),
+        }
+        try:
+            self.client.table("channel_snapshots").upsert(
+                row, on_conflict="channel_id,captured_date"
+            ).execute()
+        except Exception as e:
+            # Don't fail the refresh if snapshot table isn't there yet
+            print(f"snapshot_channel skipped: {e}")
+
+    def get_channel_snapshots(self, channel_db_id: str, limit: int = 365) -> list[dict]:
+        resp = (
+            self.client.table("channel_snapshots")
+            .select("*")
+            .eq("channel_id", channel_db_id)
+            .order("captured_date", desc=False)
+            .limit(limit)
+            .execute()
+        )
+        return resp.data or []
+
     def get_all_channels(self) -> list[dict]:
         resp = self.client.table("channels").select("*").execute()
         return resp.data or []

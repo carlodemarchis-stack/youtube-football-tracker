@@ -19,6 +19,7 @@ load_dotenv()
 
 st.title("Channels")
 
+
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 
@@ -66,9 +67,27 @@ if league is None and _scope == "Overall":
         league_stats[lg]["shorts"] += ch.get("shorts_count", 0)
 
     if league_stats:
-        st.subheader("Leagues")
         # Sort by total subs descending by default
         sorted_leagues = sorted(league_stats.items(), key=lambda kv: kv[1]["total_subs"], reverse=True)
+
+        # Totals banner (metric cards, consistent with zoom-2)
+        tot = {
+            "clubs": sum(s["clubs"] for _, s in sorted_leagues),
+            "leagues": sum(s["leagues"] for _, s in sorted_leagues),
+            "total_subs": sum(s["total_subs"] for _, s in sorted_leagues),
+            "total_views": sum(s["total_views"] for _, s in sorted_leagues),
+            "total_videos": sum(s["total_videos"] for _, s in sorted_leagues),
+        }
+        tot_vps = tot["total_views"] // max(tot["total_subs"], 1)
+        tot_avg_v = tot["total_views"] // max(tot["total_videos"], 1)
+        _mcols = st.columns(5)
+        _mcols[0].metric("Total Subscribers", fmt_num(tot["total_subs"]))
+        _mcols[1].metric("Total Views", fmt_num(tot["total_views"]))
+        _mcols[2].metric("Views/Sub", fmt_num(tot_vps))
+        _mcols[3].metric("Total Videos", fmt_num(tot["total_videos"]))
+        _mcols[4].metric("Avg Views/Video", fmt_num(tot_avg_v))
+
+
         rows_html = ""
         for lg_name, s in sorted_leagues:
             avg_v = s["total_views"] // max(s["total_videos"], 1)
@@ -104,8 +123,8 @@ if league is None and _scope == "Overall":
         <table class="lg-table">
         <thead>
         <tr style="border-bottom:2px solid #444">
-            <th data-col="0" data-type="str" style="text-align:left">League</th>
-            <th data-col="1" data-type="num" style="text-align:right">Channels</th>
+            <th style="text-align:left">League</th>
+            <th style="text-align:right">Channels</th>
             <th data-col="2" data-type="num" style="text-align:right" class="active">Subscribers ▼</th>
             <th data-col="3" data-type="num" style="text-align:right">Subs Clubs</th>
             <th data-col="4" data-type="num" style="text-align:right">Avg Subs/Club</th>
@@ -165,6 +184,7 @@ if league is None and _scope == "Overall":
         ])
         lg_df["avg_views_per_video"] = (lg_df["total_views"] / lg_df["total_videos"].replace(0, 1)).astype(int)
         lg_df["views_per_sub"] = (lg_df["total_views"] / lg_df["total_subs"].replace(0, 1)).astype(int)
+        lg_df["avg_subs_per_club"] = (lg_df["clubs_subs"] / lg_df["clubs"].replace(0, 1)).astype(int)
 
         def make_league_bar(data, y_col, title):
             sorted_data = data.sort_values(y_col, ascending=False)
@@ -173,10 +193,6 @@ if league is None and _scope == "Overall":
             fig.update_layout(showlegend=False, xaxis_title="", yaxis_title="", margin=dict(t=40, b=20))
             return fig
 
-        st.plotly_chart(make_league_bar(lg_df, "total_subs", "Subscribers by League"), use_container_width=True)
-        st.plotly_chart(make_league_bar(lg_df, "total_views", "Total Views by League"), use_container_width=True)
-        st.plotly_chart(make_league_bar(lg_df, "views_per_sub", "Views/Sub by League"), use_container_width=True)
-        st.plotly_chart(make_league_bar(lg_df, "total_videos", "Videos by League"), use_container_width=True)
         # Stacked: Videos — Long vs Shorts per league
         import plotly.graph_objects as go
         stacked_order = lg_df.sort_values("total_videos", ascending=False)
@@ -186,8 +202,22 @@ if league is None and _scope == "Overall":
         fig_stack.update_layout(title="Videos by League (Long vs Shorts)", barmode="stack",
                                 xaxis_title="", yaxis_title="", margin=dict(t=40, b=20),
                                 legend=dict(orientation="h", y=1.1, x=0.5, xanchor="center"))
-        st.plotly_chart(fig_stack, use_container_width=True)
-        st.plotly_chart(make_league_bar(lg_df, "avg_views_per_video", "Views/Video by League"), use_container_width=True)
+
+        charts = [
+            make_league_bar(lg_df, "total_subs", "Subscribers by League"),
+            make_league_bar(lg_df, "clubs_subs", "Subs — Clubs by League"),
+            make_league_bar(lg_df, "avg_subs_per_club", "Avg Subs per Club by League"),
+            make_league_bar(lg_df, "league_subs", "Subs — League Channel by League"),
+            make_league_bar(lg_df, "total_views", "Total Views by League"),
+            make_league_bar(lg_df, "views_per_sub", "Views/Sub by League"),
+            make_league_bar(lg_df, "total_videos", "Videos by League"),
+            fig_stack,
+            make_league_bar(lg_df, "avg_views_per_video", "Views/Video by League"),
+        ]
+        for i in range(0, len(charts), 2):
+            cols = st.columns(2)
+            for j, fig in enumerate(charts[i:i+2]):
+                cols[j].plotly_chart(fig, use_container_width=True)
 
     last_fetch = max((c.get("last_fetched") or "" for c in all_channels), default="Never") or "Never"
     st.caption(f"Last updated: {last_fetch}")
@@ -202,7 +232,7 @@ elif club is None:
 
     # Club list: include league channel when "All Clubs + League" is selected
     if league is None:
-        # All Leagues + scope (Leagues only / Clubs only) — already filtered by scope
+        # All Leagues + scope (Leagues only / All clubs) — already filtered by scope
         clubs_only = league_channels
     elif include_league:
         clubs_only = league_channels
@@ -353,9 +383,6 @@ elif club is None:
         fig.update_layout(showlegend=False, xaxis_title="", yaxis_title="", margin=dict(t=40, b=20))
         return fig
 
-    st.plotly_chart(make_bar(df, "subscriber_count", "Total Subscribers per Channel"), use_container_width=True)
-    st.plotly_chart(make_bar(df, "total_views", "Total Views across All Videos"), use_container_width=True)
-    st.plotly_chart(make_bar(df, "views_per_sub", "Views per Subscriber (Engagement Efficiency)"), use_container_width=True)
     # Stacked bar: Videos (Long vs Shorts)
     import plotly.graph_objects as go
     fig_vids = go.Figure()
@@ -367,8 +394,23 @@ elif club is None:
         legend=dict(orientation="h", y=1.1, x=0.5, xanchor="center"),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(color="#FAFAFA"),
     )
-    st.plotly_chart(fig_vids, use_container_width=True)
-    st.plotly_chart(make_bar(df, "avg_views_per_video", "Average Views per Video"), use_container_width=True)
+
+    _charts = [
+        make_bar(df, "subscriber_count", "Total Subscribers per Channel"),
+        make_bar(df, "total_views", "Total Views across All Videos"),
+        make_bar(df, "views_per_sub", "Views per Subscriber (Engagement Efficiency)"),
+        fig_vids,
+        make_bar(df, "avg_views_per_video", "Average Views per Video"),
+    ]
+    # All Leagues → Leagues only: render 2 per row
+    if league is None and _scope == "Leagues only":
+        for _i in range(0, len(_charts), 2):
+            _cols = st.columns(2)
+            for _j, _f in enumerate(_charts[_i:_i+2]):
+                _cols[_j].plotly_chart(_f, use_container_width=True)
+    else:
+        for _f in _charts:
+            st.plotly_chart(_f, use_container_width=True)
 
     last_fetch = max((c.get("last_fetched") or "" for c in clubs_only), default="Never") or "Never"
     st.caption(f"Last updated: {last_fetch}")
@@ -399,106 +441,103 @@ elif club is None:
 else:
     channel = club
 
-    # Club stats card
-    st.subheader(f"{channel['name']}")
-    cols = st.columns(4)
-    cols[0].metric("Subscribers", fmt_num(channel.get('subscriber_count', 0)))
-    cols[1].metric("Total Views", fmt_num(channel.get('total_views', 0)))
-    cols[2].metric("Videos", fmt_num(channel.get('video_count', 0)))
-    avg = channel.get("total_views", 0) // max(channel.get("video_count", 1), 1)
-    cols[3].metric("Avg Views/Video", fmt_num(avg))
+    # Club colors (never black on dark bg)
+    def _safe_color(c, fallback):
+        if not c:
+            return fallback
+        u = c.upper().strip()
+        if u in ("#000000", "#000", "#111111", "#0A0A0A"):
+            return fallback
+        return c
+    CLUB_C1 = _safe_color(channel.get("color"), "#636EFA")
+    CLUB_C2 = _safe_color(channel.get("color2"), "#FFFFFF")
+    if CLUB_C2.upper() == CLUB_C1.upper():
+        CLUB_C2 = "#FFFFFF" if CLUB_C1.upper() != "#FFFFFF" else "#AAAAAA"
 
-    # Videos
-    videos = db.get_videos_by_channel(channel["id"])
-    if not videos:
-        st.info("No videos fetched for this channel yet.")
-        st.stop()
+    from src.filters import render_club_header
+    render_club_header(channel, all_channels)
 
-    df = pd.DataFrame(videos)
-    df["published_at"] = pd.to_datetime(df["published_at"], utc=True)
+    import plotly.graph_objects as go
 
-    # Upload frequency by year
-    st.subheader("Upload Frequency")
-    df["year"] = df["published_at"].dt.year
-    yearly_uploads = df.groupby("year").size().reset_index(name="count")
-    fig = px.bar(yearly_uploads, x="year", y="count", labels={"year": "Year", "count": "Videos in Top 100"})
-    fig.update_layout(xaxis=dict(dtick=1, title="Year"), yaxis_title="Videos in Top 100")
-    st.plotly_chart(fig, use_container_width=True)
+    # ── KPI banner (same structure as All-Clubs banner) + inline ranks ───
+    subs_ch = channel.get('subscriber_count', 0) or 0
+    total_views_ch = channel.get("total_views", 0) or 0
+    video_count_ch = channel.get("video_count", 0) or 0
+    vps_ch = total_views_ch // max(subs_ch, 1)
+    avg_vpv_ch = total_views_ch // max(video_count_ch, 1)
 
-    # Duration distribution
-    st.subheader("Duration Distribution")
-    df["duration_min"] = df["duration_seconds"] / 60
-    fig2 = px.histogram(df, x="duration_min", nbins=30, labels={"duration_min": "Duration (minutes)"})
-    fig2.update_layout(yaxis_title="Count")
-    st.plotly_chart(fig2, use_container_width=True)
+    # compute ranks across different metrics, vs league peers and vs all clubs
+    from src.filters import get_league_for_channel as _get_lg
+    _clubs = [c for c in all_channels if c.get("entity_type") != "League"]
+    _ch_league = _get_lg(channel)
+    _peers = [c for c in _clubs if _get_lg(c) == _ch_league]
+    _metric_getters = {
+        "subs": lambda c: c.get("subscriber_count", 0) or 0,
+        "views": lambda c: c.get("total_views", 0) or 0,
+        "vps": lambda c: (c.get("total_views", 0) or 0) // max(c.get("subscriber_count", 0) or 0, 1),
+        "videos": lambda c: c.get("video_count", 0) or 0,
+        "vpv": lambda c: (c.get("total_views", 0) or 0) // max(c.get("video_count", 0) or 0, 1),
+    }
+    def _rank(metric, scope):
+        pool = _peers if scope == "league" else _clubs
+        sorted_pool = sorted(pool, key=_metric_getters[metric], reverse=True)
+        try:
+            return next(i + 1 for i, c in enumerate(sorted_pool) if c["id"] == channel["id"]), len(sorted_pool)
+        except StopIteration:
+            return None, len(sorted_pool)
 
-    # Year-over-year
-    st.subheader("Year-over-Year Performance")
-    df["year"] = df["published_at"].dt.year
-    yearly = df.groupby("year").agg(
-        videos=("youtube_video_id", "count"),
-        total_views=("view_count", "sum"),
-        avg_views=("view_count", "mean"),
-    ).reset_index()
-    yearly["avg_views"] = yearly["avg_views"].astype(int)
-    fig4 = px.bar(yearly, x="year", y="total_views", labels={"year": "Year", "total_views": "Total Views"})
-    st.plotly_chart(fig4, use_container_width=True)
+    def _rank_html(metric):
+        lr, lt = _rank(metric, "league")
+        orr, ot = _rank(metric, "overall")
+        parts = []
+        if lr:
+            parts.append(f"#{lr}/{lt} in {_ch_league}")
+        if orr:
+            parts.append(f"#{orr}/{ot} overall")
+        return f"<div style='color:#888;font-size:0.8rem;margin-top:-6px'>{' · '.join(parts)}</div>" if parts else ""
 
-    # Top 100 videos table
-    st.subheader("Top 100 Videos")
-    top = df.sort_values("view_count", ascending=False).head(100).reset_index(drop=True)
-    table_df = top[["title", "view_count", "like_count", "comment_count", "published_at", "duration_seconds", "category"]].copy()
-    table_df["view_count"] = table_df["view_count"].apply(fmt_num)
-    table_df["like_count"] = table_df["like_count"].apply(fmt_num)
-    table_df["comment_count"] = table_df["comment_count"].apply(fmt_num)
-    table_df["published_at"] = table_df["published_at"].dt.strftime("%Y-%m-%d")
-    table_df["duration_seconds"] = table_df["duration_seconds"].apply(lambda s: f"{s // 60}:{s % 60:02d}" if s else "0:00")
-    table_df.index = range(1, len(table_df) + 1)
-    table_df.index.name = "Rank"
-    st.dataframe(
-        table_df.rename(columns={
-            "title": "Title",
-            "view_count": "Views",
-            "like_count": "Likes",
-            "comment_count": "Comments",
-            "published_at": "Published",
-            "duration_seconds": "Duration",
-            "category": "Theme",
-        }),
-        use_container_width=True,
-    )
+    cols = st.columns(5)
+    with cols[0]:
+        st.metric("Total Subscribers", fmt_num(subs_ch))
+        st.markdown(_rank_html("subs"), unsafe_allow_html=True)
+    with cols[1]:
+        st.metric("Total Views", fmt_num(total_views_ch))
+        st.markdown(_rank_html("views"), unsafe_allow_html=True)
+    with cols[2]:
+        st.metric("Views/Sub", fmt_num(vps_ch))
+        st.markdown(_rank_html("vps"), unsafe_allow_html=True)
+    with cols[3]:
+        st.metric("Total Videos", fmt_num(video_count_ch))
+        st.markdown(_rank_html("videos"), unsafe_allow_html=True)
+    with cols[4]:
+        st.metric("Avg Views/Video", fmt_num(avg_vpv_ch))
+        st.markdown(_rank_html("vpv"), unsafe_allow_html=True)
 
-    # Top 100 This Season
-    SEASON_SINCE = "2025-08-01"
-    season_vids = db.get_season_videos_by_channel(channel["id"], since=SEASON_SINCE)
-    if season_vids:
-        st.subheader("Top 100 This Season")
-        sdf = pd.DataFrame(season_vids).head(100)
-        s_total_views = int(sdf["view_count"].sum())
-        s_avg_views = int(sdf["view_count"].mean())
-        scols = st.columns(3)
-        scols[0].metric("Season Videos", fmt_num(len(season_vids)))
-        scols[1].metric("Top 100 Views", fmt_num(s_total_views))
-        scols[2].metric("Avg Views", fmt_num(s_avg_views))
+    # ── Content breakdown — donuts for lifetime format split ───
+    import plotly.graph_objects as go
+    long_n = channel.get("long_form_count", 0) or 0
+    short_n = channel.get("shorts_count", 0) or 0
+    live_n = channel.get("live_count", 0) or 0
+    fmt_total = long_n + short_n + live_n
 
-        s_table = sdf[["title", "view_count", "like_count", "comment_count", "published_at", "duration_seconds", "category"]].copy()
-        s_table["published_at"] = pd.to_datetime(s_table["published_at"], utc=True)
-        s_table["view_count"] = s_table["view_count"].apply(fmt_num)
-        s_table["like_count"] = s_table["like_count"].apply(fmt_num)
-        s_table["comment_count"] = s_table["comment_count"].apply(fmt_num)
-        s_table["published_at"] = s_table["published_at"].dt.strftime("%Y-%m-%d")
-        s_table["duration_seconds"] = s_table["duration_seconds"].apply(lambda s: f"{s // 60}:{s % 60:02d}" if s else "0:00")
-        s_table.index = range(1, len(s_table) + 1)
-        s_table.index.name = "Rank"
-        st.dataframe(
-            s_table.rename(columns={
-                "title": "Title",
-                "view_count": "Views",
-                "like_count": "Likes",
-                "comment_count": "Comments",
-                "published_at": "Published",
-                "duration_seconds": "Duration",
-                "category": "Theme",
-            }),
-            use_container_width=True,
+    if fmt_total > 0:
+        fig = go.Figure(go.Pie(
+            labels=["Long", "Shorts", "Live"],
+            values=[long_n, short_n, live_n],
+            marker=dict(colors=[CLUB_C1, CLUB_C2, "#FFA15A"]),
+            hole=0.55,
+            textinfo="label+percent", textposition="inside",
+            hovertemplate="%{label}: %{value:,.0f}<extra></extra>",
+        ))
+        fig.update_layout(
+            title=dict(text="Videos published (lifetime)", x=0.5),
+            showlegend=False, height=320,
+            margin=dict(t=40, b=20, l=20, r=20),
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#FAFAFA"),
+            annotations=[dict(text=fmt_num(fmt_total), x=0.5, y=0.5, showarrow=False,
+                              font=dict(size=18, color="#FAFAFA"))],
         )
+        st.plotly_chart(fig, use_container_width=True)
+
+    st.caption("See **Top Videos** for the all-time top 100 and **Season 25/26** for current-season activity.")
