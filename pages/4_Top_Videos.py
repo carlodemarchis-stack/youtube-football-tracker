@@ -35,6 +35,22 @@ if not all_channels:
 
 league, club = get_global_filter()
 
+
+# Top-N is all we ever need for charts/tables on this page.
+@st.cache_data(ttl=300)
+def _load_top_videos_global(limit: int = 500):
+    if hasattr(db, "get_top_videos"):
+        return db.get_top_videos(limit=limit)
+    return db.get_all_videos()[:limit]
+
+
+@st.cache_data(ttl=300)
+def _load_top_videos_for_channels(channel_ids: tuple, limit: int = 500):
+    if hasattr(db, "get_top_videos_in_channels"):
+        return db.get_top_videos_in_channels(list(channel_ids), limit=limit)
+    return [v for v in db.get_all_videos() if v.get("channel_id") in set(channel_ids)][:limit]
+
+
 # ── Get videos based on filter ────────────────────────────────
 if club:
     # One club
@@ -49,19 +65,23 @@ if club:
     color_field = "category"
     color_map = None
 elif league:
-    # One league
+    # One league — fetch top-N only for that league's channels
     league_channels = get_channels_for_filter(all_channels, league)
-    all_videos = db.get_all_videos()
+    ch_ids = tuple(ch["id"] for ch in league_channels)
+    all_videos = _load_top_videos_for_channels(ch_ids, limit=500)
     df = pd.DataFrame(all_videos)
-    df["channel_name"] = df["channels"].apply(lambda c: c["name"] if c else "Unknown")
+    if df.empty:
+        df["channel_name"] = []
+    else:
+        df["channel_name"] = df["channels"].apply(lambda c: c["name"] if c else "Unknown")
     league_names = {ch["name"] for ch in league_channels}
-    df = df[df["channel_name"].isin(league_names)]
+    df = df[df["channel_name"].isin(league_names)] if not df.empty else df
     color_field = "channel_name"
     color_map = get_global_color_map()
 else:
-    # All leagues — honor scope dropdown
+    # All leagues — fetch global top-N only
     scope = get_all_leagues_scope()
-    all_videos = db.get_all_videos()
+    all_videos = _load_top_videos_global(limit=500)
     df = pd.DataFrame(all_videos)
     df["channel_name"] = df["channels"].apply(lambda c: c["name"] if c else "Unknown")
     ch_by_name = {ch["name"]: ch for ch in all_channels}

@@ -360,6 +360,32 @@ class Database:
         )
         return _fetch_all(query)
 
+    def get_top_videos(self, limit: int = 500) -> list[dict]:
+        """Top-N videos globally by view_count, with channel join.
+        Use instead of get_all_videos() when you only need the head of the list."""
+        resp = (
+            self.client.table("videos")
+            .select("*, channels(name, handle)")
+            .order("view_count", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return resp.data or []
+
+    def get_top_videos_in_channels(self, channel_ids: list[str], limit: int = 500) -> list[dict]:
+        """Top-N videos across a specific set of channels, by view_count."""
+        if not channel_ids:
+            return []
+        resp = (
+            self.client.table("videos")
+            .select("*, channels(name, handle)")
+            .in_("channel_id", channel_ids)
+            .order("view_count", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return resp.data or []
+
     def get_season_videos(self, since: str = "2025-08-01") -> list[dict]:
         """All videos published on/after `since` — filtered at the DB level.
         Much faster than get_all_videos() + Python filter when the season
