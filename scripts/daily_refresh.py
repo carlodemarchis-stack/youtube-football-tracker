@@ -24,7 +24,7 @@ import os
 import sys
 import time
 import traceback
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -32,6 +32,11 @@ from src.database import Database
 from src.youtube_api import YouTubeClient
 
 SEASON_SINCE = "2025-08-01"
+# Per-video snapshots are scoped to a rolling window: only videos published
+# in the last SNAPSHOT_WINDOW_DAYS get a daily snapshot. Older videos rarely
+# change enough to justify the row cost, and velocity/trending use cases
+# care about fresh content anyway.
+SNAPSHOT_WINDOW_DAYS = 30
 
 
 def log(msg: str) -> None:
@@ -125,11 +130,12 @@ def main() -> int:
             failed.append((name, str(e)[:200]))
             log(f"[{i}/{total}] {name} — ERROR: {e}")
 
-    # ── 3. Snapshot every season video's current stats (one big pass) ──
-    log("Snapshotting season videos...")
+    # ── 3. Snapshot recent-window video stats (rolling 30 days) ──
+    window_cutoff = (datetime.now(timezone.utc) - timedelta(days=SNAPSHOT_WINDOW_DAYS)).date().isoformat()
+    log(f"Snapshotting videos published since {window_cutoff} ({SNAPSHOT_WINDOW_DAYS}d window)...")
     try:
-        season_rows = db.get_season_video_rows(SEASON_SINCE)
-        log(f"  {len(season_rows)} season videos in DB")
+        season_rows = db.get_season_video_rows(window_cutoff)
+        log(f"  {len(season_rows)} videos in window")
         if season_rows:
             # Refresh stats for all of them in batches
             id_to_dbid = {r["youtube_video_id"]: r["id"] for r in season_rows}
