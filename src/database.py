@@ -360,6 +360,18 @@ class Database:
         )
         return _fetch_all(query)
 
+    def get_season_videos(self, since: str = "2025-08-01") -> list[dict]:
+        """All videos published on/after `since` — filtered at the DB level.
+        Much faster than get_all_videos() + Python filter when the season
+        subset is small vs the full table."""
+        query = (
+            self.client.table("videos")
+            .select("*, channels(name, handle)")
+            .gte("published_at", since)
+            .order("view_count", desc=True)
+        )
+        return _fetch_all(query)
+
     # ── Channel Insights (AI) ────────────────────────────────
 
     def save_insights(self, channel_id: str, insights: dict, model: str = "claude-sonnet-4-20250514"):

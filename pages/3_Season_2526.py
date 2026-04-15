@@ -44,9 +44,11 @@ _scope = get_all_leagues_scope() if league is None else "Overall"
 if league is None and _scope == "Overall":
     # Aggregate season stats per league
     import plotly.graph_objects as go
-    # Pull all videos once (already joined with channels), filter to season
-    all_vids = db.get_all_videos()
-    season_vids = [v for v in all_vids if (v.get("published_at") or "") >= SEASON_SINCE]
+    # Pull only season videos (DB-level filter — much faster than full table)
+    @st.cache_data(ttl=300)
+    def _load_season_vids(since: str):
+        return db.get_season_videos(since=since)
+    season_vids = _load_season_vids(SEASON_SINCE)
 
     # map channel_id → league
     ch_by_id = {c["id"]: c for c in all_channels}
