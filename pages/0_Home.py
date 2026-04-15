@@ -10,10 +10,31 @@ from src.database import Database
 from src.analytics import fmt_num
 from src.growth import group_by_channel, delta
 from src.filters import get_global_color_map, get_global_color_map_dual
+from src.channels import COUNTRY_TO_LEAGUE
 
 load_dotenv()
 
 st.title("YouTube Football Tracker")
+
+# ── Leagues covered ─────────────────────────────────────────────
+try:
+    _chs = st.session_state.get("_global_channels") or []
+    if not _chs:
+        SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+        SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
+        if SUPABASE_URL and SUPABASE_KEY:
+            _chs = Database(SUPABASE_URL, SUPABASE_KEY).get_all_channels()
+    _league_counts: dict[str, int] = {}
+    for _c in _chs:
+        if _c.get("entity_type") == "League":
+            continue
+        _lg = COUNTRY_TO_LEAGUE.get((_c.get("country") or "").upper(), _c.get("country") or "—")
+        _league_counts[_lg] = _league_counts.get(_lg, 0) + 1
+    if _league_counts:
+        _parts = [f"**{lg}** ({n})" for lg, n in sorted(_league_counts.items(), key=lambda x: -x[1])]
+        st.caption(f"Covering {len(_league_counts)} leagues: " + " · ".join(_parts))
+except Exception:
+    pass
 
 # ── Biggest gainers this week (snapshot-driven) ─────────────────
 try:
