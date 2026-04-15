@@ -47,7 +47,10 @@ if league is None and _scope == "Overall":
     # Pull only season videos (DB-level filter — much faster than full table)
     @st.cache_data(ttl=300)
     def _load_season_vids(since: str):
-        return db.get_season_videos(since=since)
+        if hasattr(db, "get_season_videos"):
+            return db.get_season_videos(since=since)
+        # Fallback: old deploy without the helper
+        return [v for v in db.get_all_videos() if (v.get("published_at") or "") >= since]
     season_vids = _load_season_vids(SEASON_SINCE)
 
     # map channel_id → league
