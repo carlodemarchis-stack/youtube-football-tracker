@@ -214,6 +214,53 @@ if history:
     last = history[0]
     st.caption(f"Last refresh: {last['fetched_at']} · {last['status']} · {last['channels_updated']} channels · {last['videos_fetched']} videos")
 
+# ── Daily Snapshot Health ──────────────────────────────────────
+with st.expander("📅 Daily Snapshot Health", expanded=False):
+    _all_hist = db.get_fetch_history(limit=100)
+    _snap_rows = [h for h in _all_hist if (h.get("status") or "").startswith("daily_snapshot")]
+    if not _snap_rows:
+        st.info("No daily-snapshot runs yet. The GitHub Action fires at 03:15 UTC daily.")
+    else:
+        from datetime import datetime as _dt, timezone as _tz
+        last_ok = next((h for h in _snap_rows if h.get("status") == "daily_snapshot"), None)
+        if last_ok:
+            try:
+                _hrs = (_dt.now(_tz.utc) - _dt.fromisoformat(last_ok["fetched_at"].replace("Z", "+00:00"))).total_seconds() / 3600
+            except Exception:
+                _hrs = None
+            if _hrs is not None and _hrs > 36:
+                st.error(f"⚠️ Last successful snapshot was {_hrs:.0f} hours ago — check the GitHub Action.")
+            else:
+                st.success(f"✅ Last successful snapshot: {last_ok['fetched_at']}")
+        else:
+            st.warning("No successful snapshot runs yet — only partial/error runs below.")
+
+        _rows_html = ""
+        for h in _snap_rows[:20]:
+            status = h.get("status", "")
+            pill_color = "#00CC96" if status == "daily_snapshot" else ("#FFA15A" if "partial" in status else "#EF553B")
+            msg = (h.get("error_message") or "").replace("<", "&lt;").replace(">", "&gt;")[:200]
+            _rows_html += f"""<tr>
+                <td style="padding:6px 12px;color:#888">{h.get('fetched_at', '')[:19]}</td>
+                <td style="padding:6px 12px"><span style="background:{pill_color};color:#000;padding:2px 8px;border-radius:4px;font-size:12px">{status}</span></td>
+                <td style="padding:6px 12px;text-align:right">{h.get('channels_updated', 0)}</td>
+                <td style="padding:6px 12px;color:#888;font-size:12px">{msg}</td>
+            </tr>"""
+        import streamlit.components.v1 as _components
+        _components.html(f"""
+        <style>
+          .sh {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
+                 font-family:"Source Sans Pro",sans-serif; }}
+          .sh th {{ padding:6px 12px; border-bottom:2px solid #444; text-align:left; }}
+          .sh td {{ border-bottom:1px solid #262730; }}
+        </style>
+        <table class="sh"><thead><tr>
+          <th>When (UTC)</th><th>Status</th>
+          <th style="text-align:right">Channels</th>
+          <th>Message</th>
+        </tr></thead><tbody>{_rows_html}</tbody></table>
+        """, height=min(len(_snap_rows[:20]) * 37 + 80, 800), scrolling=True)
+
 st.subheader("Select channels")
 
 # Filter channels based on global header filter

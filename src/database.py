@@ -87,6 +87,72 @@ class Database:
             # Don't fail the refresh if snapshot table isn't there yet
             print(f"snapshot_channel skipped: {e}")
 
+    # ── Video snapshots ──────────────────────────────────────
+    def snapshot_videos_batch(self, rows: list[dict]) -> int:
+        """Bulk upsert rows into video_snapshots.
+        rows: list of dicts with keys video_id, view_count, like_count, comment_count.
+        Returns number of rows upserted. Fails silently if table missing."""
+        if not rows:
+            return 0
+        today = datetime.now(timezone.utc).date().isoformat()
+        payload = [{
+            "video_id": r["video_id"],
+            "captured_date": today,
+            "view_count": int(r.get("view_count", 0) or 0),
+            "like_count": int(r.get("like_count", 0) or 0),
+            "comment_count": int(r.get("comment_count", 0) or 0),
+        } for r in rows]
+        total = 0
+        try:
+            for i in range(0, len(payload), 500):
+                batch = payload[i:i+500]
+                self.client.table("video_snapshots").upsert(
+                    batch, on_conflict="video_id,captured_date"
+                ).execute()
+                total += len(batch)
+        except Exception as e:
+            print(f"snapshot_videos_batch skipped: {e}")
+        return total
+
+    def get_video_snapshots_for_date(self, captured_date: str) -> list[dict]:
+        resp = (
+            self.client.table("video_snapshots")
+            .select("*")
+            .eq("captured_date", captured_date)
+            .execute()
+        )
+        return resp.data or []
+
+    def get_video_snapshots_range(self, since_date: str, until_date: str | None = None) -> list[dict]:
+        q = (
+            self.client.table("video_snapshots")
+            .select("*")
+            .gte("captured_date", since_date)
+        )
+        if until_date:
+            q = q.lte("captured_date", until_date)
+        resp = q.order("captured_date", desc=False).execute()
+        return resp.data or []
+
+    def get_season_video_rows(self, since: str = "2025-08-01") -> list[dict]:
+        """All videos with published_at >= since (minimal columns).
+        Used by daily cron to decide which videos to snapshot."""
+        resp = (
+            self.client.table("videos")
+            .select("id,youtube_video_id,channel_id,published_at")
+            .gte("published_at", since)
+            .execute()
+        )
+        return resp.data or []
+
+    def get_all_snapshots(self, since_date: str | None = None) -> list[dict]:
+        """All snapshots, optionally from a given ISO date (YYYY-MM-DD)."""
+        q = self.client.table("channel_snapshots").select("*")
+        if since_date:
+            q = q.gte("captured_date", since_date)
+        resp = q.order("captured_date", desc=False).execute()
+        return resp.data or []
+
     def get_channel_snapshots(self, channel_db_id: str, limit: int = 365) -> list[dict]:
         resp = (
             self.client.table("channel_snapshots")

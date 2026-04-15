@@ -27,6 +27,7 @@ st.set_page_config(
 # ── Navigation ────────────────────────────────────────────────
 public_pages = [
     st.Page("pages/0_Home.py", title="Home", default=True),
+    st.Page("pages/1_Daily_Recap.py", title="Daily Recap"),
     st.Page("pages/2_Clubs.py", title="Channels"),
     st.Page("pages/3_Season_2526.py", title="Season 25/26"),
     st.Page("pages/4_Top_Videos.py", title="Top Videos"),
