@@ -34,30 +34,114 @@ import pandas as pd
 
 
 # ── Theme Detection ───────────────────────────────────────────
+# Multi-language keyword patterns. Layered classifier uses title,
+# duration_seconds, and format. Rules checked in priority order; first
+# match wins. Patterns are pre-compiled for speed.
 
-THEME_PATTERNS = {
-    "Match Highlights": r"highlight|gol|goal|sintesi|recap|match|partita|vs\.?|derby",
-    "Goals & Skills": r"best goal|top goal|skill|dribbl|trick|compilation",
-    "Behind the Scenes": r"behind the scene|backstage|dietro le quinte|tunnel cam|vlog",
-    "Training": r"training|allenamento|practice|session|warm.?up",
-    "Press Conference": r"press conference|conferenza|presser|pre.?match|post.?match.*conf",
-    "Transfer News": r"transfer|mercato|signing|welcome|ufficiale|official",
-    "Interviews": r"interview|intervista|exclusive|talks|speaks",
-    "Matchday": r"matchday|gameday|giornata|live|lineup|starting",
-}
+_THEME_RULES: list[tuple[str, "re.Pattern"]] = [
+    # Highlights (all common languages) — must check BEFORE Full Match so
+    # "Juventus vs Inter | Highlights" classifies correctly even if duration
+    # is long (some clubs upload 15-min cuts).
+    ("Highlights", re.compile(
+        r"highlight|sintesi|resumen|zusammenfassung|r[ée]sum[ée]|"
+        r"hoogtepunten|melhores momentos|\bgoles del partido\b"
+    )),
+    # Press conference
+    ("Press Conference", re.compile(
+        r"press\s?conference|press\s?conf|presser|conferenza\s?stampa|"
+        r"rueda de prensa|pressekonferenz|conf[ée]rence de presse|coletiva"
+    )),
+    # Interview
+    ("Interview", re.compile(
+        r"interview|intervista|entrevista|entretien|interviu|\bparla\b|\bhabla\b"
+    )),
+    # Training
+    ("Training", re.compile(
+        r"\btraining\b|allenamento|entrenamiento|entra[îi]nement|treino|\bprep\b|warm.?up"
+    )),
+    # Transfer / Welcome / Signing
+    ("Transfer & Signings", re.compile(
+        r"\bwelcome\b|signing|ufficiale|oficial|offiziell|officiel|"
+        r"\bmercato\b|\bfichaje\b|transfer|transfer[êe]ncia|unveil|presentazione|presentaci[oó]n"
+    )),
+    # Women's football (flag before Academy since both can appear)
+    ("Women's Football", re.compile(
+        r"\bwomen\b|femminil|femenin|femenil|\bfrauen\b|f[ée]minin"
+    )),
+    # Academy / youth
+    ("Academy & Youth", re.compile(
+        r"\bacademy\b|primavera|\bu\s?1[5-9]\b|\bu\s?2[0-3]\b|"
+        r"\bcantera\b|jugend|jeunes|giovanili|juvenil|youth"
+    )),
+    # Matchday prep / preview
+    ("Matchday", re.compile(
+        r"matchday|gameday|giornata|d[ií]a de partido|spieltag|jour de match|"
+        r"pre\s?match|pre.?game|\blineup\b|starting\s?xi|convocat|"
+        r"teamnews|team\s?news"
+    )),
+    # Behind the scenes / inside
+    ("Behind the Scenes", re.compile(
+        r"behind the scene|dietro le quinte|detr[aá]s de|hinter den kulissen|"
+        r"coulisses|\bvlog\b|\binside\b|backstage|tunnel cam|bts\b"
+    )),
+    # Trailer / promo
+    ("Trailer & Promo", re.compile(
+        r"\btrailer\b|\bpromo\b|\bteaser\b|\bpreview\b|anteprima|avance|vorschau"
+    )),
+    # Goals & skills (lower priority — many titles mention "goal")
+    ("Goals & Skills", re.compile(
+        r"\bbest goal|\btop goal|\bskill\b|dribbl|nutmeg|\btrick\b|\bassist\b|\bsave\b|\bparata\b|"
+        r"compilation|\bfree.?kick\b|\bpunizione\b|golazo|gola[çc]o"
+    )),
+]
+
+# Match-pattern: "Team A vs Team B" / "Team A - Team B" / "Team A v Team B"
+_MATCH_PATTERN = re.compile(r"\bv(s\.?)?\b|\s[-–—]\s|\bvs\b")
 
 
-def detect_theme(title: str) -> str:
-    title_lower = title.lower()
-    for theme, pattern in THEME_PATTERNS.items():
-        if re.search(pattern, title_lower):
+def detect_theme(
+    title: str,
+    duration_seconds: int | None = None,
+    format_: str | None = None,
+) -> str:
+    """Classify a video into a theme. Uses title + duration + format signals.
+
+    Priority:
+      1. Highlights keyword → Highlights
+      2. Keyword-based rules in priority order
+      3. Duration/format fallbacks:
+         - live ≥ 60 min → Full Match (Live)
+         - live < 60 min → Live Stream
+         - VOD ≥ 80 min + match-pattern in title → Full Match
+         - everything else → Other
+    """
+    t = (title or "").lower()
+
+    # 1. Keyword rules in order
+    for theme, rx in _THEME_RULES:
+        if rx.search(t):
             return theme
+
+    # 2. Duration / format fallbacks
+    dur = duration_seconds or 0
+    fmt = (format_ or "").lower()
+    if fmt == "live":
+        if dur >= 3600:
+            return "Full Match (Live)"
+        return "Live Stream"
+    if dur >= 4800 and _MATCH_PATTERN.search(t):
+        return "Full Match"
+
     return "Other"
 
 
 def classify_videos(videos: list[dict]) -> list[dict]:
     for v in videos:
-        v["category"] = detect_theme(v.get("title", ""))
+        v["category"] = detect_theme(
+            v.get("title", ""),
+            v.get("duration_seconds"),
+            v.get("format"),
+        )
     return videos
 
 
