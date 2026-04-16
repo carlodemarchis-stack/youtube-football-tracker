@@ -4,6 +4,66 @@ import re
 from datetime import datetime, timezone
 
 
+# Stable color per video category — reused across pie charts, bars, tables.
+CATEGORY_COLORS: dict[str, str] = {
+    "Highlights":           "#EF553B",  # red — flagship
+    "Match Recap":          "#FF6692",  # pink-red
+    "Full Match":           "#AB63FA",  # purple
+    "Full Match (Live)":    "#9467BD",  # deeper purple
+    "Live Stream":          "#B15EFF",  # violet
+    "Goals & Skills":       "#FFA15A",  # orange
+    "Press Conference":     "#00CC96",  # green
+    "Interview":            "#19D3F3",  # cyan
+    "Training":             "#636EFA",  # blue
+    "Matchday":             "#1F77B4",  # steel blue
+    "Behind the Scenes":    "#FECB52",  # yellow
+    "Documentary & Series": "#E377C2",  # magenta
+    "Trailer & Promo":      "#FF97FF",  # pink
+    "Transfer & Signings":  "#2CA02C",  # green
+    "Academy & Youth":      "#B6E880",  # light green
+    "Women's Football":     "#D62728",  # red-crimson
+    "Throwback":            "#8C564B",  # brown
+    "Merch & Kit":          "#17BECF",  # teal
+    "Player Spotlight":     "#BCBD22",  # olive
+    "Quiz & Games":         "#FF7F0E",  # dark orange
+    "Entertainment":        "#F58518",  # amber
+    "Community & CSR":      "#54A24B",  # leaf green
+    "Podcast & Talk":       "#72B7B2",  # muted teal
+    "Tribute & Farewell":   "#A6A6A6",  # grey
+    "Other":                "#7F7F7F",  # dark grey
+}
+
+
+def build_category_pie(values_by_cat: dict[str, float], title: str, value_suffix: str = ""):
+    """Standard category pie: drop 'Other' (mention its % in title), drop <1%,
+    use CATEGORY_COLORS, donut style, sorted descending.
+
+    Returns a plotly Figure. Caller just does st.plotly_chart(fig, ...).
+    """
+    import plotly.graph_objects as go
+    total = sum(values_by_cat.values()) or 1
+    other_pct = (values_by_cat.get("Other", 0) / total * 100)
+    named = {k: v for k, v in values_by_cat.items() if k != "Other"}
+    named_total = sum(named.values()) or 1
+    named = {k: v for k, v in named.items() if v / named_total >= 0.01}
+    cats = sorted(named.keys(), key=lambda c: -named[c])
+    full_title = f"{title} (Other: {other_pct:.1f}% hidden)" if other_pct > 0 else title
+    hover = "%{label}<br>%{value:,}" + (f" {value_suffix}" if value_suffix else "") + " (%{percent})<extra></extra>"
+    fig = go.Figure(go.Pie(
+        labels=cats,
+        values=[named[c] for c in cats],
+        marker=dict(colors=[CATEGORY_COLORS.get(c, "#888888") for c in cats]),
+        hole=0.45, sort=False,
+        textinfo="percent", hovertemplate=hover,
+    ))
+    fig.update_layout(
+        title=full_title, margin=dict(t=40, b=20),
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#FAFAFA"), legend=dict(font=dict(size=10)),
+    )
+    return fig
+
+
 CHANNEL_PALETTE = [
     "#636EFA", "#EF553B", "#00CC96", "#AB63FA", "#FFA15A",
     "#19D3F3", "#FF6692", "#B6E880", "#FF97FF", "#FECB52",

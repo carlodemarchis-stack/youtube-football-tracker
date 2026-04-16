@@ -11,8 +11,10 @@ from dotenv import load_dotenv
 from src.database import Database
 from src.analytics import fmt_num
 from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope, get_league_for_channel
+from src.auth import require_login
 
 load_dotenv()
+require_login()
 
 st.title("Season 25/26")
 st.caption("Stats cover videos **published** on/after 2025-08-01. Views on older videos that happen during the season are not included.")
@@ -577,6 +579,25 @@ if club is None:
         )
         st.plotly_chart(fig_dur, use_container_width=True)
 
+    # Bar: Avg Duration shorts only
+    sorted_df_sdur = df[df["short_dur"] > 0].sort_values("short_dur", ascending=False)
+    if not sorted_df_sdur.empty:
+        chart_names_sdur = sorted_df_sdur["name"].tolist()
+        fig_sdur = go.Figure()
+        fig_sdur.add_trace(go.Bar(
+            name="Shorts", x=chart_names_sdur, y=sorted_df_sdur["short_dur"],
+            marker_color="#EF553B",
+            text=[f"{int(s)}s" for s in sorted_df_sdur["short_dur"]],
+            textposition="outside",
+        ))
+        fig_sdur.update_layout(
+            title="Avg Duration — Shorts", barmode="group",
+            xaxis_title="", yaxis_title="Seconds", margin=dict(t=40, b=20),
+            showlegend=False,
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(color="#FAFAFA"),
+        )
+        st.plotly_chart(fig_sdur, use_container_width=True)
+
 else:
     # ══════════════════════════════════════════════════════════════
     # ZOOM LEVEL 3: ONE CLUB
@@ -675,43 +696,38 @@ else:
     def _vals(l, s, lv):
         return [l, s, lv] if has_live else [l, s]
 
+    _total_v_banner = long_views + short_views + live_views
+    _total_n_banner = long_videos + short_videos + live_videos
+    _avg_vpv_banner = _total_v_banner // max(_total_n_banner, 1)
+
+    def _mini_pie(values, labels, colors, hover_suffix):
+        fig = go.Figure(go.Pie(
+            labels=labels, values=values, marker=dict(colors=colors), hole=0.55,
+            textinfo="percent", textposition="inside", sort=False,
+            hovertemplate="%{label}: %{value:,.0f} " + hover_suffix + "<extra></extra>",
+        ))
+        fig.update_layout(showlegend=False, height=160,
+                          margin=dict(t=8, b=8, l=8, r=8),
+                          paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                          font=dict(color="#FAFAFA", size=11))
+        return fig
+
     col_p1, col_p2, col_p3, col_p4, col_p5 = st.columns(5)
     with col_p1:
-        fig_v = go.Figure(go.Pie(
-            labels=pie_labels, values=_vals(long_views, short_views, live_views),
-            marker=dict(colors=pie_colors), hole=0.45,
-            textinfo="percent+label", textposition="inside",
-            hovertemplate="%{label}: %{value:,.0f} views<extra></extra>",
-        ))
-        fig_v.update_layout(title=dict(text="Views", x=0.5), showlegend=False, height=300,
-                            margin=dict(t=40, b=20, l=20, r=20),
-                            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                            font=dict(color="#FAFAFA"))
-        st.plotly_chart(fig_v, use_container_width=True)
+        st.metric("Total Views", fmt_num(_total_v_banner))
+        st.caption("by format")
+        st.plotly_chart(_mini_pie(_vals(long_views, short_views, live_views), pie_labels, pie_colors, "views"),
+                        use_container_width=True)
     with col_p2:
-        fig_n = go.Figure(go.Pie(
-            labels=pie_labels, values=_vals(long_videos, short_videos, live_videos),
-            marker=dict(colors=pie_colors), hole=0.45,
-            textinfo="percent+label", textposition="inside",
-            hovertemplate="%{label}: %{value:,.0f} videos<extra></extra>",
-        ))
-        fig_n.update_layout(title=dict(text="Videos", x=0.5), showlegend=False, height=300,
-                            margin=dict(t=40, b=20, l=20, r=20),
-                            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                            font=dict(color="#FAFAFA"))
-        st.plotly_chart(fig_n, use_container_width=True)
+        st.metric("Total Videos", fmt_num(_total_n_banner))
+        st.caption("by format")
+        st.plotly_chart(_mini_pie(_vals(long_videos, short_videos, live_videos), pie_labels, pie_colors, "videos"),
+                        use_container_width=True)
     with col_p3:
-        fig_vpv = go.Figure(go.Pie(
-            labels=pie_labels, values=_vals(long_vpv, short_vpv, live_vpv),
-            marker=dict(colors=pie_colors), hole=0.45,
-            textinfo="percent+label", textposition="inside",
-            hovertemplate="%{label}: %{value:,.0f} views/video<extra></extra>",
-        ))
-        fig_vpv.update_layout(title=dict(text="Views/Video", x=0.5), showlegend=False, height=300,
-                              margin=dict(t=40, b=20, l=20, r=20),
-                              paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                              font=dict(color="#FAFAFA"))
-        st.plotly_chart(fig_vpv, use_container_width=True)
+        st.metric("Avg Views/Video", fmt_num(_avg_vpv_banner))
+        st.caption("by format")
+        st.plotly_chart(_mini_pie(_vals(long_vpv, short_vpv, live_vpv), pie_labels, pie_colors, "views/video"),
+                        use_container_width=True)
     with col_p4:
         st.metric("Total Likes", fmt_num(total_likes))
         st.caption(f"Like rate: {_pct(_rate(total_likes, total_views))}")
@@ -725,51 +741,51 @@ else:
 <table style="width:100%;border-collapse:collapse;font-size:14px;color:#FAFAFA">
 <thead><tr style="border-bottom:2px solid #444">
 <th style="text-align:left;padding:6px 12px">Format</th>
-<th style="text-align:right;padding:6px 12px">Videos</th>
 <th style="text-align:right;padding:6px 12px">Views</th>
+<th style="text-align:right;padding:6px 12px">Videos</th>
 <th style="text-align:right;padding:6px 12px">Views/Video</th>
 <th style="text-align:right;padding:6px 12px">Avg Duration</th>
 <th style="text-align:right;padding:6px 12px">Likes</th>
-<th style="text-align:right;padding:6px 12px">Comments</th>
 <th style="text-align:right;padding:6px 12px">Like Rate</th>
+<th style="text-align:right;padding:6px 12px">Comments</th>
 <th style="text-align:right;padding:6px 12px">Comment Rate</th>
 </tr></thead>
 <tbody>
 <tr style="border-bottom:1px solid #262730"><td style="padding:6px 12px;color:{LONG_COLOR}">Long</td>
-<td style="text-align:right;padding:6px 12px">{_fmt(long_videos)}</td>
 <td style="text-align:right;padding:6px 12px">{_fmt(long_views)}</td>
+<td style="text-align:right;padding:6px 12px">{_fmt(long_videos)}</td>
 <td style="text-align:right;padding:6px 12px">{_fmt(long_vpv)}</td>
 <td style="text-align:right;padding:6px 12px">{_dur(long_dur)}</td>
 <td style="text-align:right;padding:6px 12px">{_fmt(long_likes)}</td>
-<td style="text-align:right;padding:6px 12px">{_fmt(long_comments)}</td>
 <td style="text-align:right;padding:6px 12px">{_pct(_rate(long_likes, long_views))}</td>
+<td style="text-align:right;padding:6px 12px">{_fmt(long_comments)}</td>
 <td style="text-align:right;padding:6px 12px">{_pct(_rate(long_comments, long_views))}</td></tr>
 <tr style="border-bottom:1px solid #262730"><td style="padding:6px 12px;color:{SHORT_COLOR}">Shorts</td>
-<td style="text-align:right;padding:6px 12px">{_fmt(short_videos)}</td>
 <td style="text-align:right;padding:6px 12px">{_fmt(short_views)}</td>
+<td style="text-align:right;padding:6px 12px">{_fmt(short_videos)}</td>
 <td style="text-align:right;padding:6px 12px">{_fmt(short_vpv)}</td>
 <td style="text-align:right;padding:6px 12px">{_dur(short_dur)}</td>
 <td style="text-align:right;padding:6px 12px">{_fmt(short_likes)}</td>
-<td style="text-align:right;padding:6px 12px">{_fmt(short_comments)}</td>
 <td style="text-align:right;padding:6px 12px">{_pct(_rate(short_likes, short_views))}</td>
+<td style="text-align:right;padding:6px 12px">{_fmt(short_comments)}</td>
 <td style="text-align:right;padding:6px 12px">{_pct(_rate(short_comments, short_views))}</td></tr>
 {"" if not has_live else f'''<tr style="border-bottom:1px solid #262730"><td style="padding:6px 12px;color:{LIVE_COLOR}">Live</td>
-<td style="text-align:right;padding:6px 12px">{_fmt(live_videos)}</td>
 <td style="text-align:right;padding:6px 12px">{_fmt(live_views)}</td>
+<td style="text-align:right;padding:6px 12px">{_fmt(live_videos)}</td>
 <td style="text-align:right;padding:6px 12px">{_fmt(live_vpv)}</td>
 <td style="text-align:right;padding:6px 12px">{_dur(live_dur)}</td>
 <td style="text-align:right;padding:6px 12px">{_fmt(live_likes)}</td>
-<td style="text-align:right;padding:6px 12px">{_fmt(live_comments)}</td>
 <td style="text-align:right;padding:6px 12px">{_pct(_rate(live_likes, live_views))}</td>
+<td style="text-align:right;padding:6px 12px">{_fmt(live_comments)}</td>
 <td style="text-align:right;padding:6px 12px">{_pct(_rate(live_comments, live_views))}</td></tr>'''}
 <tr style="font-weight:600"><td style="padding:6px 12px">Total</td>
-<td style="text-align:right;padding:6px 12px">{_fmt(total_videos)}</td>
 <td style="text-align:right;padding:6px 12px">{_fmt(total_views)}</td>
+<td style="text-align:right;padding:6px 12px">{_fmt(total_videos)}</td>
 <td style="text-align:right;padding:6px 12px">{_fmt(avg_vpv)}</td>
 <td style="text-align:right;padding:6px 12px">-</td>
 <td style="text-align:right;padding:6px 12px">{_fmt(total_likes)}</td>
-<td style="text-align:right;padding:6px 12px">{_fmt(total_comments)}</td>
 <td style="text-align:right;padding:6px 12px">{_pct(_rate(total_likes, total_views))}</td>
+<td style="text-align:right;padding:6px 12px">{_fmt(total_comments)}</td>
 <td style="text-align:right;padding:6px 12px">{_pct(_rate(total_comments, total_views))}</td></tr>
 </tbody></table>
 """, unsafe_allow_html=True)
@@ -818,6 +834,22 @@ else:
                                  paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                                  font=dict(color="#FAFAFA"))
         st.plotly_chart(fig_mviews, use_container_width=True)
+
+    # ── Category breakdown ────────────────────────────────────
+    from collections import Counter
+    cat_count = Counter(v.get("category") or "Other" for v in vids)
+    cat_views: dict[str, int] = {}
+    for v in vids:
+        c = v.get("category") or "Other"
+        cat_views[c] = cat_views.get(c, 0) + int(v.get("view_count") or 0)
+
+    if cat_count:
+        from src.analytics import build_category_pie
+        col_p1, col_p2 = st.columns(2)
+        with col_p1:
+            st.plotly_chart(build_category_pie(dict(cat_count), "Videos by Category", "videos"), use_container_width=True)
+        with col_p2:
+            st.plotly_chart(build_category_pie(cat_views, "Views by Category", "views"), use_container_width=True)
 
     # ── Top 20 season videos ───────────────────────────────────
     st.subheader("Top Season Videos")

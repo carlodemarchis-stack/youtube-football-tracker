@@ -332,6 +332,27 @@ class Database:
         resp = query.execute()
         return resp.data or []
 
+    def get_recent_videos(self, limit: int = 20, channel_ids: list[str] | None = None) -> list[dict]:
+        """Return the most recently ingested videos (joined with channel name)."""
+        q = (
+            self.client.table("videos")
+            .select("id,youtube_video_id,title,channel_id,published_at,duration_seconds,"
+                    "format,category,view_count,like_count,comment_count,"
+                    "thumbnail_url,channels(name)")
+            .order("published_at", desc=True)
+            .limit(limit)
+        )
+        if channel_ids is not None:
+            if not channel_ids:
+                return []
+            q = q.in_("channel_id", channel_ids)
+        resp = q.execute()
+        rows = resp.data or []
+        for r in rows:
+            ch = r.pop("channels", None)
+            r["channel_name"] = ch["name"] if ch else ""
+        return rows
+
     def get_videos_by_channel(self, channel_id: str) -> list[dict]:
         query = (
             self.client.table("videos")

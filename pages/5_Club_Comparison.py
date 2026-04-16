@@ -10,8 +10,10 @@ from dotenv import load_dotenv
 from src.database import Database
 from src.analytics import fmt_num
 from src.filters import get_global_color_map
+from src.auth import require_premium
 
 load_dotenv()
+require_premium()
 
 st.title("Compare")
 
