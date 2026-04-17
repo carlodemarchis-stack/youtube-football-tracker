@@ -57,6 +57,7 @@ admin_pages = [
     st.Page("pages/7_Refresh_Data.py", title="Data"),
     st.Page("pages/8_Channel_Management.py", title="Channel Management"),
     st.Page("pages/9_User_Management.py", title="User Management"),
+    st.Page("pages/11_Snapshot_Debug.py", title="Snapshot Debug"),
 ]
 
 nav = {"": public_pages}

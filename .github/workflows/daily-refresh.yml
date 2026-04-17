@@ -2,8 +2,10 @@ name: Daily channel snapshot
 
 on:
   schedule:
-    # 03:15 UTC daily. GitHub cron can drift up to ~15 min under load.
-    - cron: "15 3 * * *"
+    # 22:15 UTC = 00:15 CET (23:15 in winter).
+    # Just after midnight Central European time so the recap covers a full day.
+    # GitHub Actions can drift up to ~15 min and may skip runs on inactive repos.
+    - cron: "15 22 * * *"
   workflow_dispatch: {}  # manual "Run workflow" button in the Actions tab
 
 concurrency:

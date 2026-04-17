@@ -1,0 +1,25 @@
+name: Keep alive
+
+# GitHub disables scheduled workflows on repos with no recent activity.
+# This workflow makes a trivial commit every 50 days to keep the repo "active".
+on:
+  schedule:
+    - cron: "0 12 1,20 * *"  # 1st and 20th of every month at noon UTC
+  workflow_dispatch: {}
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Keep alive ping
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          echo "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > .github/.keepalive
+          git add .github/.keepalive
+          git diff --cached --quiet && echo "No change" && exit 0
+          git commit -m "chore: keep-alive ping [skip ci]"
+          git push
