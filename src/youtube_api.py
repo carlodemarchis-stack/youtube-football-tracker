@@ -212,23 +212,32 @@ class YouTubeClient:
         for i in range(0, total, 50):
             batch = video_ids[i : i + 50]
             resp = self.youtube.videos().list(
-                part="snippet,statistics,contentDetails",
+                part="snippet,statistics,contentDetails,liveStreamingDetails",
                 id=",".join(batch),
             ).execute()
             for item in resp.get("items", []):
                 stats = item.get("statistics", {})
                 snippet = item.get("snippet", {})
                 content = item.get("contentDetails", {})
+                live_details = item.get("liveStreamingDetails", {})
                 duration_str = content.get("duration", "PT0S")
                 try:
                     duration = isodate.parse_duration(duration_str)
                     duration_sec = int(duration.total_seconds())
                 except Exception:
                     duration_sec = 0
+                # For live streams: use actualStartTime (when it aired),
+                # fall back to scheduledStartTime, then None.
+                actual_start = (
+                    live_details.get("actualStartTime")
+                    or live_details.get("scheduledStartTime")
+                    or None
+                )
                 videos.append({
                     "youtube_video_id": item["id"],
                     "title": snippet.get("title", ""),
                     "published_at": snippet.get("publishedAt"),
+                    "actual_start_time": actual_start,
                     "view_count": int(stats.get("viewCount", 0)),
                     "like_count": int(stats.get("likeCount", 0)),
                     "comment_count": int(stats.get("commentCount", 0)),

@@ -15,6 +15,7 @@ from src.filters import (
     get_global_channels, get_global_color_map, get_global_color_map_dual,
     get_global_filter, get_league_for_channel,
 )
+from src.channels import LEAGUE_FLAG
 
 load_dotenv()
 require_login()
@@ -177,6 +178,14 @@ def _ch_delta(cid: str, field: str) -> int | None:
 total_new_videos = len(new_video_rows)
 total_view_delta = sum((_ch_delta(cid, "total_views") or 0) for cid in chan_day.keys())
 
+# Count by format
+_fmt_counts: dict[str, int] = {"long": 0, "short": 0, "live": 0}
+for v in new_video_rows:
+    fmt = (v.get("format") or "").lower()
+    if fmt not in ("long", "short", "live"):
+        fmt = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
+    _fmt_counts[fmt] = _fmt_counts.get(fmt, 0) + 1
+
 if ONE_CLUB:
     # Club banner
     cur_snap = chan_day.get(g_club["id"], {})
@@ -193,9 +202,11 @@ if ONE_CLUB:
         </div>""",
         unsafe_allow_html=True,
     )
-    k1, k2 = st.columns(2)
+    _fmt_combined = f"{_fmt_counts['long']} / {_fmt_counts['short']} / {_fmt_counts['live']}"
+    k1, k2, k3 = st.columns(3)
     k1.metric("🎬 New videos", fmt_num(total_new_videos))
-    k2.metric("👁️ Δ Channel Views", f"{'+' if total_view_delta >= 0 else ''}{fmt_num(total_view_delta)}")
+    k2.metric("📺 Long / Shorts / Live", _fmt_combined)
+    k3.metric("👁️ Δ Channel Views", f"{'+' if total_view_delta >= 0 else ''}{fmt_num(total_view_delta)}")
 else:
     # Most active club: posted most videos yesterday
     club_new_counts: dict[str, int] = {}
@@ -204,12 +215,69 @@ else:
     most_active = max(club_new_counts.items(), key=lambda kv: kv[1], default=(None, 0))
     most_active_name = ch_by_id.get(most_active[0], {}).get("name", "—") if most_active[0] else "—"
 
-    k1, k2, k3 = st.columns(3)
+    _fmt_combined = f"{_fmt_counts['long']} / {_fmt_counts['short']} / {_fmt_counts['live']}"
+    k1, k2, k3, k4 = st.columns(4)
     k1.metric("🎬 New videos", fmt_num(total_new_videos))
-    k2.metric("👁️ Δ Channel Views", f"{'+' if total_view_delta >= 0 else ''}{fmt_num(total_view_delta)}")
-    k3.metric("🔥 Most active", f"{most_active_name}", help=f"{most_active[1]} videos posted")
+    k2.metric("📺 Long / Shorts / Live", _fmt_combined)
+    k3.metric("👁️ Δ Channel Views", f"{'+' if total_view_delta >= 0 else ''}{fmt_num(total_view_delta)}")
+    k4.metric("🔥 Most active", f"{most_active_name}", help=f"{most_active[1]} videos posted")
 
-st.markdown("---")
+# ── Per-league summary ────────────────────────────────────────
+# Hide when viewing a single club (it would be a one-row table for that club's league).
+if not ONE_CLUB:
+    st.markdown("---")
+    st.subheader("📊 Per-league summary")
+    lg_agg: dict[str, dict] = {}
+    for cid, snap in chan_day.items():
+        ch = ch_by_id.get(cid)
+        if not ch:
+            continue
+        lg = get_league_for_channel(ch)
+        if not lg:
+            continue
+        agg = lg_agg.setdefault(lg, {"new_videos": 0, "long": 0, "short": 0, "live": 0, "view_delta": 0, "clubs": 0})
+        agg["clubs"] += 1
+        agg["view_delta"] += _ch_delta(cid, "total_views") or 0
+
+    for v in new_video_rows:
+        ch = ch_by_id.get(v["channel_id"])
+        if not ch:
+            continue
+        lg = get_league_for_channel(ch)
+        if lg and lg in lg_agg:
+            lg_agg[lg]["new_videos"] += 1
+            vfmt = (v.get("format") or "").lower()
+            if vfmt not in ("long", "short", "live"):
+                vfmt = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
+            lg_agg[lg][vfmt] = lg_agg[lg].get(vfmt, 0) + 1
+
+    if lg_agg:
+        lg_rows = ""
+        for lg, agg in sorted(lg_agg.items(), key=lambda kv: kv[1]["view_delta"], reverse=True):
+            view_col = "#00CC96" if agg["view_delta"] > 0 else ("#EF553B" if agg["view_delta"] < 0 else "#888")
+            _lg_fmt = f"{agg['long']} / {agg['short']} / {agg['live']}"
+            lg_rows += f"""<tr>
+                <td style="padding:8px 12px;font-weight:600">{LEAGUE_FLAG.get(lg, '')} {lg}</td>
+                <td style="padding:8px 12px;text-align:right">{agg['clubs']}</td>
+                <td style="padding:8px 12px;text-align:right">{agg['new_videos']}</td>
+                <td style="padding:8px 12px;text-align:right">{_lg_fmt}</td>
+                <td style="padding:8px 12px;text-align:right;color:{view_col}">{'+' if agg['view_delta'] >= 0 else ''}{fmt_num(agg['view_delta'])}</td>
+            </tr>"""
+        components.html(f"""
+        <style>
+          .lg {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
+                 font-family:"Source Sans Pro",sans-serif; }}
+          .lg th {{ padding:8px 12px; border-bottom:2px solid #444; text-align:left; }}
+          .lg td {{ border-bottom:1px solid #262730; }}
+        </style>
+        <table class="lg"><thead><tr>
+          <th>League</th>
+          <th style="text-align:right">Channels</th>
+          <th style="text-align:right">Videos</th>
+          <th style="text-align:right">Long / Shorts / Live</th>
+          <th style="text-align:right">Δ Views</th>
+        </tr></thead><tbody>{lg_rows}</tbody></table>
+        """, height=len(lg_agg) * 38 + 50, scrolling=False)
 
 # ── Gainer leaderboards side-by-side ─ skip when viewing one club ─
 if ONE_CLUB:
@@ -265,7 +333,7 @@ def _gainer_table(metric: str, title: str, icon: str, positive_is_good: bool = T
     gainers = []
     for cid in chan_day.keys():
         ch = ch_by_id.get(cid)
-        if not ch or ch.get("entity_type") == "League":
+        if not ch:
             continue
         d = _ch_delta(cid, metric)
         if d is None:
@@ -277,7 +345,7 @@ def _gainer_table(metric: str, title: str, icon: str, positive_is_good: bool = T
     if not gainers:
         return ""
     gainers.sort(key=lambda g: g["delta"], reverse=positive_is_good)
-    top = gainers[:10]
+    top = gainers[:25]
     rows_html = ""
     for i, g in enumerate(top, 1):
         c1, c2 = dual.get(g["name"], (color_map.get(g["name"], "#636EFA"), "#FFFFFF"))
@@ -313,7 +381,7 @@ if not ONE_CLUB:
     with col_l:
         html = _gainer_table("total_views", "Biggest view gains", "👁️")
         if html:
-            components.html(html, height=440)
+            components.html(html, height=900)
         else:
             st.caption("No view deltas available for this day.")
     with col_r:
@@ -321,7 +389,7 @@ if not ONE_CLUB:
         pub_counts: dict[str, dict] = {}
         for v in new_video_rows:
             ch = ch_by_id.get(v["channel_id"])
-            if not ch or ch.get("entity_type") == "League":
+            if not ch:
                 continue
             name = ch["name"]
             pub_counts.setdefault(name, {"count": 0, "name": name})
@@ -329,7 +397,7 @@ if not ONE_CLUB:
         pub_sorted = sorted(pub_counts.values(), key=lambda r: r["count"], reverse=True)
         if pub_sorted:
             pub_html = ""
-            for i, r in enumerate(pub_sorted[:10], 1):
+            for i, r in enumerate(pub_sorted[:25], 1):
                 c1, c2 = dual.get(r["name"], (color_map.get(r["name"], "#636EFA"), "#FFFFFF"))
                 dot = f'<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:{c1};border:1px solid rgba(255,255,255,0.3)"></span>'
                 pub_html += f"""<tr>
@@ -349,7 +417,7 @@ if not ONE_CLUB:
               <th style="padding:5px 10px;text-align:right">Videos</th>
             </tr></thead>
             <tbody>{pub_html}</tbody></table></div>
-            """, height=440)
+            """, height=900)
         else:
             st.caption("No clubs published videos on this day.")
 
@@ -426,56 +494,6 @@ else:
       <tbody>{rows}</tbody>
     </table>
     """, height=min(15, len(trending)) * 86 + 80, scrolling=True)
-
-# ── Per-league summary ────────────────────────────────────────
-# Hide when viewing a single club (it would be a one-row table for that club's league).
-if not ONE_CLUB:
-    st.markdown("---")
-    st.subheader("📊 Per-league summary")
-    lg_agg: dict[str, dict] = {}
-    for cid, snap in chan_day.items():
-        ch = ch_by_id.get(cid)
-        if not ch or ch.get("entity_type") == "League":
-            continue
-        lg = get_league_for_channel(ch)
-        if not lg:
-            continue
-        agg = lg_agg.setdefault(lg, {"new_videos": 0, "view_delta": 0, "clubs": 0})
-        agg["clubs"] += 1
-        agg["view_delta"] += _ch_delta(cid, "total_views") or 0
-
-    for v in new_video_rows:
-        ch = ch_by_id.get(v["channel_id"])
-        if not ch:
-            continue
-        lg = get_league_for_channel(ch)
-        if lg and lg in lg_agg:
-            lg_agg[lg]["new_videos"] += 1
-
-    if lg_agg:
-        lg_rows = ""
-        for lg, agg in sorted(lg_agg.items(), key=lambda kv: kv[1]["view_delta"], reverse=True):
-            view_col = "#00CC96" if agg["view_delta"] > 0 else ("#EF553B" if agg["view_delta"] < 0 else "#888")
-            lg_rows += f"""<tr>
-                <td style="padding:8px 12px;font-weight:600">{lg}</td>
-                <td style="padding:8px 12px;text-align:right">{agg['clubs']}</td>
-                <td style="padding:8px 12px;text-align:right">{agg['new_videos']}</td>
-                <td style="padding:8px 12px;text-align:right;color:{view_col}">{'+' if agg['view_delta'] >= 0 else ''}{fmt_num(agg['view_delta'])}</td>
-            </tr>"""
-        components.html(f"""
-        <style>
-          .lg {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
-                 font-family:"Source Sans Pro",sans-serif; }}
-          .lg th {{ padding:8px 12px; border-bottom:2px solid #444; text-align:left; }}
-          .lg td {{ border-bottom:1px solid #262730; }}
-        </style>
-        <table class="lg"><thead><tr>
-          <th>League</th>
-          <th style="text-align:right">Clubs tracked</th>
-          <th style="text-align:right">New videos</th>
-          <th style="text-align:right">Δ Views</th>
-        </tr></thead><tbody>{lg_rows}</tbody></table>
-        """, height=len(lg_agg) * 40 + 80, scrolling=False)
 
 # ── Trend chart ──────────────────────────────────────────────
 # Show Δ Views and New Videos per day across all available snapshot dates.

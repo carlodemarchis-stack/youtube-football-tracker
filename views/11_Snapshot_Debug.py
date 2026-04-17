@@ -121,10 +121,10 @@ for ch in sorted(filtered_channels, key=lambda c: c["name"]):
     flag = "⚠️" if n_snaps < len(date_counts) else ""
 
     if n_snaps >= 2:
-        prev = ch_snaps[-2]
-        d_subs = subs - int(prev.get("subscriber_count") or 0)
-        d_views = views - int(prev.get("total_views") or 0)
-        d_vids = vids - int(prev.get("video_count") or 0)
+        first = ch_snaps[0]
+        d_subs = subs - int(first.get("subscriber_count") or 0)
+        d_views = views - int(first.get("total_views") or 0)
+        d_vids = vids - int(first.get("video_count") or 0)
         d_sub_col = "#00CC96" if d_subs > 0 else ("#EF553B" if d_subs < 0 else "#888")
         d_view_col = "#00CC96" if d_views > 0 else ("#EF553B" if d_views < 0 else "#888")
         d_vid_col = "#00CC96" if d_vids > 0 else ("#EF553B" if d_vids < 0 else "#888")
@@ -132,6 +132,7 @@ for ch in sorted(filtered_channels, key=lambda c: c["name"]):
         d_views_s = f'<span style="color:{d_view_col}">{d_views:+,}</span>'
         d_vids_s = f'<span style="color:{d_vid_col}">{d_vids:+,}</span>'
     else:
+        d_subs = d_views = d_vids = 0
         d_subs_s = d_views_s = d_vids_s = '<span style="color:#555">—</span>'
 
     rows_html += f"""<tr class="ch-row" data-chid="{ch['id']}" style="cursor:pointer">
@@ -139,12 +140,12 @@ for ch in sorted(filtered_channels, key=lambda c: c["name"]):
         <td style="padding:5px 8px;text-align:center">{n_snaps}</td>
         <td style="padding:5px 8px">{first_date}</td>
         <td style="padding:5px 8px">{last_date}</td>
-        <td style="padding:5px 8px;text-align:right">{subs:,}</td>
-        <td style="padding:5px 8px;text-align:right">{d_subs_s}</td>
-        <td style="padding:5px 8px;text-align:right">{views:,}</td>
-        <td style="padding:5px 8px;text-align:right">{d_views_s}</td>
-        <td style="padding:5px 8px;text-align:right">{vids:,}</td>
-        <td style="padding:5px 8px;text-align:right">{d_vids_s}</td>
+        <td style="padding:5px 8px;text-align:right" data-v="{subs}">{subs:,}</td>
+        <td style="padding:5px 8px;text-align:right" data-v="{d_subs}">{d_subs_s}</td>
+        <td style="padding:5px 8px;text-align:right" data-v="{views}">{views:,}</td>
+        <td style="padding:5px 8px;text-align:right" data-v="{d_views}">{d_views_s}</td>
+        <td style="padding:5px 8px;text-align:right" data-v="{vids}">{vids:,}</td>
+        <td style="padding:5px 8px;text-align:right" data-v="{d_vids}">{d_vids_s}</td>
     </tr>"""
 
 components.html(f"""
@@ -153,16 +154,48 @@ components.html(f"""
            font-family:"Source Sans Pro",sans-serif; }}
   .adbg th {{ padding:5px 8px; border-bottom:2px solid #444; text-align:left;
               position:sticky; top:0; background:#0E1117; z-index:1; }}
+  .adbg th.sortable {{ cursor:pointer; user-select:none; }}
+  .adbg th.sortable:hover {{ color:#00CC96; }}
+  .adbg th.sortable::after {{ content:" ⇅"; font-size:10px; color:#555; }}
+  .adbg th.sortable.asc::after {{ content:" ▲"; color:#00CC96; }}
+  .adbg th.sortable.desc::after {{ content:" ▼"; color:#00CC96; }}
   .adbg td {{ border-bottom:1px solid #262730; }}
   .adbg tr:hover td {{ background:#1a1c24; }}
 </style>
-<table class="adbg"><thead><tr>
+<table class="adbg" id="dbgtbl"><thead><tr>
   <th>Channel</th><th style="text-align:center"># Snaps</th>
   <th>First</th><th>Latest</th>
-  <th style="text-align:right">Subs</th><th style="text-align:right">Δ Subs</th>
-  <th style="text-align:right">Views</th><th style="text-align:right">Δ Views</th>
-  <th style="text-align:right">Videos</th><th style="text-align:right">Δ Vids</th>
+  <th class="sortable" data-col="4" style="text-align:right">Subs</th>
+  <th class="sortable" data-col="5" style="text-align:right">Δ Subs</th>
+  <th class="sortable" data-col="6" style="text-align:right">Views</th>
+  <th class="sortable" data-col="7" style="text-align:right">Δ Views</th>
+  <th class="sortable" data-col="8" style="text-align:right">Videos</th>
+  <th class="sortable" data-col="9" style="text-align:right">Δ Vids</th>
 </tr></thead><tbody>{rows_html}</tbody></table>
+<script>
+(function() {{
+  const tbl = document.getElementById('dbgtbl');
+  const ths = tbl.querySelectorAll('th.sortable');
+  let curCol = -1, curDir = 0;
+  ths.forEach(th => {{
+    th.addEventListener('click', () => {{
+      const col = parseInt(th.dataset.col);
+      if (curCol === col) {{ curDir = curDir === 1 ? -1 : 1; }}
+      else {{ curCol = col; curDir = -1; }}
+      ths.forEach(h => h.classList.remove('asc','desc'));
+      th.classList.add(curDir === 1 ? 'asc' : 'desc');
+      const tbody = tbl.querySelector('tbody');
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      rows.sort((a, b) => {{
+        const av = parseFloat(a.cells[col].getAttribute('data-v')) || 0;
+        const bv = parseFloat(b.cells[col].getAttribute('data-v')) || 0;
+        return (av - bv) * curDir;
+      }});
+      rows.forEach(r => tbody.appendChild(r));
+    }});
+  }});
+}})();
+</script>
 """, height=min(len(filtered_channels), 30) * 32 + 60, scrolling=True)
 
 # ── Detail: single channel drill-down ────────────────────────

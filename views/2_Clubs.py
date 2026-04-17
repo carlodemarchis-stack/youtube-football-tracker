@@ -12,11 +12,13 @@ from dotenv import load_dotenv
 from src.database import Database
 from src.analytics import compute_channel_comparison, fmt_num
 from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope
-from src.channels import COUNTRY_TO_LEAGUE
+from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
 from src.auth import get_current_user, is_admin, require_login
 
 load_dotenv()
 require_login()
+
+_lg_flag = lambda name: LEAGUE_FLAG.get(name, "")
 
 st.title("Channels")
 
@@ -96,7 +98,7 @@ if league is None and _scope == "Overall":
             avg_club_subs = s['clubs_subs'] // max(s['clubs'], 1)
             channels_val = s['clubs'] + s['leagues']
             rows_html += f"""<tr>
-                <td style="padding:6px 12px" data-val="{lg_name}">{lg_name}</td>
+                <td style="padding:6px 12px" data-val="{lg_name}">{_lg_flag(lg_name)} {lg_name}</td>
                 <td style="padding:6px 12px;text-align:right" data-val="{channels_val}">{s['clubs']}+{s['leagues']}</td>
                 <td style="padding:6px 12px;text-align:right" data-val="{s['total_subs']}">{fmt_num(s['total_subs'])}</td>
                 <td style="padding:6px 12px;text-align:right" data-val="{s['clubs_subs']}">{fmt_num(s['clubs_subs'])}</td>
@@ -283,9 +285,9 @@ if league is None and _scope == "Overall":
                 continue
             fig_lg.add_trace(go.Scatter(
                 x=[d for d, _ in series], y=[v for _, v in series],
-                mode="lines+markers", name=lg,
+                mode="lines+markers", name=f"{_lg_flag(lg)} {lg}",
                 line=dict(color=LEAGUE_COLORS.get(lg, "#AAAAAA"), width=2),
-                hovertemplate=f"<b>{lg}</b><br>%{{x}}: %{{y:,.0f}} subs<extra></extra>",
+                hovertemplate=f"<b>{_lg_flag(lg)} {lg}</b><br>%{{x}}: %{{y:,.0f}} subs<extra></extra>",
             ))
         fig_lg.update_layout(
             title="Total subscribers per league (last 60 days)",

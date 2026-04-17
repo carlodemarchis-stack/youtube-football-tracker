@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import streamlit as st
-from src.channels import COUNTRY_TO_LEAGUE
+from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
 
 
 def _sync_query_params(league: str, club: str):
@@ -50,11 +50,16 @@ def render_header_filter(channels: list[dict]) -> tuple[str | None, dict | None]
     col1, col2 = st.columns(2)
 
     with col1:
+        def _fmt_league(name):
+            f = LEAGUE_FLAG.get(name, "")
+            return f"{f} {name}" if f else name
+
         selected_league = st.selectbox(
             "League",
             league_options,
             index=league_options.index(st.session_state["_filter_league"]),
             key="_widget_league",
+            format_func=_fmt_league,
         )
         st.session_state["_filter_league"] = selected_league
 
@@ -118,19 +123,20 @@ def render_header_filter(channels: list[dict]) -> tuple[str | None, dict | None]
 
     _sync_query_params(selected_league, selected_club)
 
+    _lg_display = _fmt_league(selected_league)
     if selected_club == "All Clubs":
         st.session_state["_filter_include_league"] = False
-        st.caption(f"Showing **{selected_league}**: all clubs.")
+        st.caption(f"Showing **{_lg_display}**: all clubs.")
         return selected_league, None
 
     if selected_club == "All Clubs + League":
         st.session_state["_filter_include_league"] = True
-        st.caption(f"Showing **{selected_league}**: all clubs and the league channel.")
+        st.caption(f"Showing **{_lg_display}**: all clubs and the league channel.")
         return selected_league, None
 
     st.session_state["_filter_include_league"] = False
     club_dict = next((ch for ch in clubs if ch["name"] == selected_club), None)
-    st.caption(f"Showing **{selected_club}** ({selected_league}).")
+    st.caption(f"Showing **{selected_club}** ({_lg_display}).")
     return selected_league, club_dict
 
 

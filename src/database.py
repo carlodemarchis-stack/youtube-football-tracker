@@ -262,6 +262,8 @@ class Database:
             }
             if "format" in v:
                 row["format"] = v["format"]
+            if v.get("actual_start_time"):
+                row["actual_start_time"] = v["actual_start_time"]
             rows.append(row)
         # Batch upsert in chunks of 50
         for i in range(0, len(rows), 50):
@@ -333,10 +335,16 @@ class Database:
         return resp.data or []
 
     def get_recent_videos(self, limit: int = 20, channel_ids: list[str] | None = None) -> list[dict]:
-        """Return the most recently ingested videos (joined with channel name)."""
+        """Return the most recently ingested videos (joined with channel name).
+
+        For live videos, actual_start_time (when the stream aired) is more
+        meaningful than published_at (when it was scheduled). We fetch both
+        and let the caller sort by effective_date.
+        """
         q = (
             self.client.table("videos")
-            .select("id,youtube_video_id,title,channel_id,published_at,duration_seconds,"
+            .select("id,youtube_video_id,title,channel_id,published_at,"
+                    "actual_start_time,duration_seconds,"
                     "format,category,view_count,like_count,comment_count,"
                     "thumbnail_url,channels(name)")
             .order("published_at", desc=True)
@@ -351,6 +359,10 @@ class Database:
         for r in rows:
             ch = r.pop("channels", None)
             r["channel_name"] = ch["name"] if ch else ""
+            # effective_date: for live videos prefer actual_start_time
+            r["effective_date"] = r.get("actual_start_time") or r.get("published_at") or ""
+        # Re-sort by effective_date (live streams move to their actual air time)
+        rows.sort(key=lambda r: r.get("effective_date", ""), reverse=True)
         return rows
 
     def get_videos_by_channel(self, channel_id: str) -> list[dict]:

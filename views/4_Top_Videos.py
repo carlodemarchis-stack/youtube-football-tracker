@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 from src.database import Database
 from src.analytics import compute_channel_comparison, compute_tier_stats, compute_theme_distribution, fmt_num
 from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope
-from src.channels import COUNTRY_TO_LEAGUE
+from src.channels import COUNTRY_TO_LEAGUE, league_with_flag
 from src.auth import require_login
 
 load_dotenv()
@@ -98,12 +98,12 @@ else:
     elif scope == "All clubs":
         keep = {n for n, c in ch_by_name.items() if c.get("entity_type") != "League"}
         df = df[df["channel_name"].isin(keep)]
-        ch_to_league = {n: get_league_for_channel(c) for n, c in ch_by_name.items()}
+        ch_to_league = {n: league_with_flag(get_league_for_channel(c)) for n, c in ch_by_name.items()}
         df["league"] = df["channel_name"].map(ch_to_league).fillna("Other")
         color_field = "league"
         color_map = None
     else:
-        ch_to_league = {n: get_league_for_channel(c) for n, c in ch_by_name.items()}
+        ch_to_league = {n: league_with_flag(get_league_for_channel(c)) for n, c in ch_by_name.items()}
         df["league"] = df["channel_name"].map(ch_to_league).fillna("Other")
         color_field = "league"
         color_map = None
@@ -113,14 +113,23 @@ if df.empty:
     st.stop()
 
 # ── Channel table (same as Clubs page) ───────────────────────
-if league and not club:
+if not club:
+    _loading = st.info("⏳ Building channel stats table…")
     now = datetime.now(timezone.utc)
     include_league = get_include_league()
-    if include_league:
-        table_channels = league_channels
+    if league:
+        # One league selected — use its channels
+        base_channels = league_channels
     else:
-        table_channels = [ch for ch in league_channels if ch.get("entity_type") != "League"]
+        # All leagues — use all channels
+        base_channels = all_channels
+    if include_league:
+        table_channels = base_channels
+    else:
+        table_channels = [ch for ch in base_channels if ch.get("entity_type") != "League"]
 
+    if not table_channels:
+        _loading.empty()
     if table_channels:
         ch_df = compute_channel_comparison(table_channels)
         ch_color_map = get_global_color_map()
@@ -333,6 +342,7 @@ if league and not club:
         }})();
         </script>
         """, height=_table_height, scrolling=False)
+    _loading.empty()
 
 
 filtered = df.sort_values("view_count", ascending=False).head(100).reset_index(drop=True)
@@ -444,8 +454,24 @@ for i, r in enumerate(filtered.itertuples(index=False), 1):
     fmt_raw = (getattr(r, "format", "") or "").lower()
     if fmt_raw not in ("long", "short", "live"):
         fmt_raw = "long" if dur >= 60 else "short"
-    fmt_label = {"long": "Long", "short": "Shorts", "live": "Live"}[fmt_raw]
-    fmt_color = {"long": "#636EFA", "short": "#EF553B", "live": "#FFA15A"}[fmt_raw]
+    # Detect scheduled/premiere (future actual_start_time) for any format
+    _is_sched = False
+    _ast = getattr(r, "actual_start_time", None) or ""
+    if _ast:
+        try:
+            _ast_dt = pd.to_datetime(_ast, utc=True)
+            if _ast_dt > _now:
+                _is_sched = True
+        except Exception:
+            pass
+    elif fmt_raw == "live" and dur == 0:
+        _is_sched = True
+    if _is_sched:
+        fmt_label = "Scheduled"
+        fmt_color = "#AB63FA"
+    else:
+        fmt_label = {"long": "Long", "short": "Shorts", "live": "Live"}[fmt_raw]
+        fmt_color = {"long": "#636EFA", "short": "#EF553B", "live": "#FFA15A"}[fmt_raw]
     fmt_cell = f'<span style="color:{fmt_color}">{fmt_label}</span>'
     row_url = f"https://www.youtube.com/watch?v={yt_id}" if yt_id else ""
     row_attrs = f'onclick="window.open(\'{row_url}\',\'_blank\',\'noopener\')" style="cursor:pointer"' if row_url else ''

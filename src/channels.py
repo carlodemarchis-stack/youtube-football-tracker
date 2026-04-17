@@ -24,6 +24,21 @@ COUNTRY_TO_LEAGUE = {
     "United States": "MLS",
 }
 
+LEAGUE_FLAG = {
+    "Serie A": "\U0001F1EE\U0001F1F9",
+    "Premier League": "\U0001F1EC\U0001F1E7",
+    "La Liga": "\U0001F1EA\U0001F1F8",
+    "Bundesliga": "\U0001F1E9\U0001F1EA",
+    "Ligue 1": "\U0001F1EB\U0001F1F7",
+    "MLS": "\U0001F1FA\U0001F1F8",
+}
+
+
+def league_with_flag(name: str) -> str:
+    """Return league name prefixed with its country flag emoji."""
+    flag = LEAGUE_FLAG.get(name, "")
+    return f"{flag} {name}" if flag else name
+
 # Official team colors (primary, secondary)
 # Used as default when auto-assigning channel colors
 TEAM_COLORS = {

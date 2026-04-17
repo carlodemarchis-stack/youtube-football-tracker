@@ -12,6 +12,7 @@ from src.database import Database
 from src.analytics import fmt_num
 from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope, get_league_for_channel
 from src.auth import require_login
+from src.channels import LEAGUE_FLAG
 
 load_dotenv()
 require_login()
@@ -53,8 +54,7 @@ if league is None and _scope == "Overall":
             return db.get_season_videos(since=since)
         # Fallback: old deploy without the helper
         return [v for v in db.get_all_videos() if (v.get("published_at") or "") >= since]
-    with st.spinner("Loading season videos across all leagues…"):
-        season_vids = _load_season_vids(SEASON_SINCE)
+    season_vids = _load_season_vids(SEASON_SINCE)
 
     # map channel_id → league
     ch_by_id = {c["id"]: c for c in all_channels}
@@ -109,7 +109,7 @@ if league is None and _scope == "Overall":
         short_vpv = s["short_views"] // max(s["short_v"], 1)
         er = ((s["likes"] + s["comments"]) / s["views"] * 100) if s["views"] else 0.0
         rows_html += f"""<tr>
-            <td style="padding:6px 12px">{lg}</td>
+            <td style="padding:6px 12px">{LEAGUE_FLAG.get(lg, '')} {lg}</td>
             <td style="padding:6px 12px;text-align:right">{fmt_num(s['views'])}</td>
             <td style="padding:6px 12px;text-align:right">{fmt_num(s['long_views'])}</td>
             <td style="padding:6px 12px;text-align:right">{fmt_num(s['short_views'])}</td>

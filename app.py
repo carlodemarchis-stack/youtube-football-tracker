@@ -27,37 +27,37 @@ st.set_page_config(
 # ── Navigation ────────────────────────────────────────────────
 # Tier 0 — public (visible to everyone, including not signed in)
 public_pages = [
-    st.Page("pages/0_Home.py", title="Home", default=True),
+    st.Page("views/0_Home.py", title="Home", default=True),
 ]
 
 # Tier 1 — viewer (any signed-in user)
 viewer_pages = [
-    st.Page("pages/1_Daily_Recap.py", title="Daily Recap"),
-    st.Page("pages/1b_Latest.py", title="Latest Videos"),
-    st.Page("pages/2_Clubs.py", title="Channels"),
-    st.Page("pages/3_Season_2526.py", title="Season 25/26"),
-    st.Page("pages/4_Top_Videos.py", title="Top Videos"),
+    st.Page("views/1_Daily_Recap.py", title="Daily Recap"),
+    st.Page("views/1b_Latest.py", title="Latest Videos"),
+    st.Page("views/2_Clubs.py", title="Channels"),
+    st.Page("views/3_Season_2526.py", title="Season 25/26"),
+    st.Page("views/4_Top_Videos.py", title="Top Videos"),
 ]
 
 # Tier 2 — premium (promote users via User Management)
 # Viewers see these with a 🔒 suffix; clicking shows an upgrade CTA.
 premium_pages_unlocked = [
-    st.Page("pages/5_Club_Comparison.py", title="Compare"),
-    st.Page("pages/6_AI_Analysis.py", title="AI Analysis"),
-    st.Page("pages/10_Ask_Data.py", title="Ask Data"),
+    st.Page("views/5_Club_Comparison.py", title="Compare"),
+    st.Page("views/6_AI_Analysis.py", title="AI Analysis"),
+    st.Page("views/10_Ask_Data.py", title="Ask Data"),
 ]
 premium_pages_locked = [
-    st.Page("pages/5_Club_Comparison.py", title="Compare 🔒"),
-    st.Page("pages/6_AI_Analysis.py", title="AI Analysis 🔒"),
-    st.Page("pages/10_Ask_Data.py", title="Ask Data 🔒"),
+    st.Page("views/5_Club_Comparison.py", title="Compare 🔒"),
+    st.Page("views/6_AI_Analysis.py", title="AI Analysis 🔒"),
+    st.Page("views/10_Ask_Data.py", title="Ask Data 🔒"),
 ]
 
 # Tier 3 — admin only
 admin_pages = [
-    st.Page("pages/7_Refresh_Data.py", title="Data"),
-    st.Page("pages/8_Channel_Management.py", title="Channel Management"),
-    st.Page("pages/9_User_Management.py", title="User Management"),
-    st.Page("pages/11_Snapshot_Debug.py", title="Snapshot Debug"),
+    st.Page("views/7_Refresh_Data.py", title="Data"),
+    st.Page("views/8_Channel_Management.py", title="Channel Management"),
+    st.Page("views/9_User_Management.py", title="User Management"),
+    st.Page("views/11_Snapshot_Debug.py", title="Snapshot Debug"),
 ]
 
 nav = {"": public_pages}
@@ -74,6 +74,9 @@ pg = st.navigation(nav)
 show_auth_sidebar()
 
 # ── Global header filter ──────────────────────────────────────
+if st.query_params.get("view") == "feed":
+    st.session_state["_feed_mode"] = True
+
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 
