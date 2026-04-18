@@ -1,6 +1,6 @@
 # Railway configuration for cron services.
-# Each service is configured in the Railway dashboard.
-# This file just tells Railway to use Nixpacks (Python auto-detect).
-
 [build]
 builder = "nixpacks"
+
+[deploy]
+startCommand = "echo 'Ready for cron execution'"
