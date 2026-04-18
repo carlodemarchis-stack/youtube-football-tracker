@@ -1,0 +1,11 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+COPY requirements-cron.txt .
+RUN pip install --no-cache-dir -r requirements-cron.txt
+
+COPY src/ src/
+COPY scripts/ scripts/
+
+# Default — overridden per service via Railway dashboard start command
+CMD ["echo", "cron ready"]
