@@ -1,6 +1,0 @@
-# Railway configuration for cron services.
-[build]
-builder = "nixpacks"
-
-[deploy]
-startCommand = "echo 'Ready for cron execution'"
