@@ -1,43 +1,6 @@
-# Railway configuration — 3 cron services running from the same repo.
-# Each service uses the shared Dockerfile and runs a different script.
-#
-# SETUP STEPS:
-# 1. Create a new Railway project at https://railway.app
-# 2. Connect this GitHub repo
-# 3. Create 3 services (one per cron job) with the names below
-# 4. Set env vars on the project level (shared by all services):
-#    - SUPABASE_URL
-#    - SUPABASE_KEY
-#    - YOUTUBE_API_KEY
-# 5. Each service will auto-deploy from the repo
-#
-# Note: GitHub Actions keep-alive workflow is no longer needed on Railway.
+# Railway configuration for cron services.
+# Each service is configured in the Railway dashboard.
+# This file just tells Railway to use Nixpacks (Python auto-detect).
 
 [build]
-dockerfilePath = "railway/Dockerfile"
-
-# ── Hourly RSS check ────────────────────────────────────────
-# Checks RSS feeds for new videos every 2 hours during European daytime.
-# Railway cron uses UTC. Runs at :45 past the hour.
-[services.hourly-rss]
-startCommand = "python scripts/hourly_rss.py"
-
-[services.hourly-rss.cron]
-schedule = "45 6,8,10,12,14,16,18,20,22 * * *"
-
-# ── Daily channel snapshot ──────────────────────────────────
-# Captures subscriber counts, view totals, and computes daily deltas.
-# Runs at 22:15 UTC (00:15 CET).
-[services.daily-snapshot]
-startCommand = "python scripts/daily_refresh.py"
-
-[services.daily-snapshot.cron]
-schedule = "15 22 * * *"
-
-# ── Weekly full video refresh ───────────────────────────────
-# Re-fetches all video stats from YouTube API. Runs Monday 04:00 UTC.
-[services.weekly-refresh]
-startCommand = "python scripts/weekly_refresh.py"
-
-[services.weekly-refresh.cron]
-schedule = "0 4 * * 1"
+builder = "nixpacks"
