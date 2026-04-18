@@ -7,6 +7,6 @@ RUN pip install --no-cache-dir -r requirements-cron.txt
 COPY src/ src/
 COPY scripts/ scripts/
 
-# Run the internal scheduler — handles hourly/daily/weekly jobs itself.
-# No Railway cron needed; this container stays alive and manages timing.
-CMD ["python", "scripts/scheduler.py"]
+# Default command — overridden per service via Railway start command.
+# Railway cron will start this container, run the command, and let it exit.
+CMD ["python", "scripts/hourly_rss.py"]
