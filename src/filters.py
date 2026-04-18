@@ -37,11 +37,18 @@ def render_header_filter(channels: list[dict]) -> tuple[str | None, dict | None]
     league_names = sorted(leagues.keys())
     league_options = ["All Leagues"] + league_names
 
-    # Restore from URL on fresh session (survives browser reload)
+    # Restore from URL on fresh session OR when query params changed externally
+    _qp_league = st.query_params.get("league", "All Leagues")
+    _qp_club = st.query_params.get("club", "All Clubs")
     if "_filter_league" not in st.session_state:
-        st.session_state["_filter_league"] = st.query_params.get("league", "All Leagues")
-    if "_filter_club" not in st.session_state:
-        st.session_state["_filter_club"] = st.query_params.get("club", "All Clubs")
+        st.session_state["_filter_league"] = _qp_league
+        st.session_state["_filter_club"] = _qp_club
+    elif st.session_state.get("_filter_qp_league") != _qp_league or st.session_state.get("_filter_qp_club") != _qp_club:
+        # Query params changed externally (e.g. clicked a row link) — apply them
+        st.session_state["_filter_league"] = _qp_league
+        st.session_state["_filter_club"] = _qp_club
+    st.session_state["_filter_qp_league"] = _qp_league
+    st.session_state["_filter_qp_club"] = _qp_club
 
     # Ensure stored value is still valid
     if st.session_state["_filter_league"] not in league_options:

@@ -115,24 +115,43 @@ class Database:
         return total
 
     def get_video_snapshots_for_date(self, captured_date: str) -> list[dict]:
-        resp = (
-            self.client.table("video_snapshots")
-            .select("*")
-            .eq("captured_date", captured_date)
-            .execute()
-        )
-        return resp.data or []
+        all_rows: list[dict] = []
+        page_size = 1000
+        offset = 0
+        while True:
+            resp = (
+                self.client.table("video_snapshots")
+                .select("*")
+                .eq("captured_date", captured_date)
+                .range(offset, offset + page_size - 1)
+                .execute()
+            )
+            batch = resp.data or []
+            all_rows.extend(batch)
+            if len(batch) < page_size:
+                break
+            offset += page_size
+        return all_rows
 
     def get_video_snapshots_range(self, since_date: str, until_date: str | None = None) -> list[dict]:
-        q = (
-            self.client.table("video_snapshots")
-            .select("*")
-            .gte("captured_date", since_date)
-        )
-        if until_date:
-            q = q.lte("captured_date", until_date)
-        resp = q.order("captured_date", desc=False).execute()
-        return resp.data or []
+        all_rows: list[dict] = []
+        page_size = 1000
+        offset = 0
+        while True:
+            q = (
+                self.client.table("video_snapshots")
+                .select("*")
+                .gte("captured_date", since_date)
+            )
+            if until_date:
+                q = q.lte("captured_date", until_date)
+            resp = q.order("captured_date", desc=False).range(offset, offset + page_size - 1).execute()
+            batch = resp.data or []
+            all_rows.extend(batch)
+            if len(batch) < page_size:
+                break
+            offset += page_size
+        return all_rows
 
     def get_season_video_rows(self, since: str = "2025-08-01") -> list[dict]:
         """All videos with published_at >= since (minimal columns).
@@ -177,11 +196,20 @@ class Database:
 
     def get_all_snapshots(self, since_date: str | None = None) -> list[dict]:
         """All snapshots, optionally from a given ISO date (YYYY-MM-DD)."""
-        q = self.client.table("channel_snapshots").select("*")
-        if since_date:
-            q = q.gte("captured_date", since_date)
-        resp = q.order("captured_date", desc=False).execute()
-        return resp.data or []
+        all_rows: list[dict] = []
+        page_size = 1000
+        offset = 0
+        while True:
+            q = self.client.table("channel_snapshots").select("*")
+            if since_date:
+                q = q.gte("captured_date", since_date)
+            resp = q.order("captured_date", desc=False).range(offset, offset + page_size - 1).execute()
+            batch = resp.data or []
+            all_rows.extend(batch)
+            if len(batch) < page_size:
+                break
+            offset += page_size
+        return all_rows
 
     def get_channel_snapshots(self, channel_db_id: str, limit: int = 365) -> list[dict]:
         resp = (
@@ -244,9 +272,16 @@ class Database:
         return [r["youtube_video_id"] for r in (resp.data or [])]
 
     def upsert_videos(self, videos: list[dict], channel_db_id: str):
+        from src.analytics import detect_theme
         now = datetime.now(timezone.utc).isoformat()
         rows = []
         for v in videos:
+            # Classify theme from title + duration + format
+            category = detect_theme(
+                v.get("title", ""),
+                v.get("duration_seconds"),
+                v.get("format"),
+            )
             row = {
                 "youtube_video_id": v["youtube_video_id"],
                 "channel_id": channel_db_id,
@@ -256,7 +291,7 @@ class Database:
                 "like_count": v.get("like_count", 0),
                 "comment_count": v.get("comment_count", 0),
                 "duration_seconds": v.get("duration_seconds", 0),
-                "category": v.get("category", "Other"),
+                "category": category,
                 "thumbnail_url": v.get("thumbnail_url", ""),
                 "last_updated": now,
             }
@@ -271,6 +306,164 @@ class Database:
             _retry(lambda b=batch: self.client.table("videos").upsert(
                 b, on_conflict="youtube_video_id"
             ).execute())
+
+    def refresh_season_views(self, channel_db_id: str, since: str = "2025-08-01"):
+        """Recompute and store season_views for a channel."""
+        resp = (
+            self.client.table("videos")
+            .select("view_count")
+            .eq("channel_id", channel_db_id)
+            .gte("published_at", since)
+            .execute()
+        )
+        total = sum(int(r.get("view_count", 0) or 0) for r in (resp.data or []))
+        self.client.table("channels").update(
+            {"season_views": total}
+        ).eq("id", channel_db_id).execute()
+        return total
+
+    def refresh_top100_stats(self, channel_db_id: str, since: str = "2025-08-01"):
+        """Precompute top-100 stats and store on the channels row."""
+        from datetime import datetime as _dt, timezone as _tz
+
+        now = _dt.now(_tz.utc)
+
+        def _compute(vids: list[dict]) -> dict:
+            if not vids:
+                return {
+                    "views": 0, "avg_age_days": 0, "avg_dur_s": 0,
+                    "long_pct": 0, "top1_views": 0,
+                    "top1_published_at": None, "top1_dur_s": 0,
+                }
+            top = vids[:100]
+            total_views = sum(int(v.get("view_count", 0) or 0) for v in top)
+
+            ages = []
+            for v in top:
+                pa = v.get("published_at")
+                if pa:
+                    try:
+                        dt = _dt.fromisoformat(str(pa).replace("Z", "+00:00"))
+                        if dt.tzinfo is None:
+                            dt = dt.replace(tzinfo=_tz.utc)
+                        ages.append((now - dt).days)
+                    except Exception:
+                        pass
+            avg_age = sum(ages) / len(ages) if ages else 0
+
+            durs = [int(v.get("duration_seconds", 0) or 0) for v in top]
+            avg_dur = sum(durs) // max(len(durs), 1)
+
+            long_count = 0
+            for v in top:
+                fmt = (v.get("format") or "").lower()
+                if fmt == "short":
+                    continue
+                elif fmt in ("long", "live"):
+                    long_count += 1
+                else:
+                    long_count += 1 if (int(v.get("duration_seconds", 0) or 0) >= 60) else 0
+            long_pct = round(long_count / max(len(top), 1) * 100)
+
+            v1 = top[0]
+            v1_views = int(v1.get("view_count", 0) or 0)
+            v1_pub = v1.get("published_at")
+            v1_dur = int(v1.get("duration_seconds", 0) or 0)
+
+            return {
+                "views": total_views, "avg_age_days": round(avg_age, 1),
+                "avg_dur_s": avg_dur, "long_pct": int(long_pct),
+                "top1_views": v1_views, "top1_published_at": v1_pub,
+                "top1_dur_s": v1_dur,
+            }
+
+        # All-time top 100 (already ordered by view_count desc)
+        at_vids = self.client.table("videos") \
+            .select("view_count,published_at,duration_seconds,format") \
+            .eq("channel_id", channel_db_id) \
+            .order("view_count", desc=True) \
+            .limit(100).execute().data or []
+        at = _compute(at_vids)
+
+        # All season videos (fetch all for breakdown — not just top 100)
+        all_season = _fetch_all(
+            self.client.table("videos")
+            .select("view_count,published_at,duration_seconds,format,like_count,comment_count")
+            .eq("channel_id", channel_db_id)
+            .gte("published_at", since)
+            .order("view_count", desc=True)
+        )
+        s = _compute(all_season)  # top-100 stats from the sorted list
+
+        # Season breakdown by format
+        sb = {"long_views": 0, "short_views": 0, "live_views": 0,
+              "long_videos": 0, "short_videos": 0, "live_videos": 0,
+              "long_dur_total": 0, "short_dur_total": 0,
+              "likes": 0, "comments": 0,
+              "long_likes": 0, "short_likes": 0, "live_likes": 0,
+              "long_comments": 0, "short_comments": 0, "live_comments": 0}
+        for v in all_season:
+            vc = int(v.get("view_count", 0) or 0)
+            lk = int(v.get("like_count", 0) or 0)
+            cm = int(v.get("comment_count", 0) or 0)
+            dur = int(v.get("duration_seconds", 0) or 0)
+            fmt = (v.get("format") or "").lower()
+            if fmt not in ("long", "short", "live"):
+                fmt = "long" if dur >= 60 else "short"
+            sb["likes"] += lk
+            sb["comments"] += cm
+            if fmt == "live":
+                sb["live_views"] += vc; sb["live_videos"] += 1
+                sb["live_likes"] += lk; sb["live_comments"] += cm
+            elif fmt == "short":
+                sb["short_views"] += vc; sb["short_videos"] += 1
+                sb["short_dur_total"] += dur
+                sb["short_likes"] += lk; sb["short_comments"] += cm
+            else:
+                sb["long_views"] += vc; sb["long_videos"] += 1
+                sb["long_dur_total"] += dur
+                sb["long_likes"] += lk; sb["long_comments"] += cm
+
+        season_views = sb["long_views"] + sb["short_views"] + sb["live_views"]
+        season_count = sb["long_videos"] + sb["short_videos"] + sb["live_videos"]
+
+        update = {
+            "top100_views": at["views"],
+            "top100_avg_age_days": at["avg_age_days"],
+            "top100_avg_dur_s": at["avg_dur_s"],
+            "top100_long_pct": at["long_pct"],
+            "top1_views": at["top1_views"],
+            "top1_published_at": at["top1_published_at"],
+            "top1_dur_s": at["top1_dur_s"],
+            "season_top100_views": s["views"],
+            "season_top100_avg_age_days": s["avg_age_days"],
+            "season_top100_avg_dur_s": s["avg_dur_s"],
+            "season_top100_long_pct": s["long_pct"],
+            "season_top1_views": s["top1_views"],
+            "season_top1_published_at": s["top1_published_at"],
+            "season_top1_dur_s": s["top1_dur_s"],
+            "season_video_count": season_count,
+            "season_views": season_views,
+            # Season breakdown
+            "season_long_views": sb["long_views"],
+            "season_short_views": sb["short_views"],
+            "season_live_views": sb["live_views"],
+            "season_long_videos": sb["long_videos"],
+            "season_short_videos": sb["short_videos"],
+            "season_live_videos": sb["live_videos"],
+            "season_long_dur_avg": sb["long_dur_total"] // max(sb["long_videos"], 1),
+            "season_short_dur_avg": sb["short_dur_total"] // max(sb["short_videos"], 1),
+            "season_likes": sb["likes"],
+            "season_comments": sb["comments"],
+            "season_long_likes": sb["long_likes"],
+            "season_short_likes": sb["short_likes"],
+            "season_live_likes": sb["live_likes"],
+            "season_long_comments": sb["long_comments"],
+            "season_short_comments": sb["short_comments"],
+            "season_live_comments": sb["live_comments"],
+        }
+        self.client.table("channels").update(update).eq("id", channel_db_id).execute()
+        return update
 
     # ── Video Catalog (all videos, compact) ─────────────────────
 

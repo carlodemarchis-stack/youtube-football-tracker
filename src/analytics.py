@@ -101,18 +101,21 @@ import pandas as pd
 _THEME_RULES: list[tuple[str, "re.Pattern"]] = [
     # Highlights (all common languages) — must check BEFORE Full Match so
     # "Juventus vs Inter | Highlights" classifies correctly even if duration
-    # is long (some clubs upload 15-min cuts). Also catches "tous les buts"
-    # / "top arrêts" / "top saves" which are effectively highlight reels.
+    # is long (some clubs upload 15-min cuts).
     ("Highlights", re.compile(
         r"highlight|sintesi|resumen|zusammenfassung|r[ée]sum[ée]|"
         r"hoogtepunten|melhores momentos|\bgoles del partido\b|"
         r"tous les buts|top arr[êe]ts|top saves|\btop\s?10\s?(goals|buts|gols)"
     )),
-    # Press conference (add Catalan / German "PK" / post-partit variants)
+    # Press conference — coach / player pre/post-match press, "PK", quotes
     ("Press Conference", re.compile(
         r"press\s?conference|press\s?conf|presser|conferenza\s?stampa|"
         r"rueda de prensa|pressekonferenz|conf[ée]rence de presse|coletiva|"
-        r"roda de premsa|\bpk\b\s*(mit|con|with|post|pre)|post\s?partit"
+        r"roda de premsa|\bpk\b\s*(mit|con|with|post|pre|nach|vor)|post\s?partit|"
+        r"confer[eê]ncia|la conf[ée]rence de|post\s?gara|"
+        r"le parole di|las palabras de|las declaraciones de|"
+        r"\ben la previa\b|previa del\b|avant[- ]match|"
+        r"\bstimmen\b.*\||\bpk\s+(nach|vor)\b"
     )),
     # Interview & post-match reactions
     ("Interview", re.compile(
@@ -120,23 +123,36 @@ _THEME_RULES: list[tuple[str, "re.Pattern"]] = [
         r"\bparla\b|\bhabla\b|r[ée]actions?\b|post[- ]?match|post[- ]?game|"
         r"post[- ]?partido|declaraciones|dichiarazioni|"
         r"\bstimmen\s+(nach|vor|zum|aus|zu)|zona\s?mixta|zone\s?mixte|"
-        r"flash\s?interview|les\s?[ée]motions"
+        r"flash\s?interview|les\s?[ée]motions|mixed\s?zone|"
+        r"post\s?partita|nach dem spiel|apr[eè]s le match"
     )),
-    # Podcast & Talk — long-format conversational shows (catch before Interview? No — FPL podcast uses "podcast" keyword so safe)
+    # Podcast & Talk — long-format conversational shows
     ("Podcast & Talk", re.compile(
         r"\bpodcast\b|fpl\s?podcast|radio\s?tv\s?serie\s?a|storie di serie a con|"
-        r"\bcharlamos\b|l['’]int[ée]grale|talk\s?show|\btertulia\b"
+        r"\bcharlamos\b|l[‘’]int[ée]grale|talk\s?show|\btertulia\b|"
+        r"\bsmall talk\b|\buncut\b"
     )),
     # Tribute & Farewell — retirement, memorials, legacy goodbyes
     ("Tribute & Farewell", re.compile(
         r"merci\s+\w+\s*[!?¡]|\babschieds(spiel|rede|party)\b|hommage|"
         r"\bfarewell\b|\badi[oó]s\b|\bdespedida\b|\baddio\b|in memory|in memoriam|"
         r"\btribute\b|\btributo\b|\blegenda\b|legacy of|\bsuperga\b|"
-        r"retirement|retires?\b|ritira|se retira"
+        r"retirement|retires?\b|ritira|se retira|\bwe salute\b"
+    )),
+    # Celebration / Trophy — parade, title won, champion
+    ("Celebration & Trophy", re.compile(
+        r"\bparade\b|\btrophy\b|\btrofeo\b|\btrophée\b|\bpokal\b|"
+        r"\bchampion(s|ne)?\b|\bcampe[oó]n(es)?\b|\bcampione\b|\bmeister\b|"
+        r"\btitle\b|\btitolo\b|\bt[ií]tulo\b|\bscudetto\b|"
+        r"\bcelebrat|festeggia|celebraci[oó]n|festejos|party\s+time|"
+        r"\bcoupe\b|\bcopa\b|\bcoppa\b|\bcup final\b|trophy lift|"
+        r"we are the champion|\bsupercup\b|\bsupercopa\b|\bsupercoppa\b"
     )),
     # Training
     ("Training", re.compile(
-        r"\btraining\b|allenamento|entrenamiento|entra[îi]nement|treino|\bprep\b|warm.?up"
+        r"\btraining\b|allenamento|entrenamiento|entra[îi]nement|treino|"
+        r"\bprep\b|warm.?up|pre\s?season|pretemporada|pr[ée]saison|"
+        r"trainingslager|\bpremi[eè]re s[ée]ance\b|primera sesi[oó]n"
     )),
     # Transfer / Welcome / Signing (extended)
     ("Transfer & Signings", re.compile(
@@ -146,10 +162,11 @@ _THEME_RULES: list[tuple[str, "re.Pattern"]] = [
         r"de retour|bienvenu|bienvenido|benvenuto|willkommen|"
         r"extends until|\brenew(al|s|ed)?\b|\brinnova\b|\brenueva\b|"
         r"prolong(e|ation|aci[oó]n|amento)|prolunga|"
-        r"promesse\s+[\w\s]+\s?20\d{2}"
+        r"promesse\s+[\w\s]+\s?20\d{2}|\bhas signed\b|\bsigned\b|"
+        r"pr[ée]sent[ée]\s+[àa]\s+la presse|\bday\s?1\b|nouvel\s+(attaquant|d[ée]fenseur|gardien|milieu)"
     )),
-    # Women's football (flag before Academy since both can appear)
-    ("Women's Football", re.compile(
+    # Women’s football (flag before Academy since both can appear)
+    ("Women’s Football", re.compile(
         r"\bwomen\b|femminil|femenin|femenil|\bfrauen\b|f[ée]minin"
     )),
     # Academy / youth
@@ -157,29 +174,34 @@ _THEME_RULES: list[tuple[str, "re.Pattern"]] = [
         r"\bacademy\b|primavera|\bu\s?1[5-9]\b|\bu\s?2[0-3]\b|"
         r"\bcantera\b|jugend|jeunes|giovanili|juvenil|youth"
     )),
-    # Matchday prep / preview
+    # Matchday prep / preview / journey
     ("Matchday", re.compile(
         r"matchday|gameday|giornata|d[ií]a de partido|spieltag|jour de match|"
         r"pre\s?match|pre.?game|\blineup\b|starting\s?xi|convocat|"
         r"teamnews|team\s?news|arrivo allo stadio|llegada al estadio|"
         r"\barrive[sd]?\s+(for|at)\b|\bh[- ]?\d+\s?avant\b|\bambiance\b|"
         r"\bderby\b|\bderbi\b|\bklassiker\b|\bel\s?cl[áa]sico\b|"
-        r"ankunft|arrivée|llegada"
+        r"ankunft|arrivée|llegada|journ[ée]e\b.*ligue|jornada\b.*laliga|"
+        r"\bfull.?time\b|scenes at\b|in the building"
     )),
-    # Behind the scenes / inside / locker room / "no comment"
+    # Behind the scenes / inside / locker room / "no comment" / access
     ("Behind the Scenes", re.compile(
         r"behind the scene|dietro le quinte|detr[aá]s de|hinter den kulissen|"
         r"coulisses|\bvlog\b|\binside\b|backstage|tunnel cam|\bbts\b|"
         r"no comment|vestiaire|dressing.?room|locker.?room|spogliatoio|"
         r"travel\s?asmr|zimmerduell|kabinen[- ]?(ansprache|insights|talk)|"
-        r"\binside training\b|inside the club"
+        r"\binside training\b|inside the club|"
+        r"\bful\s?access\b|\baccess all\b|\bref\s?cam\b|\bpov\b|"
+        r"\btunnel\b|travel\s?log|\bday in\b.*with|a day in\b|"
+        r"dans les souvenirs|im herzen von"
     )),
-    # Documentary / series (episodic content) — before Trailer so 'Ep2' sticks
+    # Documentary / series (episodic content) — before Trailer so ‘Ep2’ sticks
     ("Documentary & Series", re.compile(
         r"\bdoku\b|documentary|documental|documentario|\blong.?format\b|"
         r"\b[ée]pisode\s?\d|\bepisode\s?\d|\bep\.?\s?\d|\bsaison\s?\d|"
         r"\bseason\s?\d|\bseries\b|\bserie\s?\d|\bcap[ií]tulo\s?\d|"
-        r"all about\s|\bthe howl\b|made in paris|the film|il film"
+        r"all about\s|\bthe howl\b|made in paris|the film|il film|"
+        r"la renaissance|miracle men|l[‘’]aventure"
     )),
     # Trailer / promo
     ("Trailer & Promo", re.compile(
@@ -189,16 +211,16 @@ _THEME_RULES: list[tuple[str, "re.Pattern"]] = [
     ("Merch & Kit", re.compile(
         r"\bkit\b|\bshirt\b|\bjersey\b|\bmaillot\b|\bcamiseta\b|\btrikot\b|"
         r"\bmerch\b|\bcollection\b|\bcollezione\b|\bvintage\b|\bhome kit\b|"
-        r"\baway kit\b|\bthird kit\b|nuev[ao] camiseta|new kit"
+        r"\baway kit\b|\bthird kit\b|nuev[ao] camiseta|new kit|\bmaglia\b"
     )),
-    # Throwback / retro
+    # Throwback / retro / birthday
     ("Throwback", re.compile(
         r"\b#?tb\b|throwback|flashback|\bprime\s\w+|top\s?1?\d+\s+(goal|buts|gols|skill|save)|"
         r"\bremember\b|classic\b|storico|histórico|hist[óo]rica|"
         r"\bvintage goals?\b|legendary|\blegendario\b|"
         r"\banniversaire\b|\banniversary\b|\bgeburtstag\b|\bcumplea[ñn]os\b|"
         r"\d+\s?years ago|\bin memory\b|\bon this day\b|\botd\b|"
-        r"joyeux anniversaire|feliz cumple"
+        r"joyeux anniversaire|feliz cumple|happy birthday|buon compleanno"
     )),
     # Community / CSR / foundation
     ("Community & CSR", re.compile(
@@ -206,38 +228,59 @@ _THEME_RULES: list[tuple[str, "re.Pattern"]] = [
         r"foundation|\bcharity\b|\bcsr\b|visite?\s+(à|au|de|en|del|della|dello)|"
         r"hospital|b[ée]n[ée]vol|voluntari|awareness|donation|"
         r"\blap of appreciation\b|d[ií]a internacional|\bsamaritans\b|"
-        r"together against|\bmovember\b|world cup of kindness"
+        r"together against|\bmovember\b|world cup of kindness|"
+        r"h[ée]roes an[oó]nimos"
     )),
-    # Player Spotlight / Player Cam
+    # Player Spotlight / Player Cam / portraits
     ("Player Spotlight", re.compile(
         r"in focus|player cam|player of the (week|month|year)|\bpotm\b|"
         r"spotlight|focus on\b|riflettori|profilo|\bprofile\b|close.?up|"
-        r"every angle|\bposter\b|\bday with\b|une journ[ée]e avec|un d[ií]a con"
+        r"every angle|\bposter\b|\bday with\b|une journ[ée]e avec|un d[ií]a con|"
+        r"\bportrait\b|\bporträt\b|\bretrato\b|j[- ]?\d+\s+avec\b"
     )),
-    # Quiz / games
+    # Quiz / games / FIFA gaming
     ("Quiz & Games", re.compile(
         r"\bquiz+\b|\bquizz?\b|¿qui[eé]n|tu pr[ée]f[èe]res|ti preferisci|"
         r"\bchallenge\b|\bdefi\b|\bsfida\b|who knows|connais.?tu|"
         r"guess the|adivina|indovina|"
         r"fifa\s?\d*\s?ratings|fifa\s?\d*\s?prediction|uno\s?showdown|"
         r"petit\s?bac|\ba[- ]?to[- ]?z\b|a[- ]z\s+(of|player)|"
-        r"build your perfect|rate the|who['’]s your pick|\btier list\b"
+        r"build your perfect|rate the|who[‘’]s your pick|\btier list\b|"
+        r"\bfc\s?\d{2}\s?toty\b|\bwho[‘’]s better\b|\bendevina\b|"
+        r"goal recreation|\bvs\b.*scoring|doha quest"
     )),
-    # Entertainment / comedy / pop-culture
+    # Entertainment / comedy / pop-culture / fun social
     ("Entertainment", re.compile(
         r"half.?time show|bad bunny|squid game|\bfilter\b|\bprank\b|"
         r"comedia|comedy|\bblooper\b|tu ris tu perds|funny moments|"
-        r"mr beast|concert"
+        r"mr beast|concert|\baged like\b|\bfunny\b|valentín|valentine|"
+        r"\bchristmas\b|\bnatale\b|\bnavidad\b|\bno[ëe]l\b|\bweihnacht\b|"
+        r"feliz año|happy new year|bonne ann[ée]e|buon anno"
     )),
-    # Goals & skills (viral short plays) — keep broad; this is the catch-all
-    # for "Szobo's strike", "Too Cold from Palmer", poetry-in-motion clips
+    # Goal compilations — "every goal", "all goals", "best goals of the month"
+    ("Goal Compilation", re.compile(
+        r"\bevery\s+(goal|treffer|tor|but|gol)\b|"
+        r"\ball\s+(goal|treffer|tor|but|gol)s\b|"
+        r"\balle\s+(tore|treffer)\b|"
+        r"\btous\s+les\s+(buts|gols)\b|"
+        r"\btodos\s+los\s+goles\b|"
+        r"\blos\s+mejores\s+goles\b|"
+        r"\bbest\s+of\s+(the\s+)?(month|year|season|week)\b|"
+        r"\btore?\s+des\s+monats\b|"
+        r"\bgoals?\s+of\s+the\s+(month|year|season|week)\b|"
+        r"\b(premier league|laliga|serie a|ligue 1|bundesliga)\s+goals\b|"
+        r"\bgol(s|es)?\s+del?\s+(mes|temporada|a[ñn]o)\b|"
+        r"1\s?hour of.*\b(goal|save)\b|"
+        r"\bbiggest.*moments\b|\bevery\s+\w+\s+goal\b"
+    )),
+    # Goals & skills (viral short plays)
     ("Goals & Skills", re.compile(
         r"\bbest goal|\btop goal|\bskill\b|dribbl|nutmeg|\btrick\b|\bassist\b|"
         r"\bsave\b|\bparata\b|compilation|\bfree.?kick\b|\bpunizione\b|"
         r"golazo|gola[çc]o|\bstunner\b|\bscreamer\b|\bbanger\b|"
         r"wonder.?goal|long.?range|\bvolley\b|bicycle kick|chilena|"
         r"\bstrike\b|\bgoalazo\b|poetry in motion|\bclass[ie]c goals?\b|"
-        r"\brocket\b|\bthunderbolt\b"
+        r"\brocket\b|\bthunderbolt\b|\bheader(s|ed)?\b"
     )),
     # Match Recap (narrative, usually has team names + score + outcome verb).
     # Runs late so Highlights / Full Match grab theirs first.
@@ -247,7 +290,8 @@ _THEME_RULES: list[tuple[str, "re.Pattern"]] = [
         r"\brimonta\b|\bcomeback\b|\bremontada\b|\bremonta\b|"
         r"\bpareggio\b|\bempate\b|\bdraw\b|\b[ée]crase\b|\bdouche\b|"
         r"\baccroche\b|accrochent|\bbat(s|tu|tent)\b|\bb[ae]ts\b|"
-        r"\bwin\b|\bwins\b|\bloss\b|\bhome win\b|\baway win\b"
+        r"\bwin\b|\bwins\b|\bloss\b|\bhome win\b|\baway win\b|"
+        r"\bs[‘’]impose\b|\bfait tomber\b"
     )),
 ]
 

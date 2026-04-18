@@ -295,7 +295,9 @@ if selected_ch:
             for vid in vid_rows[:50]:
                 snaps_for = sorted(vsnap_by_vid.get(vid["id"], []), key=lambda x: x["captured_date"])
                 snap_count = len(snaps_for)
-                title = (vid.get("title") or "")[:60].replace("<", "&lt;")
+                _raw_title = (vid.get("title") or "")[:60].replace("<", "&lt;")
+                _yt_id = vid.get("youtube_video_id") or ""
+                title = f'<a href="https://www.youtube.com/watch?v={_yt_id}" target="_blank" rel="noopener" style="color:#FAFAFA;text-decoration:none">{_raw_title}</a>' if _yt_id else _raw_title
                 pub = (vid.get("published_at") or "")[:10]
 
                 if snap_count >= 2:

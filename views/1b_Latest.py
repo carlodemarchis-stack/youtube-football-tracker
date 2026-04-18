@@ -70,8 +70,26 @@ def _is_scheduled(v):
         return True
     return False
 
+# Detect "Live Now" — live format, 0 duration, actual_start_time in the past (within 6h)
+def _is_live_now(v):
+    if (v.get("format") or "").lower() != "live":
+        return False
+    if (v.get("duration_seconds") or 0) > 0:
+        return False
+    _ast = v.get("actual_start_time") or ""
+    if not _ast:
+        return False
+    try:
+        _ast_dt = datetime.fromisoformat(_ast.replace("Z", "+00:00"))
+        delta = _now_utc - _ast_dt
+        return 0 < delta.total_seconds() < 2 * 3600  # started within last 2h
+    except Exception:
+        return False
+
+live_now = [v for v in latest_raw if _is_live_now(v)]
+
 if not show_scheduled:
-    latest_raw = [v for v in latest_raw if not _is_scheduled(v)]
+    latest_raw = [v for v in latest_raw if not _is_scheduled(v) or _is_live_now(v)]
 
 # Apply format filter
 if fmt_pick and fmt_pick != "All":
@@ -99,13 +117,88 @@ elif g_league:
 else:
     _scope = "**all tracked channels**"
 _fmt_suffix = f" · format: **{fmt_pick}**" if fmt_pick and fmt_pick != "All" else ""
-st.caption(f"Showing **{len(latest)}** most recent videos · {_scope}{_fmt_suffix}")
+_last_fetched = max((v.get("last_fetched") or v.get("published_at") or "" for v in latest), default="")
+_updated_str = ""
+if _last_fetched:
+    try:
+        from datetime import datetime, timezone
+        _lf_dt = datetime.fromisoformat(_last_fetched.replace("Z", "+00:00"))
+        _updated_str = f" · updated {_lf_dt.strftime('%b %d, %H:%M')} UTC"
+    except Exception:
+        pass
+st.caption(f"Showing **{len(latest)}** most recent videos · {_scope}{_fmt_suffix}{_updated_str}")
 
 ch_by_id = {c["id"]: c for c in all_channels}
 
 _COUNTRY_FLAG = {"IT": "\U0001F1EE\U0001F1F9", "EN": "\U0001F1EC\U0001F1E7", "ES": "\U0001F1EA\U0001F1F8",
                  "DE": "\U0001F1E9\U0001F1EA", "FR": "\U0001F1EB\U0001F1F7", "US": "\U0001F1FA\U0001F1F8",
                  "GB": "\U0001F1EC\U0001F1E7"}
+
+# ── Live Now banner ─────────────────────────────────────────
+if live_now:
+    _ln_cards = ""
+    for v in live_now:
+        yt_id = v.get("youtube_video_id", "") or ""
+        url = f"https://www.youtube.com/watch?v={yt_id}" if yt_id else "#"
+        title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;").replace("'", "&#39;").replace('"', "&quot;")
+        ch = ch_by_id.get(v.get("channel_id")) or {}
+        ch_name = v.get("channel_name", "") or ch.get("name", "")
+        thumb = v.get("thumbnail_url") or ""
+        c1, c2 = dual.get(ch_name, (color_map.get(ch_name, "#636EFA"), "#FFFFFF"))
+        # Time since start
+        _ast = v.get("actual_start_time") or ""
+        _live_label = ""
+        if _ast:
+            try:
+                _ast_dt = datetime.fromisoformat(_ast.replace("Z", "+00:00"))
+                _mins = int((_now_utc - _ast_dt).total_seconds() / 60)
+                _live_label = f"{_mins}m" if _mins < 60 else f"{_mins // 60}h{_mins % 60:02d}m"
+            except Exception:
+                pass
+        views = int(v.get("view_count") or 0)
+        _ln_cards += f"""<a href="{url}" target="_blank" rel="noopener" class="ln-card">
+          <div class="ln-thumb">
+            <img src="{thumb}" alt="">
+            <span class="ln-badge">● LIVE</span>
+            {'<span class="ln-dur">' + _live_label + '</span>' if _live_label else ''}
+          </div>
+          <div class="ln-info">
+            <span class="ln-dot" style="background:{c1};box-shadow:2px 0 0 {c2}"></span>
+            <span class="ln-club">{ch_name}</span>
+            {('<span class="ln-views">' + fmt_num(views) + ' views</span>') if views else ''}
+          </div>
+          <div class="ln-title" title="{title}">{title}</div>
+        </a>"""
+
+    components.html(f"""
+    <style>
+      * {{ box-sizing:border-box; }}
+      body {{ margin:0; font-family:"Source Sans Pro",sans-serif; }}
+      .ln-header {{ color:#FAFAFA; font-size:15px; font-weight:600; margin:0 0 10px 4px; }}
+      .ln-grid {{ display:flex; gap:12px; overflow-x:auto; padding:4px 0 8px 0; }}
+      .ln-card {{ display:block; text-decoration:none; color:#FAFAFA; border-radius:8px;
+                  background:#1a1c24; overflow:hidden; min-width:220px; max-width:260px;
+                  flex-shrink:0; border:1px solid #EF553B44; transition:transform 0.15s; }}
+      .ln-card:hover {{ transform:scale(1.03); background:#22252e; border-color:#EF553B88; }}
+      .ln-thumb {{ position:relative; width:100%; aspect-ratio:16/9; overflow:hidden; }}
+      .ln-thumb img {{ width:100%; height:100%; object-fit:cover; display:block; }}
+      .ln-badge {{ position:absolute; top:6px; left:6px; background:#EF553B;
+                   color:#fff; font-size:10px; font-weight:700; padding:2px 7px;
+                   border-radius:3px; letter-spacing:0.5px; }}
+      .ln-dur {{ position:absolute; bottom:4px; right:4px; background:rgba(0,0,0,0.8);
+                 color:#fff; font-size:11px; padding:1px 5px; border-radius:3px; }}
+      .ln-info {{ padding:6px 8px 2px; display:flex; align-items:center; gap:5px; }}
+      .ln-dot {{ display:inline-block; width:10px; height:10px; border-radius:50%;
+                 border:1px solid rgba(255,255,255,0.3); flex-shrink:0; }}
+      .ln-club {{ font-size:11px; color:#999; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }}
+      .ln-views {{ font-size:10px; color:#666; margin-left:auto; white-space:nowrap; }}
+      .ln-title {{ padding:2px 8px 8px; font-size:12px; line-height:1.3;
+                   display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+                   overflow:hidden; color:#ddd; }}
+    </style>
+    <div class="ln-header">🔴 Live Now</div>
+    <div class="ln-grid">{_ln_cards}</div>
+    """, height=230, scrolling=False)
 
 # ── Mosaic view ─────────────────────────────────────────────
 if mosaic_view:
@@ -214,20 +307,22 @@ for v in latest:
             age_label = ""
 
     row_click = f'onclick="window.open(\'{url}\',\'_blank\',\'noopener\')"' if url else ''
+    dot = f'<span class="dot" style="background:{c1};box-shadow:3px 0 0 {c2}"></span>'
 
     rows_html += f"""<tr {row_click} style="cursor:pointer" data-views="{views}" data-likes="{likes}" data-comments="{comments}" data-dur="{dur}" data-age="{age_minutes}" data-ch="{ch_name}" data-fmt="{fmt_raw}" data-cat="{cat}">
-        <td class="c-thumb">{thumb_html}</td>
-        <td class="c-club">
-            <span class="dot" style="background:{c1};box-shadow:3px 0 0 {c2}"></span>
-            <span style="color:#AAA;font-size:13px">{ch_name}</span>
+        <td class="c-video">
+          <div class="v-row">
+            {thumb_html}
+            <div class="v-info">
+              <div class="v-meta">{dot}<span style="color:#AAA">{ch_name}</span> · <span style="color:{fmt_color}">{fmt_label}</span>{(' · <span style="color:#666">' + cat + '</span>') if cat and cat != 'Other' else ''}</div>
+              <a href="{url}" target="_blank" rel="noopener" class="v-title">{title}</a>
+            </div>
+          </div>
         </td>
-        <td class="c-title"><a href="{url}" target="_blank" rel="noopener" style="color:#FAFAFA;text-decoration:none">{title}</a></td>
-        <td class="c-fmt" style="color:{fmt_color}">{fmt_label}</td>
         <td class="c-dur" style="text-align:right">{dur_s}</td>
         <td class="c-views" style="text-align:right">{views_str}</td>
         <td class="c-likes" style="text-align:right">{likes_str}</td>
         <td class="c-comments" style="text-align:right">{comments_str}</td>
-        <td class="c-cat">{cat}</td>
         <td class="c-age" style="color:#888">{age_label}</td>
     </tr>"""
 
@@ -241,26 +336,28 @@ components.html(f"""
   .lt th[data-col]:hover {{ color:#58A6FF; }}
   .lt th .arrow {{ font-size:10px; margin-left:4px; opacity:0.5; }}
   .lt th.sorted .arrow {{ opacity:1; color:#58A6FF; }}
-  .lt td {{ border-bottom:1px solid #262730; padding:6px 12px; }}
+  .lt td {{ border-bottom:1px solid #262730; padding:6px 12px; vertical-align:middle; }}
   .lt tr:hover td {{ background:#1a1c24; }}
   .dot {{ display:inline-block; width:12px; height:12px; border-radius:50%;
           border:1px solid rgba(255,255,255,0.3); vertical-align:middle;
-          margin-right:6px; }}
-  .c-thumb {{ padding:6px 8px !important; }}
+          margin-right:5px; }}
+  .c-video {{ padding:6px 8px !important; }}
+  .v-row {{ display:flex; align-items:center; gap:10px; }}
+  .v-row img {{ width:120px; height:68px; object-fit:cover; border-radius:4px; flex-shrink:0; }}
+  .v-info {{ min-width:0; }}
+  .v-meta {{ font-size:12px; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+  .v-title {{ color:#FAFAFA; text-decoration:none; font-size:13px; line-height:1.3;
+              display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }}
   .c-dur, .c-views, .c-likes, .c-comments {{ text-align:right; }}
   .c-age {{ white-space:nowrap; }}
 </style>
 <table class="lt" id="ltTable">
   <thead><tr>
-    <th></th>
-    <th>Club</th>
-    <th>Title</th>
-    <th data-col="fmt" data-type="str">Format <span class="arrow">▲</span></th>
+    <th>Video</th>
     <th data-col="dur" data-type="num" style="text-align:right">Duration <span class="arrow">▲</span></th>
     <th data-col="views" data-type="num" style="text-align:right">Views <span class="arrow">▲</span></th>
     <th data-col="likes" data-type="num" style="text-align:right">Likes <span class="arrow">▲</span></th>
     <th data-col="comments" data-type="num" style="text-align:right">Comments <span class="arrow">▲</span></th>
-    <th>Theme</th>
     <th data-col="age" data-type="num">Age <span class="arrow">▲</span></th>
   </tr></thead>
   <tbody>{rows_html}</tbody>

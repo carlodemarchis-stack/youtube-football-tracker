@@ -123,6 +123,13 @@ def main() -> int:
                         db.upsert_videos(new_vids, channel_db_id)
                         new_videos_total += len(new_vids)
 
+            # Refresh precomputed top-100 stats + season_views on the channel
+            if channel_db_id:
+                try:
+                    db.refresh_top100_stats(channel_db_id, SEASON_SINCE)
+                except Exception:
+                    pass
+
             ok += 1
             extra = f" (+{len(new_ids) if ch.get('entity_type') != 'League' else 0} new)" if ch.get("entity_type") != "League" else ""
             log(f"[{i}/{total}] {name} — subs={stats.get('subscriber_count', 0):,} videos={stats.get('video_count', 0)}{extra}")

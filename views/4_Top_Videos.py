@@ -120,13 +120,19 @@ if not club:
     if league:
         # One league selected — use its channels
         base_channels = league_channels
+        if include_league:
+            table_channels = base_channels
+        else:
+            table_channels = [ch for ch in base_channels if ch.get("entity_type") != "League"]
     else:
-        # All leagues — use all channels
-        base_channels = all_channels
-    if include_league:
-        table_channels = base_channels
-    else:
-        table_channels = [ch for ch in base_channels if ch.get("entity_type") != "League"]
+        # All leagues — respect scope
+        scope = get_all_leagues_scope()
+        if scope == "Leagues only":
+            table_channels = [ch for ch in all_channels if ch.get("entity_type") == "League"]
+        elif scope == "All clubs":
+            table_channels = [ch for ch in all_channels if ch.get("entity_type") != "League"]
+        else:
+            table_channels = all_channels
 
     if not table_channels:
         _loading.empty()
@@ -135,83 +141,62 @@ if not club:
         ch_color_map = get_global_color_map()
         ch_dual_colors = get_global_color_map_dual()
 
-        SEASON_SINCE = "2025-08-01"
+        # Read precomputed top-100 stats directly from channel records (zero video queries)
         t100_rows = []
         t100_stats = {}
         for ch in table_channels:
-            vids = db.get_videos_by_channel(ch["id"])
-            # All-time top 100
-            if not vids:
-                at_views = at_avg_age_days = at_avg_dur_s = 0
-                at_avg_age_str = at_avg_dur_str = "-"
-                at1_views = at1_age_days = at1_dur_s = 0
-                at1_age_str = at1_dur_str = "-"
-                at_long_pct = at_short_pct = 0
-                at_ls_str = "-"
-            else:
-                vdf = pd.DataFrame(vids).head(100)
-                at_views = int(vdf["view_count"].sum())
-                if "published_at" in vdf.columns:
-                    vdf["published_at"] = pd.to_datetime(vdf["published_at"], utc=True)
-                    at_avg_age_days = (now - vdf["published_at"]).dt.days.mean()
-                    at_avg_age_str = f"{at_avg_age_days / 365.25:.1f}y"
-                    at1_age_days = (now - vdf["published_at"].iloc[0]).days
-                    at1_age_str = f"{at1_age_days / 365.25:.1f}y"
-                else:
-                    at_avg_age_days = at1_age_days = 0
-                    at_avg_age_str = at1_age_str = "-"
-                at_avg_dur_s = int(vdf["duration_seconds"].mean()) if "duration_seconds" in vdf.columns else 0
-                # Long/Short split (% of rows in the top-100)
-                def _fmt_of_row(r):
-                    f = (r.get("format") or "").lower() if isinstance(r, dict) else (str(r.get("format") or "").lower())
-                    if f in ("long", "short", "live"):
-                        return "long" if f != "short" else "short"
-                    return "long" if (r.get("duration_seconds") or 0) >= 60 else "short"
-                at_long_n = int(vdf.apply(lambda r: _fmt_of_row(r) == "long", axis=1).sum())
-                at_total_n = len(vdf)
-                at_long_pct = int(round(at_long_n / max(at_total_n, 1) * 100))
-                at_short_pct = 100 - at_long_pct
-                at_ls_str = f"{at_long_pct}/{at_short_pct}"
-                at1_views = int(vdf["view_count"].iloc[0])
-                at1_dur_s = int(vdf.iloc[0].get("duration_seconds", 0))
-                at1_dur_str = f"{at1_dur_s // 60}:{at1_dur_s % 60:02d}"
+            at_views = int(ch.get("top100_views") or 0)
+            at_avg_age_days = float(ch.get("top100_avg_age_days") or 0)
+            at_long_pct = int(ch.get("top100_long_pct") or 0)
+            at1_views = int(ch.get("top1_views") or 0)
+            at1_dur_s = int(ch.get("top1_dur_s") or 0)
 
-            # Season top 100
-            season_vids = db.get_season_videos_by_channel(ch["id"], since=SEASON_SINCE)
-            if not season_vids:
-                st_views = st_avg_age_days = st_avg_dur_s = 0
-                st_avg_age_str = st_avg_dur_str = "-"
-                s1_views = s1_age_days = s1_dur_s = 0
-                s1_age_str = s1_dur_str = "-"
-                st_long_pct = st_short_pct = 0
-                st_ls_str = "-"
+            # Compute #1 video age from stored published_at
+            at1_pub = ch.get("top1_published_at")
+            if at1_pub:
+                try:
+                    _dt = datetime.fromisoformat(str(at1_pub).replace("Z", "+00:00"))
+                    if _dt.tzinfo is None:
+                        _dt = _dt.replace(tzinfo=timezone.utc)
+                    at1_age_days = (now - _dt).days
+                except Exception:
+                    at1_age_days = 0
             else:
-                sdf = pd.DataFrame(season_vids).head(100)
-                st_views = int(sdf["view_count"].sum())
-                if "published_at" in sdf.columns:
-                    sdf["published_at"] = pd.to_datetime(sdf["published_at"], utc=True)
-                    st_avg_age_days = (now - sdf["published_at"]).dt.days.mean()
-                    st_avg_age_str = f"{int(st_avg_age_days)}d"
-                    s1_age_days = (now - sdf["published_at"].iloc[0]).days
-                    s1_age_str = f"{int(s1_age_days)}d"
-                else:
-                    st_avg_age_days = s1_age_days = 0
-                    st_avg_age_str = s1_age_str = "-"
-                st_avg_dur_s = int(sdf["duration_seconds"].mean()) if "duration_seconds" in sdf.columns else 0
-                st_long_n = int(sdf.apply(lambda r: _fmt_of_row(r) == "long", axis=1).sum())
-                st_total_n = len(sdf)
-                st_long_pct = int(round(st_long_n / max(st_total_n, 1) * 100))
-                st_short_pct = 100 - st_long_pct
-                st_ls_str = f"{st_long_pct}/{st_short_pct}"
-                s1_views = int(sdf["view_count"].iloc[0])
-                s1_dur_s = int(sdf.iloc[0].get("duration_seconds", 0))
-                s1_dur_str = f"{s1_dur_s // 60}:{s1_dur_s % 60:02d}"
+                at1_age_days = 0
+
+            at_avg_age_str = f"{at_avg_age_days / 365.25:.1f}y" if at_avg_age_days else "-"
+            at_ls_str = f"{at_long_pct}/{100 - at_long_pct}" if at_views else "-"
+            at1_age_str = f"{at1_age_days / 365.25:.1f}y" if at1_age_days else "-"
+            at1_dur_str = f"{at1_dur_s // 60}:{at1_dur_s % 60:02d}" if at1_dur_s else "-"
+
+            st_views = int(ch.get("season_top100_views") or 0)
+            st_avg_age_days = float(ch.get("season_top100_avg_age_days") or 0)
+            st_long_pct = int(ch.get("season_top100_long_pct") or 0)
+            s1_views = int(ch.get("season_top1_views") or 0)
+            s1_dur_s = int(ch.get("season_top1_dur_s") or 0)
+
+            s1_pub = ch.get("season_top1_published_at")
+            if s1_pub:
+                try:
+                    _dt = datetime.fromisoformat(str(s1_pub).replace("Z", "+00:00"))
+                    if _dt.tzinfo is None:
+                        _dt = _dt.replace(tzinfo=timezone.utc)
+                    s1_age_days = (now - _dt).days
+                except Exception:
+                    s1_age_days = 0
+            else:
+                s1_age_days = 0
+
+            st_avg_age_str = f"{int(st_avg_age_days)}d" if st_avg_age_days else "-"
+            st_ls_str = f"{st_long_pct}/{100 - st_long_pct}" if st_views else "-"
+            s1_age_str = f"{int(s1_age_days)}d" if s1_age_days else "-"
+            s1_dur_str = f"{s1_dur_s // 60}:{s1_dur_s % 60:02d}" if s1_dur_s else "-"
 
             t100_rows.append({"name": ch["name"],
-                "at_views": at_views, "at_avg_age_days": at_avg_age_days, "at_avg_dur_s": at_avg_dur_s,
+                "at_views": at_views, "at_avg_age_days": at_avg_age_days, "at_avg_dur_s": 0,
                 "at_long_pct": at_long_pct,
                 "at1_views": at1_views, "at1_age_days": at1_age_days, "at1_dur_s": at1_dur_s,
-                "st_views": st_views, "st_avg_age_days": st_avg_age_days, "st_avg_dur_s": st_avg_dur_s,
+                "st_views": st_views, "st_avg_age_days": st_avg_age_days, "st_avg_dur_s": 0,
                 "st_long_pct": st_long_pct,
                 "s1_views": s1_views, "s1_age_days": s1_age_days, "s1_dur_s": s1_dur_s})
             t100_stats[ch["name"]] = {

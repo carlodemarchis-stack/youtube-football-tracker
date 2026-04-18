@@ -74,15 +74,12 @@ prev_day = day - timedelta(days=1)
 day_iso = day.isoformat()
 prev_iso = prev_day.isoformat()
 
-# ── Load snapshots for day + recent lookback window ──────────
-# We diff vs the most recent snapshot strictly older than `day` (per channel),
-# so gaps in the daily cron don't break deltas.
+# ── Load snapshots ──────────────────────────────────────────
 LOOKBACK_DAYS = 14
 lookback_iso = (day - timedelta(days=LOOKBACK_DAYS)).isoformat()
 with st.spinner(f"Loading snapshots for {day_iso}…"):
+    # 1) Channel snapshots for trend chart (14 days — lightweight: ~1400 rows)
     chan_snaps = db.get_all_snapshots(since_date=lookback_iso)
-    vid_snaps_day = db.get_video_snapshots_for_date(day_iso)
-    vid_snaps_range = db.get_video_snapshots_range(lookback_iso, day_iso)
 
 # Snapshots strictly on `day`, optionally filtered to selected channel(s)
 chan_day = {
@@ -105,10 +102,14 @@ for s in chan_snaps:
         prev_date_by_cid[cid] = d
         chan_prev[cid] = s
 
-# To filter video_snapshots we need to know which videos belong to the selected channel(s).
-# Easiest path: look up the channel_id on each referenced video.
+# 2) Video snapshots — only fetch 2 dates (today + previous) instead of 14 days
+_prev_snap_date = max(prev_date_by_cid.values(), default=None) if prev_date_by_cid else None
+vid_snaps_day = db.get_video_snapshots_for_date(day_iso)
+vid_snaps_prev = db.get_video_snapshots_for_date(_prev_snap_date) if _prev_snap_date else []
+
+# Filter to selected channels if needed
 if filter_cids is not None:
-    _needed_vids = {s["video_id"] for s in vid_snaps_day} | {s["video_id"] for s in vid_snaps_range}
+    _needed_vids = {s["video_id"] for s in vid_snaps_day} | {s["video_id"] for s in vid_snaps_prev}
     _vid_rows = []
     _batch = list(_needed_vids)
     for i in range(0, len(_batch), 500):
@@ -121,20 +122,10 @@ if filter_cids is not None:
         )
     _vid_channel = {r["id"]: r["channel_id"] for r in _vid_rows}
     vid_snaps_day = [s for s in vid_snaps_day if _vid_channel.get(s["video_id"]) in filter_cids]
-    vid_snaps_range = [s for s in vid_snaps_range if _vid_channel.get(s["video_id"]) in filter_cids]
+    vid_snaps_prev = [s for s in vid_snaps_prev if _vid_channel.get(s["video_id"]) in filter_cids]
 
 vmap_day = {s["video_id"]: s for s in vid_snaps_day}
-# Previous snapshot per video: latest captured_date strictly < day_iso
-vmap_prev: dict[str, dict] = {}
-vprev_date: dict[str, str] = {}
-for s in vid_snaps_range:
-    d = s.get("captured_date", "")
-    if d >= day_iso:
-        continue
-    vid = s["video_id"]
-    if d > vprev_date.get(vid, ""):
-        vprev_date[vid] = d
-        vmap_prev[vid] = s
+vmap_prev = {s["video_id"]: s for s in vid_snaps_prev}
 
 _no_snaps = (not chan_day and not vid_snaps_day)
 if _no_snaps:
@@ -204,9 +195,9 @@ if ONE_CLUB:
     )
     _fmt_combined = f"{_fmt_counts['long']} / {_fmt_counts['short']} / {_fmt_counts['live']}"
     k1, k2, k3 = st.columns(3)
-    k1.metric("🎬 New videos", fmt_num(total_new_videos))
-    k2.metric("📺 Long / Shorts / Live", _fmt_combined)
-    k3.metric("👁️ Δ Channel Views", f"{'+' if total_view_delta >= 0 else ''}{fmt_num(total_view_delta)}")
+    k1.metric("👁️ Δ Channel Views", f"{'+' if total_view_delta >= 0 else ''}{fmt_num(total_view_delta)}")
+    k2.metric("🎬 New videos", fmt_num(total_new_videos))
+    k3.metric("📺 Long / Shorts / Live", _fmt_combined)
 else:
     # Most active club: posted most videos yesterday
     club_new_counts: dict[str, int] = {}
@@ -217,9 +208,9 @@ else:
 
     _fmt_combined = f"{_fmt_counts['long']} / {_fmt_counts['short']} / {_fmt_counts['live']}"
     k1, k2, k3, k4 = st.columns(4)
-    k1.metric("🎬 New videos", fmt_num(total_new_videos))
-    k2.metric("📺 Long / Shorts / Live", _fmt_combined)
-    k3.metric("👁️ Δ Channel Views", f"{'+' if total_view_delta >= 0 else ''}{fmt_num(total_view_delta)}")
+    k1.metric("👁️ Δ Channel Views", f"{'+' if total_view_delta >= 0 else ''}{fmt_num(total_view_delta)}")
+    k2.metric("🎬 New videos", fmt_num(total_new_videos))
+    k3.metric("📺 Long / Shorts / Live", _fmt_combined)
     k4.metric("🔥 Most active", f"{most_active_name}", help=f"{most_active[1]} videos posted")
 
 # ── Per-league summary ────────────────────────────────────────
@@ -329,7 +320,17 @@ else:
     col_l, col_r = st.columns(2)
 
 
+# Season views per channel — read from precomputed column on channels table
+_season_views = {c["id"]: int(c.get("season_views", 0) or 0) for c in all_channels}
+
+
+_gainer_tbl_idx = 0
+
 def _gainer_table(metric: str, title: str, icon: str, positive_is_good: bool = True) -> str:
+    global _gainer_tbl_idx
+    _gainer_tbl_idx += 1
+    _tbl_id = f"gt{_gainer_tbl_idx}"
+    is_views = metric == "total_views"
     gainers = []
     for cid in chan_day.keys():
         ch = ch_by_id.get(cid)
@@ -340,8 +341,19 @@ def _gainer_table(metric: str, title: str, icon: str, positive_is_good: bool = T
             continue
         latest = int(chan_day[cid].get(metric, 0) or 0)
         prev_val = latest - d
-        pct = (d / prev_val * 100) if prev_val else 0
-        gainers.append({"name": ch["name"], "id": cid, "delta": d, "latest": latest, "pct": pct})
+        sv = _season_views.get(cid, 0) if is_views else 0
+        # % growth against season views for view gains, otherwise against previous total
+        if is_views and sv:
+            pct = (d / sv * 100)
+        elif prev_val:
+            pct = (d / prev_val * 100)
+        else:
+            pct = 0
+        lg = get_league_for_channel(ch)
+        g = {"name": ch["name"], "id": cid, "delta": d, "latest": latest, "pct": pct, "league": lg}
+        if is_views:
+            g["season_views"] = sv
+        gainers.append(g)
     if not gainers:
         return ""
     gainers.sort(key=lambda g: g["delta"], reverse=positive_is_good)
@@ -352,28 +364,68 @@ def _gainer_table(metric: str, title: str, icon: str, positive_is_good: bool = T
         col = "#00CC96" if g["delta"] > 0 else ("#EF553B" if g["delta"] < 0 else "#888")
         sgn = "+" if g["delta"] >= 0 else ""
         pct_s = f'{g["pct"]:+.2f}%' if abs(g["pct"]) >= 0.01 else "+0.00%"
-        dot = f'<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:{c1};border:1px solid rgba(255,255,255,0.3)"></span>'
+        dot = f'<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:{c1};border:1px solid rgba(255,255,255,0.3);position:relative"><span style="display:block;width:7px;height:7px;border-radius:50%;background:{c2};position:absolute;top:2.5px;left:2.5px"></span></span>'
+        _sv = g.get("season_views", 0)
+        season_col = f'<td style="padding:5px 10px;text-align:right" data-val="{_sv}">{fmt_num(_sv)}</td>' if is_views else ""
+        # Column indices: 0=#, 1=dot, 2=name, 3=Total, 4=Season(if views), 5/4=Δ, 6/5=%
+        _delta_col_idx = 5 if is_views else 4
+        _pct_col_idx = 6 if is_views else 5
         rows_html += f"""<tr>
             <td style="padding:5px 10px;color:#888">{i}</td>
             <td style="padding:5px 10px">{dot}</td>
             <td style="padding:5px 10px">{g['name']}</td>
-            <td style="padding:5px 10px;text-align:right">{fmt_num(g['latest'])}</td>
-            <td style="padding:5px 10px;text-align:right;color:{col}">{sgn}{fmt_num(g['delta'])}</td>
-            <td style="padding:5px 10px;text-align:right;color:{col};font-size:12px">{pct_s}</td>
+            <td style="padding:5px 10px;text-align:right" data-val="{g['latest']}">{fmt_num(g['latest'])}</td>
+            {season_col}
+            <td style="padding:5px 10px;text-align:right;color:{col}" data-val="{g['delta']}">{sgn}{fmt_num(g['delta'])}</td>
+            <td style="padding:5px 10px;text-align:right;color:{col};font-size:12px" data-val="{g['pct']:.4f}">{pct_s}</td>
         </tr>"""
+    season_hdr = f'<th data-col="4" style="padding:5px 10px;text-align:right;cursor:pointer">Season</th>' if is_views else ""
+    _delta_ci = 5 if is_views else 4
+    _pct_ci = 6 if is_views else 5
     return f"""
+    <style>
+      #{_tbl_id} tr:hover td {{ background:#1a1c24; }}
+      #{_tbl_id} th[data-col] {{ cursor:pointer; user-select:none; }}
+      #{_tbl_id} th[data-col]:hover {{ color:#00CC96; }}
+      #{_tbl_id} th.active {{ color:#00CC96; }}
+    </style>
     <div style="color:#FAFAFA;font-family:'Source Sans Pro',sans-serif">
     <h4 style="margin:0 0 8px 0">{icon} {title}</h4>
-    <table style="width:100%;border-collapse:collapse;font-size:13px">
+    <table id="{_tbl_id}" style="width:100%;border-collapse:collapse;font-size:13px">
     <thead><tr style="border-bottom:2px solid #444">
       <th style="padding:5px 10px;text-align:left">#</th>
       <th></th>
       <th style="padding:5px 10px;text-align:left">Club</th>
-      <th style="padding:5px 10px;text-align:right">Current</th>
-      <th style="padding:5px 10px;text-align:right">Δ</th>
-      <th style="padding:5px 10px;text-align:right">%</th>
+      <th data-col="3" style="padding:5px 10px;text-align:right">Total</th>
+      {season_hdr}
+      <th data-col="{_delta_ci}" style="padding:5px 10px;text-align:right" class="active">Δ ▼</th>
+      <th data-col="{_pct_ci}" style="padding:5px 10px;text-align:right">%</th>
     </tr></thead>
     <tbody>{rows_html}</tbody></table></div>
+    <script>
+    (function(){{
+      const tbl=document.getElementById('{_tbl_id}');
+      const tbody=tbl.querySelector('tbody');
+      const ths=tbl.querySelectorAll('th[data-col]');
+      let curCol={_delta_ci},curAsc=false;
+      ths.forEach(th=>{{
+        th.addEventListener('click',function(){{
+          const col=parseInt(this.dataset.col);
+          if(curCol===col){{curAsc=!curAsc}}else{{curCol=col;curAsc=false}}
+          const rows=Array.from(tbody.rows);
+          rows.sort((a,b)=>{{
+            const av=parseFloat(a.cells[col].dataset.val)||0;
+            const bv=parseFloat(b.cells[col].dataset.val)||0;
+            return curAsc?(av-bv):(bv-av);
+          }});
+          rows.forEach((r,i)=>{{r.cells[0].textContent=i+1;tbody.appendChild(r)}});
+          ths.forEach(h=>{{h.classList.remove('active');h.textContent=h.textContent.replace(/ [▲▼]/g,'')}});
+          this.classList.add('active');
+          this.textContent+=curAsc?' ▲':' ▼';
+        }});
+      }});
+    }})();
+    </script>
     """
 
 
@@ -392,18 +444,25 @@ if not ONE_CLUB:
             if not ch:
                 continue
             name = ch["name"]
-            pub_counts.setdefault(name, {"count": 0, "name": name})
+            pub_counts.setdefault(name, {"count": 0, "long": 0, "short": 0, "live": 0, "name": name, "league": get_league_for_channel(ch)})
             pub_counts[name]["count"] += 1
+            _vf = v.get("format") or ("long" if (v.get("duration_seconds") or 0) >= 60 else "short")
+            if _vf in ("long", "short", "live"):
+                pub_counts[name][_vf] += 1
+            else:
+                pub_counts[name]["long"] += 1
         pub_sorted = sorted(pub_counts.values(), key=lambda r: r["count"], reverse=True)
         if pub_sorted:
             pub_html = ""
             for i, r in enumerate(pub_sorted[:25], 1):
                 c1, c2 = dual.get(r["name"], (color_map.get(r["name"], "#636EFA"), "#FFFFFF"))
-                dot = f'<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:{c1};border:1px solid rgba(255,255,255,0.3)"></span>'
+                dot = f'<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:{c1};border:1px solid rgba(255,255,255,0.3);position:relative"><span style="display:block;width:7px;height:7px;border-radius:50%;background:{c2};position:absolute;top:2.5px;left:2.5px"></span></span>'
+                lsl = f'{r["long"]} / {r["short"]} / {r["live"]}'
                 pub_html += f"""<tr>
                     <td style="padding:5px 10px;color:#888">{i}</td>
                     <td style="padding:5px 10px">{dot}</td>
                     <td style="padding:5px 10px">{r['name']}</td>
+                    <td style="padding:5px 10px;text-align:center">{lsl}</td>
                     <td style="padding:5px 10px;text-align:right;font-weight:600">{r['count']}</td>
                 </tr>"""
             components.html(f"""
@@ -414,6 +473,7 @@ if not ONE_CLUB:
               <th style="padding:5px 10px;text-align:left">#</th>
               <th></th>
               <th style="padding:5px 10px;text-align:left">Club</th>
+              <th style="padding:5px 10px;text-align:center">Long / Shorts / Live</th>
               <th style="padding:5px 10px;text-align:right">Videos</th>
             </tr></thead>
             <tbody>{pub_html}</tbody></table></div>
@@ -421,10 +481,9 @@ if not ONE_CLUB:
         else:
             st.caption("No clubs published videos on this day.")
 
-# ── Top trending season videos by Δ views (from video_snapshots) ──
+# ── Most watched videos yesterday (by Δ views from snapshots) ──
 st.markdown("---")
-_trend_title_scope = f"{g_club['name']} — " if ONE_CLUB else ""
-st.subheader(f"🚀 {_trend_title_scope}Top videos by Δ views on {day_iso}")
+_mw_scope = f"{g_club['name']} — " if ONE_CLUB else ""
 trending = []
 for vid_dbid, snap in vmap_day.items():
     prev = vmap_prev.get(vid_dbid)
@@ -435,13 +494,14 @@ for vid_dbid, snap in vmap_day.items():
         continue
     trending.append({"id": vid_dbid, "delta": d, "views": int(snap.get("view_count", 0) or 0)})
 
+st.subheader(f"🔥 {_mw_scope}Most watched videos on {day_iso}")
+
 if not trending:
-    st.caption("Need 2 consecutive days of video snapshots to compute deltas. Come back tomorrow.")
+    st.caption("No video snapshot data available for this day yet.")
 else:
-    _top_n = 5 if ONE_CLUB else 15
+    _top_n = 10 if ONE_CLUB else 20
     trending.sort(key=lambda t: t["delta"], reverse=True)
     top_ids = [t["id"] for t in trending[:_top_n]]
-    # Resolve video metadata
     vid_rows = (
         db.client.table("videos")
         .select("*")
@@ -451,7 +511,7 @@ else:
     )
     vid_by_id = {v["id"]: v for v in vid_rows}
 
-    rows = ""
+    _tv_rows = ""
     for i, t in enumerate(trending[:_top_n], 1):
         v = vid_by_id.get(t["id"])
         if not v:
@@ -462,10 +522,12 @@ else:
         thumb = v.get("thumbnail_url") or ""
         title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;")
         pub = (v.get("published_at") or "")[:10]
-        fmt = v.get("format") or "long"
+        fmt = (v.get("format") or "").lower()
+        if fmt not in ("long", "short", "live"):
+            fmt = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
         fmt_color = {"long": "#636EFA", "short": "#00CC96", "live": "#FFA15A"}.get(fmt, "#AAAAAA")
         fmt_label = {"long": "Long", "short": "Shorts", "live": "Live"}.get(fmt, fmt.title())
-        rows += f"""<tr style="border-left:3px solid {club_c1}">
+        _tv_rows += f"""<tr style="border-left:3px solid {club_c1}">
             <td style="padding:6px 12px;text-align:right;color:#888">{i}</td>
             <td style="padding:6px 12px"><a href="{yt_url}" target="_blank"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px"></a></td>
             <td style="padding:6px 12px">
@@ -482,6 +544,7 @@ else:
              font-family:"Source Sans Pro",sans-serif; }}
       .tv th {{ padding:6px 12px; border-bottom:2px solid #444; text-align:left; }}
       .tv td {{ border-bottom:1px solid #262730; vertical-align:middle; }}
+      .tv tr:hover td {{ background:#1a1c24; }}
     </style>
     <table class="tv">
       <thead><tr>
@@ -491,9 +554,60 @@ else:
         <th style="text-align:right">Δ Views</th>
         <th style="text-align:right">Total Views</th>
       </tr></thead>
-      <tbody>{rows}</tbody>
+      <tbody>{_tv_rows}</tbody>
     </table>
-    """, height=min(15, len(trending)) * 86 + 80, scrolling=True)
+    """, height=min(_top_n, len(trending)) * 86 + 80, scrolling=True)
+
+# ── New videos published on this day ────────────────────────
+if new_video_rows:
+    st.markdown("---")
+    st.subheader(f"🎬 {_mw_scope}New videos published on {day_iso}")
+    _mw_sorted = sorted(new_video_rows, key=lambda v: int(v.get("view_count") or 0), reverse=True)
+    _mw_top_n = 10 if ONE_CLUB else 20
+    _mw_rows = ""
+    for i, v in enumerate(_mw_sorted[:_mw_top_n], 1):
+        ch = ch_by_id.get(v["channel_id"]) or {}
+        club_c1, _ = dual.get(ch.get("name", ""), (color_map.get(ch.get("name", ""), "#636EFA"), "#FFFFFF"))
+        yt_url = f"https://www.youtube.com/watch?v={v['youtube_video_id']}"
+        thumb = v.get("thumbnail_url") or ""
+        title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;")
+        fmt = (v.get("format") or "").lower()
+        if fmt not in ("long", "short", "live"):
+            fmt = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
+        fmt_color = {"long": "#636EFA", "short": "#00CC96", "live": "#FFA15A"}.get(fmt, "#AAAAAA")
+        fmt_label = {"long": "Long", "short": "Shorts", "live": "Live"}.get(fmt, fmt.title())
+        views = int(v.get("view_count") or 0)
+        likes = int(v.get("like_count") or 0)
+        _mw_rows += f"""<tr style="border-left:3px solid {club_c1}">
+            <td style="padding:6px 12px;text-align:right;color:#888">{i}</td>
+            <td style="padding:6px 12px"><a href="{yt_url}" target="_blank"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px"></a></td>
+            <td style="padding:6px 12px">
+                <div style="color:#AAA;font-size:12px;margin-bottom:2px">{ch.get('name', '?')} · <span style="color:{fmt_color}">{fmt_label}</span></div>
+                <a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none">{title}</a>
+            </td>
+            <td style="padding:6px 12px;text-align:right;font-weight:600">{fmt_num(views)}</td>
+            <td style="padding:6px 12px;text-align:right">{fmt_num(likes)}</td>
+        </tr>"""
+
+    components.html(f"""
+    <style>
+      .mw {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
+             font-family:"Source Sans Pro",sans-serif; }}
+      .mw th {{ padding:6px 12px; border-bottom:2px solid #444; text-align:left; }}
+      .mw td {{ border-bottom:1px solid #262730; vertical-align:middle; }}
+      .mw tr:hover td {{ background:#1a1c24; }}
+    </style>
+    <table class="mw">
+      <thead><tr>
+        <th style="text-align:right">#</th>
+        <th></th>
+        <th>Video</th>
+        <th style="text-align:right">Views</th>
+        <th style="text-align:right">Likes</th>
+      </tr></thead>
+      <tbody>{_mw_rows}</tbody>
+    </table>
+    """, height=min(_mw_top_n, len(_mw_sorted)) * 86 + 80, scrolling=True)
 
 # ── Trend chart ──────────────────────────────────────────────
 # Show Δ Views and New Videos per day across all available snapshot dates.
@@ -511,6 +625,10 @@ for s in chan_snaps:
     _snap_by_date.setdefault(d, {})[cid] = s
 
 _all_dates = sorted(_snap_by_date.keys())
+
+# Exclude today (incomplete data) from the trend chart
+_today_iso = date.today().isoformat()
+_all_dates = [d for d in _all_dates if d < _today_iso]
 
 if len(_all_dates) >= 2:
     # Count new videos per day
@@ -544,16 +662,29 @@ if len(_all_dates) >= 2:
         trend_rows.append({"Date": d, "Δ Channel Views": dv_total, "New Videos": nv})
 
     if trend_rows:
+        import altair as alt
         trend_df = pd.DataFrame(trend_rows)
-        # Keep Date as string (YYYY-MM-DD) so x-axis shows only day labels
-        trend_df = trend_df.set_index("Date")
 
         tc1, tc2 = st.columns(2)
         with tc1:
             st.caption("👁️ Δ Channel Views per day")
-            st.line_chart(trend_df["Δ Channel Views"], color="#636EFA")
+            _ymax_v = max(r["Δ Channel Views"] for r in trend_rows)
+            _ymin_v = min(r["Δ Channel Views"] for r in trend_rows)
+            _pad_v = max((_ymax_v - _ymin_v) * 0.1, 1)
+            c1 = alt.Chart(trend_df).mark_line(color="#636EFA", strokeWidth=2).encode(
+                x=alt.X("Date:N", axis=alt.Axis(labelAngle=-45, title=None)),
+                y=alt.Y("Δ Channel Views:Q", scale=alt.Scale(domain=[_ymin_v - _pad_v, _ymax_v + _pad_v]), title=None),
+                tooltip=["Date", "Δ Channel Views"],
+            ).properties(height=250).interactive(bind_y=False)
+            st.altair_chart(c1, use_container_width=True)
         with tc2:
             st.caption("🎬 New videos per day")
-            st.line_chart(trend_df["New Videos"], color="#00CC96")
+            _ymax_n = max(r["New Videos"] for r in trend_rows)
+            c2 = alt.Chart(trend_df).mark_line(color="#00CC96", strokeWidth=2).encode(
+                x=alt.X("Date:N", axis=alt.Axis(labelAngle=-45, title=None)),
+                y=alt.Y("New Videos:Q", scale=alt.Scale(domain=[0, _ymax_n * 1.1 + 1]), title=None),
+                tooltip=["Date", "New Videos"],
+            ).properties(height=250).interactive(bind_y=False)
+            st.altair_chart(c2, use_container_width=True)
 else:
     st.caption("Need at least 2 snapshot dates to show trends. Come back after the next cron run.")

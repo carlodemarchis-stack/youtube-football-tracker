@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 from src.database import Database
 from src.analytics import fmt_num
-from src.filters import get_global_color_map
+from src.filters import get_global_color_map, get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel
 from src.auth import require_premium
 
 load_dotenv()
@@ -21,18 +21,30 @@ SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 
 db = Database(SUPABASE_URL, SUPABASE_KEY)
-all_channels = db.get_all_channels()
-clubs = [ch for ch in all_channels if ch.get("entity_type") != "League"]
+all_channels = get_global_channels() or db.get_all_channels()
+
+# Apply global filter to narrow the club pool
+g_league, g_club = get_global_filter()
+if g_league:
+    filtered_channels = get_channels_for_filter(all_channels, g_league)
+else:
+    filtered_channels = all_channels
+
+clubs = [ch for ch in filtered_channels if ch.get("entity_type") != "League"]
 
 if not clubs:
     st.warning("No clubs loaded yet.")
     st.stop()
 
+# If a specific club is selected, pre-select it
+if g_club:
+    st.session_state["_compare_clubs"] = [g_club["name"]]
+
 club_names = sorted([ch["name"] for ch in clubs])
 
 # ── Preset buttons ────────────────────────────────────────────
 st.subheader("Quick Comparisons")
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4, col5 = st.columns(5)
 preset = None
 with col1:
     if st.button("Serie A Big 3"):
@@ -45,6 +57,14 @@ with col3:
     if st.button("Top 5 by Views"):
         top5 = sorted(clubs, key=lambda c: c.get("total_views", 0), reverse=True)[:5]
         preset = [c["name"] for c in top5]
+with col4:
+    if st.button("Top 5 by Season Views"):
+        top5 = sorted(clubs, key=lambda c: int(c.get("season_views") or 0), reverse=True)[:5]
+        preset = [c["name"] for c in top5]
+with col5:
+    if st.button("Bottom 5 by Subs"):
+        bot5 = sorted(clubs, key=lambda c: c.get("subscriber_count", 0))[:5]
+        preset = [c["name"] for c in bot5]
 
 if preset:
     st.session_state["_compare_clubs"] = preset
@@ -63,34 +83,63 @@ if len(selected) < 2:
 compare_channels = [ch for ch in clubs if ch["name"] in selected]
 color_map = get_global_color_map()
 
-# ── Stats table ───────────────────────────────────────────────
+# ── Pie charts ────────────────────────────────────────────────
 st.subheader("Side by Side")
-rows = []
+comp_df = pd.DataFrame(compare_channels)
+comp_df = comp_df.sort_values("subscriber_count", ascending=False)
+comp_df["_season_views"] = comp_df.apply(lambda r: int(r.get("season_views") or 0), axis=1)
+
+def make_pie(data, val_col, title):
+    fig = px.pie(
+        data, values=val_col, names="name",
+        color="name", color_discrete_map=color_map,
+        title=title, hole=0.4,
+    )
+    fig.update_traces(textposition="inside", textinfo="percent+label")
+    fig.update_layout(showlegend=False, margin=dict(t=40, b=10, l=10, r=10), height=280)
+    return fig
+
+# Count season videos per channel
+_season_vid_counts = {}
 for ch in compare_channels:
+    _sv = db.client.table("videos").select("id", count="exact") \
+        .eq("channel_id", ch["id"]).gte("published_at", "2025-08-01").limit(1).execute()
+    _season_vid_counts[ch["name"]] = _sv.count or 0
+comp_df["_season_videos"] = comp_df["name"].map(_season_vid_counts)
+
+pie_cols = st.columns(5)
+with pie_cols[0]:
+    st.plotly_chart(make_pie(comp_df, "subscriber_count", "Subscribers"), use_container_width=True)
+with pie_cols[1]:
+    st.plotly_chart(make_pie(comp_df, "total_views", "Total Views"), use_container_width=True)
+with pie_cols[2]:
+    st.plotly_chart(make_pie(comp_df, "video_count", "Videos"), use_container_width=True)
+with pie_cols[3]:
+    st.plotly_chart(make_pie(comp_df, "_season_views", "Season Views"), use_container_width=True)
+with pie_cols[4]:
+    st.plotly_chart(make_pie(comp_df, "_season_videos", "Season Videos"), use_container_width=True)
+
+# ── Stats table ───────────────────────────────────────────────
+rows = []
+for ch in sorted(compare_channels, key=lambda c: c.get("subscriber_count", 0), reverse=True):
     avg = ch.get("total_views", 0) // max(ch.get("video_count", 1), 1)
+    sv = int(ch.get("season_views") or 0)
+    # Count season videos for this channel
+    season_vids = db.client.table("videos").select("id", count="exact") \
+        .eq("channel_id", ch["id"]).gte("published_at", "2025-08-01").limit(1).execute()
+    s_vid_count = season_vids.count or 0
+    s_avg = sv // max(s_vid_count, 1)
     rows.append({
         "Club": ch["name"],
         "Subscribers": fmt_num(ch.get("subscriber_count", 0)),
         "Total Views": fmt_num(ch.get("total_views", 0)),
         "Videos": fmt_num(ch.get("video_count", 0)),
         "Avg Views/Video": fmt_num(avg),
+        "Season Views": fmt_num(sv),
+        "Season Videos": fmt_num(s_vid_count),
+        "Season Avg": fmt_num(s_avg),
     })
 st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
-
-# ── Charts ────────────────────────────────────────────────────
-comp_df = pd.DataFrame(compare_channels)
-comp_df = comp_df.sort_values("subscriber_count", ascending=False)
-
-def make_bar(data, y_col, title):
-    fig = px.bar(data, x="name", y=y_col, color="name", color_discrete_map=color_map, title=title)
-    fig.update_layout(showlegend=False, xaxis_title="", yaxis_title="", margin=dict(t=40, b=20))
-    return fig
-
-col1, col2 = st.columns(2)
-with col1:
-    st.plotly_chart(make_bar(comp_df, "subscriber_count", "Subscribers"), use_container_width=True)
-with col2:
-    st.plotly_chart(make_bar(comp_df, "total_views", "Total Views"), use_container_width=True)
 
 # ── Top 10 videos from each club ──────────────────────────────
 st.subheader("Top Videos Head-to-Head")
@@ -117,11 +166,35 @@ if all_vids:
     )
     st.plotly_chart(fig, use_container_width=True)
 
-    table_df = vdf[["title", "club_name", "view_count"]].head(20).copy()
-    table_df["view_count"] = table_df["view_count"].apply(fmt_num)
-    table_df.index = range(1, len(table_df) + 1)
-    table_df.index.name = "Rank"
-    st.dataframe(
-        table_df.rename(columns={"title": "Title", "club_name": "Club", "view_count": "Views"}),
-        use_container_width=True,
-    )
+    import streamlit.components.v1 as components
+    from src.filters import get_global_color_map_dual
+    _dual = get_global_color_map_dual()
+    _top = vdf.head(20)
+    _rows = ""
+    for i, r in enumerate(_top.itertuples(index=False), 1):
+        yt_id = getattr(r, "youtube_video_id", "") or ""
+        title = (getattr(r, "title", "") or "").replace("<", "&lt;").replace(">", "&gt;")
+        club = getattr(r, "club_name", "") or ""
+        views = fmt_num(getattr(r, "view_count", 0) or 0)
+        url = f"https://www.youtube.com/watch?v={yt_id}" if yt_id else ""
+        title_cell = f'<a href="{url}" target="_blank" rel="noopener" style="color:#FAFAFA;text-decoration:none">{title}</a>' if url else title
+        c1, c2 = _dual.get(club, (color_map.get(club, "#636EFA"), "#FFFFFF"))
+        dot = f'<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:{c1};border:1px solid rgba(255,255,255,0.3);vertical-align:middle;margin-right:5px"></span>'
+        row_click = f'onclick="window.open(\'{url}\',\'_blank\',\'noopener\')" style="cursor:pointer"' if url else ''
+        _rows += f"""<tr {row_click}>
+            <td style="padding:5px 10px;color:#888">{i}</td>
+            <td style="padding:5px 10px">{title_cell}</td>
+            <td style="padding:5px 10px;white-space:nowrap">{dot}{club}</td>
+            <td style="padding:5px 10px;text-align:right">{views}</td>
+        </tr>"""
+    components.html(f"""
+    <style>
+      .cmp {{ width:100%;border-collapse:collapse;font-size:14px;color:#FAFAFA;font-family:"Source Sans Pro",sans-serif; }}
+      .cmp th {{ padding:5px 10px;border-bottom:2px solid #444;text-align:left; }}
+      .cmp td {{ border-bottom:1px solid #262730; }}
+      .cmp tr:hover td {{ background:#1a1c24; }}
+    </style>
+    <table class="cmp"><thead><tr>
+      <th>#</th><th>Title</th><th>Club</th><th style="text-align:right">Views</th>
+    </tr></thead><tbody>{_rows}</tbody></table>
+    """, height=len(_top) * 34 + 60, scrolling=False)

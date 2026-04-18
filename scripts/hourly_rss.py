@@ -187,6 +187,10 @@ def main() -> int:
         if fetched:
             db.upsert_videos(fetched, ch_id)
             total_inserted += len(fetched)
+            try:
+                db.refresh_top100_stats(ch_id, SEASON_SINCE)
+            except Exception:
+                pass
             log(f"  Inserted {len(fetched)} videos for {ch['name']}")
 
     elapsed = time.time() - start

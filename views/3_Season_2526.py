@@ -70,17 +70,33 @@ if league is None and _scope == "Overall":
         if not lg:
             continue
         fmt = v.get("format") or ("long" if v.get("duration_seconds", 0) >= 60 else "short")
-        s = league_stats.setdefault(lg, {"videos": 0, "views": 0, "long_v": 0, "short_v": 0, "long_views": 0, "short_views": 0, "likes": 0, "comments": 0})
+        s = league_stats.setdefault(lg, {
+            "videos": 0, "views": 0, "long_v": 0, "short_v": 0, "long_views": 0, "short_views": 0,
+            "likes": 0, "comments": 0, "long_likes": 0, "short_likes": 0, "long_comments": 0, "short_comments": 0,
+            "live_v": 0, "live_views": 0, "live_likes": 0, "live_comments": 0,
+        })
+        _vc = int(v.get("view_count", 0) or 0)
+        _lk = int(v.get("like_count", 0) or 0)
+        _cm = int(v.get("comment_count", 0) or 0)
         s["videos"] += 1
-        s["views"] += v.get("view_count", 0) or 0
-        s["likes"] += v.get("like_count", 0) or 0
-        s["comments"] += v.get("comment_count", 0) or 0
-        if fmt == "long":
-            s["long_v"] += 1
-            s["long_views"] += v.get("view_count", 0) or 0
-        else:
+        s["views"] += _vc
+        s["likes"] += _lk
+        s["comments"] += _cm
+        if fmt == "live":
+            s["live_v"] += 1
+            s["live_views"] += _vc
+            s["live_likes"] += _lk
+            s["live_comments"] += _cm
+        elif fmt == "short":
             s["short_v"] += 1
-            s["short_views"] += v.get("view_count", 0) or 0
+            s["short_views"] += _vc
+            s["short_likes"] += _lk
+            s["short_comments"] += _cm
+        else:
+            s["long_v"] += 1
+            s["long_views"] += _vc
+            s["long_likes"] += _lk
+            s["long_comments"] += _cm
 
     if not league_stats:
         st.info("No season data yet.")
@@ -99,6 +115,62 @@ if league is None and _scope == "Overall":
     col4.metric("Total Likes", fmt_num(total_likes))
     col5.metric("Total Comments", fmt_num(total_comments))
     col6.metric("Engagement Rate", f"{eng_rate:.2f}%", help="(Likes + Comments) / Views")
+
+    # Pie charts: long/short/live split
+    import plotly.graph_objects as go
+    total_long_views = sum(s["long_views"] for s in league_stats.values())
+    total_short_views = sum(s["short_views"] for s in league_stats.values())
+    total_live_views = sum(s["live_views"] for s in league_stats.values())
+    total_longs = sum(s["long_v"] for s in league_stats.values())
+    total_shorts = sum(s["short_v"] for s in league_stats.values())
+    total_lives = sum(s["live_v"] for s in league_stats.values())
+    total_long_likes = sum(s["long_likes"] for s in league_stats.values())
+    total_short_likes = sum(s["short_likes"] for s in league_stats.values())
+    total_live_likes = sum(s["live_likes"] for s in league_stats.values())
+    total_long_comments = sum(s["long_comments"] for s in league_stats.values())
+    total_short_comments = sum(s["short_comments"] for s in league_stats.values())
+    total_live_comments = sum(s["live_comments"] for s in league_stats.values())
+
+    _has_live = total_lives > 0
+    if _has_live:
+        _pie_colors = ["#636EFA", "#00CC96", "#FFA15A"]
+        _pie_labels = ["Long", "Shorts", "Live"]
+    else:
+        _pie_colors = ["#636EFA", "#00CC96"]
+        _pie_labels = ["Long", "Shorts"]
+
+    def _zv(l, s, lv):
+        return [l, s, lv] if _has_live else [l, s]
+
+    long_vpv = total_long_views // max(total_longs, 1)
+    short_vpv = total_short_views // max(total_shorts, 1)
+    live_vpv = total_live_views // max(total_lives, 1) if total_lives else 0
+
+    def _make_pie(values, labels, colors, hover_suffix, title):
+        fig = go.Figure(go.Pie(
+            labels=labels, values=values, marker=dict(colors=colors), hole=0.45,
+            textinfo="percent+label", textposition="inside",
+            hovertemplate="%{label}: %{value:,.0f} " + hover_suffix + "<extra></extra>",
+        ))
+        fig.update_layout(
+            title=dict(text=title, x=0.5), showlegend=False, height=300,
+            margin=dict(t=40, b=20, l=20, r=20),
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#FAFAFA"),
+        )
+        return fig
+
+    col_p1, col_p2, col_p3, col_p4, col_p5 = st.columns(5)
+    with col_p1:
+        st.plotly_chart(_make_pie(_zv(total_long_views, total_short_views, total_live_views), _pie_labels, _pie_colors, "views", "Views"), use_container_width=True)
+    with col_p2:
+        st.plotly_chart(_make_pie(_zv(total_longs, total_shorts, total_lives), _pie_labels, _pie_colors, "videos", "Videos"), use_container_width=True)
+    with col_p3:
+        st.plotly_chart(_make_pie(_zv(long_vpv, short_vpv, live_vpv), _pie_labels, _pie_colors, "views/video", "Views/Video"), use_container_width=True)
+    with col_p4:
+        st.plotly_chart(_make_pie(_zv(total_long_likes, total_short_likes, total_live_likes), _pie_labels, _pie_colors, "likes", "Likes"), use_container_width=True)
+    with col_p5:
+        st.plotly_chart(_make_pie(_zv(total_long_comments, total_short_comments, total_live_comments), _pie_labels, _pie_colors, "comments", "Comments"), use_container_width=True)
 
     st.subheader("Leagues — Season")
     sorted_leagues = sorted(league_stats.items(), key=lambda kv: kv[1]["views"], reverse=True)
@@ -176,6 +248,184 @@ if league is None and _scope == "Overall":
     c1, c2 = st.columns(2)
     c1.plotly_chart(fig_v, use_container_width=True)
     c2.plotly_chart(fig_n, use_container_width=True)
+
+    # ── All channels table (reuse already-loaded season_vids) ───
+    st.subheader("All Channels — Season")
+    color_map = get_global_color_map()
+    dual_colors = get_global_color_map_dual()
+    include_league = get_include_league()
+
+    # Aggregate per-channel from the already-fetched season_vids
+    ch_season_stats: dict[str, dict] = {}
+    for v in season_vids:
+        ch = ch_by_id.get(v.get("channel_id"))
+        if not ch:
+            continue
+        if not include_league and ch.get("entity_type") == "League":
+            continue
+        name = ch["name"]
+        fmt = v.get("format") or ("long" if v.get("duration_seconds", 0) >= 60 else "short")
+        s = ch_season_stats.setdefault(name, {
+            "name": name, "handle": ch.get("handle", ""), "league": get_league_for_channel(ch),
+            "all_views": 0, "all_videos": 0,
+            "long_views": 0, "long_videos": 0, "short_views": 0, "short_videos": 0,
+            "long_dur_total": 0, "short_dur_total": 0,
+            "likes": 0, "comments": 0,
+        })
+        vc = int(v.get("view_count", 0) or 0)
+        dur = int(v.get("duration_seconds", 0) or 0)
+        s["all_views"] += vc
+        s["all_videos"] += 1
+        s["likes"] += int(v.get("like_count", 0) or 0)
+        s["comments"] += int(v.get("comment_count", 0) or 0)
+        if fmt == "short":
+            s["short_views"] += vc
+            s["short_videos"] += 1
+            s["short_dur_total"] += dur
+        else:
+            s["long_views"] += vc
+            s["long_videos"] += 1
+            s["long_dur_total"] += dur
+
+    ch_rows = sorted(ch_season_stats.values(), key=lambda r: r["all_views"], reverse=True)
+
+    def _v(val):
+        v = int(val)
+        return fmt_num(v) if v else '-'
+
+    def _dur(secs):
+        s = int(secs)
+        if not s:
+            return '-'
+        m, sec = divmod(s, 60)
+        return f"{m}:{sec:02d}"
+
+    ch_rows_html = ""
+    for row in ch_rows:
+        _c1, _c2 = dual_colors.get(row["name"], (color_map.get(row["name"], "#636EFA"), "#FFFFFF"))
+        dot_inner = f'<span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:{_c1};border:1px solid rgba(255,255,255,0.3);position:relative"><span style="display:block;width:8px;height:8px;border-radius:50%;background:{_c2};position:absolute;top:3px;left:3px"></span></span>'
+        handle = row.get("handle", "")
+        if handle:
+            yt_url = f"https://www.youtube.com/{handle}"
+            dot = f'<a href="{yt_url}" target="_blank" style="text-decoration:none">{dot_inner}</a>'
+        else:
+            dot = dot_inner
+
+        all_vpv = row["all_views"] // max(row["all_videos"], 1)
+        long_vpv = row["long_views"] // max(row["long_videos"], 1)
+        short_vpv = row["short_views"] // max(row["short_videos"], 1)
+        long_dur = row["long_dur_total"] // max(row["long_videos"], 1)
+        short_dur = row["short_dur_total"] // max(row["short_videos"], 1)
+
+        ch_rows_html += f"""<tr>
+            <td style="padding:6px 12px">{dot}</td>
+            <td style="padding:6px 12px" data-val="{row['name']}">{row['name']}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{row['all_views']}">{_v(row['all_views'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{row['long_views']}">{_v(row['long_views'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{row['short_views']}">{_v(row['short_views'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{row['all_videos']}">{_v(row['all_videos'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{row['long_videos']}">{_v(row['long_videos'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{row['short_videos']}">{_v(row['short_videos'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{all_vpv}">{_v(all_vpv)}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{long_vpv}">{_v(long_vpv)}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{short_vpv}">{_v(short_vpv)}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{long_dur}">{_dur(long_dur)}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{short_dur}">{_dur(short_dur)}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{row['likes']}">{_v(row['likes'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{row['comments']}">{_v(row['comments'])}</td>
+        </tr>"""
+
+    _ch_table_height = len(ch_rows) * 37 + 100
+    components.html(f"""
+    <style>
+        .ch-season {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
+                      font-family:"Source Sans Pro",sans-serif; background:transparent; }}
+        .ch-season th {{ padding:6px 12px; user-select:none; }}
+        .ch-season th[data-col] {{ cursor:pointer; }}
+        .ch-season th[data-col]:hover {{ color:#636EFA; }}
+        .ch-season td {{ padding:6px 12px; border-bottom:1px solid #262730; }}
+        .ch-season a {{ color:inherit; text-decoration:none; }}
+        .ch-season .active {{ color:#636EFA; }}
+    </style>
+    <table class="ch-season">
+    <thead>
+    <tr>
+        <th colspan="2"></th>
+        <th colspan="3" style="text-align:center;border-bottom:2px solid #636EFA;color:#636EFA">Views</th>
+        <th colspan="3" style="text-align:center;border-bottom:2px solid #00CC96;color:#00CC96">Videos</th>
+        <th colspan="3" style="text-align:center;border-bottom:2px solid #FFA15A;color:#FFA15A">Views/Video</th>
+        <th colspan="2" style="text-align:center;border-bottom:2px solid #AB63FA;color:#AB63FA">Avg Duration</th>
+        <th colspan="2" style="text-align:center;border-bottom:2px solid #EF553B;color:#EF553B">Engagement</th>
+    </tr>
+    <tr style="border-bottom:2px solid #444">
+        <th style="width:30px"></th>
+        <th data-col="1" data-type="str" style="text-align:left">Channel</th>
+        <th data-col="2" data-type="num" style="text-align:right" class="active">All ▼</th>
+        <th data-col="3" data-type="num" style="text-align:right">Long</th>
+        <th data-col="4" data-type="num" style="text-align:right">Shorts</th>
+        <th data-col="5" data-type="num" style="text-align:right">All</th>
+        <th data-col="6" data-type="num" style="text-align:right">Long</th>
+        <th data-col="7" data-type="num" style="text-align:right">Shorts</th>
+        <th data-col="8" data-type="num" style="text-align:right">All</th>
+        <th data-col="9" data-type="num" style="text-align:right">Long</th>
+        <th data-col="10" data-type="num" style="text-align:right">Shorts</th>
+        <th data-col="11" data-type="num" style="text-align:right">Long</th>
+        <th data-col="12" data-type="num" style="text-align:right">Shorts</th>
+        <th data-col="13" data-type="num" style="text-align:right">Likes</th>
+        <th data-col="14" data-type="num" style="text-align:right">Comments</th>
+    </tr>
+    </thead>
+    <tbody>{ch_rows_html}</tbody>
+    </table>
+    <script>
+    (function() {{
+        const table = document.querySelector('.ch-season');
+        const tbody = table.querySelector('tbody');
+        const headers = table.querySelectorAll('th[data-col]');
+        let currentCol = 2;
+        let currentAsc = false;
+
+        function sortTable(colIdx, type) {{
+            const rows = Array.from(tbody.rows);
+            const isStr = type === 'str';
+            if (colIdx === currentCol) {{
+                currentAsc = !currentAsc;
+            }} else {{
+                currentCol = colIdx;
+                currentAsc = isStr;
+            }}
+            rows.sort((a, b) => {{
+                const va = a.cells[colIdx].dataset.val || '';
+                const vb = b.cells[colIdx].dataset.val || '';
+                let cmp;
+                if (isStr) {{
+                    cmp = va.localeCompare(vb, undefined, {{sensitivity:'base'}});
+                }} else {{
+                    cmp = (parseFloat(va) || 0) - (parseFloat(vb) || 0);
+                }}
+                return currentAsc ? cmp : -cmp;
+            }});
+            rows.forEach(r => tbody.appendChild(r));
+
+            headers.forEach(h => {{
+                h.classList.remove('active');
+                const base = h.textContent.replace(/ [▲▼]/g, '');
+                h.textContent = base;
+            }});
+            const activeHdr = table.querySelector('th[data-col="' + colIdx + '"]');
+            activeHdr.classList.add('active');
+            activeHdr.textContent += currentAsc ? ' ▲' : ' ▼';
+        }}
+
+        headers.forEach(h => {{
+            h.addEventListener('click', function() {{
+                sortTable(parseInt(this.dataset.col), this.dataset.type || 'num');
+            }});
+        }});
+    }})();
+    </script>
+    """, height=_ch_table_height, scrolling=False)
+
     st.stop()
 
 
@@ -201,54 +451,42 @@ if club is None:
     color_map = get_global_color_map()
     dual_colors = get_global_color_map_dual()
 
-    # Compute season stats per channel
+    # Read precomputed season breakdown from channels table (zero video queries)
     season_rows = []
-    _prog = st.progress(0.0, text=f"Loading season videos for {len(clubs_only)} clubs…")
-    for _i, ch in enumerate(clubs_only, 1):
-        _prog.progress(_i / max(len(clubs_only), 1), text=f"Loading {ch['name']} ({_i}/{len(clubs_only)})…")
-        season_vids = db.get_season_videos_by_channel(ch["id"], since=SEASON_SINCE)
-
-        # Split by format (use 'format' field if available, fallback to duration < 60s)
-        def _f(v):
-            f = v.get("format")
-            if f in ("long", "short", "live"):
-                return f
-            return "long" if v.get("duration_seconds", 0) >= 60 else "short"
-        long_vids = [v for v in season_vids if _f(v) == "long"]
-        short_vids = [v for v in season_vids if _f(v) == "short"]
-        live_vids = [v for v in season_vids if _f(v) == "live"]
-
-        all_count = len(season_vids)
-        all_views = sum(v.get("view_count", 0) for v in season_vids)
-        long_count = len(long_vids)
-        long_views = sum(v.get("view_count", 0) for v in long_vids)
-        short_count = len(short_vids)
-        short_views = sum(v.get("view_count", 0) for v in short_vids)
-        live_count = len(live_vids)
-        live_views = sum(v.get("view_count", 0) for v in live_vids)
-
-        long_dur = sum(v.get("duration_seconds", 0) for v in long_vids) // max(long_count, 1) if long_count else 0
-        short_dur = sum(v.get("duration_seconds", 0) for v in short_vids) // max(short_count, 1) if short_count else 0
-
-        likes = sum(v.get("like_count", 0) or 0 for v in season_vids)
-        comments = sum(v.get("comment_count", 0) or 0 for v in season_vids)
-        eng_rate = ((likes + comments) / all_views * 100) if all_views else 0.0
+    for ch in clubs_only:
+        lv = int(ch.get("season_long_views") or 0)
+        sv = int(ch.get("season_short_views") or 0)
+        vv = int(ch.get("season_live_views") or 0)
+        ln = int(ch.get("season_long_videos") or 0)
+        sn = int(ch.get("season_short_videos") or 0)
+        vn = int(ch.get("season_live_videos") or 0)
+        av = lv + sv + vv
+        an = ln + sn + vn
+        lk = int(ch.get("season_likes") or 0)
+        cm = int(ch.get("season_comments") or 0)
         season_rows.append({
             "name": ch["name"], "handle": ch.get("handle", ""),
-            "all_views": all_views, "all_videos": all_count,
-            "all_vpv": all_views // max(all_count, 1) if all_count else 0,
-            "long_views": long_views, "long_videos": long_count,
-            "long_vpv": long_views // max(long_count, 1) if long_count else 0,
-            "short_views": short_views, "short_videos": short_count,
-            "short_vpv": short_views // max(short_count, 1) if short_count else 0,
-            "live_views": live_views, "live_videos": live_count,
-            "live_vpv": live_views // max(live_count, 1) if live_count else 0,
-            "long_dur": long_dur, "short_dur": short_dur,
-            "likes": likes, "comments": comments, "eng_rate": eng_rate,
+            "all_views": av, "all_videos": an,
+            "all_vpv": av // max(an, 1),
+            "long_views": lv, "long_videos": ln,
+            "long_vpv": lv // max(ln, 1),
+            "short_views": sv, "short_videos": sn,
+            "short_vpv": sv // max(sn, 1),
+            "live_views": vv, "live_videos": vn,
+            "live_vpv": vv // max(vn, 1),
+            "long_dur": int(ch.get("season_long_dur_avg") or 0),
+            "short_dur": int(ch.get("season_short_dur_avg") or 0),
+            "likes": lk, "comments": cm,
+            "eng_rate": ((lk + cm) / av * 100) if av else 0.0,
+            "long_likes": int(ch.get("season_long_likes") or 0),
+            "short_likes": int(ch.get("season_short_likes") or 0),
+            "live_likes": int(ch.get("season_live_likes") or 0),
+            "long_comments": int(ch.get("season_long_comments") or 0),
+            "short_comments": int(ch.get("season_short_comments") or 0),
+            "live_comments": int(ch.get("season_live_comments") or 0),
         })
 
-    _prog.empty()
-    df = pd.DataFrame(season_rows)
+    df = pd.DataFrame(season_rows) if season_rows else pd.DataFrame()
 
     # Totals banner
     total_views = int(df["all_views"].sum())
@@ -290,69 +528,38 @@ if club is None:
     def _zvals(l, s, lv):
         return [l, s, lv] if _has_live else [l, s]
 
-    col_p1, col_p2, col_p3 = st.columns(3)
+    total_long_likes = int(df["long_likes"].sum())
+    total_short_likes = int(df["short_likes"].sum())
+    total_live_likes = int(df["live_likes"].sum())
+    total_long_comments = int(df["long_comments"].sum())
+    total_short_comments = int(df["short_comments"].sum())
+    total_live_comments = int(df["live_comments"].sum())
+
+    def _make_pie_lg(values, labels, colors, hover_suffix, title):
+        fig = go.Figure(go.Pie(
+            labels=labels, values=values, marker=dict(colors=colors), hole=0.45,
+            textinfo="percent+label", textposition="inside",
+            hovertemplate="%{label}: %{value:,.0f} " + hover_suffix + "<extra></extra>",
+        ))
+        fig.update_layout(
+            title=dict(text=title, x=0.5), showlegend=False, height=300,
+            margin=dict(t=40, b=20, l=20, r=20),
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#FAFAFA"),
+        )
+        return fig
+
+    col_p1, col_p2, col_p3, col_p4, col_p5 = st.columns(5)
     with col_p1:
-        fig_v = go.Figure(go.Pie(
-            labels=pie_labels,
-            values=_zvals(total_long_views, total_short_views, total_live_views),
-            marker=dict(colors=pie_colors),
-            hole=0.45,
-            textinfo="percent+label",
-            textposition="inside",
-            hovertemplate="%{label}: %{value:,.0f} views<extra></extra>",
-        ))
-        fig_v.update_layout(
-            title=dict(text="Views", x=0.5),
-            showlegend=False,
-            height=300,
-            margin=dict(t=40, b=20, l=20, r=20),
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="#FAFAFA"),
-        )
-        st.plotly_chart(fig_v, use_container_width=True)
-
+        st.plotly_chart(_make_pie_lg(_zvals(total_long_views, total_short_views, total_live_views), pie_labels, pie_colors, "views", "Views"), use_container_width=True)
     with col_p2:
-        fig_n = go.Figure(go.Pie(
-            labels=pie_labels,
-            values=_zvals(total_longs, total_shorts, total_lives),
-            marker=dict(colors=pie_colors),
-            hole=0.45,
-            textinfo="percent+label",
-            textposition="inside",
-            hovertemplate="%{label}: %{value:,.0f} videos<extra></extra>",
-        ))
-        fig_n.update_layout(
-            title=dict(text="Videos", x=0.5),
-            showlegend=False,
-            height=300,
-            margin=dict(t=40, b=20, l=20, r=20),
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="#FAFAFA"),
-        )
-        st.plotly_chart(fig_n, use_container_width=True)
-
+        st.plotly_chart(_make_pie_lg(_zvals(total_longs, total_shorts, total_lives), pie_labels, pie_colors, "videos", "Videos"), use_container_width=True)
     with col_p3:
-        fig_vpv = go.Figure(go.Pie(
-            labels=pie_labels,
-            values=_zvals(long_vpv, short_vpv, live_vpv),
-            marker=dict(colors=pie_colors),
-            hole=0.45,
-            textinfo="percent+label",
-            textposition="inside",
-            hovertemplate="%{label}: %{value:,.0f} views/video<extra></extra>",
-        ))
-        fig_vpv.update_layout(
-            title=dict(text="Views/Video", x=0.5),
-            showlegend=False,
-            height=300,
-            margin=dict(t=40, b=20, l=20, r=20),
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="#FAFAFA"),
-        )
-        st.plotly_chart(fig_vpv, use_container_width=True)
+        st.plotly_chart(_make_pie_lg(_zvals(long_vpv, short_vpv, live_vpv), pie_labels, pie_colors, "views/video", "Views/Video"), use_container_width=True)
+    with col_p4:
+        st.plotly_chart(_make_pie_lg(_zvals(total_long_likes, total_short_likes, total_live_likes), pie_labels, pie_colors, "likes", "Likes"), use_container_width=True)
+    with col_p5:
+        st.plotly_chart(_make_pie_lg(_zvals(total_long_comments, total_short_comments, total_live_comments), pie_labels, pie_colors, "comments", "Comments"), use_container_width=True)
 
     # Default sort: all views descending
     df = df.sort_values("all_views", ascending=False).reset_index(drop=True)
