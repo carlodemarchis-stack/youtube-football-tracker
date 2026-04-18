@@ -113,4 +113,9 @@ if __name__ == "__main__":
         log(f"  {var}: {status}")
 
     log("═" * 50)
+
+    # Run hourly RSS immediately on startup (so redeploy = manual run)
+    log("Running hourly_rss.py on startup...")
+    run_script("hourly_rss.py")
+
     main()
