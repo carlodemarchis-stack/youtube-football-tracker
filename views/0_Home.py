@@ -295,11 +295,12 @@ st.markdown(
     """
 )
 
-_about_cols = st.columns(4)
+_about_cols = st.columns(5)
 _about_cols[0].link_button("📬 Newsletter", "https://www.linkedin.com/newsletters/a-guy-with-a-scarf-6998145822441775104/", use_container_width=True)
 _about_cols[1].link_button("💼 LinkedIn", "https://linkedin.com/in/carlodemarchis", use_container_width=True)
-_about_cols[2].link_button("📖 Course", "https://a-guy-with-a-scarf.mykajabi.com/course", use_container_width=True)
-_about_cols[3].link_button("📕 Book on Amazon", "https://amzn.eu/d/09cuCSkB", use_container_width=True)
+_about_cols[2].link_button("✍️ Substack", "https://aguywithascarf.substack.com", use_container_width=True)
+_about_cols[3].link_button("📖 Course", "https://a-guy-with-a-scarf.mykajabi.com/course", use_container_width=True)
+_about_cols[4].link_button("📕 Book on Amazon", "https://amzn.eu/d/09cuCSkB", use_container_width=True)
 
 st.markdown("---")
 st.caption("Data sourced from YouTube Data API v3. Stats refresh automatically via hourly, daily, and weekly jobs.")

@@ -107,6 +107,7 @@ with st.sidebar:
             <i>A guy with a scarf</i><br>
             <a href="https://www.linkedin.com/newsletters/a-guy-with-a-scarf-6998145822441775104/" target="_blank" style="color:#FF6B6B;text-decoration:none">📬 Newsletter</a> ·
             <a href="https://linkedin.com/in/carlodemarchis" target="_blank" style="color:#0A66C2;text-decoration:none">💼 LinkedIn</a><br>
+            <a href="https://aguywithascarf.substack.com" target="_blank" style="color:#FF6719;text-decoration:none">✍️ Substack</a><br>
             <a href="https://a-guy-with-a-scarf.mykajabi.com/course" target="_blank" style="color:#F5A623;text-decoration:none">📖 Course</a> ·
             <a href="https://amzn.eu/d/09cuCSkB" target="_blank" style="color:#F5A623;text-decoration:none">📕 Book</a>
         </div>
