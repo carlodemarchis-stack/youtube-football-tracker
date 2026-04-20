@@ -282,7 +282,14 @@ else:
     k1.metric("👁️ Δ Channel Views", f"{'+' if total_view_delta >= 0 else ''}{fmt_num(total_view_delta)}")
     k2.metric("🎬 New videos", fmt_num(total_new_videos))
     k3.metric("📺 Long / Shorts / Live", _fmt_combined)
-    k4.metric("🔥 Most active", f"{most_active_name}", help=f"{most_active[1]} videos posted")
+    # Auto-shrink long channel names so they don't truncate
+    _ma_name = most_active_name
+    _ma_size = "1.8rem" if len(_ma_name) <= 18 else "1.3rem" if len(_ma_name) <= 25 else "1.0rem"
+    k4.markdown(f"""<div>
+        <div style="font-size:0.875rem;color:#999;margin-bottom:2px">🔥 Most active</div>
+        <div style="font-size:{_ma_size};font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="{_ma_name} — {most_active[1]} videos posted">{_ma_name}</div>
+        <div style="font-size:0.8rem;color:#888">{most_active[1]} videos posted</div>
+    </div>""", unsafe_allow_html=True)
 
 # ── Per-league summary ────────────────────────────────────────
 # Hide when viewing a single club (it would be a one-row table for that club's league).

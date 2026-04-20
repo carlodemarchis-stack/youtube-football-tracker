@@ -151,13 +151,18 @@ try:
         if SUPABASE_URL and SUPABASE_KEY:
             _chs = Database(SUPABASE_URL, SUPABASE_KEY).get_all_channels()
     _league_counts: dict[str, int] = {}
+    _league_has_channel: dict[str, bool] = {}
     for _c in _chs:
-        if _c.get("entity_type") == "League":
-            continue
         _lg = COUNTRY_TO_LEAGUE.get((_c.get("country") or "").upper(), _c.get("country") or "—")
+        if _c.get("entity_type") == "League":
+            _league_has_channel[_lg] = True
+            continue
         _league_counts[_lg] = _league_counts.get(_lg, 0) + 1
     if _league_counts:
-        _parts = [f"{LEAGUE_FLAG.get(lg, '')} **{lg}** ({n})" for lg, n in sorted(_league_counts.items(), key=lambda x: -x[1])]
+        _parts = [
+            f"{LEAGUE_FLAG.get(lg, '')} **{lg}** ({n}{'+1' if _league_has_channel.get(lg) else ''})"
+            for lg, n in sorted(_league_counts.items(), key=lambda x: -x[1])
+        ]
         st.caption(f"Covering {len(_league_counts)} leagues: " + " · ".join(_parts))
 except Exception:
     pass
@@ -262,7 +267,7 @@ st.markdown(
 
 st.info(
     """
-    **Premium pages** (require premium account):
+    **Premium pages** (require premium paid account):
 
     **Compare** — pick 2–5 clubs from any league and compare them side by
     side: pie charts, stats table, and top videos head-to-head.

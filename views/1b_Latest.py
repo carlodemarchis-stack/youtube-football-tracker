@@ -184,7 +184,7 @@ if live_now:
     </style>
     <div class="ln-header">🔴 Live Now</div>
     <div class="ln-grid">{_ln_cards}</div>
-    """, height=230, scrolling=False)
+    """, height=280, scrolling=False)
 
 # ── Mosaic view ─────────────────────────────────────────────
 if mosaic_view:
