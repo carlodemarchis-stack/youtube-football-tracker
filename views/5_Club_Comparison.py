@@ -8,7 +8,7 @@ import plotly.express as px
 from dotenv import load_dotenv
 
 from src.database import Database
-from src.analytics import fmt_num
+from src.analytics import fmt_num, yt_popup_js
 from src.filters import get_global_color_map, get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel, render_page_subtitle
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, get_season_since
 from src.auth import require_premium
@@ -217,4 +217,5 @@ if all_vids:
     <table class="cmp"><thead><tr>
       <th>#</th><th>Video</th><th style="text-align:right">Views</th><th style="text-align:right">Likes</th>
     </tr></thead><tbody>{_rows}</tbody></table>
+    {yt_popup_js()}
     """, height=len(_top) * 50 + 60, scrolling=False)

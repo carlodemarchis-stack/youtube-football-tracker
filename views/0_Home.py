@@ -9,7 +9,7 @@ import pandas as pd
 from dotenv import load_dotenv
 
 from src.database import Database
-from src.analytics import fmt_num
+from src.analytics import fmt_num, yt_popup_js
 from src.growth import group_by_channel, delta
 from src.filters import get_global_color_map, get_global_color_map_dual
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
@@ -136,6 +136,7 @@ if st.session_state.get("_feed_mode"):
                      overflow:hidden; color:#ddd; }}
     </style>
     <div class="mosaic">{cards_html}</div>
+    {yt_popup_js()}
     """, height=max(280, (len(latest) // 5 + 1) * 195), scrolling=True)
     st.stop()
 

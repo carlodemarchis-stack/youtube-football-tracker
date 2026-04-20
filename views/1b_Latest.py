@@ -9,7 +9,7 @@ import streamlit.components.v1 as components
 from dotenv import load_dotenv
 
 from src.database import Database
-from src.analytics import fmt_num
+from src.analytics import fmt_num, yt_popup_js
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
 from src.auth import require_login
 from src.filters import (
@@ -141,7 +141,7 @@ if live_now:
             except Exception:
                 pass
         views = int(v.get("view_count") or 0)
-        _ln_cards += f"""<a href="{url}" target="_blank" rel="noopener" class="ln-card">
+        _ln_cards += f"""<a href="#" onclick="window.open('https://www.youtube.com/embed/{yt_id}?autoplay=1','ytplayer','width=960,height=540,menubar=no,toolbar=no,location=no');return false;" class="ln-card">
           <div class="ln-thumb">
             <img src="{thumb}" alt="">
             <span class="ln-badge">● LIVE</span>
@@ -231,6 +231,7 @@ if mosaic_view:
                      overflow:hidden; color:#ddd; }}
     </style>
     <div class="mosaic">{cards_html}</div>
+    {yt_popup_js()}
     """, height=max(280, (len(latest) // 5 + 1) * 195), scrolling=True)
     st.stop()
 
@@ -385,4 +386,5 @@ components.html(f"""
   }});
 }})();
 </script>
+{yt_popup_js()}
 """, height=len(latest) * 92 + 80, scrolling=True)

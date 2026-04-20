@@ -9,7 +9,7 @@ import pandas as pd
 from dotenv import load_dotenv
 
 from src.database import Database
-from src.analytics import fmt_num
+from src.analytics import fmt_num, yt_popup_js
 from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope, get_league_for_channel, render_page_subtitle
 from src.auth import require_login
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, get_season_since, LEAGUE_SEASON_START
@@ -1073,4 +1073,5 @@ else:
     </tr></thead>
     <tbody>{top_rows}</tbody>
     </table>
+    {yt_popup_js()}
     """, height=len(top) * 92 + 80, scrolling=False)

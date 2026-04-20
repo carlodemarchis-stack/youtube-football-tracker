@@ -12,7 +12,7 @@ import pandas as pd
 from dotenv import load_dotenv
 
 from src.database import Database
-from src.analytics import fmt_num
+from src.analytics import fmt_num, yt_popup_js
 from src.auth import require_login
 from src.filters import (
     get_global_channels, get_global_color_map, get_global_color_map_dual,
@@ -392,6 +392,7 @@ if ONE_CLUB:
           <th style="text-align:right">Likes</th>
           <th>Posted</th>
         </tr></thead><tbody>{rows}</tbody></table>
+        {yt_popup_js()}
         """, height=len(_sorted_nv) * 80 + 80, scrolling=True)
 
     # No subscriber-gains leaderboard for a single club — it's a leaderboard of 1.
@@ -642,6 +643,7 @@ else:
       </tr></thead>
       <tbody>{_tv_rows}</tbody>
     </table>
+    {yt_popup_js()}
     """, height=min(_top_n, len(trending)) * 86 + 80, scrolling=True)
 
 # ── New videos published on this day (skip for single club — already shown above) ──
@@ -693,6 +695,7 @@ if new_video_rows and not ONE_CLUB:
       </tr></thead>
       <tbody>{_mw_rows}</tbody>
     </table>
+    {yt_popup_js()}
     """, height=min(_mw_top_n, len(_mw_sorted)) * 86 + 80, scrolling=True)
 
 # ── Trend chart ──────────────────────────────────────────────

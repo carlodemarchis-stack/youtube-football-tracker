@@ -11,7 +11,7 @@ import plotly.graph_objects as go
 from dotenv import load_dotenv
 
 from src.database import Database
-from src.analytics import compute_channel_comparison, compute_tier_stats, compute_theme_distribution, fmt_num
+from src.analytics import compute_channel_comparison, compute_tier_stats, compute_theme_distribution, fmt_num, yt_popup_js
 from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope, render_page_subtitle
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, league_with_flag
 from src.auth import require_login
@@ -326,6 +326,7 @@ if not club:
             }});
         }})();
         </script>
+        {yt_popup_js()}
         """, height=_table_height, scrolling=False)
     _loading.empty()
 
@@ -540,6 +541,7 @@ components.html(
       }});
     }})();
     </script>
+    {yt_popup_js()}
     """,
     height=_table_height,
     scrolling=True,

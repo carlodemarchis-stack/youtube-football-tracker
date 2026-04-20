@@ -133,6 +133,39 @@ def fmt_num(n: int | float) -> str:
 import pandas as pd
 
 
+def yt_popup_js() -> str:
+    """Return a <script> block that intercepts YouTube video links/window.open
+    calls and opens them in a popup embed player instead of a new tab.
+
+    Inject this into every components.html block that contains video links.
+    """
+    return """<script>
+(function(){
+  var _origOpen = window.open;
+  window.open = function(url, target, features) {
+    if (url && url.indexOf('youtube.com/watch') !== -1) {
+      try {
+        var id = new URL(url).searchParams.get('v');
+        if (id) return _origOpen.call(window,
+          'https://www.youtube.com/embed/' + id + '?autoplay=1',
+          'ytplayer', 'width=960,height=540,menubar=no,toolbar=no,location=no');
+      } catch(e) {}
+    }
+    return _origOpen.call(window, url, target, features);
+  };
+  document.addEventListener('click', function(e) {
+    var a = e.target.closest('a[href*="youtube.com/watch"]');
+    if (!a) return;
+    e.preventDefault(); e.stopPropagation();
+    try {
+      var id = new URL(a.href).searchParams.get('v');
+      if (id) window.open('https://www.youtube.com/watch?v=' + id);
+    } catch(e2) {}
+  }, true);
+})();
+</script>"""
+
+
 # ── Theme Detection ───────────────────────────────────────────
 # Multi-language keyword patterns. Layered classifier uses title,
 # duration_seconds, and format. Rules checked in priority order; first
