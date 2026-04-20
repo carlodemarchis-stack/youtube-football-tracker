@@ -92,12 +92,6 @@ def render_header_filter(channels: list[dict]) -> tuple[str | None, dict | None]
             st.query_params["scope"] = selected_scope
         elif "scope" in st.query_params:
             del st.query_params["scope"]
-        _caption_map = {
-            "Overall": "Showing all leagues aggregated (clubs and league channels).",
-            "Leagues only": "Showing only league-level channels.",
-            "All clubs": "Showing every club across all leagues.",
-        }
-        st.caption(_caption_map.get(selected_scope, ""))
         return None, None
     else:
         st.session_state["_filter_scope"] = "Overall"
@@ -130,20 +124,16 @@ def render_header_filter(channels: list[dict]) -> tuple[str | None, dict | None]
 
     _sync_query_params(selected_league, selected_club)
 
-    _lg_display = _fmt_league(selected_league)
     if selected_club == "All Clubs":
         st.session_state["_filter_include_league"] = False
-        st.caption(f"Showing **{_lg_display}**: all clubs.")
         return selected_league, None
 
     if selected_club == "All Clubs + League":
         st.session_state["_filter_include_league"] = True
-        st.caption(f"Showing **{_lg_display}**: all clubs and the league channel.")
         return selected_league, None
 
     st.session_state["_filter_include_league"] = False
     club_dict = next((ch for ch in clubs if ch["name"] == selected_club), None)
-    st.caption(f"Showing **{selected_club}** ({_lg_display}).")
     return selected_league, club_dict
 
 
@@ -160,6 +150,54 @@ def get_global_channels() -> list[dict]:
 def get_include_league() -> bool:
     """Whether the user selected 'All Clubs + League' in the filter."""
     return st.session_state.get("_filter_include_league", False)
+
+
+def get_filter_description() -> str:
+    """Return a short human-readable description of the current filter state."""
+    league, club = get_global_filter()
+    if club:
+        return f"{club['name']} only"
+    if league:
+        include_lg = get_include_league()
+        flag = LEAGUE_FLAG.get(league, "")
+        lg_label = f"{flag} {league}" if flag else league
+        if include_lg:
+            return f"{lg_label} incl. league channel"
+        return lg_label
+    # All leagues
+    scope = get_all_leagues_scope()
+    if scope == "Leagues only":
+        return "league channels only"
+    if scope == "All clubs":
+        return "all clubs across leagues"
+    return "all leagues"
+
+
+def render_page_subtitle(content: str, updated_raw: str | None = None,
+                         caveat: str | None = None) -> None:
+    """Render a consistent one-line subtitle: content · filter · updated.
+
+    Args:
+        content: What this page shows (e.g. "Top 100 most viewed videos").
+        updated_raw: ISO timestamp for "updated Xh ago". If None, uses
+                     max(last_fetched) from global channels.
+        caveat: Optional second-line caveat (e.g. season date disclaimer).
+    """
+    from src.analytics import fmt_date
+
+    filter_desc = get_filter_description()
+
+    if updated_raw is None:
+        all_ch = get_global_channels()
+        updated_raw = max((c.get("last_fetched") or "" for c in all_ch), default="") if all_ch else ""
+
+    parts = [content, filter_desc]
+    if updated_raw:
+        parts.append(f"updated {fmt_date(updated_raw)}")
+
+    st.caption(" · ".join(parts))
+    if caveat:
+        st.caption(caveat)
 
 
 def _hex_to_rgb(h: str) -> tuple[int, int, int]:
@@ -303,9 +341,14 @@ def render_club_header(channel: dict, all_channels: list[dict]) -> None:
         bits.append(f"#{league_rank}/{league_total} in {ch_league}")
     if overall_rank:
         bits.append(f"#{overall_rank}/{overall_total} overall")
-    launched = (channel.get("launched_at") or "")[:10]
-    if launched:
-        bits.append(f"launched {launched}")
+    _raw_launched = (channel.get("launched_at") or "")[:10]
+    if _raw_launched:
+        try:
+            from datetime import datetime as _dt
+            _ld = _dt.strptime(_raw_launched, "%Y-%m-%d")
+            bits.append(f"launched {_ld.strftime('%b %Y')}")
+        except Exception:
+            bits.append(f"launched {_raw_launched}")
     rank_html = (
         f"<span style='color:#888;font-size:0.95rem;font-weight:400;margin-left:14px'>"
         f"{' · '.join(bits)}</span>" if bits else ""

@@ -12,8 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from src.database import Database
-
-SEASON_SINCE = "2025-08-01"
+from src.channels import get_season_since
 
 
 def main():
@@ -30,7 +29,7 @@ def main():
     ok = 0
     for i, ch in enumerate(channels, 1):
         try:
-            db.refresh_top100_stats(ch["id"], SEASON_SINCE)
+            db.refresh_top100_stats(ch["id"], get_season_since(ch))
             print(f"  [{i}/{len(channels)}] {ch['name']} OK")
             ok += 1
         except Exception as e:

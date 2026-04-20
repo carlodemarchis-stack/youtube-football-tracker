@@ -30,8 +30,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.database import Database
 from src.youtube_api import YouTubeClient
-
-SEASON_SINCE = "2025-08-01"
+from src.channels import get_season_since
 
 
 def log(msg: str) -> None:
@@ -143,7 +142,7 @@ def main() -> int:
         if not ch_id:
             continue
         try:
-            db.refresh_top100_stats(ch_id, SEASON_SINCE)
+            db.refresh_top100_stats(ch_id, get_season_since(ch))
             stats_ok += 1
         except Exception as e:
             log(f"  top100 refresh failed for {ch.get('name', '?')}: {e}")

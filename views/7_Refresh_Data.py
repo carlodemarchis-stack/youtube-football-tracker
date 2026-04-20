@@ -15,6 +15,7 @@ from src.youtube_api import YouTubeClient
 from src.database import Database
 from src.analytics import classify_videos, fmt_num, fmt_date
 from src.filters import get_global_filter, get_channels_for_filter
+from src.channels import get_season_since
 
 load_dotenv()
 
@@ -466,8 +467,8 @@ if start and selected and refresh_modes:
                     db.log_fetch(channels_ok, 0, "stats_only", f"Quick Stats — {', '.join(completed_names)}")
                     st.success(f"Updated stats for {channels_ok} channels.")
             elif is_season:
-                SEASON_SINCE = "2025-08-01"
                 for i, ch in enumerate(selected_channels, 1):
+                    SEASON_SINCE = get_season_since(ch)
                     if st.session_state.get(STOP_KEY):
                         cancelled = True
                         break
@@ -643,9 +644,15 @@ if ai_start and selected:
             results_area.caption(f"  {ch['name']} — skipped (no videos)")
             continue
 
+        # Load season videos and channel stats for richer analysis
+        season_for_ai = db.get_season_videos_by_channel(ch["id"])
         progress.progress((i - 1) / ai_total, text=f"[{i}/{ai_total}] {ch['name']}: analyzing with Claude...")
         try:
-            insights = analyze_channel_videos(api_key, videos_for_ai, ch["name"])
+            insights = analyze_channel_videos(
+                api_key, videos_for_ai, ch["name"],
+                season_videos=season_for_ai,
+                channel_stats=ch,
+            )
             db.save_insights(ch["id"], insights, model=AI_MODEL)
             ai_ok += 1
             ai_names.append(ch["name"])

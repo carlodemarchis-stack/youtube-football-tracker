@@ -10,9 +10,9 @@ import plotly.express as px
 from dotenv import load_dotenv
 
 from src.database import Database
-from src.analytics import compute_channel_comparison, fmt_num, fmt_date
-from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope
-from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
+from src.analytics import compute_channel_comparison, fmt_num
+from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope, render_page_subtitle
+from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, get_season_since
 from src.auth import get_current_user, is_admin, require_login
 
 load_dotenv()
@@ -21,7 +21,6 @@ require_login()
 _lg_flag = lambda name: LEAGUE_FLAG.get(name, "")
 
 st.title("Channels")
-
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
@@ -40,6 +39,8 @@ if not all_channels:
 league, club = get_global_filter()
 now = datetime.now(timezone.utc)
 
+_daily_updated = db.get_last_fetch_time("daily")
+render_page_subtitle("Channel stats and comparison", updated_raw=_daily_updated)
 
 # ══════════════════════════════════════════════════════════════
 # ZOOM LEVEL 1: ALL LEAGUES
@@ -324,8 +325,6 @@ if league is None and _scope == "Overall":
     </script>
     """, height=_all_tbl_h, scrolling=False)
 
-    last_fetch = max((c.get("last_fetched") or "" for c in all_channels), default="")
-    st.caption(f"Last updated: {fmt_date(last_fetch)}")
 
 
 # ══════════════════════════════════════════════════════════════
@@ -517,9 +516,6 @@ elif club is None:
             st.plotly_chart(_f, use_container_width=True)
 
 
-    last_fetch = max((c.get("last_fetched") or "" for c in clubs_only), default="")
-    st.caption(f"Last updated: {fmt_date(last_fetch)}")
-
     # ── AI Chat — hidden for now ──
     # user = get_current_user()
     # if user:
@@ -703,10 +699,10 @@ else:
             return f"{s}{fmt_num(n)}"
         d7 = _gdelta(_snaps, "subscriber_count", 7)
         d30 = _gdelta(_snaps, "subscriber_count", 30)
-        dssn = _gdelta_since(_snaps, "subscriber_count", "2025-08-01")
+        dssn = _gdelta_since(_snaps, "subscriber_count", get_season_since(channel))
         v7 = _gdelta(_snaps, "total_views", 7)
         v30 = _gdelta(_snaps, "total_views", 30)
-        vssn = _gdelta_since(_snaps, "total_views", "2025-08-01")
+        vssn = _gdelta_since(_snaps, "total_views", get_season_since(channel))
 
         gcols = st.columns(6)
         gcols[0].metric("Subs Δ 7d", _sgn(d7))

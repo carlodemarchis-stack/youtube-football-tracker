@@ -789,3 +789,16 @@ class Database:
             .execute()
         )
         return resp.data or []
+
+    def get_last_fetch_time(self, status_prefix: str) -> str | None:
+        """Return the most recent fetched_at for a given status prefix (e.g. 'hourly_rss', 'daily')."""
+        resp = (
+            self.client.table("fetch_history")
+            .select("fetched_at")
+            .like("status", f"{status_prefix}%")
+            .order("fetched_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        rows = resp.data or []
+        return rows[0]["fetched_at"] if rows else None

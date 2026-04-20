@@ -33,10 +33,10 @@ load_dotenv()
 
 from src.database import Database
 from src.youtube_api import YouTubeClient
+from src.channels import get_season_since
 
 RSS_URL = "https://www.youtube.com/feeds/videos.xml?channel_id={}"
 RSS_TIMEOUT = 10  # seconds per feed
-SEASON_SINCE = "2025-08-01"
 
 # Namespaces in YouTube RSS
 NS = {
@@ -121,9 +121,10 @@ def main() -> int:
         rss_ok += 1
 
         # Filter to season videos only
+        ch_season_since = get_season_since(ch)
         rss_season = [
             e for e in rss_entries
-            if e["published"] >= SEASON_SINCE
+            if e["published"] >= ch_season_since
         ]
         if not rss_season:
             continue
@@ -164,7 +165,7 @@ def main() -> int:
         # Detect format via playlist membership (same as daily_refresh)
         # Only check the playlists for these specific IDs
         try:
-            season = yt.get_video_ids_since_by_format(yt_ch_id, SEASON_SINCE)
+            season = yt.get_video_ids_since_by_format(yt_ch_id, get_season_since(ch))
             long_set = set(season.get("long", []))
             short_set = set(season.get("shorts", []))
             live_set = set(season.get("live", []))
@@ -187,7 +188,7 @@ def main() -> int:
             db.upsert_videos(fetched, ch_id)
             total_inserted += len(fetched)
             try:
-                db.refresh_top100_stats(ch_id, SEASON_SINCE)
+                db.refresh_top100_stats(ch_id, get_season_since(ch))
             except Exception:
                 pass
             log(f"  Inserted {len(fetched)} videos for {ch['name']}")

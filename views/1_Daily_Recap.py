@@ -16,7 +16,7 @@ from src.analytics import fmt_num
 from src.auth import require_login
 from src.filters import (
     get_global_channels, get_global_color_map, get_global_color_map_dual,
-    get_global_filter, get_league_for_channel,
+    get_global_filter, get_league_for_channel, render_page_subtitle,
 )
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
 
@@ -24,7 +24,6 @@ load_dotenv()
 require_login()
 
 st.title("Daily Recap")
-st.caption("What happened yesterday across every tracked club — new videos, growth, momentum.")
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
@@ -37,6 +36,9 @@ all_channels = get_global_channels() or db.get_all_channels()
 if not all_channels:
     st.warning("No channel data yet. Run a refresh first.")
     st.stop()
+
+_daily_updated = db.get_last_fetch_time("daily")
+render_page_subtitle("Daily activity and new videos", updated_raw=_daily_updated)
 
 ch_by_id = {c["id"]: c for c in all_channels}
 color_map = get_global_color_map()
@@ -186,6 +188,65 @@ for v in new_video_rows:
     _fmt_counts[fmt] = _fmt_counts.get(fmt, 0) + 1
 
 if ONE_CLUB:
+    # ── Compute per-club ranks for daily KPIs ──────────────────
+    # Build unfiltered day/prev from chan_snaps (already loaded, 14-day lookback)
+    _all_day: dict[str, dict] = {}
+    _all_prev: dict[str, dict] = {}
+    _all_prev_date: dict[str, str] = {}
+    for s in chan_snaps:
+        d = s.get("captured_date", "")
+        cid = s["channel_id"]
+        if d == day_iso:
+            _all_day[cid] = s
+        elif d < day_iso:
+            if d > _all_prev_date.get(cid, ""):
+                _all_prev_date[cid] = d
+                _all_prev[cid] = s
+
+    # View delta per club
+    _all_view_deltas: dict[str, int] = {}
+    for cid in _all_day:
+        a = _all_day.get(cid)
+        b = _all_prev.get(cid)
+        if a and b:
+            _all_view_deltas[cid] = int(a.get("total_views", 0) or 0) - int(b.get("total_views", 0) or 0)
+
+    # New videos per club (unfiltered query for ranking)
+    _all_new_q = (
+        db.client.table("videos")
+        .select("channel_id")
+        .gte("published_at", start_ts)
+        .lt("published_at", end_ts)
+    )
+    _all_new_rows = _all_new_q.execute().data or []
+    _all_new_counts: dict[str, int] = {}
+    for v in _all_new_rows:
+        _all_new_counts[v["channel_id"]] = _all_new_counts.get(v["channel_id"], 0) + 1
+
+    _clubs_only = [c for c in all_channels if c.get("entity_type") != "League"]
+    _ch_league = get_league_for_channel(g_club)
+    _peers = [c for c in _clubs_only if get_league_for_channel(c) == _ch_league]
+
+    def _daily_rank(values: dict[str, int | float], scope_channels: list[dict]) -> tuple[int | None, int]:
+        """Rank g_club within scope_channels by values dict (higher=better)."""
+        pool = [(c["id"], values.get(c["id"], 0)) for c in scope_channels]
+        pool.sort(key=lambda x: x[1], reverse=True)
+        try:
+            rank = next(i + 1 for i, (cid, _) in enumerate(pool) if cid == g_club["id"])
+        except StopIteration:
+            rank = None
+        return rank, len(pool)
+
+    def _daily_rank_html(values: dict[str, int | float]) -> str:
+        lr, lt = _daily_rank(values, _peers)
+        orr, ot = _daily_rank(values, _clubs_only)
+        parts = []
+        if lr:
+            parts.append(f"#{lr}/{lt} in {_ch_league}")
+        if orr:
+            parts.append(f"#{orr}/{ot} overall")
+        return f"<div style='color:#888;font-size:0.8rem;margin-top:-6px'>{' · '.join(parts)}</div>" if parts else ""
+
     # Club banner
     cur_snap = chan_day.get(g_club["id"], {})
     _c1, _c2 = dual.get(g_club["name"], (color_map.get(g_club["name"], "#636EFA"), "#FFFFFF"))
@@ -204,7 +265,9 @@ if ONE_CLUB:
     _fmt_combined = f"{_fmt_counts['long']} / {_fmt_counts['short']} / {_fmt_counts['live']}"
     k1, k2, k3 = st.columns(3)
     k1.metric("👁️ Δ Channel Views", f"{'+' if total_view_delta >= 0 else ''}{fmt_num(total_view_delta)}")
+    k1.markdown(_daily_rank_html(_all_view_deltas), unsafe_allow_html=True)
     k2.metric("🎬 New videos", fmt_num(total_new_videos))
+    k2.markdown(_daily_rank_html(_all_new_counts), unsafe_allow_html=True)
     k3.metric("📺 Long / Shorts / Live", _fmt_combined)
 else:
     # Most active club: posted most videos yesterday

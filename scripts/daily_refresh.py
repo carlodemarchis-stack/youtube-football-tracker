@@ -30,8 +30,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.database import Database
 from src.youtube_api import YouTubeClient
-
-SEASON_SINCE = "2025-08-01"
+from src.channels import get_season_since
 # Per-video snapshots are scoped to a rolling window: only videos published
 # in the last SNAPSHOT_WINDOW_DAYS get a daily snapshot. Older videos rarely
 # change enough to justify the row cost, and velocity/trending use cases
@@ -89,8 +88,9 @@ def main() -> int:
                 db.snapshot_channel(channel_db_id, stats)
 
             # ── 2. Ingest any NEW season videos ──
+            ch_season_since = get_season_since(ch)
             if ch.get("entity_type") != "League" and channel_db_id:
-                season = yt.get_video_ids_since_by_format(yt_id, SEASON_SINCE)
+                season = yt.get_video_ids_since_by_format(yt_id, ch_season_since)
                 long_ids = season.get("long", [])
                 short_ids = season.get("shorts", [])
                 live_ids = season.get("live", [])
@@ -126,7 +126,7 @@ def main() -> int:
             # Refresh precomputed top-100 stats + season_views on the channel
             if channel_db_id:
                 try:
-                    db.refresh_top100_stats(channel_db_id, SEASON_SINCE)
+                    db.refresh_top100_stats(channel_db_id, ch_season_since)
                 except Exception:
                     pass
 

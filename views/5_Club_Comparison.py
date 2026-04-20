@@ -9,8 +9,8 @@ from dotenv import load_dotenv
 
 from src.database import Database
 from src.analytics import fmt_num
-from src.filters import get_global_color_map, get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel
-from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
+from src.filters import get_global_color_map, get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel, render_page_subtitle
+from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, get_season_since
 from src.auth import require_premium
 
 load_dotenv()
@@ -26,6 +26,8 @@ all_channels = get_global_channels() or db.get_all_channels()
 
 # Apply global filter to narrow the club pool
 g_league, g_club = get_global_filter()
+_daily_updated = db.get_last_fetch_time("daily")
+render_page_subtitle("Side-by-side club comparison", updated_raw=_daily_updated)
 if g_league:
     filtered_channels = get_channels_for_filter(all_channels, g_league)
 else:
@@ -104,7 +106,7 @@ def make_pie(data, val_col, title):
 _season_vid_counts = {}
 for ch in compare_channels:
     _sv = db.client.table("videos").select("id", count="exact") \
-        .eq("channel_id", ch["id"]).gte("published_at", "2025-08-01").limit(1).execute()
+        .eq("channel_id", ch["id"]).gte("published_at", get_season_since(ch)).limit(1).execute()
     _season_vid_counts[ch["name"]] = _sv.count or 0
 comp_df["_season_videos"] = comp_df["name"].map(_season_vid_counts)
 
@@ -127,7 +129,7 @@ for ch in sorted(compare_channels, key=lambda c: c.get("subscriber_count", 0), r
     sv = int(ch.get("season_views") or 0)
     # Count season videos for this channel
     season_vids = db.client.table("videos").select("id", count="exact") \
-        .eq("channel_id", ch["id"]).gte("published_at", "2025-08-01").limit(1).execute()
+        .eq("channel_id", ch["id"]).gte("published_at", get_season_since(ch)).limit(1).execute()
     s_vid_count = season_vids.count or 0
     s_avg = sv // max(s_vid_count, 1)
     rows.append({

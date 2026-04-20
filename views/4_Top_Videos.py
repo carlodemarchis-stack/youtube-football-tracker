@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 from src.database import Database
 from src.analytics import compute_channel_comparison, compute_tier_stats, compute_theme_distribution, fmt_num
-from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope
+from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope, render_page_subtitle
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, league_with_flag
 from src.auth import require_login
 
@@ -36,6 +36,9 @@ if not all_channels:
     st.stop()
 
 league, club = get_global_filter()
+
+_daily_updated = db.get_last_fetch_time("daily")
+render_page_subtitle("Top 100 most viewed videos all time", updated_raw=_daily_updated)
 
 
 # Top-N is all we ever need for charts/tables on this page.

@@ -34,6 +34,35 @@ LEAGUE_FLAG = {
 }
 
 
+LEAGUE_SEASON_START = {
+    "Serie A": "2025-08-01",
+    "Premier League": "2025-08-01",
+    "La Liga": "2025-08-01",
+    "Bundesliga": "2025-08-01",
+    "Ligue 1": "2025-08-01",
+    "MLS": "2025-02-01",
+}
+
+# Fallback for unknown leagues
+DEFAULT_SEASON_START = "2025-08-01"
+
+
+def get_season_since(channel: dict | None = None, league: str | None = None) -> str:
+    """Return the season start date for a channel or league.
+
+    Accepts either a channel dict (looks up league from country) or a league name directly.
+    Returns ISO date string like '2025-08-01'.
+    """
+    if league:
+        return LEAGUE_SEASON_START.get(league, DEFAULT_SEASON_START)
+    if channel:
+        country = (channel.get("country") or "").upper()
+        lg = COUNTRY_TO_LEAGUE.get(country)
+        if lg:
+            return LEAGUE_SEASON_START.get(lg, DEFAULT_SEASON_START)
+    return DEFAULT_SEASON_START
+
+
 def league_with_flag(name: str) -> str:
     """Return league name prefixed with its country flag emoji."""
     flag = LEAGUE_FLAG.get(name, "")

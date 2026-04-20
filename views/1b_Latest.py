@@ -14,7 +14,7 @@ from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
 from src.auth import require_login
 from src.filters import (
     get_global_channels, get_global_color_map, get_global_color_map_dual,
-    get_global_filter, get_league_for_channel,
+    get_global_filter, get_league_for_channel, render_page_subtitle,
 )
 
 load_dotenv()
@@ -36,6 +36,8 @@ dual = get_global_color_map_dual()
 
 # ── Apply global filter ──────────────────────────────────────
 g_league, g_club = get_global_filter()
+_rss_updated = db.get_last_fetch_time("hourly_rss")
+render_page_subtitle("Most recently published videos", updated_raw=_rss_updated)
 if g_club:
     ch_ids = [g_club["id"]]
 elif g_league:
@@ -110,20 +112,6 @@ else:
 if not latest:
     st.caption("No videos found.")
     st.stop()
-
-if g_club:
-    _scope = f"**{g_club['name']}** only"
-elif g_league:
-    _scope = f"all clubs in **{g_league}**"
-else:
-    _scope = "**all tracked channels**"
-_fmt_suffix = f" · format: **{fmt_pick}**" if fmt_pick and fmt_pick != "All" else ""
-_last_fetched = max((v.get("last_fetched") or v.get("published_at") or "" for v in latest), default="")
-_updated_str = ""
-if _last_fetched:
-    from src.analytics import fmt_date
-    _updated_str = f" · updated {fmt_date(_last_fetched)}"
-st.caption(f"Showing **{len(latest)}** most recent videos · {_scope}{_fmt_suffix}{_updated_str}")
 
 ch_by_id = {c["id"]: c for c in all_channels}
 

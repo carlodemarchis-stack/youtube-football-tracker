@@ -10,15 +10,14 @@ from dotenv import load_dotenv
 
 from src.database import Database
 from src.analytics import fmt_num
-from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope, get_league_for_channel
+from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope, get_league_for_channel, render_page_subtitle
 from src.auth import require_login
-from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
+from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, get_season_since, LEAGUE_SEASON_START
 
 load_dotenv()
 require_login()
 
 st.title("Season 25/26")
-st.caption("Stats cover videos **published** on/after 2025-08-01. Views on older videos that happen during the season are not included.")
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
@@ -36,7 +35,15 @@ if not all_channels:
 
 league, club = get_global_filter()
 now = datetime.now(timezone.utc)
-SEASON_SINCE = "2025-08-01"
+SEASON_SINCE = get_season_since(channel=club, league=league)
+_daily_updated = db.get_last_fetch_time("daily")
+_rss_updated = db.get_last_fetch_time("hourly_rss")
+_season_updated = max(filter(None, [_daily_updated, _rss_updated]), default=None)
+render_page_subtitle(
+    f"Season performance since {SEASON_SINCE}",
+    updated_raw=_season_updated,
+    caveat=f"Stats cover videos published on/after {SEASON_SINCE}. Views on older videos that happen during the season are not included.",
+)
 
 
 # ══════════════════════════════════════════════════════════════
@@ -860,41 +867,43 @@ else:
     _total_v_banner = long_views + short_views + live_views
     _total_n_banner = long_videos + short_videos + live_videos
     _avg_vpv_banner = _total_v_banner // max(_total_n_banner, 1)
+    _eng_rate = (_rate(total_likes + total_comments, total_views) * 100) if total_views else 0
 
-    def _mini_pie(values, labels, colors, hover_suffix):
+    # KPI banner row
+    k1, k2, k3, k4, k5, k6 = st.columns(6)
+    k1.metric("Total Views", fmt_num(_total_v_banner))
+    k2.metric("Total Videos", fmt_num(_total_n_banner))
+    k3.metric("Avg Views/Video", fmt_num(_avg_vpv_banner))
+    k4.metric("Total Likes", fmt_num(total_likes))
+    k5.metric("Total Comments", fmt_num(total_comments))
+    k6.metric("Engagement Rate", f"{_eng_rate:.2f}%", help="(Likes + Comments) / Views")
+
+    # Pie charts row
+    def _make_pie_club(values, labels, colors, hover_suffix, title):
         fig = go.Figure(go.Pie(
-            labels=labels, values=values, marker=dict(colors=colors), hole=0.55,
-            textinfo="percent", textposition="inside", sort=False,
+            labels=labels, values=values, marker=dict(colors=colors), hole=0.45,
+            textinfo="percent+label", textposition="inside",
             hovertemplate="%{label}: %{value:,.0f} " + hover_suffix + "<extra></extra>",
         ))
-        fig.update_layout(showlegend=False, height=160,
-                          margin=dict(t=8, b=8, l=8, r=8),
-                          paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                          font=dict(color="#FAFAFA", size=11))
+        fig.update_layout(
+            title=dict(text=title, x=0.5), showlegend=False, height=300,
+            margin=dict(t=40, b=20, l=20, r=20),
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#FAFAFA"),
+        )
         return fig
 
     col_p1, col_p2, col_p3, col_p4, col_p5 = st.columns(5)
     with col_p1:
-        st.metric("Total Views", fmt_num(_total_v_banner))
-        st.caption("by format")
-        st.plotly_chart(_mini_pie(_vals(long_views, short_views, live_views), pie_labels, pie_colors, "views"),
-                        use_container_width=True)
+        st.plotly_chart(_make_pie_club(_vals(long_views, short_views, live_views), pie_labels, pie_colors, "views", "Views"), use_container_width=True)
     with col_p2:
-        st.metric("Total Videos", fmt_num(_total_n_banner))
-        st.caption("by format")
-        st.plotly_chart(_mini_pie(_vals(long_videos, short_videos, live_videos), pie_labels, pie_colors, "videos"),
-                        use_container_width=True)
+        st.plotly_chart(_make_pie_club(_vals(long_videos, short_videos, live_videos), pie_labels, pie_colors, "videos", "Videos"), use_container_width=True)
     with col_p3:
-        st.metric("Avg Views/Video", fmt_num(_avg_vpv_banner))
-        st.caption("by format")
-        st.plotly_chart(_mini_pie(_vals(long_vpv, short_vpv, live_vpv), pie_labels, pie_colors, "views/video"),
-                        use_container_width=True)
+        st.plotly_chart(_make_pie_club(_vals(long_vpv, short_vpv, live_vpv), pie_labels, pie_colors, "views/video", "Views/Video"), use_container_width=True)
     with col_p4:
-        st.metric("Total Likes", fmt_num(total_likes))
-        st.caption(f"Like rate: {_pct(_rate(total_likes, total_views))}")
+        st.plotly_chart(_make_pie_club(_vals(long_likes, short_likes, live_likes), pie_labels, pie_colors, "likes", "Likes"), use_container_width=True)
     with col_p5:
-        st.metric("Total Comments", fmt_num(total_comments))
-        st.caption(f"Comment rate: {_pct(_rate(total_comments, total_views))}")
+        st.plotly_chart(_make_pie_club(_vals(long_comments, short_comments, live_comments), pie_labels, pie_colors, "comments", "Comments"), use_container_width=True)
 
     # ── Breakdown table ────────────────────────────────────────
     st.subheader("Breakdown")

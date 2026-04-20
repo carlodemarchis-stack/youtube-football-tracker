@@ -87,6 +87,8 @@ def fmt_date(raw: str | None) -> str:
         return "Never"
     try:
         dt = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
         now = datetime.now(timezone.utc)
         diff = now - dt
         secs = diff.total_seconds()
