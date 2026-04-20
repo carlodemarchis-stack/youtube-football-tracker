@@ -184,7 +184,7 @@ if live_now:
     <div style="color:#FAFAFA;font-size:15px;font-weight:600;margin:0 0 10px 4px">🔴 Live Now</div>
     <div class="ln-grid">{_ln_cards}</div>
     {yt_popup_js()}
-    """, height=260, scrolling=False)
+    """, height=310, scrolling=False)
 
 # ── Mosaic view ─────────────────────────────────────────────
 if mosaic_view:
