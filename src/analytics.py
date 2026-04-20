@@ -135,9 +135,11 @@ import pandas as pd
 
 def yt_popup_js() -> str:
     """Return a <script> block that intercepts YouTube video links/window.open
-    calls and opens them in a popup embed player instead of a new tab.
+    calls inside a components.html iframe and sends a postMessage to the
+    parent page to open the video in an overlay player.
 
     Inject this into every components.html block that contains video links.
+    The overlay itself is created by yt_overlay_html() in app.py.
     """
     return """<script>
 (function(){
@@ -146,9 +148,14 @@ def yt_popup_js() -> str:
     if (url && url.indexOf('youtube.com/watch') !== -1) {
       try {
         var id = new URL(url).searchParams.get('v');
-        if (id) return _origOpen.call(window,
-          'https://www.youtube.com/embed/' + id + '?autoplay=1',
-          'ytplayer', 'width=960,height=540,menubar=no,toolbar=no,location=no');
+        if (id) { window.parent.postMessage({type:'ytplay',id:id},'*'); return; }
+      } catch(e) {}
+    }
+    if (url && url.indexOf('youtube.com/embed') !== -1) {
+      try {
+        var parts = url.split('/embed/');
+        var id2 = parts[1] ? parts[1].split('?')[0] : null;
+        if (id2) { window.parent.postMessage({type:'ytplay',id:id2},'*'); return; }
       } catch(e) {}
     }
     return _origOpen.call(window, url, target, features);
@@ -159,9 +166,44 @@ def yt_popup_js() -> str:
     e.preventDefault(); e.stopPropagation();
     try {
       var id = new URL(a.href).searchParams.get('v');
-      if (id) window.open('https://www.youtube.com/watch?v=' + id);
+      if (id) window.parent.postMessage({type:'ytplay',id:id},'*');
     } catch(e2) {}
   }, true);
+})();
+</script>"""
+
+
+def yt_overlay_html() -> str:
+    """Return a components.html snippet that creates a YouTube overlay player
+    in the parent Streamlit page. Call once from app.py."""
+    return """
+<script>
+(function(){
+  var p = window.parent.document;
+  if (p.getElementById('yt-overlay')) return;
+  var ov = p.createElement('div');
+  ov.id = 'yt-overlay';
+  ov.style.cssText = 'display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;'+
+    'background:rgba(0,0,0,0.88);z-index:100000;justify-content:center;align-items:center;cursor:pointer;';
+  ov.innerHTML = '<div style="position:relative;width:80vw;max-width:960px;aspect-ratio:16/9;cursor:default">' +
+    '<iframe id="yt-player" style="width:100%;height:100%;border:none;border-radius:8px" ' +
+    'allowfullscreen allow="autoplay; encrypted-media"></iframe>' +
+    '<button id="yt-close" style="position:absolute;top:-40px;right:0;background:none;border:none;' +
+    'color:#fff;font-size:30px;cursor:pointer;padding:4px 10px">✕</button></div>';
+  p.body.appendChild(ov);
+  function closeOverlay() {
+    ov.style.display = 'none';
+    p.getElementById('yt-player').src = '';
+  }
+  ov.addEventListener('click', function(e) { if (e.target === ov) closeOverlay(); });
+  p.getElementById('yt-close').addEventListener('click', closeOverlay);
+  p.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeOverlay(); });
+  window.parent.addEventListener('message', function(e) {
+    if (e.data && e.data.type === 'ytplay' && e.data.id) {
+      ov.style.display = 'flex';
+      p.getElementById('yt-player').src = 'https://www.youtube.com/embed/' + e.data.id + '?autoplay=1';
+    }
+  });
 })();
 </script>"""
 

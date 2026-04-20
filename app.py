@@ -91,6 +91,11 @@ if SUPABASE_URL and SUPABASE_KEY:
 
 st.markdown("---")
 
+# ── YouTube overlay player (one per session) ─────────────────
+import streamlit.components.v1 as _components
+from src.analytics import yt_overlay_html
+_components.html(yt_overlay_html(), height=0)
+
 # ── Sidebar promo ────────────────────────────────────────────
 with st.sidebar:
     st.markdown("---")
