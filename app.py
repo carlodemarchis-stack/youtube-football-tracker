@@ -91,4 +91,22 @@ if SUPABASE_URL and SUPABASE_KEY:
 
 st.markdown("---")
 
+# ── Sidebar promo ────────────────────────────────────────────
+with st.sidebar:
+    st.markdown("---")
+    st.markdown(
+        """
+        <div style="font-size:12px;color:#999;line-height:1.6">
+            <b style="color:#FAFAFA">YTFT</b> brought to you by<br>
+            <b style="color:#FAFAFA">Carlo De Marchis</b><br>
+            <i>A guy with a scarf</i><br>
+            <a href="https://www.linkedin.com/newsletters/a-guy-with-a-scarf-6998145822441775104/" target="_blank" style="color:#FF6B6B;text-decoration:none">📬 Newsletter</a> ·
+            <a href="https://linkedin.com/in/carlodemarchis" target="_blank" style="color:#0A66C2;text-decoration:none">💼 LinkedIn</a><br>
+            <a href="https://a-guy-with-a-scarf.mykajabi.com/course" target="_blank" style="color:#F5A623;text-decoration:none">📖 Course</a> ·
+            <a href="https://amzn.eu/d/09cuCSkB" target="_blank" style="color:#F5A623;text-decoration:none">📕 Book</a>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
 pg.run()

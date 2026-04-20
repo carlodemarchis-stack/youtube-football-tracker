@@ -235,7 +235,7 @@ st.markdown(
 
     ---
 
-    ### Pages
+    ### Pages (require login)
 
     **Daily Recap** — what happened yesterday: view and subscriber
     gains, leaderboards, most watched videos, new uploads, and 14-day
@@ -262,16 +262,38 @@ st.markdown(
 
 st.info(
     """
-    **Premium pages** (require login):
+    **Premium pages** (require premium account):
 
     **Compare** — pick 2–5 clubs from any league and compare them side by
     side: pie charts, stats table, and top videos head-to-head.
 
     **AI Analysis** — Claude-powered insights for the selected club:
     strengths, content strategy, and recommendations.
+
+    **Ask Data** — ask natural-language questions about the data and get
+    instant answers powered by AI.
     """,
     icon="⭐",
 )
+
+st.markdown("---")
+
+# ── About / Promo ────────────────────────────────────────────
+st.subheader("About")
+st.markdown(
+    """
+    **YouTube Football Tracker** is built and maintained by **Carlo De Marchis** — a guy with a scarf
+    who tracks football YouTube so you don't have to.
+
+    **Becoming a Better B2B Tech Vendor in Sports and Media** — my new online course and book.
+    """
+)
+
+_about_cols = st.columns(4)
+_about_cols[0].link_button("📬 Newsletter", "https://www.linkedin.com/newsletters/a-guy-with-a-scarf-6998145822441775104/", use_container_width=True)
+_about_cols[1].link_button("💼 LinkedIn", "https://linkedin.com/in/carlodemarchis", use_container_width=True)
+_about_cols[2].link_button("📖 Course", "https://a-guy-with-a-scarf.mykajabi.com/course", use_container_width=True)
+_about_cols[3].link_button("📕 Book on Amazon", "https://amzn.eu/d/09cuCSkB", use_container_width=True)
 
 st.markdown("---")
 st.caption("Data sourced from YouTube Data API v3. Stats refresh automatically via hourly, daily, and weekly jobs.")
