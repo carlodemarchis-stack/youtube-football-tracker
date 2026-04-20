@@ -112,11 +112,17 @@ def _row(u: dict):
     linkedin = (u.get("linkedin_url") or "").strip()
     onboarded = bool(u.get("onboarded"))
 
-    col_info, col_meta, col_role, col_save = st.columns([3, 3, 2, 1])
+    col_info, col_meta, col_role, col_edit = st.columns([3, 3, 2, 1])
 
     with col_info:
         badge = ROLE_ICONS.get(current_role, "")
-        status = "" if onboarded else " <span style='background:#F5A62344;color:#F5A623;padding:1px 6px;border-radius:3px;font-size:10px;margin-left:6px'>pending</span>"
+        status = (
+            " <span style='background:#00CC9633;color:#00CC96;padding:1px 6px;"
+            "border-radius:3px;font-size:10px;margin-left:6px'>✓ onboarded</span>"
+            if onboarded else
+            " <span style='background:#F5A62333;color:#F5A623;padding:1px 6px;"
+            "border-radius:3px;font-size:10px;margin-left:6px'>pending</span>"
+        )
         st.markdown(
             f"{badge} **{full_name}**{status}<br>"
             f"<span style='color:#888;font-size:12px'>{email}</span>",
@@ -145,15 +151,49 @@ def _row(u: dict):
             key=f"role_sel_{email}",
             label_visibility="collapsed",
         )
-
-    with col_save:
         if new_role != current_role:
-            if st.button("Save", key=f"save_{email}", type="primary"):
+            if st.button("Save role", key=f"save_role_{email}", type="primary", use_container_width=True):
                 db.set_user_role(email, new_role)
                 st.success(f"{email} → {new_role}")
                 st.rerun()
-        else:
-            st.caption("—")
+
+    with col_edit:
+        edit_key = f"_editing_{email}"
+        if st.button("✏️ Edit", key=f"edit_btn_{email}", use_container_width=True):
+            st.session_state[edit_key] = not st.session_state.get(edit_key, False)
+
+    # Expanded edit form
+    if st.session_state.get(f"_editing_{email}"):
+        with st.container(border=True):
+            ec1, ec2 = st.columns(2)
+            new_first = ec1.text_input("First name", value=first, key=f"ef_{email}")
+            new_last = ec2.text_input("Last name", value=last, key=f"el_{email}")
+            new_company = st.text_input("Company", value=company, key=f"ec_{email}")
+            new_linkedin = st.text_input("LinkedIn URL", value=linkedin, key=f"eli_{email}")
+            new_onboarded = st.checkbox("Onboarded", value=onboarded, key=f"eo_{email}",
+                                         help="Uncheck to make this user see the welcome card again on next login.")
+
+            bc1, bc2, _ = st.columns([1, 1, 4])
+            with bc1:
+                if st.button("💾 Save changes", key=f"save_edit_{email}", type="primary"):
+                    try:
+                        db.client.table("user_profiles").update({
+                            "first_name": new_first.strip(),
+                            "last_name": new_last.strip(),
+                            "company": new_company.strip(),
+                            "linkedin_url": new_linkedin.strip(),
+                            "onboarded": new_onboarded,
+                            "display_name": f"{new_first} {new_last}".strip() or u.get("display_name"),
+                        }).eq("email", email).execute()
+                        st.session_state.pop(f"_editing_{email}", None)
+                        st.success(f"Updated {email}")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Save failed: {e}")
+            with bc2:
+                if st.button("Cancel", key=f"cancel_edit_{email}"):
+                    st.session_state.pop(f"_editing_{email}", None)
+                    st.rerun()
 
 
 for u in filtered:
