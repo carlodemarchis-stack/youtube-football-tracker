@@ -204,6 +204,19 @@ def yt_overlay_html() -> str:
       p.getElementById('yt-player').src = 'https://www.youtube.com/embed/' + e.data.id + '?autoplay=1';
     }
   });
+  // Intercept YouTube links in the parent page (st.markdown content)
+  p.addEventListener('click', function(e) {
+    var a = e.target.closest('a[href*="youtube.com/watch"]');
+    if (!a) return;
+    e.preventDefault(); e.stopPropagation();
+    try {
+      var id = new URL(a.href).searchParams.get('v');
+      if (id) {
+        ov.style.display = 'flex';
+        p.getElementById('yt-player').src = 'https://www.youtube.com/embed/' + id + '?autoplay=1';
+      }
+    } catch(ex) {}
+  }, true);
 })();
 </script>"""
 

@@ -141,7 +141,7 @@ if live_now:
             except Exception:
                 pass
         views = int(v.get("view_count") or 0)
-        _ln_cards += f"""<a href="#" onclick="window.postMessage({{type:'ytplay',id:'{yt_id}'}},'*');return false;" class="ln-card">
+        _ln_cards += f"""<a href="https://www.youtube.com/watch?v={yt_id}" class="ln-card">
           <div class="ln-thumb">
             <img src="{thumb}" alt="">
             <span class="ln-badge">● LIVE</span>
