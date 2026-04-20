@@ -724,6 +724,18 @@ class Database:
     def set_user_role(self, email: str, role: str):
         self.client.table("user_profiles").update({"role": role}).eq("email", email).execute()
 
+    def update_user_onboarding(self, email: str, first_name: str, last_name: str,
+                                company: str, linkedin_url: str) -> dict:
+        """Save name/company/LinkedIn from the one-time welcome card."""
+        self.client.table("user_profiles").update({
+            "first_name": first_name.strip(),
+            "last_name": last_name.strip(),
+            "company": company.strip(),
+            "linkedin_url": linkedin_url.strip(),
+            "onboarded": True,
+        }).eq("email", email).execute()
+        return self.get_user_profile(email) or {}
+
     def get_all_users(self) -> list[dict]:
         resp = (
             self.client.table("user_profiles")

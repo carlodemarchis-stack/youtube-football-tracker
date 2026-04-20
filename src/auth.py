@@ -257,12 +257,100 @@ def _email_otp_flow():
             st.rerun()
 
 
+_GENERIC_EMAIL_DOMAINS = {
+    "gmail.com", "googlemail.com", "icloud.com", "me.com", "mac.com",
+    "outlook.com", "hotmail.com", "live.com", "msn.com",
+    "yahoo.com", "yahoo.co.uk", "yahoo.it", "ymail.com",
+    "protonmail.com", "proton.me", "pm.me", "aol.com", "gmx.com",
+    "mail.com", "fastmail.com", "zoho.com", "tutanota.com",
+}
+
+
+def _show_onboarding_card(user: dict):
+    """One-time form: first name, last name, company, optional LinkedIn URL.
+    Pre-fills from Google OAuth profile and email domain when possible."""
+    email = user.get("email", "")
+    display = user.get("display_name", "") or ""
+
+    # Try to split display_name into first / last
+    default_first, default_last = "", ""
+    try:
+        if st.user.is_logged_in:
+            default_first = (getattr(st.user, "given_name", "") or "").strip()
+            default_last = (getattr(st.user, "family_name", "") or "").strip()
+    except Exception:
+        pass
+    if not default_first and display:
+        parts = display.strip().split(None, 1)
+        default_first = parts[0]
+        default_last = parts[1] if len(parts) > 1 else ""
+
+    # Pre-fill company from email domain if not a generic provider
+    domain = email.split("@", 1)[1].lower() if "@" in email else ""
+    default_company = "" if domain in _GENERIC_EMAIL_DOMAINS or not domain else domain.split(".")[0].title()
+
+    st.markdown("## 👋 Welcome")
+    st.caption(
+        "Quick one-time intro so I know who's using this. "
+        "Takes 10 seconds, we'll never ask again."
+    )
+    with st.form("_onboarding_form", clear_on_submit=False):
+        col1, col2 = st.columns(2)
+        first_name = col1.text_input("First name", value=default_first)
+        last_name = col2.text_input("Last name", value=default_last)
+        company = st.text_input(
+            "Company", value=default_company,
+            placeholder="e.g. DAZN, AS Roma, freelance, student",
+        )
+        linkedin_url = st.text_input(
+            "LinkedIn URL (optional)",
+            placeholder="https://linkedin.com/in/your-handle",
+        )
+        submitted = st.form_submit_button("Save and continue", type="primary")
+
+    if submitted:
+        if not first_name.strip() or not last_name.strip() or not company.strip():
+            st.error("First name, last name and company are required.")
+            return
+        try:
+            db = _get_db()
+            db.update_user_onboarding(
+                email,
+                first_name=first_name, last_name=last_name,
+                company=company, linkedin_url=linkedin_url,
+            )
+            # Invalidate cache so next run loads the updated profile
+            st.session_state.pop("yt_user", None)
+            st.rerun()
+        except Exception as e:
+            st.error(f"Could not save: {e}")
+
+
+def _needs_onboarding(user: dict) -> bool:
+    """Check the user_profiles row for the `onboarded` flag."""
+    email = user.get("email")
+    if not email:
+        return False
+    try:
+        db = _get_db()
+        profile = db.get_user_profile(email)
+        if not profile:
+            return True
+        return not bool(profile.get("onboarded"))
+    except Exception:
+        # If the column doesn't exist yet, don't block the user
+        return False
+
+
 def require_login():
     """Block page if user is not signed in at all (any role)."""
     user = get_current_user()
     if user is None:
         st.warning("Please sign in to access this page.")
         _show_login_ui()
+    if _needs_onboarding(user):
+        _show_onboarding_card(user)
+        st.stop()
     return user
 
 

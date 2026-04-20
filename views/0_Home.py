@@ -303,4 +303,18 @@ _about_cols[3].link_button("📖 Course", "https://a-guy-with-a-scarf.mykajabi.c
 _about_cols[4].link_button("📕 Book on Amazon", "https://amzn.eu/d/09cuCSkB", use_container_width=True)
 
 st.markdown("---")
-st.caption("Data sourced from YouTube Data API v3. Stats refresh automatically via hourly, daily, and weekly jobs.")
+st.markdown("#### 🔍 Read the fine print")
+st.caption(
+    "**Public info only.** Everything shown here — subscribers, views, videos, titles, thumbnails — "
+    "is publicly available on YouTube. No private data, no scraping, no login tricks. "
+    "Just the YouTube Data API v3, the way Google intended.\n\n"
+    "**Limitations.** YouTube rounds subscriber counts down (so 1.23M might actually be 1,234,567). "
+    "View counts update with a delay. Videos deleted or made private disappear from our stats. "
+    "Themes and key figures are AI-classified — occasionally wrong, usually close. "
+    "\"Season\" views cover videos *published* in-season; views on older videos during the season aren't counted.\n\n"
+    "**When we fetch data.** New video discovery runs **hourly** via RSS feeds (fast, lightweight). "
+    "Full stats refresh runs **daily** — subscriber counts, view counts, and snapshots for ranks and deltas. "
+    "A **weekly** sweep recomputes top-100 aggregates and back-fills any missed videos.\n\n"
+    "**Work in progress.** This is a research project. Expect it to evolve constantly — "
+    "new metrics, new leagues, new views, occasional bugs, and the odd late-night experiment."
+)
