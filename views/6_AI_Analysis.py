@@ -49,9 +49,10 @@ ai_date = existing_insights.get("generated_at", "")
 data_date = channel.get("last_fetched", "")
 is_stale = bool(data_date and ai_date and data_date > ai_date)
 
-caption = f"Generated: {ai_date[:16]} | Model: {existing_insights.get('model', 'unknown')}"
+from src.analytics import fmt_date
+caption = f"Generated: {fmt_date(ai_date)} | Model: {existing_insights.get('model', 'unknown')}"
 if data_date:
-    caption += f" | Data: {data_date[:16]}"
+    caption += f" | Data: {fmt_date(data_date)}"
 st.caption(caption)
 
 if is_stale:

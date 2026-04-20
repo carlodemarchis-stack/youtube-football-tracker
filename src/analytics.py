@@ -77,6 +77,44 @@ def get_channel_colors(channel_names: list[str]) -> dict[str, str]:
     return {name: CHANNEL_PALETTE[i % len(CHANNEL_PALETTE)] for i, name in enumerate(sorted(channel_names))}
 
 
+def fmt_date(raw: str | None) -> str:
+    """Format an ISO timestamp as a human-friendly relative string.
+
+    Examples: '2 hours ago', 'yesterday', '3 days ago', 'Apr 12'.
+    Falls back to the raw string if parsing fails.
+    """
+    if not raw:
+        return "Never"
+    try:
+        dt = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+        now = datetime.now(timezone.utc)
+        diff = now - dt
+        secs = diff.total_seconds()
+        if secs < 0:
+            return "just now"
+        if secs < 60:
+            return "just now"
+        mins = int(secs // 60)
+        if mins < 60:
+            return f"{mins}m ago"
+        hrs = int(secs // 3600)
+        if hrs < 24:
+            return f"{hrs}h ago"
+        days = int(secs // 86400)
+        if days == 1:
+            return "yesterday"
+        if days < 7:
+            return f"{days}d ago"
+        if days < 30:
+            weeks = days // 7
+            return f"{weeks}w ago"
+        # Older than a month — show date
+        return dt.strftime("%b %d")
+    except Exception:
+        # Can't parse — return truncated raw
+        return str(raw)[:16]
+
+
 def fmt_num(n: int | float) -> str:
     """Format numbers: 1.2B, 78.4M, 14.5K, or 999."""
     if n is None:

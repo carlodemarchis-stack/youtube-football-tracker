@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 from src.database import Database
 from src.analytics import compute_channel_comparison, compute_tier_stats, compute_theme_distribution, fmt_num
 from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope
-from src.channels import COUNTRY_TO_LEAGUE, league_with_flag
+from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, league_with_flag
 from src.auth import require_login
 
 load_dotenv()
@@ -216,15 +216,11 @@ if not club:
         rows_html = ""
         for _, row in ch_df.iterrows():
             c1, c2 = ch_dual_colors.get(row["name"], (ch_color_map.get(row["name"], "#636EFA"), "#FFFFFF"))
-            dot_inner = f'<span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:{c1};border:1px solid rgba(255,255,255,0.3);position:relative;cursor:pointer"><span style="display:block;width:8px;height:8px;border-radius:50%;background:{c2};position:absolute;top:3px;left:3px"></span></span>'
+            dot = f'<span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:{c1};border:1px solid rgba(255,255,255,0.3);position:relative"><span style="display:block;width:8px;height:8px;border-radius:50%;background:{c2};position:absolute;top:3px;left:3px"></span></span>'
             handle = row.get("handle", "")
-            if handle:
-                yt_url = f"https://www.youtube.com/{handle}"
-                dot = f'<a href="{yt_url}" target="_blank" style="text-decoration:none">{dot_inner}</a>'
-            else:
-                dot = dot_inner
+            _row_click = f'onclick="window.open(\'https://www.youtube.com/{handle}\',\'_blank\',\'noopener\')" style="cursor:pointer"' if handle else ''
             ss = t100_stats.get(row["name"], {})
-            rows_html += f"""<tr>
+            rows_html += f"""<tr {_row_click}>
                 <td style="padding:6px 12px">{dot}</td>
                 <td style="padding:6px 12px" data-val="{row['name']}">{row['name']}</td>
                 <td style="padding:6px 12px;text-align:right" data-val="{ss.get('at_views', 0)}">{fmt_num(ss['at_views']) if ss.get('at_views') else '-'}</td>
@@ -249,6 +245,7 @@ if not club:
             .st-table th[data-col] {{ cursor:pointer; }}
             .st-table th[data-col]:hover {{ color:#636EFA; }}
             .st-table td {{ padding:6px 12px; border-bottom:1px solid #262730; }}
+            .st-table tr:hover td {{ background:#1a1c24; }}
             .st-table a {{ color:inherit; text-decoration:none; }}
             .st-table .active {{ color:#636EFA; }}
         </style>
@@ -421,6 +418,12 @@ def _dot(name: str) -> str:
         f'position:absolute;top:2px;left:2px"></span></span>'
     )
 
+# Name → flag lookup
+_ch_flag = {}
+for _c in all_channels:
+    _lg = COUNTRY_TO_LEAGUE.get((_c.get("country") or "").strip(), "")
+    _ch_flag[_c["name"]] = LEAGUE_FLAG.get(_lg, "")
+
 _rows_html = ""
 for i, r in enumerate(filtered.itertuples(index=False), 1):
     ch = getattr(r, "channel_name", "") or ""
@@ -460,17 +463,24 @@ for i, r in enumerate(filtered.itertuples(index=False), 1):
     fmt_cell = f'<span style="color:{fmt_color}">{fmt_label}</span>'
     row_url = f"https://www.youtube.com/watch?v={yt_id}" if yt_id else ""
     row_attrs = f'onclick="window.open(\'{row_url}\',\'_blank\',\'noopener\')" style="cursor:pointer"' if row_url else ''
-    _rows_html += f"""<tr {row_attrs}>
+    _flag = _ch_flag.get(ch, "")
+    _cat_span = f' · <span style="color:#666">{cat}</span>' if cat and cat != "Other" else ""
+    _meta = f'{_flag} {_dot(ch)} <span style="color:#AAA">{ch}</span> · {fmt_cell}{_cat_span}'
+    _views = int(getattr(r, 'view_count', 0) or 0)
+    _likes = int(getattr(r, 'like_count', 0) or 0)
+    _comments = int(getattr(r, 'comment_count', 0) or 0)
+    _age_days = round((_now - pub).total_seconds() / 86400, 2) if pub is not None else 0
+    _rows_html += f"""<tr {row_attrs} data-views="{_views}" data-likes="{_likes}" data-comments="{_comments}" data-age="{_age_days}" data-dur="{dur}">
         <td style="padding:6px 12px;text-align:right;color:#888">{i}</td>
-        <td style="padding:6px 12px">{title_cell}</td>
-        <td style="padding:6px 12px;white-space:nowrap">{_dot(ch)} <span style="margin-left:6px">{ch}</span></td>
-        <td style="padding:6px 12px;text-align:right">{fmt_num(getattr(r, 'view_count', 0) or 0)}</td>
-        <td style="padding:6px 12px;text-align:right">{fmt_num(getattr(r, 'like_count', 0) or 0)}</td>
-        <td style="padding:6px 12px;text-align:right">{fmt_num(getattr(r, 'comment_count', 0) or 0)}</td>
+        <td style="padding:6px 12px">
+          <div style="font-size:12px;margin-bottom:2px;white-space:nowrap">{_meta}</div>
+          <div>{title_cell}</div>
+        </td>
+        <td style="padding:6px 12px;text-align:right">{fmt_num(_views)}</td>
+        <td style="padding:6px 12px;text-align:right">{fmt_num(_likes)}</td>
+        <td style="padding:6px 12px;text-align:right">{fmt_num(_comments)}</td>
         <td style="padding:6px 12px;white-space:nowrap">{age}</td>
         <td style="padding:6px 12px;white-space:nowrap">{dur_s}</td>
-        <td style="padding:6px 12px;white-space:nowrap">{fmt_cell}</td>
-        <td style="padding:6px 12px">{cat}</td>
     </tr>"""
 
 _table_height = min(80 + 34 * len(filtered), 1200)
@@ -480,24 +490,53 @@ components.html(
       .vidlist {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
                   font-family:"Source Sans Pro",sans-serif; }}
       .vidlist th {{ padding:8px 12px; border-bottom:2px solid #444; text-align:left;
-                     background:#0E1117; position:sticky; top:0; }}
+                     background:#0E1117; position:sticky; top:0; z-index:1; }}
       .vidlist td {{ border-bottom:1px solid #262730; }}
       .vidlist tr:hover td {{ background:#1a1c24; }}
+      .vidlist th[data-col] {{ cursor:pointer; user-select:none; }}
+      .vidlist th[data-col]:hover {{ color:#58A6FF; }}
+      .vidlist .arrow {{ font-size:11px; opacity:0.4; margin-left:2px; }}
+      .vidlist th.sorted .arrow {{ opacity:1; }}
     </style>
     <div style="max-height:1100px;overflow:auto">
-    <table class="vidlist"><thead><tr>
-      <th style="text-align:right">Rank</th>
-      <th>Title</th>
-      <th>Channel</th>
-      <th style="text-align:right">Views</th>
-      <th style="text-align:right">Likes</th>
-      <th style="text-align:right">Comments</th>
-      <th>Age</th>
-      <th>Duration</th>
-      <th>Format</th>
-      <th>Theme</th>
+    <table class="vidlist" id="vlTable"><thead><tr>
+      <th style="text-align:right">#</th>
+      <th>Video</th>
+      <th data-col="views" style="text-align:right">Views <span class="arrow">▲</span></th>
+      <th data-col="likes" style="text-align:right">Likes <span class="arrow">▲</span></th>
+      <th data-col="comments" style="text-align:right">Comments <span class="arrow">▲</span></th>
+      <th data-col="age">Age <span class="arrow">▲</span></th>
+      <th data-col="dur">Duration <span class="arrow">▲</span></th>
     </tr></thead><tbody>{_rows_html}</tbody></table>
     </div>
+    <script>
+    (function() {{
+      const table = document.getElementById('vlTable');
+      const headers = table.querySelectorAll('th[data-col]');
+      let currentCol = null, asc = true;
+      headers.forEach(th => {{
+        th.addEventListener('click', () => {{
+          const col = th.dataset.col;
+          if (currentCol === col) {{ asc = !asc; }}
+          else {{ currentCol = col; asc = false; }}
+          headers.forEach(h => {{ h.classList.remove('sorted'); h.querySelector('.arrow').textContent = '▲'; }});
+          th.classList.add('sorted');
+          th.querySelector('.arrow').textContent = asc ? '▲' : '▼';
+          const tbody = table.querySelector('tbody');
+          const rows = Array.from(tbody.querySelectorAll('tr'));
+          rows.sort((a, b) => {{
+            const va = parseFloat(a.dataset[col]) || 0;
+            const vb = parseFloat(b.dataset[col]) || 0;
+            return asc ? va - vb : vb - va;
+          }});
+          rows.forEach((r, idx) => {{
+            r.querySelector('td').textContent = idx + 1;
+            tbody.appendChild(r);
+          }});
+        }});
+      }});
+    }})();
+    </script>
     """,
     height=_table_height,
     scrolling=True,

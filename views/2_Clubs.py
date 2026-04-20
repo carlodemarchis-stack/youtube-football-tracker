@@ -10,7 +10,7 @@ import plotly.express as px
 from dotenv import load_dotenv
 
 from src.database import Database
-from src.analytics import compute_channel_comparison, fmt_num
+from src.analytics import compute_channel_comparison, fmt_num, fmt_date
 from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
 from src.auth import get_current_user, is_admin, require_login
@@ -54,7 +54,7 @@ if league is None and _scope == "Overall":
         if not lg:
             continue
         if lg not in league_stats:
-            league_stats[lg] = {"channels": 0, "clubs": 0, "leagues": 0, "total_subs": 0, "clubs_subs": 0, "league_subs": 0, "total_views": 0, "total_videos": 0, "long": 0, "shorts": 0}
+            league_stats[lg] = {"channels": 0, "clubs": 0, "leagues": 0, "total_subs": 0, "clubs_subs": 0, "league_subs": 0, "total_views": 0, "total_videos": 0, "long": 0, "shorts": 0, "live": 0}
         league_stats[lg]["channels"] += 1  # includes both Club and League entities
         subs = ch.get("subscriber_count", 0)
         league_stats[lg]["total_subs"] += subs
@@ -66,8 +66,9 @@ if league is None and _scope == "Overall":
             league_stats[lg]["clubs"] += 1
         league_stats[lg]["total_views"] += ch.get("total_views", 0)
         league_stats[lg]["total_videos"] += ch.get("video_count", 0)
-        league_stats[lg]["long"] += ch.get("long_form_count", 0) + ch.get("live_count", 0)
+        league_stats[lg]["long"] += ch.get("long_form_count", 0)
         league_stats[lg]["shorts"] += ch.get("shorts_count", 0)
+        league_stats[lg]["live"] += ch.get("live_count", 0)
 
     if league_stats:
         # Sort by total subs descending by default
@@ -109,6 +110,7 @@ if league is None and _scope == "Overall":
                 <td style="padding:6px 12px;text-align:right" data-val="{s['total_videos']}">{fmt_num(s['total_videos'])}</td>
                 <td style="padding:6px 12px;text-align:right" data-val="{s['long']}">{fmt_num(s['long'])}</td>
                 <td style="padding:6px 12px;text-align:right" data-val="{s['shorts']}">{fmt_num(s['shorts'])}</td>
+                <td style="padding:6px 12px;text-align:right" data-val="{s['live']}">{fmt_num(s['live'])}</td>
                 <td style="padding:6px 12px;text-align:right" data-val="{avg_v}">{fmt_num(avg_v)}</td>
             </tr>"""
 
@@ -137,7 +139,8 @@ if league is None and _scope == "Overall":
             <th data-col="8" data-type="num" style="text-align:right">Videos</th>
             <th data-col="9" data-type="num" style="text-align:right">Long</th>
             <th data-col="10" data-type="num" style="text-align:right">Shorts</th>
-            <th data-col="11" data-type="num" style="text-align:right">Views/Video</th>
+            <th data-col="11" data-type="num" style="text-align:right">Live</th>
+            <th data-col="12" data-type="num" style="text-align:right">Views/Video</th>
         </tr>
         </thead>
         <tbody>{rows_html}</tbody>
@@ -222,86 +225,107 @@ if league is None and _scope == "Overall":
             for j, fig in enumerate(charts[i:i+2]):
                 cols[j].plotly_chart(fig, use_container_width=True)
 
-    # ── Growth by League (from channel_snapshots) ───────────────
-    from src.growth import group_by_channel as _gbc_l1, delta as _gdelta_l1, _parse_date as _pd_l1
-    _since_l1 = (pd.Timestamp.utcnow().normalize() - pd.Timedelta(days=60)).strftime("%Y-%m-%d")
-    with st.spinner("Loading growth snapshots…"):
-        _snap_rows_l1 = db.get_all_snapshots(since_date=_since_l1)
-    # Map channel_id → league
-    _ch_to_league = {c["id"]: get_league_for_channel(c) for c in all_channels}
 
-    # Aggregate per (date, league)
-    from collections import defaultdict
-    _lg_day: dict[tuple[str, str], int] = defaultdict(int)
-    _league_subs_latest: dict[str, int] = defaultdict(int)
-    for r in _snap_rows_l1:
-        lg = _ch_to_league.get(r["channel_id"])
-        if not lg:
-            continue
-        _lg_day[(r["captured_date"], lg)] += int(r.get("subscriber_count", 0) or 0)
+    # ── All Channels table (same as zoom-2) ──────────────────
+    st.subheader("All Channels")
+    _all_clubs = [ch for ch in all_channels if ch.get("entity_type") != "League"]
+    _all_df = compute_channel_comparison(_all_clubs)
+    _all_color_map = get_global_color_map()
+    _all_dual = get_global_color_map_dual()
+    _all_df["views_per_sub"] = (_all_df["total_views"] / _all_df["subscriber_count"].replace(0, 1)).astype(int)
+    _all_df = _all_df.sort_values("subscriber_count", ascending=False).reset_index(drop=True)
+    _all_rows = ""
+    for _, _r in _all_df.iterrows():
+        _c1, _c2 = _all_dual.get(_r["name"], (_all_color_map.get(_r["name"], "#636EFA"), "#FFFFFF"))
+        _dot = f'<span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:{_c1};border:1px solid rgba(255,255,255,0.3);position:relative"><span style="display:block;width:8px;height:8px;border-radius:50%;background:{_c2};position:absolute;top:3px;left:3px"></span></span>'
+        _handle = _r.get("handle", "")
+        _row_click = f'onclick="window.open(\'https://www.youtube.com/{_handle}\',\'_blank\',\'noopener\')" style="cursor:pointer"' if _handle else ''
+        _launched = (_r.get("launched_at") or "")[:4] or "-"
+        _launched_val = (_r.get("launched_at") or "9999")[:4]
+        _all_rows += f"""<tr {_row_click}>
+            <td style="padding:6px 12px">{_dot}</td>
+            <td style="padding:6px 12px" data-val="{_r['name']}">{_r['name']}</td>
+            <td style="padding:6px 12px;text-align:center" data-val="{_launched_val}">{_launched}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{_r['subscriber_count']}">{fmt_num(_r['subscriber_count'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{_r['total_views']}">{fmt_num(_r['total_views'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{_r['views_per_sub']}">{fmt_num(_r['views_per_sub'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{_r['video_count']}">{fmt_num(_r['video_count'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{_r.get('long_form_count', 0)}">{fmt_num(_r.get('long_form_count', 0))}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{_r.get('shorts_count', 0)}">{fmt_num(_r.get('shorts_count', 0))}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{_r.get('live_count', 0)}">{fmt_num(_r.get('live_count', 0))}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{_r['avg_views_per_video']}">{fmt_num(_r['avg_views_per_video'])}</td>
+        </tr>"""
+    _all_tbl_h = len(_all_df) * 37 + 100
+    components.html(f"""
+    <style>
+        .ac-table {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
+                     font-family:"Source Sans Pro",sans-serif; background:transparent; }}
+        .ac-table th {{ padding:6px 12px; user-select:none; }}
+        .ac-table th[data-col] {{ cursor:pointer; }}
+        .ac-table th[data-col]:hover {{ color:#636EFA; }}
+        .ac-table td {{ padding:6px 12px; border-bottom:1px solid #262730; }}
+        .ac-table tr:hover td {{ background:#1a1c24; }}
+        .ac-table a {{ color:inherit; text-decoration:none; }}
+        .ac-table .active {{ color:#636EFA; }}
+    </style>
+    <table class="ac-table">
+    <thead>
+    <tr style="border-bottom:2px solid #444">
+        <th style="width:30px"></th>
+        <th data-col="1" data-type="str" style="text-align:left">Channel</th>
+        <th data-col="2" data-type="num" style="text-align:center">Since</th>
+        <th data-col="3" data-type="num" style="text-align:right" class="active">Subscribers ▼</th>
+        <th data-col="4" data-type="num" style="text-align:right">Total Views</th>
+        <th data-col="5" data-type="num" style="text-align:right">Views/Sub</th>
+        <th data-col="6" data-type="num" style="text-align:right">Videos</th>
+        <th data-col="7" data-type="num" style="text-align:right">Long</th>
+        <th data-col="8" data-type="num" style="text-align:right">Shorts</th>
+        <th data-col="9" data-type="num" style="text-align:right">Live</th>
+        <th data-col="10" data-type="num" style="text-align:right">Views/Video</th>
+    </tr>
+    </thead>
+    <tbody>{_all_rows}</tbody>
+    </table>
+    <script>
+    (function() {{
+        const table = document.querySelector('.ac-table');
+        const tbody = table.querySelector('tbody');
+        const headers = table.querySelectorAll('th[data-col]');
+        let currentCol = 3;
+        let currentAsc = false;
+        function sortTable(colIdx, type) {{
+            const rows = Array.from(tbody.rows);
+            const isStr = type === 'str';
+            if (colIdx === currentCol) {{ currentAsc = !currentAsc; }}
+            else {{ currentCol = colIdx; currentAsc = isStr; }}
+            rows.sort((a, b) => {{
+                const va = a.cells[colIdx].dataset.val || '';
+                const vb = b.cells[colIdx].dataset.val || '';
+                let cmp;
+                if (isStr) cmp = va.localeCompare(vb, undefined, {{sensitivity:'base'}});
+                else cmp = (parseFloat(va) || 0) - (parseFloat(vb) || 0);
+                return currentAsc ? cmp : -cmp;
+            }});
+            rows.forEach(r => tbody.appendChild(r));
+            headers.forEach(h => {{
+                h.classList.remove('active');
+                h.textContent = h.textContent.replace(/ [▲▼]/g, '');
+            }});
+            const a = table.querySelector('th[data-col="' + colIdx + '"]');
+            a.classList.add('active');
+            a.textContent += currentAsc ? ' ▲' : ' ▼';
+        }}
+        headers.forEach(h => {{
+            h.addEventListener('click', function() {{
+                sortTable(parseInt(this.dataset.col), this.dataset.type || 'num');
+            }});
+        }});
+    }})();
+    </script>
+    """, height=_all_tbl_h, scrolling=False)
 
-    # Build per-league sorted series
-    _by_lg: dict[str, list[tuple[str, int]]] = defaultdict(list)
-    for (d, lg), v in _lg_day.items():
-        _by_lg[lg].append((d, v))
-    for lg in _by_lg:
-        _by_lg[lg].sort(key=lambda t: t[0])
-
-    st.subheader("Growth")
-    if not _by_lg or not any(len(v) >= 2 for v in _by_lg.values()):
-        st.caption("Snapshot history not long enough yet — the daily cron will accumulate data.")
-    else:
-        # Fastest-growing league (Δ7d, fallback Δ30d)
-        _lg_deltas = []
-        for lg, series in _by_lg.items():
-            if len(series) < 2:
-                continue
-            # reshape as snapshot-like for delta()
-            pseudo = [{"captured_date": d, "subscriber_count": v} for d, v in series]
-            d7 = _gdelta_l1(pseudo, "subscriber_count", 7)
-            d30 = _gdelta_l1(pseudo, "subscriber_count", 30)
-            _lg_deltas.append({"league": lg, "latest": series[-1][1], "d7": d7, "d30": d30})
-
-        has_any_d7 = any(x["d7"] is not None for x in _lg_deltas)
-        key = "d7" if has_any_d7 else "d30"
-        label = "Δ Subs 7d" if has_any_d7 else "Δ Subs 30d"
-        _lg_deltas.sort(key=lambda x: x[key] or -10**18, reverse=True)
-
-        kcols = st.columns(len(_lg_deltas))
-        for i, row in enumerate(_lg_deltas):
-            val = row[key]
-            s = "–" if val is None else (f"+{fmt_num(val)}" if val >= 0 else f"{fmt_num(val)}")
-            kcols[i].metric(f"{row['league']} — {label}", s, help=f"Current: {fmt_num(row['latest'])} subs")
-
-        # Multi-line: total subs per league over time
-        LEAGUE_COLORS = {
-            "Serie A": "#0066CC", "Premier League": "#37003C", "La Liga": "#FF4B44",
-            "Bundesliga": "#D3010C", "Ligue 1": "#091C3E", "MLS": "#001F5B",
-        }
-        import plotly.graph_objects as go
-        fig_lg = go.Figure()
-        for lg, series in _by_lg.items():
-            if len(series) < 2:
-                continue
-            fig_lg.add_trace(go.Scatter(
-                x=[d for d, _ in series], y=[v for _, v in series],
-                mode="lines+markers", name=f"{_lg_flag(lg)} {lg}",
-                line=dict(color=LEAGUE_COLORS.get(lg, "#AAAAAA"), width=2),
-                hovertemplate=f"<b>{_lg_flag(lg)} {lg}</b><br>%{{x}}: %{{y:,.0f}} subs<extra></extra>",
-            ))
-        fig_lg.update_layout(
-            title="Total subscribers per league (last 60 days)",
-            height=360, margin=dict(t=40, b=20),
-            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="#FAFAFA"),
-            xaxis=dict(showgrid=False),
-            yaxis=dict(showgrid=True, gridcolor="#262730"),
-            legend=dict(orientation="h", y=-0.15),
-        )
-        st.plotly_chart(fig_lg, use_container_width=True)
-
-    last_fetch = max((c.get("last_fetched") or "" for c in all_channels), default="Never") or "Never"
-    st.caption(f"Last updated: {last_fetch}")
+    last_fetch = max((c.get("last_fetched") or "" for c in all_channels), default="")
+    st.caption(f"Last updated: {fmt_date(last_fetch)}")
 
 
 # ══════════════════════════════════════════════════════════════
@@ -353,16 +377,12 @@ elif club is None:
     rows_html = ""
     for _, row in df.iterrows():
         c1, c2 = dual_colors.get(row["name"], (color_map.get(row["name"], "#636EFA"), "#FFFFFF"))
-        dot_inner = f'<span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:{c1};border:1px solid rgba(255,255,255,0.3);position:relative;cursor:pointer"><span style="display:block;width:8px;height:8px;border-radius:50%;background:{c2};position:absolute;top:3px;left:3px"></span></span>'
+        dot = f'<span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:{c1};border:1px solid rgba(255,255,255,0.3);position:relative"><span style="display:block;width:8px;height:8px;border-radius:50%;background:{c2};position:absolute;top:3px;left:3px"></span></span>'
         handle = row.get("handle", "")
-        if handle:
-            yt_url = f"https://www.youtube.com/{handle}"
-            dot = f'<a href="{yt_url}" target="_blank" style="text-decoration:none">{dot_inner}</a>'
-        else:
-            dot = dot_inner
+        _row_click = f'onclick="window.open(\'https://www.youtube.com/{handle}\',\'_blank\',\'noopener\')" style="cursor:pointer"' if handle else ''
         launched = (row.get("launched_at") or "")[:4] or "-"
         launched_val = (row.get("launched_at") or "9999")[:4]
-        rows_html += f"""<tr>
+        rows_html += f"""<tr {_row_click}>
             <td style="padding:6px 12px">{dot}</td>
             <td style="padding:6px 12px" data-val="{row['name']}">{row['name']}</td>
             <td style="padding:6px 12px;text-align:center" data-val="{launched_val}">{launched}</td>
@@ -370,8 +390,9 @@ elif club is None:
             <td style="padding:6px 12px;text-align:right" data-val="{row['total_views']}">{fmt_num(row['total_views'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{row['views_per_sub']}">{fmt_num(row['views_per_sub'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{row['video_count']}">{fmt_num(row['video_count'])}</td>
-            <td style="padding:6px 12px;text-align:right" data-val="{row.get('long_form_count', 0) + row.get('live_count', 0)}">{fmt_num(row.get('long_form_count', 0) + row.get('live_count', 0))}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{row.get('long_form_count', 0)}">{fmt_num(row.get('long_form_count', 0))}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{row.get('shorts_count', 0)}">{fmt_num(row.get('shorts_count', 0))}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{row.get('live_count', 0)}">{fmt_num(row.get('live_count', 0))}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{row['avg_views_per_video']}">{fmt_num(row['avg_views_per_video'])}</td>
         </tr>"""
 
@@ -385,6 +406,7 @@ elif club is None:
         .st-table th[data-col] {{ cursor:pointer; }}
         .st-table th[data-col]:hover {{ color:#636EFA; }}
         .st-table td {{ padding:6px 12px; border-bottom:1px solid #262730; }}
+        .st-table tr:hover td {{ background:#1a1c24; }}
         .st-table a {{ color:inherit; text-decoration:none; }}
         .st-table .active {{ color:#636EFA; }}
     </style>
@@ -400,7 +422,8 @@ elif club is None:
         <th data-col="6" data-type="num" style="text-align:right">Videos</th>
         <th data-col="7" data-type="num" style="text-align:right">Long</th>
         <th data-col="8" data-type="num" style="text-align:right">Shorts</th>
-        <th data-col="9" data-type="num" style="text-align:right">Views/Video</th>
+        <th data-col="9" data-type="num" style="text-align:right">Live</th>
+        <th data-col="10" data-type="num" style="text-align:right">Views/Video</th>
     </tr>
     </thead>
     <tbody>{rows_html}</tbody>
@@ -493,97 +516,9 @@ elif club is None:
         for _f in _charts:
             st.plotly_chart(_f, use_container_width=True)
 
-    # ── Growth section (from channel_snapshots) ──────────────────
-    from src.growth import group_by_channel as _gbc, delta as _gdelta
-    _all_ids = [c["id"] for c in clubs_only]
-    _since = (pd.Timestamp.utcnow().normalize() - pd.Timedelta(days=60)).strftime("%Y-%m-%d")
-    with st.spinner("Loading growth snapshots…"):
-        _snap_rows = db.get_all_snapshots(since_date=_since)
-    _snap_rows = [r for r in _snap_rows if r["channel_id"] in set(_all_ids)]
-    _by_ch = _gbc(_snap_rows)
 
-    # Build gainer rows
-    _gainers = []
-    for ch in clubs_only:
-        snaps = _by_ch.get(ch["id"], [])
-        if len(snaps) < 2:
-            continue
-        d7 = _gdelta(snaps, "subscriber_count", 7)
-        d30 = _gdelta(snaps, "subscriber_count", 30)
-        last_subs = snaps[-1].get("subscriber_count", 0) or 0
-        _gainers.append({
-            "name": ch["name"], "id": ch["id"],
-            "handle": ch.get("handle", ""),
-            "subs": last_subs, "d7": d7 or 0, "d30": d30 or 0,
-            "has_d7": d7 is not None, "has_d30": d30 is not None,
-        })
-
-    st.subheader("Growth")
-    if not _gainers:
-        st.caption("Snapshot history not long enough yet — the daily cron will accumulate data. Come back in a day or two.")
-    else:
-        # Leaderboard: top 10 by Δ 7d (fallback Δ 30d if 7d not ready for anyone)
-        has_any_d7 = any(g["has_d7"] for g in _gainers)
-        sort_key = "d7" if has_any_d7 else "d30"
-        label = "Δ Subs 7d" if has_any_d7 else "Δ Subs 30d"
-        lead = sorted(_gainers, key=lambda g: g[sort_key], reverse=True)[:10]
-        lead_rows = ""
-        for i, g in enumerate(lead, 1):
-            c1, c2 = dual_colors.get(g["name"], (color_map.get(g["name"], "#636EFA"), "#FFFFFF"))
-            dot = f'<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:{c1};border:1px solid rgba(255,255,255,0.3);position:relative"><span style="display:block;width:7px;height:7px;border-radius:50%;background:{c2};position:absolute;top:2.5px;left:2.5px"></span></span>'
-            delta_val = g[sort_key]
-            sgn = "+" if delta_val >= 0 else ""
-            col = "#00CC96" if delta_val > 0 else ("#EF553B" if delta_val < 0 else "#888")
-            lead_rows += f"""<tr>
-                <td style="padding:6px 12px;color:#888">{i}</td>
-                <td style="padding:6px 12px">{dot}</td>
-                <td style="padding:6px 12px">{g['name']}</td>
-                <td style="padding:6px 12px;text-align:right">{fmt_num(g['subs'])}</td>
-                <td style="padding:6px 12px;text-align:right;color:{col}">{sgn}{fmt_num(delta_val)}</td>
-            </tr>"""
-        components.html(f"""
-        <style>
-          .gainers {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
-                      font-family:"Source Sans Pro",sans-serif; }}
-          .gainers th {{ padding:6px 12px; border-bottom:2px solid #444; text-align:left; }}
-          .gainers td {{ border-bottom:1px solid #262730; }}
-        </style>
-        <table class="gainers"><thead><tr>
-          <th>#</th><th></th><th>Club</th>
-          <th style="text-align:right">Subscribers</th>
-          <th style="text-align:right">{label}</th>
-        </tr></thead><tbody>{lead_rows}</tbody></table>
-        """, height=len(lead) * 37 + 80, scrolling=False)
-
-        # Multi-line trajectory (last ~60 days), one line per club
-        import plotly.graph_objects as go
-        fig_traj = go.Figure()
-        for ch in clubs_only:
-            snaps = _by_ch.get(ch["id"], [])
-            if len(snaps) < 2:
-                continue
-            c1, _ = dual_colors.get(ch["name"], (color_map.get(ch["name"], "#636EFA"), "#FFFFFF"))
-            fig_traj.add_trace(go.Scatter(
-                x=[s["captured_date"] for s in snaps],
-                y=[s.get("subscriber_count", 0) or 0 for s in snaps],
-                mode="lines", name=ch["name"],
-                line=dict(color=c1, width=2),
-                hovertemplate=f"<b>{ch['name']}</b><br>%{{x}}: %{{y:,.0f}} subs<extra></extra>",
-            ))
-        if fig_traj.data:
-            fig_traj.update_layout(
-                title="Subscriber trajectory (last 60 days)",
-                height=380, margin=dict(t=40, b=20),
-                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(color="#FAFAFA"),
-                xaxis=dict(showgrid=False),
-                yaxis=dict(showgrid=True, gridcolor="#262730"),
-                legend=dict(orientation="h", y=-0.15),
-            )
-            st.plotly_chart(fig_traj, use_container_width=True)
-
-    last_fetch = max((c.get("last_fetched") or "" for c in clubs_only), default="Never") or "Never"
-    st.caption(f"Last updated: {last_fetch}")
+    last_fetch = max((c.get("last_fetched") or "" for c in clubs_only), default="")
+    st.caption(f"Last updated: {fmt_date(last_fetch)}")
 
     # ── AI Chat — hidden for now ──
     # user = get_current_user()
@@ -780,23 +715,5 @@ else:
         gcols[3].metric("Views Δ 7d", _sgn(v7))
         gcols[4].metric("Views Δ 30d", _sgn(v30))
         gcols[5].metric("Views since season", _sgn(vssn))
-
-        # Sparkline: subscriber trajectory
-        dates = [s["captured_date"] for s in _snaps]
-        subs_series = [s.get("subscriber_count", 0) or 0 for s in _snaps]
-        fig_g = go.Figure(go.Scatter(
-            x=dates, y=subs_series, mode="lines+markers",
-            line=dict(color=CLUB_C1, width=2),
-            marker=dict(size=6, color=CLUB_C1),
-            hovertemplate="%{x}: %{y:,.0f} subs<extra></extra>",
-        ))
-        fig_g.update_layout(
-            title=dict(text=f"Subscriber trajectory ({_gdays(_snaps)} days tracked)", x=0.02),
-            height=260, margin=dict(t=40, b=20, l=10, r=10),
-            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="#FAFAFA"),
-            xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor="#262730"),
-        )
-        st.plotly_chart(fig_g, use_container_width=True)
 
     st.caption("See **Top Videos** for the all-time top 100 and **Season 25/26** for current-season activity.")

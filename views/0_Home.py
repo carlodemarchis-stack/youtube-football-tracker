@@ -220,33 +220,58 @@ except Exception:
     pass  # Snapshot data may not exist yet; degrade silently
 st.markdown(
     """
-    Track YouTube stats for top leagues football clubs.
+    Track YouTube performance for 100+ football clubs across Europe's top leagues.
 
     ### Global filter
     At the top of every page you'll find a cascading filter that sets the zoom level
     for the whole site. Your selection persists as you navigate.
 
-    - **All Leagues** — site-wide view. A secondary dropdown lets you pick the
-      *scope*:
-        - *Overall* — everything aggregated by league
-        - *Leagues only* — just league channels
-        - *All clubs* — all clubs across every league
-    - **One League** — narrows to a single competition; a club dropdown lets you
-      also pick *All Clubs* or *All Clubs + League channel*
+    - **All Leagues** — site-wide view with a secondary scope selector:
+      *Overall* (aggregated by league), *Leagues only* (league channels),
+      or *All clubs* (every club across leagues)
+    - **One League** — narrows to a single competition; pick *All Clubs*
+      or *All Clubs + League channel*
     - **One Club** — focuses every page on a single channel
 
+    ---
+
     ### Pages
-    - **Channels** — league and club rankings with subscribers, views,
-      videos (long vs shorts), and engagement metrics; charts adapt to your
-      filter's zoom level
-    - **Season 25/26** — current-season performance: videos published since
-      August 2025, split by long-form vs Shorts
-    - **Top Videos** — the top 100 most-viewed videos for your current
-      selection, with ranks, years, and theme breakdown
-    - **Compare** — pick any clubs across leagues and line them up side by side
-    - **AI Analysis** — Claude-powered insights for the selected club
+
+    **Daily Recap** — what happened yesterday: view and subscriber
+    gains, leaderboards, most watched videos, new uploads, and 14-day
+    trend charts. Adapts from league-level summaries down to single-club detail.
+
+    **Latest Videos** — the most recently published videos across all
+    tracked channels. Sortable by views, likes, comments, duration, and
+    age. Live-now videos appear in a banner at the top.
+
+    **Channels** — league and club rankings: subscribers, views, video
+    counts (long vs shorts), views/sub, views/video. Sortable tables and
+    bar charts at every zoom level.
+
+    **Season 25/26** — current-season stats (videos published since
+    Aug 2025): views, videos, views/video, engagement rate — split by
+    long-form, Shorts, and Live. Monthly output charts and category
+    breakdowns at the club level.
+
+    **Top Videos** — the 100 most-viewed videos for your selection with
+    rank-by-views chart, rank-vs-year scatter, year distribution, theme
+    pie, and a sortable video list.
     """
 )
 
+st.info(
+    """
+    **Premium pages** (require login):
+
+    **Compare** — pick 2–5 clubs from any league and compare them side by
+    side: pie charts, stats table, and top videos head-to-head.
+
+    **AI Analysis** — Claude-powered insights for the selected club:
+    strengths, content strategy, and recommendations.
+    """,
+    icon="⭐",
+)
+
 st.markdown("---")
-st.caption("Data sourced from YouTube Data API v3. Stats update on demand.")
+st.caption("Data sourced from YouTube Data API v3. Stats refresh automatically via hourly, daily, and weekly jobs.")

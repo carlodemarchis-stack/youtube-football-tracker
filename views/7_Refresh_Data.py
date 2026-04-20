@@ -13,7 +13,7 @@ import anthropic
 from src.auth import require_admin, show_auth_sidebar
 from src.youtube_api import YouTubeClient
 from src.database import Database
-from src.analytics import classify_videos, fmt_num
+from src.analytics import classify_videos, fmt_num, fmt_date
 from src.filters import get_global_filter, get_channels_for_filter
 
 load_dotenv()
@@ -48,9 +48,9 @@ if not all_channels:
 def _build_channel_context(channels):
     lines = []
     for ch in channels:
-        fetched = (ch.get("last_fetched") or "")[:10] or "never"
+        fetched = fmt_date(ch.get("last_fetched"))
         ins = db.get_insights(ch["id"])
-        ai = (ins.get("generated_at", "") if ins else "")[:10] or "never"
+        ai = fmt_date(ins.get("generated_at", "") if ins else "")
         lines.append(f"- {ch['name']} | type:{ch.get('entity_type','Club')} | country:{ch.get('country','')} | data:{fetched} | ai:{ai}")
     return "\n".join(lines)
 
@@ -212,7 +212,7 @@ st.divider()
 history = db.get_fetch_history(limit=1)
 if history:
     last = history[0]
-    st.caption(f"Last refresh: {last['fetched_at']} · {last['status']} · {last['channels_updated']} channels · {last['videos_fetched']} videos")
+    st.caption(f"Last refresh: {fmt_date(last['fetched_at'])} · {last['status']} · {last['channels_updated']} channels · {last['videos_fetched']} videos")
 
 # ── Daily Snapshot Health ──────────────────────────────────────
 with st.expander("📅 Daily Snapshot Health", expanded=False):
@@ -231,7 +231,7 @@ with st.expander("📅 Daily Snapshot Health", expanded=False):
             if _hrs is not None and _hrs > 36:
                 st.error(f"⚠️ Last successful snapshot was {_hrs:.0f} hours ago — check the GitHub Action.")
             else:
-                st.success(f"✅ Last successful snapshot: {last_ok['fetched_at']}")
+                st.success(f"✅ Last successful snapshot: {fmt_date(last_ok['fetched_at'])}")
         else:
             st.warning("No successful snapshot runs yet — only partial/error runs below.")
 
@@ -241,7 +241,7 @@ with st.expander("📅 Daily Snapshot Health", expanded=False):
             pill_color = "#00CC96" if status == "daily_snapshot" else ("#FFA15A" if "partial" in status else "#EF553B")
             msg = (h.get("error_message") or "").replace("<", "&lt;").replace(">", "&gt;")[:200]
             _rows_html += f"""<tr>
-                <td style="padding:6px 12px;color:#888">{h.get('fetched_at', '')[:19]}</td>
+                <td style="padding:6px 12px;color:#888">{fmt_date(h.get('fetched_at', ''))}</td>
                 <td style="padding:6px 12px"><span style="background:{pill_color};color:#000;padding:2px 8px;border-radius:4px;font-size:12px">{status}</span></td>
                 <td style="padding:6px 12px;text-align:right">{h.get('channels_updated', 0)}</td>
                 <td style="padding:6px 12px;color:#888;font-size:12px">{msg}</td>
@@ -678,6 +678,7 @@ with st.expander("Fetch History"):
         hist_df = pd.DataFrame(history)
         status_map = {"success": "OK", "cancelled": "Cancelled", "error": "Error", "stats_only": "OK", "ai_insights": "OK"}
         hist_df["type"] = hist_df["status"].map(status_map).fillna(hist_df["status"])
+        hist_df["fetched_at"] = hist_df["fetched_at"].apply(fmt_date)
         st.dataframe(
             hist_df[["fetched_at", "type", "channels_updated", "videos_fetched", "error_message"]].rename(columns={
                 "fetched_at": "Time",

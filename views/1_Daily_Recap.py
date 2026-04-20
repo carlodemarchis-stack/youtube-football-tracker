@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import os
 from datetime import date, datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
+
+CET = ZoneInfo("Europe/Rome")
 
 import streamlit as st
 import streamlit.components.v1 as components
@@ -15,7 +18,7 @@ from src.filters import (
     get_global_channels, get_global_color_map, get_global_color_map_dual,
     get_global_filter, get_league_for_channel,
 )
-from src.channels import LEAGUE_FLAG
+from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
 
 load_dotenv()
 require_login()
@@ -51,23 +54,26 @@ else:
     filter_cids = None  # all
 
 # ── Date picker ────────────────────────────────────────────────
-# Default to the second-most-recent snapshot date (= last COMPLETE day).
-# The latest snapshot was captured early this morning — so its date has almost
-# no published videos yet.  The day before is the last full 24-hour window.
+# Default to CET yesterday. Pick the most recent snapshot that falls on or
+# before CET yesterday (skip today's snapshot which may be incomplete).
+_cet_today = datetime.now(CET).date()
+_cet_yesterday = _cet_today - timedelta(days=1)
 try:
     _recent_snaps = db.client.table("channel_snapshots") \
         .select("captured_date").order("captured_date", desc=True).limit(2000).execute().data
     _snap_dates = sorted({s["captured_date"] for s in _recent_snaps}, reverse=True)
-    if len(_snap_dates) >= 2:
-        default_day = date.fromisoformat(_snap_dates[1])  # second-most-recent
+    # Find the most recent snapshot on or before CET yesterday
+    _valid = [d for d in _snap_dates if d <= _cet_yesterday.isoformat()]
+    if _valid:
+        default_day = date.fromisoformat(_valid[0])
     elif _snap_dates:
-        default_day = date.fromisoformat(_snap_dates[0])  # only one day exists
+        default_day = date.fromisoformat(_snap_dates[-1])  # oldest available
     else:
-        default_day = (datetime.now(timezone.utc) - timedelta(days=1)).date()
+        default_day = _cet_yesterday
 except Exception:
-    default_day = (datetime.now(timezone.utc) - timedelta(days=1)).date()
+    default_day = _cet_yesterday
 
-picked = st.date_input("Recap for", value=default_day, max_value=datetime.now(timezone.utc).date())
+picked = st.date_input("Recap for", value=default_day, max_value=datetime.now(CET).date())
 day = picked if isinstance(picked, date) else default_day
 prev_day = day - timedelta(days=1)
 
@@ -144,9 +150,11 @@ else:
         st.caption(f"No earlier snapshot available — deltas unavailable until the next cron run.")
 
 # ── Fetch new videos published on that day ────────────────────
-# (published_at is ISO timestamp; filter to the UTC day window)
-start_ts = f"{day_iso}T00:00:00+00:00"
-end_ts = f"{(day + timedelta(days=1)).isoformat()}T00:00:00+00:00"
+# Use CET day boundaries (midnight CET), converted to UTC for DB query
+_day_start_cet = datetime(day.year, day.month, day.day, tzinfo=CET)
+_day_end_cet = _day_start_cet + timedelta(days=1)
+start_ts = _day_start_cet.astimezone(timezone.utc).isoformat()
+end_ts = _day_end_cet.astimezone(timezone.utc).isoformat()
 _q_new = (
     db.client.table("videos")
     .select("*")
@@ -273,7 +281,7 @@ if not ONE_CLUB:
 # ── Gainer leaderboards side-by-side ─ skip when viewing one club ─
 if ONE_CLUB:
     # New videos published by this club on the picked day
-    st.subheader(f"🎬 {g_club['name']} — videos published on {day_iso}")
+    st.subheader(f"🎬 Videos published on {day.strftime('%b %d, %Y')}")
     if not new_video_rows:
         st.caption("No new videos published that day.")
     else:
@@ -286,7 +294,11 @@ if ONE_CLUB:
             fmt = v.get("format") or ("long" if (v.get("duration_seconds") or 0) >= 60 else "short")
             fmt_color = {"long": "#636EFA", "short": "#00CC96", "live": "#FFA15A"}.get(fmt, "#AAAAAA")
             fmt_label = {"long": "Long", "short": "Shorts", "live": "Live"}.get(fmt, fmt.title())
-            pub_time = (v.get("published_at") or "")[11:16]
+            _pub_raw = v.get("published_at") or ""
+            try:
+                pub_time = datetime.fromisoformat(_pub_raw.replace("Z", "+00:00")).astimezone(CET).strftime("%H:%M")
+            except Exception:
+                pub_time = _pub_raw[11:16]
             rows += f"""<tr onclick="window.open('{yt_url}','_blank','noopener')" style="cursor:pointer">
                 <td style="padding:6px 12px"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px"></td>
                 <td style="padding:6px 12px"><a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none">{title}</a></td>
@@ -483,7 +495,7 @@ if not ONE_CLUB:
 
 # ── Most watched videos yesterday (by Δ views from snapshots) ──
 st.markdown("---")
-_mw_scope = f"{g_club['name']} — " if ONE_CLUB else ""
+_mw_scope = ""
 trending = []
 for vid_dbid, snap in vmap_day.items():
     prev = vmap_prev.get(vid_dbid)
@@ -521,7 +533,11 @@ else:
         yt_url = f"https://www.youtube.com/watch?v={v['youtube_video_id']}"
         thumb = v.get("thumbnail_url") or ""
         title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;")
-        pub = (v.get("published_at") or "")[:10]
+        _pub_raw2 = v.get("published_at") or ""
+        try:
+            pub = datetime.fromisoformat(_pub_raw2.replace("Z", "+00:00")).astimezone(CET).strftime("%Y-%m-%d")
+        except Exception:
+            pub = _pub_raw2[:10]
         fmt = (v.get("format") or "").lower()
         if fmt not in ("long", "short", "live"):
             fmt = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
@@ -531,7 +547,7 @@ else:
             <td style="padding:6px 12px;text-align:right;color:#888">{i}</td>
             <td style="padding:6px 12px"><a href="{yt_url}" target="_blank"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px"></a></td>
             <td style="padding:6px 12px">
-                <div style="color:#AAA;font-size:12px;margin-bottom:2px">{ch.get('name', '?')} · <span style="color:{fmt_color}">{fmt_label}</span> · {pub}</div>
+                <div style="color:#AAA;font-size:12px;margin-bottom:2px">{LEAGUE_FLAG.get(COUNTRY_TO_LEAGUE.get((ch.get('country') or '').strip(), ''), '')} {ch.get('name', '?')} · <span style="color:{fmt_color}">{fmt_label}</span> · {pub}</div>
                 <a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none">{title}</a>
             </td>
             <td style="padding:6px 12px;text-align:right;color:#00CC96;font-weight:600">+{fmt_num(t['delta'])}</td>
@@ -558,10 +574,10 @@ else:
     </table>
     """, height=min(_top_n, len(trending)) * 86 + 80, scrolling=True)
 
-# ── New videos published on this day ────────────────────────
-if new_video_rows:
+# ── New videos published on this day (skip for single club — already shown above) ──
+if new_video_rows and not ONE_CLUB:
     st.markdown("---")
-    st.subheader(f"🎬 {_mw_scope}New videos published on {day_iso}")
+    st.subheader(f"🎬 {_mw_scope}New videos published on {day.strftime('%b %d, %Y')}")
     _mw_sorted = sorted(new_video_rows, key=lambda v: int(v.get("view_count") or 0), reverse=True)
     _mw_top_n = 10 if ONE_CLUB else 20
     _mw_rows = ""
@@ -582,7 +598,7 @@ if new_video_rows:
             <td style="padding:6px 12px;text-align:right;color:#888">{i}</td>
             <td style="padding:6px 12px"><a href="{yt_url}" target="_blank"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px"></a></td>
             <td style="padding:6px 12px">
-                <div style="color:#AAA;font-size:12px;margin-bottom:2px">{ch.get('name', '?')} · <span style="color:{fmt_color}">{fmt_label}</span></div>
+                <div style="color:#AAA;font-size:12px;margin-bottom:2px">{LEAGUE_FLAG.get(COUNTRY_TO_LEAGUE.get((ch.get('country') or '').strip(), ''), '')} {ch.get('name', '?')} · <span style="color:{fmt_color}">{fmt_label}</span></div>
                 <a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none">{title}</a>
             </td>
             <td style="padding:6px 12px;text-align:right;font-weight:600">{fmt_num(views)}</td>
@@ -627,7 +643,7 @@ for s in chan_snaps:
 _all_dates = sorted(_snap_by_date.keys())
 
 # Exclude today (incomplete data) from the trend chart
-_today_iso = date.today().isoformat()
+_today_iso = datetime.now(CET).date().isoformat()
 _all_dates = [d for d in _all_dates if d < _today_iso]
 
 if len(_all_dates) >= 2:
@@ -644,7 +660,11 @@ if len(_all_dates) >= 2:
 
     _vids_by_day: dict[str, int] = {}
     for v in _all_vids_in_range:
-        vday = (v.get("published_at") or "")[:10]
+        _vpa = v.get("published_at") or ""
+        try:
+            vday = datetime.fromisoformat(_vpa.replace("Z", "+00:00")).astimezone(CET).strftime("%Y-%m-%d")
+        except Exception:
+            vday = _vpa[:10]
         _vids_by_day[vday] = _vids_by_day.get(vday, 0) + 1
 
     trend_rows = []

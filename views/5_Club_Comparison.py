@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from src.database import Database
 from src.analytics import fmt_num
 from src.filters import get_global_color_map, get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel
+from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
 from src.auth import require_premium
 
 load_dotenv()
@@ -169,32 +170,49 @@ if all_vids:
     import streamlit.components.v1 as components
     from src.filters import get_global_color_map_dual
     _dual = get_global_color_map_dual()
+    _ch_by_name_cmp = {c["name"]: c for c in all_channels}
     _top = vdf.head(20)
     _rows = ""
     for i, r in enumerate(_top.itertuples(index=False), 1):
         yt_id = getattr(r, "youtube_video_id", "") or ""
         title = (getattr(r, "title", "") or "").replace("<", "&lt;").replace(">", "&gt;")
         club = getattr(r, "club_name", "") or ""
-        views = fmt_num(getattr(r, "view_count", 0) or 0)
+        _views = int(getattr(r, "view_count", 0) or 0)
+        _likes = int(getattr(r, "like_count", 0) or 0)
         url = f"https://www.youtube.com/watch?v={yt_id}" if yt_id else ""
         title_cell = f'<a href="{url}" target="_blank" rel="noopener" style="color:#FAFAFA;text-decoration:none">{title}</a>' if url else title
         c1, c2 = _dual.get(club, (color_map.get(club, "#636EFA"), "#FFFFFF"))
-        dot = f'<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:{c1};border:1px solid rgba(255,255,255,0.3);vertical-align:middle;margin-right:5px"></span>'
+        dot = f'<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:{c1};border:1px solid rgba(255,255,255,0.3);vertical-align:middle;position:relative"><span style="display:block;width:6px;height:6px;border-radius:50%;background:{c2};position:absolute;top:2px;left:2px"></span></span>'
+        _ch_obj = _ch_by_name_cmp.get(club, {})
+        _flag = LEAGUE_FLAG.get(COUNTRY_TO_LEAGUE.get((_ch_obj.get("country") or "").strip(), ""), "")
+        # Format & theme
+        _fmt_raw = (getattr(r, "format", "") or "").lower()
+        _dur = int(getattr(r, "duration_seconds", 0) or 0)
+        if _fmt_raw not in ("long", "short", "live"):
+            _fmt_raw = "long" if _dur >= 60 else "short"
+        _fmt_label = {"long": "Long", "short": "Shorts", "live": "Live"}[_fmt_raw]
+        _fmt_color = {"long": "#636EFA", "short": "#EF553B", "live": "#FFA15A"}[_fmt_raw]
+        _cat = (getattr(r, "category", "") or "").replace("<", "&lt;")
+        _cat_span = f' · <span style="color:#666">{_cat}</span>' if _cat and _cat != "Other" else ""
+        _meta = f'{_flag} {dot} <span style="color:#AAA">{club}</span> · <span style="color:{_fmt_color}">{_fmt_label}</span>{_cat_span}'
         row_click = f'onclick="window.open(\'{url}\',\'_blank\',\'noopener\')" style="cursor:pointer"' if url else ''
-        _rows += f"""<tr {row_click}>
-            <td style="padding:5px 10px;color:#888">{i}</td>
-            <td style="padding:5px 10px">{title_cell}</td>
-            <td style="padding:5px 10px;white-space:nowrap">{dot}{club}</td>
-            <td style="padding:5px 10px;text-align:right">{views}</td>
+        _rows += f"""<tr {row_click} data-views="{_views}" data-likes="{_likes}">
+            <td style="padding:6px 10px;color:#888">{i}</td>
+            <td style="padding:6px 10px">
+              <div style="font-size:12px;margin-bottom:2px;white-space:nowrap">{_meta}</div>
+              <div>{title_cell}</div>
+            </td>
+            <td style="padding:6px 10px;text-align:right">{fmt_num(_views)}</td>
+            <td style="padding:6px 10px;text-align:right">{fmt_num(_likes)}</td>
         </tr>"""
     components.html(f"""
     <style>
       .cmp {{ width:100%;border-collapse:collapse;font-size:14px;color:#FAFAFA;font-family:"Source Sans Pro",sans-serif; }}
-      .cmp th {{ padding:5px 10px;border-bottom:2px solid #444;text-align:left; }}
+      .cmp th {{ padding:6px 10px;border-bottom:2px solid #444;text-align:left; }}
       .cmp td {{ border-bottom:1px solid #262730; }}
       .cmp tr:hover td {{ background:#1a1c24; }}
     </style>
     <table class="cmp"><thead><tr>
-      <th>#</th><th>Title</th><th>Club</th><th style="text-align:right">Views</th>
+      <th>#</th><th>Video</th><th style="text-align:right">Views</th><th style="text-align:right">Likes</th>
     </tr></thead><tbody>{_rows}</tbody></table>
-    """, height=len(_top) * 34 + 60, scrolling=False)
+    """, height=len(_top) * 50 + 60, scrolling=False)

@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 
 from src.database import Database
 from src.analytics import fmt_num
+from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
 from src.auth import require_login
 from src.filters import (
     get_global_channels, get_global_color_map, get_global_color_map_dual,
@@ -120,12 +121,8 @@ _fmt_suffix = f" · format: **{fmt_pick}**" if fmt_pick and fmt_pick != "All" el
 _last_fetched = max((v.get("last_fetched") or v.get("published_at") or "" for v in latest), default="")
 _updated_str = ""
 if _last_fetched:
-    try:
-        from datetime import datetime, timezone
-        _lf_dt = datetime.fromisoformat(_last_fetched.replace("Z", "+00:00"))
-        _updated_str = f" · updated {_lf_dt.strftime('%b %d, %H:%M')} UTC"
-    except Exception:
-        pass
+    from src.analytics import fmt_date
+    _updated_str = f" · updated {fmt_date(_last_fetched)}"
 st.caption(f"Showing **{len(latest)}** most recent videos · {_scope}{_fmt_suffix}{_updated_str}")
 
 ch_by_id = {c["id"]: c for c in all_channels}
@@ -163,6 +160,7 @@ if live_now:
             {'<span class="ln-dur">' + _live_label + '</span>' if _live_label else ''}
           </div>
           <div class="ln-info">
+            <span class="ln-flag">{LEAGUE_FLAG.get(COUNTRY_TO_LEAGUE.get((ch.get("country") or "").strip(), ""), "")}</span>
             <span class="ln-dot" style="background:{c1};box-shadow:2px 0 0 {c2}"></span>
             <span class="ln-club">{ch_name}</span>
             {('<span class="ln-views">' + fmt_num(views) + ' views</span>') if views else ''}
@@ -307,6 +305,9 @@ for v in latest:
             age_label = ""
 
     row_click = f'onclick="window.open(\'{url}\',\'_blank\',\'noopener\')"' if url else ''
+    _country = (ch.get("country") or "").strip()
+    _league = COUNTRY_TO_LEAGUE.get(_country, _country)
+    _flag = LEAGUE_FLAG.get(_league, "")
     dot = f'<span class="dot" style="background:{c1};box-shadow:3px 0 0 {c2}"></span>'
 
     rows_html += f"""<tr {row_click} style="cursor:pointer" data-views="{views}" data-likes="{likes}" data-comments="{comments}" data-dur="{dur}" data-age="{age_minutes}" data-ch="{ch_name}" data-fmt="{fmt_raw}" data-cat="{cat}">
@@ -314,7 +315,7 @@ for v in latest:
           <div class="v-row">
             {thumb_html}
             <div class="v-info">
-              <div class="v-meta">{dot}<span style="color:#AAA">{ch_name}</span> · <span style="color:{fmt_color}">{fmt_label}</span>{(' · <span style="color:#666">' + cat + '</span>') if cat and cat != 'Other' else ''}</div>
+              <div class="v-meta">{_flag} {dot}<span style="color:#AAA">{ch_name}</span> · <span style="color:{fmt_color}">{fmt_label}</span>{(' · <span style="color:#666">' + cat + '</span>') if cat and cat != 'Other' else ''}</div>
               <a href="{url}" target="_blank" rel="noopener" class="v-title">{title}</a>
             </div>
           </div>

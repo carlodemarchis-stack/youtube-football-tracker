@@ -159,10 +159,12 @@ for league_name, league_chs in sorted(league_groups.items()):
         col_country.write(ch.get("country", ""))
         col_subs.write(fmt_num(ch.get('subscriber_count', 0)))
         # Data & AI dates
-        fetched = (ch.get("last_fetched") or "")[:10] or "-"
-        insights = db.get_insights(ch["id"])
-        ai_date = (insights.get("generated_at", "") if insights else "")[:10] or "-"
-        stale = bool(fetched != "-" and ai_date != "-" and fetched > ai_date)
+        from src.analytics import fmt_date
+        _raw_fetched = ch.get("last_fetched") or ""
+        _raw_ai = (db.get_insights(ch["id"]) or {}).get("generated_at", "")
+        fetched = fmt_date(_raw_fetched)
+        ai_date = fmt_date(_raw_ai)
+        stale = bool(_raw_fetched and _raw_ai and _raw_fetched > _raw_ai)
         col_data.write(fetched)
         if stale:
             col_ai.markdown(f'<span style="color:#FFA500">{ai_date}</span>', unsafe_allow_html=True)

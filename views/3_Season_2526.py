@@ -12,7 +12,7 @@ from src.database import Database
 from src.analytics import fmt_num
 from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope, get_league_for_channel
 from src.auth import require_login
-from src.channels import LEAGUE_FLAG
+from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
 
 load_dotenv()
 require_login()
@@ -45,58 +45,37 @@ SEASON_SINCE = "2025-08-01"
 _scope = get_all_leagues_scope() if league is None else "Overall"
 
 if league is None and _scope == "Overall":
-    # Aggregate season stats per league
+    # Aggregate season stats per league — using precomputed channel columns (zero video queries)
     import plotly.graph_objects as go
-    # Pull only season videos (DB-level filter — much faster than full table)
-    @st.cache_data(ttl=300)
-    def _load_season_vids(since: str):
-        if hasattr(db, "get_season_videos"):
-            return db.get_season_videos(since=since)
-        # Fallback: old deploy without the helper
-        return [v for v in db.get_all_videos() if (v.get("published_at") or "") >= since]
-    season_vids = _load_season_vids(SEASON_SINCE)
-
-    # map channel_id → league
-    ch_by_id = {c["id"]: c for c in all_channels}
-    def _ch_league(v):
-        ch = ch_by_id.get(v.get("channel_id"))
-        if not ch:
-            return None
-        return get_league_for_channel(ch)
 
     league_stats: dict[str, dict] = {}
-    for v in season_vids:
-        lg = _ch_league(v)
+    for ch in all_channels:
+        lg = get_league_for_channel(ch)
         if not lg:
             continue
-        fmt = v.get("format") or ("long" if v.get("duration_seconds", 0) >= 60 else "short")
         s = league_stats.setdefault(lg, {
             "videos": 0, "views": 0, "long_v": 0, "short_v": 0, "long_views": 0, "short_views": 0,
             "likes": 0, "comments": 0, "long_likes": 0, "short_likes": 0, "long_comments": 0, "short_comments": 0,
             "live_v": 0, "live_views": 0, "live_likes": 0, "live_comments": 0,
         })
-        _vc = int(v.get("view_count", 0) or 0)
-        _lk = int(v.get("like_count", 0) or 0)
-        _cm = int(v.get("comment_count", 0) or 0)
-        s["videos"] += 1
-        s["views"] += _vc
-        s["likes"] += _lk
-        s["comments"] += _cm
-        if fmt == "live":
-            s["live_v"] += 1
-            s["live_views"] += _vc
-            s["live_likes"] += _lk
-            s["live_comments"] += _cm
-        elif fmt == "short":
-            s["short_v"] += 1
-            s["short_views"] += _vc
-            s["short_likes"] += _lk
-            s["short_comments"] += _cm
-        else:
-            s["long_v"] += 1
-            s["long_views"] += _vc
-            s["long_likes"] += _lk
-            s["long_comments"] += _cm
+        lv = int(ch.get("season_long_views") or 0)
+        sv = int(ch.get("season_short_views") or 0)
+        vv = int(ch.get("season_live_views") or 0)
+        ln = int(ch.get("season_long_videos") or 0)
+        sn = int(ch.get("season_short_videos") or 0)
+        vn = int(ch.get("season_live_videos") or 0)
+        s["views"] += lv + sv + vv
+        s["videos"] += ln + sn + vn
+        s["long_views"] += lv;  s["short_views"] += sv;  s["live_views"] += vv
+        s["long_v"] += ln;      s["short_v"] += sn;      s["live_v"] += vn
+        s["likes"] += int(ch.get("season_likes") or 0)
+        s["comments"] += int(ch.get("season_comments") or 0)
+        s["long_likes"] += int(ch.get("season_long_likes") or 0)
+        s["short_likes"] += int(ch.get("season_short_likes") or 0)
+        s["live_likes"] += int(ch.get("season_live_likes") or 0)
+        s["long_comments"] += int(ch.get("season_long_comments") or 0)
+        s["short_comments"] += int(ch.get("season_short_comments") or 0)
+        s["live_comments"] += int(ch.get("season_live_comments") or 0)
 
     if not league_stats:
         st.info("No season data yet.")
@@ -249,45 +228,37 @@ if league is None and _scope == "Overall":
     c1.plotly_chart(fig_v, use_container_width=True)
     c2.plotly_chart(fig_n, use_container_width=True)
 
-    # ── All channels table (reuse already-loaded season_vids) ───
+    # ── All channels table — precomputed columns (zero video queries) ───
     st.subheader("All Channels — Season")
     color_map = get_global_color_map()
     dual_colors = get_global_color_map_dual()
     include_league = get_include_league()
 
-    # Aggregate per-channel from the already-fetched season_vids
-    ch_season_stats: dict[str, dict] = {}
-    for v in season_vids:
-        ch = ch_by_id.get(v.get("channel_id"))
-        if not ch:
-            continue
+    ch_rows = []
+    for ch in all_channels:
         if not include_league and ch.get("entity_type") == "League":
             continue
-        name = ch["name"]
-        fmt = v.get("format") or ("long" if v.get("duration_seconds", 0) >= 60 else "short")
-        s = ch_season_stats.setdefault(name, {
-            "name": name, "handle": ch.get("handle", ""), "league": get_league_for_channel(ch),
-            "all_views": 0, "all_videos": 0,
-            "long_views": 0, "long_videos": 0, "short_views": 0, "short_videos": 0,
-            "long_dur_total": 0, "short_dur_total": 0,
-            "likes": 0, "comments": 0,
+        lv = int(ch.get("season_long_views") or 0)
+        sv = int(ch.get("season_short_views") or 0)
+        vv = int(ch.get("season_live_views") or 0)
+        ln = int(ch.get("season_long_videos") or 0)
+        sn = int(ch.get("season_short_videos") or 0)
+        vn = int(ch.get("season_live_videos") or 0)
+        av = lv + sv + vv
+        an = ln + sn + vn
+        if an == 0:
+            continue
+        ch_rows.append({
+            "name": ch["name"], "handle": ch.get("handle", ""),
+            "all_views": av, "all_videos": an,
+            "long_views": lv, "long_videos": ln,
+            "short_views": sv, "short_videos": sn,
+            "long_dur_total": int(ch.get("season_long_dur_avg") or 0) * max(ln, 1),
+            "short_dur_total": int(ch.get("season_short_dur_avg") or 0) * max(sn, 1),
+            "likes": int(ch.get("season_likes") or 0),
+            "comments": int(ch.get("season_comments") or 0),
         })
-        vc = int(v.get("view_count", 0) or 0)
-        dur = int(v.get("duration_seconds", 0) or 0)
-        s["all_views"] += vc
-        s["all_videos"] += 1
-        s["likes"] += int(v.get("like_count", 0) or 0)
-        s["comments"] += int(v.get("comment_count", 0) or 0)
-        if fmt == "short":
-            s["short_views"] += vc
-            s["short_videos"] += 1
-            s["short_dur_total"] += dur
-        else:
-            s["long_views"] += vc
-            s["long_videos"] += 1
-            s["long_dur_total"] += dur
-
-    ch_rows = sorted(ch_season_stats.values(), key=lambda r: r["all_views"], reverse=True)
+    ch_rows.sort(key=lambda r: r["all_views"], reverse=True)
 
     def _v(val):
         v = int(val)
@@ -303,21 +274,16 @@ if league is None and _scope == "Overall":
     ch_rows_html = ""
     for row in ch_rows:
         _c1, _c2 = dual_colors.get(row["name"], (color_map.get(row["name"], "#636EFA"), "#FFFFFF"))
-        dot_inner = f'<span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:{_c1};border:1px solid rgba(255,255,255,0.3);position:relative"><span style="display:block;width:8px;height:8px;border-radius:50%;background:{_c2};position:absolute;top:3px;left:3px"></span></span>'
+        dot = f'<span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:{_c1};border:1px solid rgba(255,255,255,0.3);position:relative"><span style="display:block;width:8px;height:8px;border-radius:50%;background:{_c2};position:absolute;top:3px;left:3px"></span></span>'
         handle = row.get("handle", "")
-        if handle:
-            yt_url = f"https://www.youtube.com/{handle}"
-            dot = f'<a href="{yt_url}" target="_blank" style="text-decoration:none">{dot_inner}</a>'
-        else:
-            dot = dot_inner
-
+        _row_click = f'onclick="window.open(\'https://www.youtube.com/{handle}\',\'_blank\',\'noopener\')" style="cursor:pointer"' if handle else ''
         all_vpv = row["all_views"] // max(row["all_videos"], 1)
         long_vpv = row["long_views"] // max(row["long_videos"], 1)
         short_vpv = row["short_views"] // max(row["short_videos"], 1)
         long_dur = row["long_dur_total"] // max(row["long_videos"], 1)
         short_dur = row["short_dur_total"] // max(row["short_videos"], 1)
 
-        ch_rows_html += f"""<tr>
+        ch_rows_html += f"""<tr {_row_click}>
             <td style="padding:6px 12px">{dot}</td>
             <td style="padding:6px 12px" data-val="{row['name']}">{row['name']}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{row['all_views']}">{_v(row['all_views'])}</td>
@@ -344,6 +310,7 @@ if league is None and _scope == "Overall":
         .ch-season th[data-col] {{ cursor:pointer; }}
         .ch-season th[data-col]:hover {{ color:#636EFA; }}
         .ch-season td {{ padding:6px 12px; border-bottom:1px solid #262730; }}
+        .ch-season tr:hover td {{ background:#1a1c24; }}
         .ch-season a {{ color:inherit; text-decoration:none; }}
         .ch-season .active {{ color:#636EFA; }}
     </style>
@@ -568,14 +535,9 @@ if club is None:
     rows_html = ""
     for _, row in df.iterrows():
         c1, c2 = dual_colors.get(row["name"], (color_map.get(row["name"], "#636EFA"), "#FFFFFF"))
-        dot_inner = f'<span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:{c1};border:1px solid rgba(255,255,255,0.3);position:relative;cursor:pointer"><span style="display:block;width:8px;height:8px;border-radius:50%;background:{c2};position:absolute;top:3px;left:3px"></span></span>'
+        dot = f'<span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:{c1};border:1px solid rgba(255,255,255,0.3);position:relative"><span style="display:block;width:8px;height:8px;border-radius:50%;background:{c2};position:absolute;top:3px;left:3px"></span></span>'
         handle = row.get("handle", "")
-        if handle:
-            yt_url = f"https://www.youtube.com/{handle}"
-            dot = f'<a href="{yt_url}" target="_blank" style="text-decoration:none">{dot_inner}</a>'
-        else:
-            dot = dot_inner
-
+        _row_click = f'onclick="window.open(\'https://www.youtube.com/{handle}\',\'_blank\',\'noopener\')" style="cursor:pointer"' if handle else ''
         def _v(val):
             v = int(val)
             return fmt_num(v) if v else '-'
@@ -587,7 +549,7 @@ if club is None:
             m, sec = divmod(s, 60)
             return f"{m}:{sec:02d}"
 
-        rows_html += f"""<tr>
+        rows_html += f"""<tr {_row_click}>
             <td style="padding:6px 12px">{dot}</td>
             <td style="padding:6px 12px" data-val="{row['name']}">{row['name']}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{row['all_views']}">{_v(row['all_views'])}</td>
@@ -616,6 +578,7 @@ if club is None:
         .st-table th[data-col] {{ cursor:pointer; }}
         .st-table th[data-col]:hover {{ color:#636EFA; }}
         .st-table td {{ padding:6px 12px; border-bottom:1px solid #262730; }}
+        .st-table tr:hover td {{ background:#1a1c24; }}
         .st-table a {{ color:inherit; text-decoration:none; }}
         .st-table .active {{ color:#636EFA; }}
     </style>
@@ -814,11 +777,34 @@ else:
     from src.filters import render_club_header
     render_club_header(club, all_channels)
 
-    with st.spinner(f"Loading {club['name']} season videos…"):
-        vids = db.get_season_videos_by_channel(club["id"], since=SEASON_SINCE)
-    if not vids:
+    # Read precomputed season stats from channel row — no video query needed for KPIs
+    long_views = int(club.get("season_long_views") or 0)
+    short_views = int(club.get("season_short_views") or 0)
+    live_views = int(club.get("season_live_views") or 0)
+    long_videos = int(club.get("season_long_videos") or 0)
+    short_videos = int(club.get("season_short_videos") or 0)
+    live_videos = int(club.get("season_live_videos") or 0)
+    total_views = long_views + short_views + live_views
+    total_videos = long_videos + short_videos + live_videos
+    if total_videos == 0:
         st.info(f"No season videos for {club['name']} yet.")
         st.stop()
+    avg_vpv = total_views // max(total_videos, 1)
+    long_vpv = long_views // max(long_videos, 1)
+    short_vpv = short_views // max(short_videos, 1)
+    live_vpv = live_views // max(live_videos, 1)
+    long_dur = int(club.get("season_long_dur_avg") or 0)
+    short_dur = int(club.get("season_short_dur_avg") or 0)
+    live_dur = 0  # not precomputed
+
+    total_likes = int(club.get("season_likes") or 0)
+    total_comments = int(club.get("season_comments") or 0)
+    long_likes = int(club.get("season_long_likes") or 0)
+    long_comments = int(club.get("season_long_comments") or 0)
+    short_likes = int(club.get("season_short_likes") or 0)
+    short_comments = int(club.get("season_short_comments") or 0)
+    live_likes = int(club.get("season_live_likes") or 0)
+    live_comments = int(club.get("season_live_comments") or 0)
 
     def _fmt(v):
         v = int(v)
@@ -836,38 +822,6 @@ else:
         if f in ("long", "short", "live"):
             return f
         return "long" if v.get("duration_seconds", 0) >= 60 else "short"
-
-    def _is_long(v):
-        return _fmt_of(v) == "long"
-
-    longs = [v for v in vids if _fmt_of(v) == "long"]
-    shorts = [v for v in vids if _fmt_of(v) == "short"]
-    lives = [v for v in vids if _fmt_of(v) == "live"]
-
-    total_videos = len(vids)
-    total_views = sum(v.get("view_count", 0) for v in vids)
-    long_videos = len(longs)
-    long_views = sum(v.get("view_count", 0) for v in longs)
-    short_videos = len(shorts)
-    short_views = sum(v.get("view_count", 0) for v in shorts)
-    live_videos = len(lives)
-    live_views = sum(v.get("view_count", 0) for v in lives)
-    avg_vpv = total_views // max(total_videos, 1)
-    long_vpv = long_views // max(long_videos, 1)
-    short_vpv = short_views // max(short_videos, 1)
-    live_vpv = live_views // max(live_videos, 1)
-    long_dur = sum(v.get("duration_seconds", 0) for v in longs) // max(long_videos, 1) if long_videos else 0
-    short_dur = sum(v.get("duration_seconds", 0) for v in shorts) // max(short_videos, 1) if short_videos else 0
-    live_dur = sum(v.get("duration_seconds", 0) for v in lives) // max(live_videos, 1) if live_videos else 0
-
-    # Likes + comments
-    def _sumk(arr, k):
-        return sum(v.get(k, 0) or 0 for v in arr)
-    total_likes = _sumk(vids, "like_count")
-    total_comments = _sumk(vids, "comment_count")
-    long_likes = _sumk(longs, "like_count");   long_comments = _sumk(longs, "comment_count")
-    short_likes = _sumk(shorts, "like_count"); short_comments = _sumk(shorts, "comment_count")
-    live_likes = _sumk(lives, "like_count");   live_comments = _sumk(lives, "comment_count")
 
     def _rate(num, den):
         return (num / den * 100) if den else 0.0
@@ -997,7 +951,14 @@ else:
 </tbody></table>
 """, unsafe_allow_html=True)
 
+    # ── Fetch videos only for monthly/category/top-videos sections ──
+    with st.spinner(f"Loading {club['name']} season videos…"):
+        vids = db.get_season_videos_by_channel(club["id"], since=SEASON_SINCE)
+
     # ── Videos per month (stacked) ─────────────────────────────
+    if not vids:
+        st.caption("No video details available for charts.")
+        st.stop()
     df_vids = pd.DataFrame(vids)
     df_vids["published_at"] = pd.to_datetime(df_vids["published_at"], utc=True)
     df_vids["month"] = df_vids["published_at"].dt.strftime("%Y-%m")
@@ -1070,16 +1031,19 @@ else:
         fmt_color = {"long": LONG_COLOR, "short": SHORT_COLOR, "live": LIVE_COLOR}[_f]
         pub = (v.get("published_at") or "")[:10]
         title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;")
-        top_rows += f"""<tr>
+        _cat = (v.get("category") or "").replace("<", "&lt;")
+        _cat_span = f' · <span style="color:#666">{_cat}</span>' if _cat and _cat != "Other" else ""
+        _meta = f'<span style="color:{fmt_color}">{fmt_label}</span> · {_dur(v.get("duration_seconds", 0))}{_cat_span} · <span style="color:#888">{pub}</span>'
+        top_rows += f"""<tr onclick="window.open('{yt_url}','_blank','noopener')" style="cursor:pointer">
             <td style="padding:6px 12px;text-align:right;color:#888">{i}</td>
-            <td style="padding:6px 12px"><a href="{yt_url}" target="_blank"><img src="{thumb}" style="width:120px;height:68px;object-fit:cover;border-radius:4px"></a></td>
-            <td style="padding:6px 12px"><a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none">{title}</a></td>
-            <td style="padding:6px 12px"><span style="color:{fmt_color}">{fmt_label}</span></td>
-            <td style="padding:6px 12px;text-align:right">{_dur(v.get('duration_seconds', 0))}</td>
+            <td style="padding:6px 12px"><img src="{thumb}" style="width:120px;height:68px;object-fit:cover;border-radius:4px"></td>
+            <td style="padding:6px 12px">
+              <div style="font-size:12px;margin-bottom:2px">{_meta}</div>
+              <a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none">{title}</a>
+            </td>
             <td style="padding:6px 12px;text-align:right">{_fmt(v.get('view_count', 0))}</td>
             <td style="padding:6px 12px;text-align:right">{_fmt(v.get('like_count', 0))}</td>
             <td style="padding:6px 12px;text-align:right">{_fmt(v.get('comment_count', 0))}</td>
-            <td style="padding:6px 12px;text-align:right;color:#888">{pub}</td>
         </tr>"""
 
     components.html(f"""
@@ -1093,13 +1057,10 @@ else:
     <thead><tr>
         <th style="text-align:right">#</th>
         <th></th>
-        <th>Title</th>
-        <th>Format</th>
-        <th style="text-align:right">Duration</th>
+        <th>Video</th>
         <th style="text-align:right">Views</th>
         <th style="text-align:right">Likes</th>
         <th style="text-align:right">Comments</th>
-        <th style="text-align:right">Published</th>
     </tr></thead>
     <tbody>{top_rows}</tbody>
     </table>

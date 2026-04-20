@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 """Weekly refresh — unattended.
 
-Refreshes view/like/comment/last_fetched on EVERY video in the DB (not just
-season videos). Intended to run once a week (Monday early UTC) so that stats
-for older/lifetime videos don't go stale — the daily cron only touches season
-videos.
+Runs once a week (Monday 04:00 UTC). Covers everything the daily does, PLUS
+refreshes stats on ALL videos (not just season / 30-day window).
 
-Does NOT write to video_snapshots (that's per-video daily history, scoped to
-season). This just updates the live `videos` table so Streamlit pages that
-show lifetime top-100s, channel detail stats, etc. stay accurate.
+Steps:
+  1. Channel stats — fetch current subs/views/video_count for every channel,
+     upsert channels table, write a channel_snapshot row.
+  2. Video stats — fetch view/like/comment counts for EVERY video in the DB
+     (not just season). Updates the videos table so lifetime top-100s,
+     channel detail stats, etc. stay accurate.
+  3. Recompute top100_stats + season_views on every channel (depends on the
+     fresh view counts written in step 2).
 
 Env vars required:
     YOUTUBE_API_KEY
@@ -27,6 +30,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.database import Database
 from src.youtube_api import YouTubeClient
+
+SEASON_SINCE = "2025-08-01"
 
 
 def log(msg: str) -> None:
@@ -47,28 +52,59 @@ def main() -> int:
     yt = YouTubeClient(yt_key)
     db = Database(sb_url, sb_key)
 
+    start = time.time()
+    errors = 0
+
+    # ── 1. Channel stats + channel_snapshots ─────────────────────
+    channels = db.get_all_channels()
+    log(f"Step 1: refreshing stats for {len(channels)} channels")
+    ch_ok = 0
+    ch_failed: list[tuple[str, str]] = []
+
+    for i, ch in enumerate(channels, 1):
+        name = ch.get("name", "?")
+        yt_id = ch.get("youtube_channel_id")
+        if not yt_id:
+            ch_failed.append((name, "no youtube_channel_id"))
+            continue
+        try:
+            stats = yt.get_channel_stats(yt_id)
+            if not stats:
+                ch_failed.append((name, "empty stats response"))
+                continue
+            db.upsert_channel({**ch, **stats})
+            channel_db_id = ch.get("id")
+            if channel_db_id:
+                db.snapshot_channel(channel_db_id, stats)
+            ch_ok += 1
+            if i % 20 == 0:
+                log(f"  channels {i}/{len(channels)}")
+        except Exception as e:
+            ch_failed.append((name, str(e)[:200]))
+            errors += 1
+
+    log(f"  channels done: ok={ch_ok} failed={len(ch_failed)}")
+    if ch_failed:
+        for n, e in ch_failed[:5]:
+            log(f"    - {n}: {e}")
+
+    # ── 2. Video stats (ALL videos) ──────────────────────────────
     rows = db.get_all_video_rows()
-    total = len(rows)
-    log(f"Found {total} videos in DB")
-    if not rows:
-        return 0
+    total_videos = len(rows)
+    log(f"Step 2: refreshing stats for {total_videos} videos")
 
     id_to_dbid = {r["youtube_video_id"]: r["id"] for r in rows}
     yt_ids = list(id_to_dbid.keys())
 
-    updated = 0
-    errors = 0
-    start = time.time()
     update_buffer: list[dict] = []
-    now_iso = datetime.now(timezone.utc).isoformat()
 
     for b in range(0, len(yt_ids), 50):
-        batch = yt_ids[b:b+50]
+        batch = yt_ids[b:b + 50]
         try:
             details = yt.get_video_details(batch)
         except Exception as e:
             errors += 1
-            log(f"  batch {b}-{b+50} fetch failed: {e}")
+            log(f"  batch {b}-{b + 50} fetch failed: {e}")
             continue
         for v in details:
             dbid = id_to_dbid.get(v["youtube_video_id"])
@@ -79,30 +115,59 @@ def main() -> int:
                 "view_count": v.get("view_count", 0),
                 "like_count": v.get("like_count", 0),
                 "comment_count": v.get("comment_count", 0),
-                "last_fetched": now_iso,
             })
         if (b // 50) % 20 == 0:
-            log(f"  fetched stats for {min(b+50, len(yt_ids))}/{len(yt_ids)}")
+            log(f"  fetched stats for {min(b + 50, len(yt_ids))}/{len(yt_ids)}")
 
     # Flush to Supabase in 500-row chunks
+    videos_updated = 0
     for b in range(0, len(update_buffer), 500):
         try:
-            db.client.table("videos").upsert(update_buffer[b:b+500], on_conflict="id").execute()
-            updated += len(update_buffer[b:b+500])
+            db.client.table("videos").upsert(update_buffer[b:b + 500], on_conflict="id").execute()
+            videos_updated += len(update_buffer[b:b + 500])
         except Exception as e:
             log(f"  upsert chunk {b} failed: {e}")
             errors += 1
 
+    log(f"  videos updated: {videos_updated}/{total_videos}")
+
+    # ── 3. Recompute top100_stats + season_views per channel ─────
+    # Refresh channels list (may have new IDs from step 1)
+    channels = db.get_all_channels()
+    club_channels = [c for c in channels if c.get("entity_type") != "League"]
+    log(f"Step 3: recomputing top100_stats for {len(club_channels)} club channels")
+
+    stats_ok = 0
+    for i, ch in enumerate(club_channels, 1):
+        ch_id = ch.get("id")
+        if not ch_id:
+            continue
+        try:
+            db.refresh_top100_stats(ch_id, SEASON_SINCE)
+            stats_ok += 1
+        except Exception as e:
+            log(f"  top100 refresh failed for {ch.get('name', '?')}: {e}")
+            errors += 1
+        if i % 20 == 0:
+            log(f"  top100 stats {i}/{len(club_channels)}")
+
+    log(f"  top100 stats refreshed: {stats_ok}/{len(club_channels)}")
+
+    # ── Done ─────────────────────────────────────────────────────
     elapsed = time.time() - start
-    log(f"Done in {elapsed:.1f}s — videos_updated={updated} batch_errors={errors}")
+    log(f"Done in {elapsed:.1f}s — channels={ch_ok} videos={videos_updated} top100={stats_ok} errors={errors}")
 
     try:
         status = "weekly_refresh" if errors == 0 else "weekly_refresh_partial"
-        db.log_fetch(0, 0, status, f"{updated} videos refreshed, {errors} errors, {elapsed:.1f}s")
+        db.log_fetch(
+            ch_ok, 0, status,
+            f"{ch_ok} channels, {videos_updated} videos refreshed, "
+            f"{stats_ok} top100 recomputed, {errors} errors, {elapsed:.1f}s",
+        )
     except Exception as e:
         log(f"log_fetch failed (non-fatal): {e}")
 
-    return 0 if updated > 0 else 1
+    return 0 if (ch_ok > 0 or videos_updated > 0) else 1
 
 
 if __name__ == "__main__":

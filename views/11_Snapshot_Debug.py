@@ -50,28 +50,65 @@ else:
 filtered_channels = [c for c in all_channels if filter_cids is None or c["id"] in filter_cids]
 
 # ── Overview: snapshot dates ─────────────────────────────────
-st.subheader("📅 Snapshot dates overview")
+st.subheader("📅 Snapshot overview — last 3 days")
 all_snaps_meta = db.client.table("channel_snapshots") \
-    .select("captured_date,channel_id") \
+    .select("captured_date,channel_id,subscriber_count,total_views,video_count,captured_at") \
     .order("captured_date", desc=True) \
     .execute().data or []
 
-date_counts: dict[str, int] = {}
+# Group by date
+_by_date: dict[str, list[dict]] = {}
 for s in all_snaps_meta:
     if filter_cids is not None and s["channel_id"] not in filter_cids:
         continue
-    d = s["captured_date"]
-    date_counts[d] = date_counts.get(d, 0) + 1
+    _by_date.setdefault(s["captured_date"], []).append(s)
 
-if not date_counts:
+if not _by_date:
     st.warning("No channel snapshots found.")
     st.stop()
 
-cols = st.columns(min(len(date_counts), 6))
-for i, (d, cnt) in enumerate(sorted(date_counts.items(), reverse=True)):
-    cols[i % len(cols)].metric(d, f"{cnt} channels")
+_sorted_dates = sorted(_by_date.keys(), reverse=True)[:3]
+
+cols = st.columns(len(_sorted_dates))
+for i, d in enumerate(_sorted_dates):
+    snaps = _by_date[d]
+    n_ch = len(snaps)
+    total_subs = sum(int(s.get("subscriber_count") or 0) for s in snaps)
+    total_views = sum(int(s.get("total_views") or 0) for s in snaps)
+    total_vids = sum(int(s.get("video_count") or 0) for s in snaps)
+    # Earliest capture time
+    cap_times = [s.get("captured_at") or "" for s in snaps if s.get("captured_at")]
+    earliest = min(cap_times)[:16].replace("T", " ") if cap_times else "—"
+
+    # Compute deltas vs next older date
+    _next_dates = sorted(_by_date.keys(), reverse=True)
+    _next_idx = _next_dates.index(d) + 1 if d in _next_dates else None
+    if _next_idx and _next_idx < len(_next_dates):
+        prev_snaps = _by_date[_next_dates[_next_idx]]
+        prev_subs = sum(int(s.get("subscriber_count") or 0) for s in prev_snaps)
+        prev_views = sum(int(s.get("total_views") or 0) for s in prev_snaps)
+        prev_vids = sum(int(s.get("video_count") or 0) for s in prev_snaps)
+        d_subs = f"+{fmt_num(total_subs - prev_subs)}" if total_subs >= prev_subs else fmt_num(total_subs - prev_subs)
+        d_views = f"+{fmt_num(total_views - prev_views)}" if total_views >= prev_views else fmt_num(total_views - prev_views)
+        d_vids = f"+{total_vids - prev_vids}"
+    else:
+        d_subs = d_views = d_vids = "—"
+
+    with cols[i]:
+        st.markdown(f"**{d}**")
+        st.metric("Channels", n_ch)
+        st.metric("Δ Subs", d_subs if d_subs != "—" else "—")
+        st.markdown(f'<p style="margin-top:-16px;font-size:13px;color:#888">Total {fmt_num(total_subs)}</p>', unsafe_allow_html=True)
+        st.metric("Δ Views", d_views if d_views != "—" else "—")
+        st.markdown(f'<p style="margin-top:-16px;font-size:13px;color:#888">Total {fmt_num(total_views)}</p>', unsafe_allow_html=True)
+        st.metric("Δ Videos", d_vids if d_vids != "—" else "—")
+        st.markdown(f'<p style="margin-top:-16px;font-size:13px;color:#888">Total {fmt_num(total_vids)}</p>', unsafe_allow_html=True)
+        st.caption(f"Captured: {earliest} UTC")
 
 st.markdown("---")
+
+# Keep date_counts for backward compat
+date_counts = {d: len(snaps) for d, snaps in _by_date.items()}
 
 # ── Fetch all snapshot data ──────────────────────────────────
 all_full = db.client.table("channel_snapshots") \
@@ -198,21 +235,14 @@ components.html(f"""
 </script>
 """, height=min(len(filtered_channels), 30) * 32 + 60, scrolling=True)
 
-# ── Detail: single channel drill-down ────────────────────────
-st.markdown("---")
-st.subheader("📋 Channel detail")
-ch_names = sorted([c["name"] for c in filtered_channels])
-selected_name = st.selectbox("Select channel to inspect", ch_names, key="debug_ch_sel")
-selected_ch = next((c for c in filtered_channels if c["name"] == selected_name), None)
+# ── Single club: full snapshot timeline ──────────────────────
+if g_club:
+    ch_snaps = sorted(snaps_by_ch.get(g_club["id"], []), key=lambda x: x["captured_date"])
+    if ch_snaps:
+        st.markdown("---")
+        st.subheader("📋 All snapshots")
+        st.caption(f"**{len(ch_snaps)}** snapshots")
 
-if selected_ch:
-    ch_snaps = sorted(snaps_by_ch.get(selected_ch["id"], []), key=lambda x: x["captured_date"])
-    if not ch_snaps:
-        st.info(f"No snapshots for {selected_name}.")
-    else:
-        st.caption(f"**{len(ch_snaps)}** snapshots for **{selected_name}**")
-
-        # Channel snapshot timeline
         detail_html = ""
         prev_snap = None
         for snap in ch_snaps:
@@ -263,85 +293,6 @@ if selected_ch:
           <th style="text-align:right">Videos</th><th style="text-align:right">Δ Vids</th>
         </tr></thead><tbody>{detail_html}</tbody></table>
         """, height=len(ch_snaps) * 36 + 60, scrolling=True)
-
-        # Video snapshots for this channel
-        st.markdown("---")
-        st.subheader(f"🎬 Video snapshots for {selected_name}")
-        vid_rows = db.client.table("videos") \
-            .select("id,youtube_video_id,title,published_at") \
-            .eq("channel_id", selected_ch["id"]) \
-            .order("published_at", desc=True) \
-            .limit(200) \
-            .execute().data or []
-
-        if vid_rows:
-            st.caption(f"Showing up to 200 most recent videos ({len(vid_rows)} returned)")
-            vid_ids = [v["id"] for v in vid_rows]
-
-            all_vsnaps: list[dict] = []
-            for i in range(0, len(vid_ids), 100):
-                batch = vid_ids[i:i+100]
-                all_vsnaps += db.client.table("video_snapshots") \
-                    .select("video_id,captured_date,view_count,like_count,comment_count") \
-                    .in_("video_id", batch) \
-                    .order("captured_date", desc=True) \
-                    .execute().data or []
-
-            vsnap_by_vid: dict[str, list[dict]] = {}
-            for vs in all_vsnaps:
-                vsnap_by_vid.setdefault(vs["video_id"], []).append(vs)
-
-            vrows_html = ""
-            for vid in vid_rows[:50]:
-                snaps_for = sorted(vsnap_by_vid.get(vid["id"], []), key=lambda x: x["captured_date"])
-                snap_count = len(snaps_for)
-                _raw_title = (vid.get("title") or "")[:60].replace("<", "&lt;")
-                _yt_id = vid.get("youtube_video_id") or ""
-                title = f'<a href="https://www.youtube.com/watch?v={_yt_id}" target="_blank" rel="noopener" style="color:#FAFAFA;text-decoration:none">{_raw_title}</a>' if _yt_id else _raw_title
-                pub = (vid.get("published_at") or "")[:10]
-
-                if snap_count >= 2:
-                    latest_v = snaps_for[-1]
-                    prev_v = snaps_for[-2]
-                    dv = int(latest_v.get("view_count") or 0) - int(prev_v.get("view_count") or 0)
-                    dv_col = "#00CC96" if dv > 0 else ("#EF553B" if dv < 0 else "#888")
-                    views_now = f'{int(latest_v.get("view_count") or 0):,}'
-                    delta_s = f'<span style="color:{dv_col}">{dv:+,}</span>'
-                    dates_s = f'{snaps_for[0]["captured_date"]} → {snaps_for[-1]["captured_date"]}'
-                elif snap_count == 1:
-                    views_now = f'{int(snaps_for[0].get("view_count") or 0):,}'
-                    delta_s = '<span style="color:#555">—</span>'
-                    dates_s = snaps_for[0]["captured_date"]
-                else:
-                    views_now = "—"
-                    delta_s = "—"
-                    dates_s = "no snapshots"
-
-                vrows_html += f"""<tr>
-                    <td style="padding:5px 8px;font-size:12px">{pub}</td>
-                    <td style="padding:5px 8px;font-size:12px">{title}</td>
-                    <td style="padding:5px 8px;text-align:right">{views_now}</td>
-                    <td style="padding:5px 8px;text-align:right">{delta_s}</td>
-                    <td style="padding:5px 8px;text-align:center">{snap_count}</td>
-                    <td style="padding:5px 8px;font-size:11px;color:#888">{dates_s}</td>
-                </tr>"""
-
-            components.html(f"""
-            <style>
-              .vdbg {{ width:100%; border-collapse:collapse; font-size:13px; color:#FAFAFA;
-                       font-family:"Source Sans Pro",sans-serif; }}
-              .vdbg th {{ padding:5px 8px; border-bottom:2px solid #444; text-align:left;
-                          position:sticky; top:0; background:#0E1117; }}
-              .vdbg td {{ border-bottom:1px solid #262730; }}
-            </style>
-            <table class="vdbg"><thead><tr>
-              <th>Published</th><th>Title</th>
-              <th style="text-align:right">Views</th><th style="text-align:right">Δ Views</th>
-              <th style="text-align:center"># Snaps</th><th>Snap range</th>
-            </tr></thead><tbody>{vrows_html}</tbody></table>
-            """, height=min(50, len(vid_rows)) * 32 + 60, scrolling=True)
-        else:
-            st.caption("No videos found for this channel.")
 
 # ── Raw counts ───────────────────────────────────────────────
 st.markdown("---")

@@ -138,9 +138,8 @@ def main() -> int:
             for vid in new_ids:
                 all_new.append((vid, channel_db_id))
 
-        # Small pause to be polite to YouTube RSS
-        if i % 20 == 0:
-            time.sleep(0.5)
+        # Pause between requests to avoid YouTube rate-limiting
+        time.sleep(0.3)
 
     rss_elapsed = time.time() - start
     log(f"RSS scan done in {rss_elapsed:.1f}s — ok={rss_ok} fail={rss_fail} new_videos={len(all_new)}")

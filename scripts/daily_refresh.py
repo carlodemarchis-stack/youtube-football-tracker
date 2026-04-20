@@ -177,7 +177,6 @@ def main() -> int:
                         "view_count": v["view_count"],
                         "like_count": v["like_count"],
                         "comment_count": v["comment_count"],
-                        "last_fetched": now,
                     })
                 for b in range(0, len(update_rows), 500):
                     db.client.table("videos").upsert(update_rows[b:b+500], on_conflict="id").execute()
