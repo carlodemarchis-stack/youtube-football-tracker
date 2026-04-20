@@ -156,7 +156,10 @@ if live_now:
           <div class="ln-title" title="{title}">{title}</div>
         </a>"""
 
-    st.markdown(f"""<style>
+    components.html(f"""
+    <style>
+      * {{ box-sizing:border-box; }}
+      body {{ margin:0; font-family:"Source Sans Pro",sans-serif; }}
       .ln-grid {{ display:flex; gap:12px; overflow-x:auto; padding:4px 0 8px 0; }}
       .ln-card {{ display:block; text-decoration:none; color:#FAFAFA; border-radius:8px;
                   background:#1a1c24; overflow:hidden; min-width:220px; max-width:260px;
@@ -179,7 +182,9 @@ if live_now:
                    overflow:hidden; color:#ddd; }}
     </style>
     <div style="color:#FAFAFA;font-size:15px;font-weight:600;margin:0 0 10px 4px">🔴 Live Now</div>
-    <div class="ln-grid">{_ln_cards}</div>""", unsafe_allow_html=True)
+    <div class="ln-grid">{_ln_cards}</div>
+    {yt_popup_js()}
+    """, height=260, scrolling=False)
 
 # ── Mosaic view ─────────────────────────────────────────────
 if mosaic_view:
