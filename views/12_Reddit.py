@@ -14,6 +14,10 @@ from dotenv import load_dotenv
 
 from src.auth import require_login
 from src.analytics import fmt_num, fmt_date
+from src.filters import get_global_channels
+from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
+from src.database import Database
+import os
 from src.reddit_db import (
     get_tracked_subreddits, get_subreddit_by_name,
     get_recent_posts, get_top_post_today, get_snapshots,
@@ -64,6 +68,28 @@ pick_options = ["— Overview —"] + sub_names
 pick = st.selectbox("Subreddit", pick_options, index=0)
 
 if pick == "— Overview —":
+    # Build channel_id → (label, entity_type) map so we can show each
+    # subreddit's connected club/league with flag.
+    all_channels = get_global_channels()
+    if not all_channels:
+        try:
+            _db = Database(os.getenv("SUPABASE_URL", ""), os.getenv("SUPABASE_KEY", ""))
+            all_channels = _db.get_all_channels()
+        except Exception:
+            all_channels = []
+    ch_by_id = {c["id"]: c for c in all_channels}
+
+    def _connected_label(channel_id: str | None) -> str:
+        if not channel_id or channel_id not in ch_by_id:
+            return "—"
+        ch = ch_by_id[channel_id]
+        lg = COUNTRY_TO_LEAGUE.get((ch.get("country") or "").upper(), ch.get("country") or "")
+        flag = LEAGUE_FLAG.get(lg, "")
+        label = ch.get("name", "?")
+        if ch.get("entity_type") == "League":
+            return f"{flag} {label} (league)".strip()
+        return f"{flag} {label}".strip()
+
     rows = []
     for s in subs:
         top_post = None
@@ -73,6 +99,7 @@ if pick == "— Overview —":
             pass
         name = s["subreddit"]
         rows.append({
+            "Connected to": _connected_label(s.get("channel_id")),
             "Subreddit": f"https://reddit.com/r/{name}",
             "Subscribers": int(s.get("subscribers") or 0),
             "Top post (24h)": (top_post or {}).get("title", "—"),
@@ -89,6 +116,8 @@ if pick == "— Overview —":
         use_container_width=True,
         hide_index=True,
         height=(len(df) + 1) * 35 + 3,   # full height, no inner scrollbar
+        column_order=["Connected to", "Subreddit", "Subscribers",
+                      "Top post (24h)", "Top score", "Top comments"],
         column_config={
             "Subreddit": st.column_config.LinkColumn(
                 "Subreddit",
