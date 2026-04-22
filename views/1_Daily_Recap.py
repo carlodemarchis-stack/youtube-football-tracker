@@ -85,9 +85,40 @@ prev_iso = prev_day.isoformat()
 # ── Load snapshots ──────────────────────────────────────────
 LOOKBACK_DAYS = 14
 lookback_iso = (day - timedelta(days=LOOKBACK_DAYS)).isoformat()
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _load_chan_snaps(since_iso: str) -> list[dict]:
+    """Cache the 14-day channel snapshots — only changes after daily cron.
+    TTL 5min = fast subsequent loads; cron runs at 03:15 UTC so cache is
+    naturally refreshed during the first view each morning."""
+    return db.get_all_snapshots(since_date=since_iso)
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _load_video_snapshots(captured_date: str, channel_ids_tuple: tuple | None) -> list[dict]:
+    """Fetch video snapshots for one day, filtered server-side by channel
+    via an inner join on videos. Returns trimmed rows with video_id,
+    view_count, and the channel_id flattened out."""
+    rows = db.get_video_snapshots_for_date_filtered(
+        captured_date,
+        channel_ids=list(channel_ids_tuple) if channel_ids_tuple else None,
+    )
+    # Flatten the embedded videos.channel_id so downstream code stays simple
+    out = []
+    for r in rows:
+        v = r.get("videos") or {}
+        out.append({
+            "video_id": r.get("video_id"),
+            "view_count": r.get("view_count") or 0,
+            "channel_id": v.get("channel_id") if isinstance(v, dict) else None,
+        })
+    return out
+
+
 with st.spinner(f"Loading snapshots for {day_iso}…"):
-    # 1) Channel snapshots for trend chart (14 days — lightweight: ~1400 rows)
-    chan_snaps = db.get_all_snapshots(since_date=lookback_iso)
+    # 1) Channel snapshots (cached)
+    chan_snaps = _load_chan_snaps(lookback_iso)
 
 # Snapshots strictly on `day`, optionally filtered to selected channel(s)
 chan_day = {
@@ -110,27 +141,13 @@ for s in chan_snaps:
         prev_date_by_cid[cid] = d
         chan_prev[cid] = s
 
-# 2) Video snapshots — only fetch 2 dates (today + previous) instead of 14 days
+# 2) Video snapshots — filtered server-side when filter_cids is set,
+# cached for 5min. Single roundtrip per date (was: multiple paginated
+# fetches + a batched video→channel lookup).
 _prev_snap_date = max(prev_date_by_cid.values(), default=None) if prev_date_by_cid else None
-vid_snaps_day = db.get_video_snapshots_for_date(day_iso)
-vid_snaps_prev = db.get_video_snapshots_for_date(_prev_snap_date) if _prev_snap_date else []
-
-# Filter to selected channels if needed
-if filter_cids is not None:
-    _needed_vids = {s["video_id"] for s in vid_snaps_day} | {s["video_id"] for s in vid_snaps_prev}
-    _vid_rows = []
-    _batch = list(_needed_vids)
-    for i in range(0, len(_batch), 500):
-        _vid_rows += (
-            db.client.table("videos")
-            .select("id,channel_id")
-            .in_("id", _batch[i:i+500])
-            .execute()
-            .data or []
-        )
-    _vid_channel = {r["id"]: r["channel_id"] for r in _vid_rows}
-    vid_snaps_day = [s for s in vid_snaps_day if _vid_channel.get(s["video_id"]) in filter_cids]
-    vid_snaps_prev = [s for s in vid_snaps_prev if _vid_channel.get(s["video_id"]) in filter_cids]
+_fc_tuple = tuple(sorted(filter_cids)) if filter_cids is not None else None
+vid_snaps_day = _load_video_snapshots(day_iso, _fc_tuple)
+vid_snaps_prev = _load_video_snapshots(_prev_snap_date, _fc_tuple) if _prev_snap_date else []
 
 vmap_day = {s["video_id"]: s for s in vid_snaps_day}
 vmap_prev = {s["video_id"]: s for s in vid_snaps_prev}

@@ -133,6 +133,32 @@ class Database:
             offset += page_size
         return all_rows
 
+    def get_video_snapshots_for_date_filtered(
+        self, captured_date: str, channel_ids: list[str] | None = None,
+        columns: str = "video_id,view_count,videos!inner(channel_id)",
+    ) -> list[dict]:
+        """Like get_video_snapshots_for_date but optionally filters to a set
+        of channel_ids server-side via a PostgREST inner join on the videos
+        table. Saves a separate batched video→channel lookup and cuts payload."""
+        all_rows: list[dict] = []
+        page_size = 1000
+        offset = 0
+        while True:
+            q = (
+                self.client.table("video_snapshots")
+                .select(columns)
+                .eq("captured_date", captured_date)
+            )
+            if channel_ids:
+                q = q.in_("videos.channel_id", list(channel_ids))
+            resp = q.range(offset, offset + page_size - 1).execute()
+            batch = resp.data or []
+            all_rows.extend(batch)
+            if len(batch) < page_size:
+                break
+            offset += page_size
+        return all_rows
+
     def get_video_snapshots_range(self, since_date: str, until_date: str | None = None) -> list[dict]:
         all_rows: list[dict] = []
         page_size = 1000
