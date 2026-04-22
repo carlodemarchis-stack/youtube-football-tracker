@@ -12,12 +12,16 @@ import streamlit as st
 import pandas as pd
 from dotenv import load_dotenv
 
+import os
+import streamlit.components.v1 as components
+
 from src.auth import require_login
 from src.analytics import fmt_num, fmt_date
-from src.filters import get_global_channels
+from src.filters import (
+    get_global_channels, get_global_color_map, get_global_color_map_dual,
+)
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
 from src.database import Database
-import os
 from src.reddit_db import (
     get_tracked_subreddits, get_subreddit_by_name,
     get_recent_posts, get_top_post_today, get_snapshots,
@@ -60,16 +64,13 @@ c2.metric("Total subscribers", fmt_num(total_subs))
 c3.metric("Active right now", fmt_num(total_active))
 c4.metric("Last update", fmt_date(last_fetched) if last_fetched else "—")
 
-# ── Choose a subreddit ──────────────────────────────────────
-st.markdown("---")
+# ── Routing: detail view if ?subreddit=... else overview ────
+pick = st.query_params.get("subreddit", "")
 
-sub_names = [s["subreddit"] for s in subs]
-pick_options = ["— Overview —"] + sub_names
-pick = st.selectbox("Subreddit", pick_options, index=0)
+if not pick:
+    # ── Overview table ──────────────────────────────────────
+    st.markdown("---")
 
-if pick == "— Overview —":
-    # Build channel_id → (label, entity_type) map so we can show each
-    # subreddit's connected club/league with flag.
     all_channels = get_global_channels()
     if not all_channels:
         try:
@@ -78,60 +79,101 @@ if pick == "— Overview —":
         except Exception:
             all_channels = []
     ch_by_id = {c["id"]: c for c in all_channels}
+    color_map = get_global_color_map() or {}
+    dual = get_global_color_map_dual() or {}
 
-    def _connected_label(channel_id: str | None) -> str:
-        if not channel_id or channel_id not in ch_by_id:
-            return "—"
-        ch = ch_by_id[channel_id]
+    def _connected_html(s_row: dict) -> str:
+        cid = s_row.get("channel_id")
+        if not cid or cid not in ch_by_id:
+            return "<span style='color:#666'>—</span>"
+        ch = ch_by_id[cid]
         lg = COUNTRY_TO_LEAGUE.get((ch.get("country") or "").upper(), ch.get("country") or "")
         flag = LEAGUE_FLAG.get(lg, "")
         label = ch.get("name", "?")
         if ch.get("entity_type") == "League":
-            return f"{flag} {label} (league)".strip()
-        return f"{flag} {label}".strip()
+            label = f"{label} (league)"
+        c1, c2 = dual.get(ch.get("name", ""), (color_map.get(ch.get("name", ""), "#636EFA"), "#FFFFFF"))
+        dot = (
+            f"<span style='display:inline-block;width:10px;height:10px;border-radius:50%;"
+            f"background:{c1};box-shadow:3px 0 0 {c2};border:1px solid rgba(255,255,255,0.25);"
+            f"margin-right:10px;vertical-align:middle'></span>"
+        )
+        # Link to detail view on this same page via query param
+        href = f"?subreddit={s_row['subreddit']}"
+        return (
+            f"{dot}<span>{flag} "
+            f"<a href='{href}' target='_self' style='color:#FAFAFA;text-decoration:none'>{label}</a>"
+            f"</span>"
+        )
 
-    rows = []
+    # Precompute top posts per subreddit
+    enriched = []
     for s in subs:
         top_post = None
         try:
             top_post = get_top_post_today(s["id"])
         except Exception:
             pass
-        name = s["subreddit"]
-        rows.append({
-            "Connected to": _connected_label(s.get("channel_id")),
-            "Subreddit": f"https://reddit.com/r/{name}",
-            "Subscribers": int(s.get("subscribers") or 0),
-            "Top post (24h)": (top_post or {}).get("title", "—"),
-            "Top score": int((top_post or {}).get("score") or 0),
-            "Top comments": int((top_post or {}).get("num_comments") or 0),
-        })
-    df = pd.DataFrame(rows).sort_values("Subscribers", ascending=False)
-    df["Subscribers"] = df["Subscribers"].apply(fmt_num)
-    df["Top score"] = df["Top score"].apply(fmt_num)
-    df["Top comments"] = df["Top comments"].apply(fmt_num)
+        enriched.append((s, top_post))
+    enriched.sort(key=lambda pair: int(pair[0].get("subscribers") or 0), reverse=True)
 
-    st.dataframe(
-        df,
-        use_container_width=True,
-        hide_index=True,
-        height=(len(df) + 1) * 35 + 3,   # full height, no inner scrollbar
-        column_order=["Connected to", "Subreddit", "Subscribers",
-                      "Top post (24h)", "Top score", "Top comments"],
-        column_config={
-            "Subreddit": st.column_config.LinkColumn(
-                "Subreddit",
-                display_text=r"https?://(?:www\.)?reddit\.com/(r/[^/]+)",
-            ),
-        },
-    )
+    rows_html = ""
+    for s, top_post in enriched:
+        name = s["subreddit"]
+        subs_n = int(s.get("subscribers") or 0)
+        title = (top_post or {}).get("title", "—") or "—"
+        title_safe = title.replace("<", "&lt;").replace(">", "&gt;")
+        top_link = (top_post or {}).get("permalink") or ""
+        title_cell = (
+            f"<a href='{top_link}' target='_blank' style='color:#FAFAFA;text-decoration:none'>{title_safe}</a>"
+            if top_link else title_safe
+        )
+        score = int((top_post or {}).get("score") or 0)
+        ncom = int((top_post or {}).get("num_comments") or 0)
+        rows_html += f"""<tr>
+            <td style="padding:8px 12px">{_connected_html(s)}</td>
+            <td style="padding:8px 12px">
+              <a href='https://reddit.com/r/{name}' target='_blank'
+                 style='color:#FF4500;text-decoration:none'>r/{name}</a>
+            </td>
+            <td style="padding:8px 12px;text-align:right;font-weight:600">{fmt_num(subs_n)}</td>
+            <td style="padding:8px 12px">{title_cell}</td>
+            <td style="padding:8px 12px;text-align:right">▲ {fmt_num(score)}</td>
+            <td style="padding:8px 12px;text-align:right">💬 {fmt_num(ncom)}</td>
+        </tr>"""
+
+    components.html(f"""
+    <style>
+      * {{ box-sizing:border-box; }}
+      body {{ margin:0; font-family:"Source Sans Pro",sans-serif; color:#FAFAFA; }}
+      .rdt {{ width:100%; border-collapse:collapse; font-size:14px; }}
+      .rdt th {{ padding:8px 12px; border-bottom:2px solid #444; text-align:left;
+                 color:#AAA; font-weight:600; font-size:13px; }}
+      .rdt td {{ border-bottom:1px solid #262730; vertical-align:middle; }}
+      .rdt tr:hover td {{ background:#1a1c24; }}
+      a:hover {{ text-decoration:underline !important; }}
+    </style>
+    <table class="rdt">
+      <thead><tr>
+        <th>Connected to</th><th>Subreddit</th>
+        <th style="text-align:right">Subscribers</th>
+        <th>Top post (24h)</th>
+        <th style="text-align:right">Score</th>
+        <th style="text-align:right">Comments</th>
+      </tr></thead>
+      <tbody>{rows_html}</tbody>
+    </table>
+    """, height=(len(enriched) + 2) * 56 + 20, scrolling=False)
     st.stop()
 
 # ── Per-subreddit detail ────────────────────────────────────
 sub = next((s for s in subs if s["subreddit"] == pick), None)
 if not sub:
-    st.error("Subreddit not found.")
+    st.error(f"Subreddit '{pick}' not found.")
+    st.link_button("← Back to overview", "?")
     st.stop()
+
+st.link_button("← Back to overview", "?")
 
 sub_id = sub["id"]
 
