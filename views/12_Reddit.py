@@ -13,7 +13,6 @@ import pandas as pd
 from dotenv import load_dotenv
 
 import os
-import streamlit.components.v1 as components
 
 from src.auth import require_login
 from src.analytics import fmt_num, fmt_date
@@ -96,11 +95,11 @@ if not pick:
             f"background:{c1};box-shadow:3px 0 0 {c2};border:1px solid rgba(255,255,255,0.25);"
             f"margin-right:10px;vertical-align:middle'></span>"
         )
-        # Link navigates the PARENT Streamlit page (target=_top escapes the iframe)
+        # Link navigates the same Streamlit page — query-param change = soft rerun
         href = f"?subreddit={s_row['subreddit']}"
         return (
             f"{dot}<span>{flag} "
-            f"<a href='{href}' target='_top' style='color:#FAFAFA;text-decoration:none'>{label}</a>"
+            f"<a href='{href}' style='color:#FAFAFA;text-decoration:none'>{label}</a>"
             f"</span>"
         )
 
@@ -140,16 +139,14 @@ if not pick:
             <td style="padding:8px 12px;text-align:right">💬 {fmt_num(ncom)}</td>
         </tr>"""
 
-    components.html(f"""
+    st.markdown(f"""
     <style>
-      * {{ box-sizing:border-box; }}
-      body {{ margin:0; font-family:"Source Sans Pro",sans-serif; color:#FAFAFA; }}
-      .rdt {{ width:100%; border-collapse:collapse; font-size:14px; }}
+      .rdt {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA; }}
       .rdt th {{ padding:8px 12px; border-bottom:2px solid #444; text-align:left;
                  color:#AAA; font-weight:600; font-size:13px; }}
-      .rdt td {{ border-bottom:1px solid #262730; vertical-align:middle; }}
+      .rdt td {{ border-bottom:1px solid #262730; vertical-align:middle; padding:8px 12px; }}
       .rdt tr:hover td {{ background:#1a1c24; }}
-      a:hover {{ text-decoration:underline !important; }}
+      .rdt a:hover {{ text-decoration:underline !important; }}
     </style>
     <table class="rdt">
       <thead><tr>
@@ -161,7 +158,7 @@ if not pick:
       </tr></thead>
       <tbody>{rows_html}</tbody>
     </table>
-    """, height=(len(enriched) + 2) * 56 + 20, scrolling=False)
+    """, unsafe_allow_html=True)
     st.stop()
 
 # ── Per-subreddit detail ────────────────────────────────────
