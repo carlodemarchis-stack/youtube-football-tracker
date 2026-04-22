@@ -3,6 +3,7 @@
 -- Run AFTER reddit_schema.sql.
 
 insert into reddit_subreddits (subreddit, channel_id, is_official) values
+  ('seriea',           '6f3debbc-63cb-43d8-8df5-1b217cafbfd0', false),  -- Serie A (league)
   ('Juve',             '9b27ff36-d4b7-4b73-8b2c-ae4807fb7d97', false),  -- Juventus
   ('FCInterMilan',     '0107f05c-025a-4032-bd10-92101f942e2d', false),  -- Inter
   ('ACMilan',          'd3eabe38-92d0-4206-a384-744552a7054f', false),  -- AC Milan
