@@ -91,6 +91,33 @@ class YouTubeClient:
                 break
         return video_ids
 
+    def get_recent_video_entries(self, uploads_playlist_id: str, max_results: int = 20) -> list[dict]:
+        """Fetch the most recent N videos from a channel's uploads playlist.
+        Returns list of {"video_id", "published", "title"} — same shape as the RSS feed.
+        Costs 1 quota unit. Used as a drop-in replacement when the public RSS
+        endpoint is down/deprecated."""
+        try:
+            resp = self.youtube.playlistItems().list(
+                part="snippet,contentDetails",
+                playlistId=uploads_playlist_id,
+                maxResults=max(1, min(50, max_results)),
+            ).execute()
+        except Exception:
+            return []
+        out = []
+        for item in resp.get("items", []):
+            cd = item.get("contentDetails", {}) or {}
+            sn = item.get("snippet", {}) or {}
+            vid = cd.get("videoId") or sn.get("resourceId", {}).get("videoId", "")
+            if not vid:
+                continue
+            out.append({
+                "video_id": vid,
+                "published": cd.get("videoPublishedAt") or sn.get("publishedAt", ""),
+                "title": sn.get("title", ""),
+            })
+        return out
+
     def get_video_ids_since(self, uploads_playlist_id: str, since: str) -> list[str]:
         """Fetch video IDs from uploads playlist published on or after `since` (ISO date, e.g. '2025-08-01').
         Uses playlistItems (1 unit/call) and stops when hitting older videos."""

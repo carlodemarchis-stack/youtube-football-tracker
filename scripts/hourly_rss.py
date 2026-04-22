@@ -21,10 +21,12 @@ import os
 import sys
 import time
 import traceback
+import gzip
+import io
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from urllib.request import urlopen, Request
-from urllib.error import URLError
+from urllib.error import URLError, HTTPError
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -36,7 +38,23 @@ from src.youtube_api import YouTubeClient
 from src.channels import get_season_since
 
 RSS_URL = "https://www.youtube.com/feeds/videos.xml?channel_id={}"
-RSS_TIMEOUT = 10  # seconds per feed
+RSS_TIMEOUT = 15  # seconds per feed
+
+# Realistic browser UA — bare "Mozilla/5.0" triggers YouTube anti-bot 404
+_UA_PRIMARY = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+)
+_UA_FALLBACK = (
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+)
+_RSS_HEADERS = {
+    "Accept": "application/atom+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip",
+    "Connection": "close",
+}
 
 # Namespaces in YouTube RSS
 NS = {
@@ -51,17 +69,43 @@ def log(msg: str) -> None:
     print(f"[{ts}] {msg}", flush=True)
 
 
+def _fetch_rss_raw(url: str, ua: str) -> bytes | None:
+    """One HTTP attempt with a given UA. Returns body or None on failure."""
+    headers = {"User-Agent": ua, **_RSS_HEADERS}
+    req = Request(url, headers=headers)
+    with urlopen(req, timeout=RSS_TIMEOUT) as resp:
+        body = resp.read()
+        if resp.headers.get("Content-Encoding", "").lower() == "gzip":
+            try:
+                body = gzip.decompress(body)
+            except Exception:
+                pass
+        return body
+
+
 def fetch_rss_video_ids(youtube_channel_id: str) -> list[dict]:
     """Fetch recent video IDs + published dates from a channel's RSS feed.
     Returns list of {"video_id": str, "published": str, "title": str}.
-    Free — no API quota used."""
+    Free — no API quota used. Retries once with a different UA on 404/403."""
     url = RSS_URL.format(youtube_channel_id)
-    req = Request(url, headers={"User-Agent": "Mozilla/5.0"})
-    try:
-        with urlopen(req, timeout=RSS_TIMEOUT) as resp:
-            xml_data = resp.read()
-    except (URLError, TimeoutError) as e:
-        log(f"  RSS fetch failed for {youtube_channel_id}: {e}")
+    xml_data: bytes | None = None
+    last_err = ""
+    for attempt, ua in enumerate((_UA_PRIMARY, _UA_FALLBACK), 1):
+        try:
+            xml_data = _fetch_rss_raw(url, ua)
+            break
+        except HTTPError as e:
+            last_err = f"HTTP {e.code}"
+            # 404/403 may be anti-bot — retry once with fallback UA
+            if e.code in (403, 404) and attempt == 1:
+                time.sleep(0.5)
+                continue
+            break
+        except (URLError, TimeoutError) as e:
+            last_err = str(e)
+            break
+    if xml_data is None:
+        log(f"  RSS fetch failed for {youtube_channel_id}: {last_err}")
         return []
 
     try:
@@ -110,6 +154,8 @@ def main() -> int:
     all_new: list[tuple[str, str]] = []  # (youtube_video_id, channel_db_id)
     rss_ok = 0
     rss_fail = 0
+    api_fallback_ok = 0
+    api_fallback_fail = 0
     start = time.time()
 
     for i, (yt_id, ch) in enumerate(ch_by_yt_id.items(), 1):
@@ -117,8 +163,19 @@ def main() -> int:
         rss_entries = fetch_rss_video_ids(yt_id)
         if not rss_entries:
             rss_fail += 1
-            continue
-        rss_ok += 1
+            # Fallback: use YouTube Data API playlistItems (1 quota unit)
+            # Uploads playlist ID = channel ID with UC → UU prefix
+            uploads_pl_id = "UU" + yt_id[2:] if yt_id.startswith("UC") else None
+            if uploads_pl_id:
+                rss_entries = yt.get_recent_video_entries(uploads_pl_id, max_results=20)
+                if rss_entries:
+                    api_fallback_ok += 1
+                else:
+                    api_fallback_fail += 1
+            if not rss_entries:
+                continue
+        else:
+            rss_ok += 1
 
         # Filter to season videos only
         ch_season_since = get_season_since(ch)
@@ -143,7 +200,12 @@ def main() -> int:
         time.sleep(0.3)
 
     rss_elapsed = time.time() - start
-    log(f"RSS scan done in {rss_elapsed:.1f}s — ok={rss_ok} fail={rss_fail} new_videos={len(all_new)}")
+    log(
+        f"RSS scan done in {rss_elapsed:.1f}s — "
+        f"rss_ok={rss_ok} rss_fail={rss_fail} "
+        f"api_fallback_ok={api_fallback_ok} api_fallback_fail={api_fallback_fail} "
+        f"new_videos={len(all_new)}"
+    )
 
     if not all_new:
         log("No new videos found. Done.")
