@@ -6,8 +6,9 @@ and is unreliable for run-and-exit scripts). This container stays alive
 and triggers jobs at the right times using simple sleep loops.
 
 Schedule (UTC):
-  - Hourly RSS:   every hour from 05:03 to 22:03
-  - Daily refresh: 03:30 every day
+  - Hourly RSS:     every hour from 05:03 to 22:03
+  - Hourly Reddit:  every hour from 05:07 to 22:07
+  - Daily refresh:  03:30 every day
   - Weekly refresh: 04:00 every Monday
 
 Env vars required:
@@ -62,6 +63,7 @@ def main() -> None:
 
     # Track what we've already run this cycle to avoid double-firing
     last_hourly_hour = -1
+    last_reddit_hour = -1
     last_daily_day = -1
     last_weekly_isoweek = (-1, -1)
 
@@ -78,6 +80,15 @@ def main() -> None:
             last_hourly_hour = hour
             threading.Thread(
                 target=run_script, args=("hourly_rss.py",), daemon=True
+            ).start()
+
+        # ── Hourly Reddit: at minute 7, hours 5-22 (offset from RSS) ─
+        # Skips silently if REDDIT_CLIENT_ID is not set.
+        if (minute >= 7 and should_run_hourly(hour) and last_reddit_hour != hour
+                and os.environ.get("REDDIT_CLIENT_ID")):
+            last_reddit_hour = hour
+            threading.Thread(
+                target=run_script, args=("hourly_reddit.py",), daemon=True
             ).start()
 
         # ── Daily refresh: at 03:30 ───────────────────────────

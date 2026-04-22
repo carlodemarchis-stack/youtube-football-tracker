@@ -8,3 +8,4 @@ python-dotenv>=1.0.0
 isodate>=0.6.1
 anthropic>=0.30.0
 streamlit-cookies-controller>=0.0.4
+praw>=7.7.0
