@@ -61,13 +61,14 @@ c1.metric("Subreddits tracked", len(subs))
 c2.metric("Total subscribers", fmt_num(total_subs))
 c3.metric("Last update", fmt_date(last_fetched) if last_fetched else "—")
 
-# ── Routing: detail view if ?subreddit=... else overview ────
-pick = st.query_params.get("subreddit", "")
+# ── Choose a subreddit ──────────────────────────────────────
+st.markdown("---")
 
-if not pick:
-    # ── Overview table ──────────────────────────────────────
-    st.markdown("---")
+sub_names = [s["subreddit"] for s in subs]
+pick_options = ["— Overview —"] + sub_names
+pick = st.selectbox("Subreddit", pick_options, index=0)
 
+if pick == "— Overview —":
     all_channels = get_global_channels()
     if not all_channels:
         try:
@@ -95,13 +96,7 @@ if not pick:
             f"background:{c1};box-shadow:3px 0 0 {c2};border:1px solid rgba(255,255,255,0.25);"
             f"margin-right:10px;vertical-align:middle'></span>"
         )
-        # Link navigates the same Streamlit page — query-param change = soft rerun
-        href = f"?subreddit={s_row['subreddit']}"
-        return (
-            f"{dot}<span>{flag} "
-            f"<a href='{href}' style='color:#FAFAFA;text-decoration:none'>{label}</a>"
-            f"</span>"
-        )
+        return f"{dot}<span>{flag} {label}</span>"
 
     # Precompute top posts per subreddit
     enriched = []
@@ -165,10 +160,7 @@ if not pick:
 sub = next((s for s in subs if s["subreddit"] == pick), None)
 if not sub:
     st.error(f"Subreddit '{pick}' not found.")
-    st.link_button("← Back to overview", "?")
     st.stop()
-
-st.link_button("← Back to overview", "?")
 
 sub_id = sub["id"]
 
