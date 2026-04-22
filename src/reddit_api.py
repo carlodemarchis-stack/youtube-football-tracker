@@ -1,27 +1,23 @@
-"""Reddit API wrapper (read-only). Isolated from the YouTube side.
+"""Reddit API wrapper — public JSON endpoints only, no OAuth.
 
-Uses PRAW in read-only mode: only client_id + client_secret + user_agent.
-No username/password needed — we only read public subreddit data.
+Reddit's public `.json` endpoints serve all read-only public data with just
+a User-Agent header. No client_id / client_secret / registration needed.
+
+Anonymous rate limit is ~60 requests/minute. Our hourly run does ~34
+requests total (17 subreddits × 2 endpoints), so we're well under.
 
 Env vars required:
-    REDDIT_CLIENT_ID
-    REDDIT_CLIENT_SECRET
-    REDDIT_USER_AGENT    (e.g. "ytft-research/0.1 by u/your_username")
+    REDDIT_USER_AGENT   (optional — defaults to a sensible UA string)
 """
 from __future__ import annotations
 
+import json
 import os
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Iterable
-
-try:
-    import praw
-    from prawcore.exceptions import NotFound, Forbidden, Redirect, ResponseException
-except ImportError:  # Let import fail lazily so the rest of the app still loads
-    praw = None  # type: ignore
-    NotFound = Forbidden = Redirect = ResponseException = Exception  # type: ignore
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 
 @dataclass
@@ -51,94 +47,102 @@ class RedditPost:
     created_at: str = ""  # ISO8601 UTC
 
 
+_DEFAULT_UA = "ytft-research/0.1 (public data only)"
+_TIMEOUT = 15
+
+
+def _get_json(path: str) -> dict | None:
+    """Fetch a Reddit .json endpoint. Returns parsed JSON or None on failure."""
+    ua = os.environ.get("REDDIT_USER_AGENT", _DEFAULT_UA)
+    url = f"https://www.reddit.com{path}"
+    req = Request(url, headers={
+        "User-Agent": ua,
+        "Accept": "application/json",
+    })
+    try:
+        with urlopen(req, timeout=_TIMEOUT) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except HTTPError as e:
+        # 404 = subreddit not found, 403 = private, 429 = rate limited
+        return None
+    except (URLError, TimeoutError, json.JSONDecodeError):
+        return None
+    except Exception:
+        return None
+
+
+def _post_from_json(sub_name: str, child_data: dict) -> RedditPost | None:
+    """Convert a Reddit listing child's data dict into a RedditPost."""
+    pid = child_data.get("id")
+    if not pid:
+        return None
+    created_utc = child_data.get("created_utc") or 0
+    try:
+        created_iso = datetime.fromtimestamp(float(created_utc), tz=timezone.utc).isoformat()
+    except Exception:
+        created_iso = ""
+    thumb = child_data.get("thumbnail") or ""
+    if not thumb.startswith("http"):
+        thumb = ""
+    author = child_data.get("author") or "[deleted]"
+    return RedditPost(
+        reddit_post_id=pid,
+        subreddit=sub_name,
+        title=(child_data.get("title") or "")[:500],
+        author=author,
+        url=child_data.get("url") or "",
+        permalink=f"https://reddit.com{child_data.get('permalink', '')}"
+            if child_data.get("permalink") else "",
+        flair=child_data.get("link_flair_text") or "",
+        score=int(child_data.get("score") or 0),
+        num_comments=int(child_data.get("num_comments") or 0),
+        upvote_ratio=float(child_data.get("upvote_ratio") or 0.0),
+        is_video=bool(child_data.get("is_video")),
+        thumbnail=thumb,
+        created_at=created_iso,
+    )
+
+
 class RedditClient:
-    def __init__(self, client_id: str | None = None, client_secret: str | None = None,
-                 user_agent: str | None = None):
-        if praw is None:
-            raise RuntimeError("praw is not installed. Add 'praw>=7.7.0' to requirements.txt.")
-        self.client = praw.Reddit(
-            client_id=client_id or os.environ.get("REDDIT_CLIENT_ID", ""),
-            client_secret=client_secret or os.environ.get("REDDIT_CLIENT_SECRET", ""),
-            user_agent=user_agent or os.environ.get("REDDIT_USER_AGENT", "ytft-research/0.1"),
-            check_for_async=False,
-        )
-        self.client.read_only = True
+    """Simple read-only client using Reddit's public .json endpoints."""
 
-    # ── Subreddit metadata ───────────────────────────────────
+    def __init__(self, *_args, **_kwargs):
+        # Args accepted for API compatibility with praw-based version; unused.
+        pass
+
     def get_subreddit_info(self, name: str) -> SubredditInfo | None:
-        """Fetch subscribers, active users, description for a subreddit.
-        Returns None if the subreddit doesn't exist / is private / banned."""
-        try:
-            s = self.client.subreddit(name)
-            # Accessing any attribute triggers a fetch
-            _ = s.id
-            return SubredditInfo(
-                subreddit=s.display_name,
-                subscribers=int(getattr(s, "subscribers", 0) or 0),
-                active_users=int(getattr(s, "active_user_count", 0) or 0),
-                description=(getattr(s, "public_description", "") or "")[:500],
-                title=getattr(s, "title", "") or "",
-                over18=bool(getattr(s, "over18", False)),
-            )
-        except (NotFound, Forbidden, Redirect, ResponseException):
+        """Fetch subscribers, active users, description for a subreddit."""
+        data = _get_json(f"/r/{name}/about.json")
+        if not data or "data" not in data:
             return None
-        except Exception:
-            return None
+        d = data["data"]
+        return SubredditInfo(
+            subreddit=d.get("display_name") or name,
+            subscribers=int(d.get("subscribers") or 0),
+            active_users=int(d.get("active_user_count") or 0),
+            description=(d.get("public_description") or "")[:500],
+            title=d.get("title") or "",
+            over18=bool(d.get("over18")),
+        )
 
-    # ── Posts ────────────────────────────────────────────────
     def get_recent_posts(self, name: str, limit: int = 25) -> list[RedditPost]:
         """Fetch the latest N posts from a subreddit (newest first)."""
-        try:
-            sub = self.client.subreddit(name)
-            out: list[RedditPost] = []
-            for post in sub.new(limit=limit):
-                created_iso = datetime.fromtimestamp(
-                    post.created_utc, tz=timezone.utc
-                ).isoformat() if getattr(post, "created_utc", None) else ""
-                out.append(RedditPost(
-                    reddit_post_id=post.id,
-                    subreddit=name,
-                    title=(post.title or "")[:500],
-                    author=str(post.author) if post.author else "[deleted]",
-                    url=post.url or "",
-                    permalink=f"https://reddit.com{post.permalink}" if post.permalink else "",
-                    flair=post.link_flair_text or "",
-                    score=int(post.score or 0),
-                    num_comments=int(post.num_comments or 0),
-                    upvote_ratio=float(post.upvote_ratio or 0.0),
-                    is_video=bool(post.is_video),
-                    thumbnail=(post.thumbnail or "") if str(post.thumbnail).startswith("http") else "",
-                    created_at=created_iso,
-                ))
-            return out
-        except (NotFound, Forbidden, Redirect, ResponseException):
+        data = _get_json(f"/r/{name}/new.json?limit={min(100, max(1, limit))}")
+        if not data or "data" not in data:
             return []
-        except Exception:
-            return []
+        out: list[RedditPost] = []
+        for child in data["data"].get("children", []):
+            post = _post_from_json(name, child.get("data", {}))
+            if post:
+                out.append(post)
+        return out
 
     def get_top_post_24h(self, name: str) -> RedditPost | None:
         """Highest-scoring post in the last 24h."""
-        try:
-            sub = self.client.subreddit(name)
-            for post in sub.top(time_filter="day", limit=1):
-                created_iso = datetime.fromtimestamp(
-                    post.created_utc, tz=timezone.utc
-                ).isoformat() if getattr(post, "created_utc", None) else ""
-                return RedditPost(
-                    reddit_post_id=post.id,
-                    subreddit=name,
-                    title=(post.title or "")[:500],
-                    author=str(post.author) if post.author else "[deleted]",
-                    url=post.url or "",
-                    permalink=f"https://reddit.com{post.permalink}" if post.permalink else "",
-                    flair=post.link_flair_text or "",
-                    score=int(post.score or 0),
-                    num_comments=int(post.num_comments or 0),
-                    upvote_ratio=float(post.upvote_ratio or 0.0),
-                    is_video=bool(post.is_video),
-                    thumbnail=(post.thumbnail or "") if str(post.thumbnail).startswith("http") else "",
-                    created_at=created_iso,
-                )
-        except Exception:
+        data = _get_json(f"/r/{name}/top.json?t=day&limit=1")
+        if not data or "data" not in data:
             return None
-        return None
+        children = data["data"].get("children", [])
+        if not children:
+            return None
+        return _post_from_json(name, children[0].get("data", {}))

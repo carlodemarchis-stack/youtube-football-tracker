@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 """Hourly Reddit scan — isolated from YouTube crons.
 
+Uses Reddit's public .json endpoints — no OAuth credentials required.
+Anonymous rate limit (~60 req/min) accommodates our ~34 req/hour easily.
+
 For every tracked subreddit:
   1. Fetch subreddit stats (subscribers, active_users, description) — 1 call
   2. Fetch the latest 25 posts — 1 call
   3. Upsert posts into reddit_posts
-  4. Once per day (first run after midnight UTC): snapshot to reddit_snapshots
+  4. Upsert a daily snapshot to reddit_snapshots
 
 Env vars required:
-    REDDIT_CLIENT_ID
-    REDDIT_CLIENT_SECRET
-    REDDIT_USER_AGENT
     SUPABASE_URL
     SUPABASE_KEY
+    REDDIT_USER_AGENT  (optional — defaults to a sensible UA)
 """
 from __future__ import annotations
 
@@ -47,8 +48,7 @@ def log(msg: str) -> None:
 
 
 def main() -> int:
-    for v in ("REDDIT_CLIENT_ID", "REDDIT_CLIENT_SECRET",
-              "SUPABASE_URL", "SUPABASE_KEY"):
+    for v in ("SUPABASE_URL", "SUPABASE_KEY"):
         if not os.environ.get(v):
             log(f"FATAL: missing env var {v}")
             return 2

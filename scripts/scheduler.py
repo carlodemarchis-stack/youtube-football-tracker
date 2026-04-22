@@ -83,9 +83,9 @@ def main() -> None:
             ).start()
 
         # ── Hourly Reddit: at minute 7, hours 5-22 (offset from RSS) ─
-        # Skips silently if REDDIT_CLIENT_ID is not set.
+        # Skips if ENABLE_REDDIT=0 (set this to disable without removing code).
         if (minute >= 7 and should_run_hourly(hour) and last_reddit_hour != hour
-                and os.environ.get("REDDIT_CLIENT_ID")):
+                and os.environ.get("ENABLE_REDDIT", "1") != "0"):
             last_reddit_hour = hour
             threading.Thread(
                 target=run_script, args=("hourly_reddit.py",), daemon=True
