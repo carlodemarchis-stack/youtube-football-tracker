@@ -36,7 +36,7 @@ if os.path.exists(_env_path):
             k, v = line.split("=", 1)
             os.environ.setdefault(k, v.strip('"\''))
 
-from src.reddit_api import RedditClient
+from src.reddit_api import RedditClient, last_error
 from src.reddit_db import (
     get_tracked_subreddits, upsert_subreddit_stats, upsert_posts, add_snapshot,
 )
@@ -75,7 +75,7 @@ def main() -> int:
         try:
             info = client.get_subreddit_info(name)
             if not info:
-                log(f"  [{i}/{len(subreddits)}] r/{name}: not found / private / banned")
+                log(f"  [{i}/{len(subreddits)}] r/{name}: {last_error() or 'unknown error'}")
                 fail += 1
                 continue
             upsert_subreddit_stats(name, info)

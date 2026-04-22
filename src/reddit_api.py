@@ -51,8 +51,17 @@ _DEFAULT_UA = "ytft-research/0.1 (public data only)"
 _TIMEOUT = 15
 
 
+_last_error: str = ""
+
+
+def last_error() -> str:
+    return _last_error
+
+
 def _get_json(path: str) -> dict | None:
-    """Fetch a Reddit .json endpoint. Returns parsed JSON or None on failure."""
+    """Fetch a Reddit .json endpoint. Returns parsed JSON or None on failure.
+    Stores error reason in module-level `_last_error` for diagnostics."""
+    global _last_error
     ua = os.environ.get("REDDIT_USER_AGENT", _DEFAULT_UA)
     url = f"https://www.reddit.com{path}"
     req = Request(url, headers={
@@ -61,13 +70,19 @@ def _get_json(path: str) -> dict | None:
     })
     try:
         with urlopen(req, timeout=_TIMEOUT) as resp:
+            _last_error = ""
             return json.loads(resp.read().decode("utf-8"))
     except HTTPError as e:
-        # 404 = subreddit not found, 403 = private, 429 = rate limited
+        _last_error = f"HTTP {e.code}"
         return None
-    except (URLError, TimeoutError, json.JSONDecodeError):
+    except (URLError, TimeoutError) as e:
+        _last_error = f"network: {e}"
         return None
-    except Exception:
+    except json.JSONDecodeError as e:
+        _last_error = f"invalid JSON: {e}"
+        return None
+    except Exception as e:
+        _last_error = f"error: {e}"
         return None
 
 

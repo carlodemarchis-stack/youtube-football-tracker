@@ -1,0 +1,36 @@
+name: Hourly Reddit
+
+# Reddit blocks major cloud provider egress IPs (Railway, AWS, etc) from
+# anonymous public JSON access. GitHub Actions runners use rotating IPs
+# from pools that Reddit does not block, so we run this cron here instead.
+
+on:
+  schedule:
+    # Every hour at :07 UTC — matches the offset we chose on Railway.
+    # NOTE: GitHub Actions cron is best-effort; jobs may drift by a few minutes
+    # under platform load. For a fan-pulse feature that's fine.
+    - cron: '7 * * * *'
+  workflow_dispatch: {}  # allow manual run from the Actions tab
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install supabase python-dotenv
+
+      - name: Run hourly_reddit.py
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          REDDIT_USER_AGENT: 'ytft-research/0.1 (by github actions)'
+        run: python scripts/hourly_reddit.py
