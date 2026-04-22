@@ -376,6 +376,7 @@ if ONE_CLUB:
                 <td style="padding:6px 12px">{v.get('category') or ''}</td>
                 <td style="padding:6px 12px;text-align:right">{fmt_num(int(v.get('view_count') or 0))}</td>
                 <td style="padding:6px 12px;text-align:right">{fmt_num(int(v.get('like_count') or 0))}</td>
+                <td style="padding:6px 12px;text-align:right">{fmt_num(int(v.get('comment_count') or 0))}</td>
                 <td style="padding:6px 12px;color:#888;font-size:12px">{pub_time}</td>
             </tr>"""
         components.html(f"""
@@ -390,6 +391,7 @@ if ONE_CLUB:
           <th></th><th>Title</th><th>Format</th><th>Theme</th>
           <th style="text-align:right">Views</th>
           <th style="text-align:right">Likes</th>
+          <th style="text-align:right">Comments</th>
           <th>Posted</th>
         </tr></thead><tbody>{rows}</tbody></table>
         {yt_popup_js()}
@@ -666,6 +668,7 @@ if new_video_rows and not ONE_CLUB:
         fmt_label = {"long": "Long", "short": "Shorts", "live": "Live"}.get(fmt, fmt.title())
         views = int(v.get("view_count") or 0)
         likes = int(v.get("like_count") or 0)
+        comments = int(v.get("comment_count") or 0)
         _mw_rows += f"""<tr style="border-left:3px solid {club_c1}">
             <td style="padding:6px 12px;text-align:right;color:#888">{i}</td>
             <td style="padding:6px 12px"><a href="{yt_url}" target="_blank"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px"></a></td>
@@ -675,6 +678,7 @@ if new_video_rows and not ONE_CLUB:
             </td>
             <td style="padding:6px 12px;text-align:right;font-weight:600">{fmt_num(views)}</td>
             <td style="padding:6px 12px;text-align:right">{fmt_num(likes)}</td>
+            <td style="padding:6px 12px;text-align:right">{fmt_num(comments)}</td>
         </tr>"""
 
     components.html(f"""
@@ -692,6 +696,7 @@ if new_video_rows and not ONE_CLUB:
         <th>Video</th>
         <th style="text-align:right">Views</th>
         <th style="text-align:right">Likes</th>
+        <th style="text-align:right">Comments</th>
       </tr></thead>
       <tbody>{_mw_rows}</tbody>
     </table>
