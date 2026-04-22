@@ -5,12 +5,10 @@ name: Hourly Reddit
 # from pools that Reddit does not block, so we run this cron here instead.
 
 on:
-  schedule:
-    # Every hour at :07 UTC — matches the offset we chose on Railway.
-    # NOTE: GitHub Actions cron is best-effort; jobs may drift by a few minutes
-    # under platform load. For a fan-pulse feature that's fine.
-    - cron: '7 * * * *'
-  workflow_dispatch: {}  # allow manual run from the Actions tab
+  # Schedule disabled — Reddit blocks GitHub Actions IP ranges (403 on all
+  # anonymous requests). Only manual dispatch for now, until we either
+  # get an OAuth app approved or route through a proxy.
+  workflow_dispatch: {}
 
 jobs:
   run:
