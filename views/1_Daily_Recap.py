@@ -297,6 +297,9 @@ if not ONE_CLUB:
     st.markdown("---")
     st.subheader("📊 Per-league summary")
     lg_agg: dict[str, dict] = {}
+    # Per-league per-club video counts — used to determine most-active club per league
+    lg_club_counts: dict[str, dict[str, int]] = {}
+
     for cid, snap in chan_day.items():
         ch = ch_by_id.get(cid)
         if not ch:
@@ -319,25 +322,47 @@ if not ONE_CLUB:
             if vfmt not in ("long", "short", "live"):
                 vfmt = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
             lg_agg[lg][vfmt] = lg_agg[lg].get(vfmt, 0) + 1
+            # Track per-league, per-club counts (exclude the league channel itself)
+            if ch.get("entity_type") != "League":
+                lg_club_counts.setdefault(lg, {})[ch["id"]] = \
+                    lg_club_counts.setdefault(lg, {}).get(ch["id"], 0) + 1
 
     if lg_agg:
         lg_rows = ""
         for lg, agg in sorted(lg_agg.items(), key=lambda kv: kv[1]["view_delta"], reverse=True):
             view_col = "#00CC96" if agg["view_delta"] > 0 else ("#EF553B" if agg["view_delta"] < 0 else "#888")
             _lg_fmt = f"{agg['long']} / {agg['short']} / {agg['live']}"
+
+            # Most active club in this league
+            clubs_in_lg = lg_club_counts.get(lg, {})
+            if clubs_in_lg:
+                top_cid, top_n = max(clubs_in_lg.items(), key=lambda kv: kv[1])
+                top_ch = ch_by_id.get(top_cid) or {}
+                top_name = top_ch.get("name", "—")
+                _c1, _c2 = dual.get(top_name, (color_map.get(top_name, "#636EFA"), "#FFFFFF"))
+                top_active = (
+                    f"<span style='display:inline-block;width:9px;height:9px;border-radius:50%;"
+                    f"background:{_c1};box-shadow:2px 0 0 {_c2};border:1px solid rgba(255,255,255,0.25);"
+                    f"margin-right:7px;vertical-align:middle'></span>"
+                    f"{top_name} <span style='color:#888;font-size:12px'>· {top_n}</span>"
+                )
+            else:
+                top_active = "<span style='color:#666'>—</span>"
+
             lg_rows += f"""<tr>
                 <td style="padding:8px 12px;font-weight:600">{LEAGUE_FLAG.get(lg, '')} {lg}</td>
                 <td style="padding:8px 12px;text-align:right">{agg['clubs']}</td>
                 <td style="padding:8px 12px;text-align:right">{agg['new_videos']}</td>
                 <td style="padding:8px 12px;text-align:right">{_lg_fmt}</td>
                 <td style="padding:8px 12px;text-align:right;color:{view_col}">{'+' if agg['view_delta'] >= 0 else ''}{fmt_num(agg['view_delta'])}</td>
+                <td style="padding:8px 12px">{top_active}</td>
             </tr>"""
         components.html(f"""
         <style>
           .lg {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
                  font-family:"Source Sans Pro",sans-serif; }}
           .lg th {{ padding:8px 12px; border-bottom:2px solid #444; text-align:left; }}
-          .lg td {{ border-bottom:1px solid #262730; }}
+          .lg td {{ border-bottom:1px solid #262730; vertical-align:middle; }}
         </style>
         <table class="lg"><thead><tr>
           <th>League</th>
@@ -345,8 +370,9 @@ if not ONE_CLUB:
           <th style="text-align:right">Videos</th>
           <th style="text-align:right">Long / Shorts / Live</th>
           <th style="text-align:right">Δ Views</th>
+          <th>🔥 Most active club</th>
         </tr></thead><tbody>{lg_rows}</tbody></table>
-        """, height=len(lg_agg) * 38 + 50, scrolling=False)
+        """, height=len(lg_agg) * 42 + 60, scrolling=False)
 
 # ── Gainer leaderboards side-by-side ─ skip when viewing one club ─
 if ONE_CLUB:
