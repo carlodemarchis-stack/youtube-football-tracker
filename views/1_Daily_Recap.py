@@ -751,39 +751,28 @@ _today_iso = datetime.now(CET).date().isoformat()
 _all_dates = [d for d in _all_dates if d < _today_iso]
 
 if len(_all_dates) >= 2:
-    # Count new videos per day
-    _all_vids_in_range = (
-        db.client.table("videos")
-        .select("id,channel_id,published_at")
-        .gte("published_at", f"{_all_dates[0]}T00:00:00+00:00")
-        .lt("published_at", f"{(date.fromisoformat(_all_dates[-1]) + timedelta(days=1)).isoformat()}T00:00:00+00:00")
-    )
-    if filter_cids is not None:
-        _all_vids_in_range = _all_vids_in_range.in_("channel_id", list(filter_cids))
-    _all_vids_in_range = _all_vids_in_range.execute().data or []
-
-    _vids_by_day: dict[str, int] = {}
-    for v in _all_vids_in_range:
-        _vpa = v.get("published_at") or ""
-        try:
-            vday = datetime.fromisoformat(_vpa.replace("Z", "+00:00")).astimezone(CET).strftime("%Y-%m-%d")
-        except Exception:
-            vday = _vpa[:10]
-        _vids_by_day[vday] = _vids_by_day.get(vday, 0) + 1
-
+    # Compute per-day aggregates from channel_snapshots we already loaded.
+    # New videos per day = sum of (video_count[d] - video_count[d_prev]) across clubs.
+    # Avoids a separate videos table query (which hits the default 1000-row
+    # Supabase limit and drops recent rows, causing the trailing "0" artifact).
     trend_rows = []
     for i in range(1, len(_all_dates)):
         d = _all_dates[i]
         d_prev = _all_dates[i - 1]
         cur_snaps = _snap_by_date.get(d, {})
         prev_snaps = _snap_by_date.get(d_prev, {})
-        dv_total = 0
+        dv_total = 0   # Δ total_views
+        dv_count = 0   # Δ video_count (= new videos posted that day)
         for cid, snap in cur_snaps.items():
             prev = prev_snaps.get(cid)
-            if prev:
-                dv_total += int(snap.get("total_views") or 0) - int(prev.get("total_views") or 0)
-        nv = _vids_by_day.get(d, 0)
-        trend_rows.append({"Date": d, "Δ Channel Views": dv_total, "New Videos": nv})
+            if not prev:
+                continue
+            dv_total += int(snap.get("total_views") or 0) - int(prev.get("total_views") or 0)
+            # Clamp negative deltas (happens if videos get deleted/made private)
+            dc = int(snap.get("video_count") or 0) - int(prev.get("video_count") or 0)
+            if dc > 0:
+                dv_count += dc
+        trend_rows.append({"Date": d, "Δ Channel Views": dv_total, "New Videos": dv_count})
 
     if trend_rows:
         import altair as alt
