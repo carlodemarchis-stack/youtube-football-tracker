@@ -55,14 +55,12 @@ if not subs:
 
 # ── Summary ─────────────────────────────────────────────────
 total_subs = sum(int(s.get("subscribers") or 0) for s in subs)
-total_active = sum(int(s.get("active_users") or 0) for s in subs)
 last_fetched = max((s.get("last_fetched") or "" for s in subs), default="")
 
-c1, c2, c3, c4 = st.columns(4)
+c1, c2, c3 = st.columns(3)
 c1.metric("Subreddits tracked", len(subs))
 c2.metric("Total subscribers", fmt_num(total_subs))
-c3.metric("Active right now", fmt_num(total_active))
-c4.metric("Last update", fmt_date(last_fetched) if last_fetched else "—")
+c3.metric("Last update", fmt_date(last_fetched) if last_fetched else "—")
 
 # ── Routing: detail view if ?subreddit=... else overview ────
 pick = st.query_params.get("subreddit", "")
@@ -98,11 +96,11 @@ if not pick:
             f"background:{c1};box-shadow:3px 0 0 {c2};border:1px solid rgba(255,255,255,0.25);"
             f"margin-right:10px;vertical-align:middle'></span>"
         )
-        # Link to detail view on this same page via query param
+        # Link navigates the PARENT Streamlit page (target=_top escapes the iframe)
         href = f"?subreddit={s_row['subreddit']}"
         return (
             f"{dot}<span>{flag} "
-            f"<a href='{href}' target='_self' style='color:#FAFAFA;text-decoration:none'>{label}</a>"
+            f"<a href='{href}' target='_top' style='color:#FAFAFA;text-decoration:none'>{label}</a>"
             f"</span>"
         )
 
@@ -178,11 +176,10 @@ st.link_button("← Back to overview", "?")
 sub_id = sub["id"]
 
 # Header KPIs
-k1, k2, k3, k4 = st.columns(4)
+k1, k2, k3 = st.columns(3)
 k1.metric("Subscribers", fmt_num(sub.get("subscribers") or 0))
-k2.metric("Active", fmt_num(sub.get("active_users") or 0))
-k3.metric("Official?", "✓" if sub.get("is_official") else "fan-run")
-k4.metric("Last fetched", fmt_date(sub.get("last_fetched")) if sub.get("last_fetched") else "—")
+k2.metric("Official?", "✓" if sub.get("is_official") else "fan-run")
+k3.metric("Last fetched", fmt_date(sub.get("last_fetched")) if sub.get("last_fetched") else "—")
 
 if sub.get("description"):
     st.caption(sub["description"])
