@@ -64,7 +64,6 @@ pick_options = ["— Overview —"] + sub_names
 pick = st.selectbox("Subreddit", pick_options, index=0)
 
 if pick == "— Overview —":
-    # Table view: all subreddits ranked
     rows = []
     for s in subs:
         top_post = None
@@ -72,20 +71,31 @@ if pick == "— Overview —":
             top_post = get_top_post_today(s["id"])
         except Exception:
             pass
+        name = s["subreddit"]
         rows.append({
-            "Subreddit": f"r/{s['subreddit']}",
+            "Subreddit": f"https://reddit.com/r/{name}",
             "Subscribers": int(s.get("subscribers") or 0),
-            "Active": int(s.get("active_users") or 0),
             "Top post (24h)": (top_post or {}).get("title", "—"),
             "Top score": int((top_post or {}).get("score") or 0),
             "Top comments": int((top_post or {}).get("num_comments") or 0),
         })
     df = pd.DataFrame(rows).sort_values("Subscribers", ascending=False)
     df["Subscribers"] = df["Subscribers"].apply(fmt_num)
-    df["Active"] = df["Active"].apply(fmt_num)
     df["Top score"] = df["Top score"].apply(fmt_num)
     df["Top comments"] = df["Top comments"].apply(fmt_num)
-    st.dataframe(df, use_container_width=True, hide_index=True)
+
+    st.dataframe(
+        df,
+        use_container_width=True,
+        hide_index=True,
+        height=(len(df) + 1) * 35 + 3,   # full height, no inner scrollbar
+        column_config={
+            "Subreddit": st.column_config.LinkColumn(
+                "Subreddit",
+                display_text=r"https?://(?:www\.)?reddit\.com/(r/[^/]+)",
+            ),
+        },
+    )
     st.stop()
 
 # ── Per-subreddit detail ────────────────────────────────────
