@@ -48,21 +48,21 @@ def main() -> int:
     since = sys.argv[1] if len(sys.argv) > 1 else None
     db = Database(sb_url, sb_key)
 
-    # Collect distinct captured_dates in video_snapshots
-    q = (
-        db.client.table("video_snapshots")
-        .select("captured_date")
-        .order("captured_date", desc=False)
-    )
-    if since:
-        q = q.gte("captured_date", since)
-
-    # Paginate to collect dates (there can be millions of rows but few distinct dates)
+    # Collect distinct captured_dates. We use channel_snapshots as the date
+    # source (one row per channel per day, much smaller than video_snapshots).
+    # The daily cron writes both tables the same day, so dates line up.
     seen: set[str] = set()
-    page = 0
-    page_size = 10000
+    page_size = 1000
+    offset = 0
     while True:
-        resp = q.range(page * page_size, (page + 1) * page_size - 1).execute()
+        q = (
+            db.client.table("channel_snapshots")
+            .select("captured_date")
+            .order("captured_date", desc=False)
+        )
+        if since:
+            q = q.gte("captured_date", since)
+        resp = q.range(offset, offset + page_size - 1).execute()
         rows = resp.data or []
         if not rows:
             break
@@ -70,7 +70,7 @@ def main() -> int:
             seen.add(r["captured_date"])
         if len(rows) < page_size:
             break
-        page += 1
+        offset += page_size
 
     dates = sorted(seen)
     log(f"Backfilling video_daily_deltas for {len(dates)} date(s): {dates[0] if dates else 'none'} → {dates[-1] if dates else 'none'}")
