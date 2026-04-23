@@ -39,6 +39,24 @@ if not all_channels:
 league, club = get_global_filter()
 now = datetime.now(timezone.utc)
 
+
+def _subs_per_year(subs: int, launched_iso: str | None) -> int:
+    """Subscribers / channel age in years (based on launched_at).
+    Returns 0 for very-young channels (< 36 days) or missing launched_at."""
+    if not launched_iso or not subs:
+        return 0
+    try:
+        d = datetime.fromisoformat(str(launched_iso).replace("Z", "+00:00"))
+        if d.tzinfo is None:
+            d = d.replace(tzinfo=timezone.utc)
+        years = (now - d).days / 365.25
+        if years <= 0.1:
+            return 0
+        return int(int(subs) / years)
+    except Exception:
+        return 0
+
+
 _daily_updated = db.get_last_fetch_time("daily")
 render_page_subtitle("Channel stats and comparison", updated_raw=_daily_updated)
 
@@ -243,11 +261,13 @@ if league is None and _scope == "Overall":
         _row_click = f'onclick="window.open(\'https://www.youtube.com/{_handle}\',\'_blank\',\'noopener\')" style="cursor:pointer"' if _handle else ''
         _launched = (_r.get("launched_at") or "")[:4] or "-"
         _launched_val = (_r.get("launched_at") or "9999")[:4]
+        _spy = _subs_per_year(_r['subscriber_count'], _r.get('launched_at'))
         _all_rows += f"""<tr {_row_click}>
             <td style="padding:6px 12px">{_dot}</td>
             <td style="padding:6px 12px" data-val="{_r['name']}">{_r['name']}</td>
             <td style="padding:6px 12px;text-align:center" data-val="{_launched_val}">{_launched}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{_r['subscriber_count']}">{fmt_num(_r['subscriber_count'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{_spy}">{fmt_num(_spy)}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{_r['total_views']}">{fmt_num(_r['total_views'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{_r['views_per_sub']}">{fmt_num(_r['views_per_sub'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{_r['video_count']}">{fmt_num(_r['video_count'])}</td>
@@ -275,14 +295,15 @@ if league is None and _scope == "Overall":
         <th style="width:30px"></th>
         <th data-col="1" data-type="str" style="text-align:left">Channel</th>
         <th data-col="2" data-type="num" style="text-align:center">Since</th>
-        <th data-col="3" data-type="num" style="text-align:right" class="active">Subscribers ▼</th>
-        <th data-col="4" data-type="num" style="text-align:right">Total Views</th>
-        <th data-col="5" data-type="num" style="text-align:right">Views/Sub</th>
-        <th data-col="6" data-type="num" style="text-align:right">Videos</th>
-        <th data-col="7" data-type="num" style="text-align:right">Long</th>
-        <th data-col="8" data-type="num" style="text-align:right">Shorts</th>
-        <th data-col="9" data-type="num" style="text-align:right">Live</th>
-        <th data-col="10" data-type="num" style="text-align:right">Views/Video</th>
+        <th data-col="3" data-type="num" style="text-align:right" class="active">Subs ▼</th>
+        <th data-col="4" data-type="num" style="text-align:right">Subs/Year</th>
+        <th data-col="5" data-type="num" style="text-align:right">Total Views</th>
+        <th data-col="6" data-type="num" style="text-align:right">Views/Sub</th>
+        <th data-col="7" data-type="num" style="text-align:right">Videos</th>
+        <th data-col="8" data-type="num" style="text-align:right">Long</th>
+        <th data-col="9" data-type="num" style="text-align:right">Shorts</th>
+        <th data-col="10" data-type="num" style="text-align:right">Live</th>
+        <th data-col="11" data-type="num" style="text-align:right">Views/Video</th>
     </tr>
     </thead>
     <tbody>{_all_rows}</tbody>
@@ -381,11 +402,13 @@ elif club is None:
         _row_click = f'onclick="window.open(\'https://www.youtube.com/{handle}\',\'_blank\',\'noopener\')" style="cursor:pointer"' if handle else ''
         launched = (row.get("launched_at") or "")[:4] or "-"
         launched_val = (row.get("launched_at") or "9999")[:4]
+        spy = _subs_per_year(row['subscriber_count'], row.get('launched_at'))
         rows_html += f"""<tr {_row_click}>
             <td style="padding:6px 12px">{dot}</td>
             <td style="padding:6px 12px" data-val="{row['name']}">{row['name']}</td>
             <td style="padding:6px 12px;text-align:center" data-val="{launched_val}">{launched}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{row['subscriber_count']}">{fmt_num(row['subscriber_count'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{spy}">{fmt_num(spy)}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{row['total_views']}">{fmt_num(row['total_views'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{row['views_per_sub']}">{fmt_num(row['views_per_sub'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{row['video_count']}">{fmt_num(row['video_count'])}</td>
@@ -415,14 +438,15 @@ elif club is None:
         <th style="width:30px"></th>
         <th data-col="1" data-type="str" style="text-align:left">Channel</th>
         <th data-col="2" data-type="num" style="text-align:center">Since</th>
-        <th data-col="3" data-type="num" style="text-align:right" class="active">Subscribers ▼</th>
-        <th data-col="4" data-type="num" style="text-align:right">Total Views</th>
-        <th data-col="5" data-type="num" style="text-align:right">Views/Sub</th>
-        <th data-col="6" data-type="num" style="text-align:right">Videos</th>
-        <th data-col="7" data-type="num" style="text-align:right">Long</th>
-        <th data-col="8" data-type="num" style="text-align:right">Shorts</th>
-        <th data-col="9" data-type="num" style="text-align:right">Live</th>
-        <th data-col="10" data-type="num" style="text-align:right">Views/Video</th>
+        <th data-col="3" data-type="num" style="text-align:right" class="active">Subs ▼</th>
+        <th data-col="4" data-type="num" style="text-align:right">Subs/Year</th>
+        <th data-col="5" data-type="num" style="text-align:right">Total Views</th>
+        <th data-col="6" data-type="num" style="text-align:right">Views/Sub</th>
+        <th data-col="7" data-type="num" style="text-align:right">Videos</th>
+        <th data-col="8" data-type="num" style="text-align:right">Long</th>
+        <th data-col="9" data-type="num" style="text-align:right">Shorts</th>
+        <th data-col="10" data-type="num" style="text-align:right">Live</th>
+        <th data-col="11" data-type="num" style="text-align:right">Views/Video</th>
     </tr>
     </thead>
     <tbody>{rows_html}</tbody>
