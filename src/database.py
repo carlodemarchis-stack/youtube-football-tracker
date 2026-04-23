@@ -159,6 +159,99 @@ class Database:
             offset += page_size
         return all_rows
 
+    # ── video_daily_deltas ────────────────────────────────────
+    def compute_video_daily_deltas(self, captured_date: str) -> int:
+        """Populate `video_daily_deltas` for `captured_date` by diffing that
+        day's video_snapshots against each video's most recent prior snapshot.
+        Returns the number of rows upserted. Idempotent via primary key."""
+        # 1) Fetch today's snapshots (video_id, view_count) + their videos.channel_id
+        today_rows: list[dict] = []
+        page_size = 1000
+        offset = 0
+        while True:
+            resp = (
+                self.client.table("video_snapshots")
+                .select("video_id,view_count,videos!inner(channel_id)")
+                .eq("captured_date", captured_date)
+                .range(offset, offset + page_size - 1)
+                .execute()
+            )
+            batch = resp.data or []
+            today_rows.extend(batch)
+            if len(batch) < page_size:
+                break
+            offset += page_size
+        if not today_rows:
+            return 0
+
+        # 2) For each video_id, find the most recent snapshot strictly before
+        #    captured_date. Fetch in chunks of 500 video_ids.
+        video_ids = [r["video_id"] for r in today_rows]
+        prev_by_vid: dict[str, tuple[str, int]] = {}  # video_id -> (prev_date, prev_view_count)
+        for i in range(0, len(video_ids), 500):
+            chunk = video_ids[i:i + 500]
+            # Get all snapshots before today for these videos
+            resp = (
+                self.client.table("video_snapshots")
+                .select("video_id,captured_date,view_count")
+                .in_("video_id", chunk)
+                .lt("captured_date", captured_date)
+                .order("captured_date", desc=True)
+                .execute()
+            )
+            for row in (resp.data or []):
+                vid = row["video_id"]
+                # Keep only the latest prev per video_id (order desc = first seen wins)
+                if vid not in prev_by_vid:
+                    prev_by_vid[vid] = (row["captured_date"], int(row.get("view_count") or 0))
+
+        # 3) Build delta rows
+        deltas = []
+        for r in today_rows:
+            vid = r["video_id"]
+            vc = int(r.get("view_count") or 0)
+            ch = (r.get("videos") or {}).get("channel_id") if isinstance(r.get("videos"), dict) else None
+            if not ch:
+                continue
+            prev = prev_by_vid.get(vid)
+            prev_date = prev[0] if prev else None
+            prev_vc = prev[1] if prev else 0
+            deltas.append({
+                "video_id": vid,
+                "channel_id": ch,
+                "captured_date": captured_date,
+                "view_count": vc,
+                "view_delta": vc - prev_vc if prev else 0,
+                "prev_captured_date": prev_date,
+            })
+
+        # 4) Upsert in chunks
+        written = 0
+        for b in range(0, len(deltas), 500):
+            resp = (
+                self.client.table("video_daily_deltas")
+                .upsert(deltas[b:b + 500], on_conflict="video_id,captured_date")
+                .execute()
+            )
+            written += len(resp.data or [])
+        return written
+
+    def get_top_video_deltas(self, captured_date: str, limit: int = 20,
+                              channel_ids: list[str] | None = None) -> list[dict]:
+        """Top-N videos by view_delta for a given date, optionally scoped to
+        channels. Returns rows with video_id, channel_id, view_delta, view_count."""
+        q = (
+            self.client.table("video_daily_deltas")
+            .select("video_id,channel_id,view_delta,view_count,prev_captured_date")
+            .eq("captured_date", captured_date)
+            .order("view_delta", desc=True)
+            .limit(limit)
+        )
+        if channel_ids:
+            q = q.in_("channel_id", list(channel_ids))
+        resp = q.execute()
+        return resp.data or []
+
     def get_video_snapshots_range(self, since_date: str, until_date: str | None = None) -> list[dict]:
         all_rows: list[dict] = []
         page_size = 1000

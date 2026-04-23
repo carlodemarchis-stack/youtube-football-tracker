@@ -166,6 +166,16 @@ def main() -> int:
             video_snapshots_written = db.snapshot_videos_batch(snap_rows)
             log(f"  wrote {video_snapshots_written} video_snapshots rows")
 
+            # Pre-compute per-video daily deltas — powers the Daily Recap
+            # "Most watched" section without scanning raw snapshots at page load.
+            try:
+                from datetime import date as _date
+                _today_iso = _date.today().isoformat()
+                deltas_written = db.compute_video_daily_deltas(_today_iso)
+                log(f"  wrote {deltas_written} video_daily_deltas rows for {_today_iso}")
+            except Exception as e:
+                log(f"  video_daily_deltas step skipped: {e}")
+
             # ALSO update the videos table so Streamlit sees fresh view counts
             # (upsert view/like/comment on existing rows; keeps title/thumbnail too)
             try:

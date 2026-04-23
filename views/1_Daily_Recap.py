@@ -95,6 +95,22 @@ def _load_new_video_channel_ids(start_ts: str, end_ts: str) -> list[dict]:
 
 
 @st.cache_data(ttl=300, show_spinner=False)
+def _load_top_video_deltas(captured_date: str, limit: int,
+                             channel_ids_tuple: tuple | None) -> list[dict]:
+    """Top videos by Δ views on a date — served from pre-computed
+    video_daily_deltas. Falls back to an empty list if the table doesn't
+    exist yet (fresh install before backfill)."""
+    try:
+        return db.get_top_video_deltas(
+            captured_date,
+            limit=limit,
+            channel_ids=list(channel_ids_tuple) if channel_ids_tuple else None,
+        )
+    except Exception:
+        return []
+
+
+@st.cache_data(ttl=300, show_spinner=False)
 def _load_videos_by_ids(ids_tuple: tuple) -> list[dict]:
     """Full video rows for a list of IDs — used by the Most Watched detail table."""
     if not ids_tuple:
@@ -649,24 +665,41 @@ if not ONE_CLUB:
 # ── Most watched videos yesterday (by Δ views from snapshots) ──
 st.markdown("---")
 _mw_scope = ""
-trending = []
-for vid_dbid, snap in vmap_day.items():
-    prev = vmap_prev.get(vid_dbid)
-    if not prev:
-        continue
-    d = int(snap.get("view_count", 0) or 0) - int(prev.get("view_count", 0) or 0)
-    if d <= 0:
-        continue
-    trending.append({"id": vid_dbid, "delta": d, "views": int(snap.get("view_count", 0) or 0)})
+_top_n = 10 if ONE_CLUB else 20
+
+# Prefer the pre-computed video_daily_deltas table (single indexed query,
+# returns only top-N rows). Fall back to computing from vmap_day/vmap_prev
+# if the table is empty (before backfill has run).
+_top_deltas = _load_top_video_deltas(day_iso, _top_n, _fc_tuple)
+
+if _top_deltas:
+    trending = [
+        {"id": r["video_id"], "delta": int(r.get("view_delta") or 0),
+         "views": int(r.get("view_count") or 0)}
+        for r in _top_deltas
+        if int(r.get("view_delta") or 0) > 0
+    ]
+else:
+    # Fallback: diff in-memory (pre-backfill behaviour)
+    trending = []
+    for vid_dbid, snap in vmap_day.items():
+        prev = vmap_prev.get(vid_dbid)
+        if not prev:
+            continue
+        d = int(snap.get("view_count", 0) or 0) - int(prev.get("view_count", 0) or 0)
+        if d <= 0:
+            continue
+        trending.append({"id": vid_dbid, "delta": d,
+                         "views": int(snap.get("view_count", 0) or 0)})
+    trending.sort(key=lambda t: t["delta"], reverse=True)
+    trending = trending[:_top_n]
 
 st.subheader(f"🔥 {_mw_scope}Most watched videos on {day_iso}")
 
 if not trending:
     st.caption("No video snapshot data available for this day yet.")
 else:
-    _top_n = 10 if ONE_CLUB else 20
-    trending.sort(key=lambda t: t["delta"], reverse=True)
-    top_ids = [t["id"] for t in trending[:_top_n]]
+    top_ids = [t["id"] for t in trending]
     vid_rows = _load_videos_by_ids(tuple(sorted(top_ids)))
     vid_by_id = {v["id"]: v for v in vid_rows}
 
