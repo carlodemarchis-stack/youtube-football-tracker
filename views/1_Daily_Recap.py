@@ -44,6 +44,89 @@ ch_by_id = {c["id"]: c for c in all_channels}
 color_map = get_global_color_map()
 dual = get_global_color_map_dual()
 
+
+# ── Cached data loaders (5 min TTL — data changes after daily cron) ─
+@st.cache_data(ttl=300, show_spinner=False)
+def _load_chan_snaps(since_iso: str) -> list[dict]:
+    """Cache the 14-day channel snapshots — only changes after daily cron."""
+    return db.get_all_snapshots(since_date=since_iso)
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _load_snapshot_dates() -> list[str]:
+    """Available snapshot dates (for the date-picker default)."""
+    rows = (
+        db.client.table("channel_snapshots")
+        .select("captured_date")
+        .order("captured_date", desc=True)
+        .limit(2000)
+        .execute()
+        .data or []
+    )
+    return sorted({r["captured_date"] for r in rows}, reverse=True)
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _load_new_videos(start_ts: str, end_ts: str, channel_ids_tuple: tuple | None) -> list[dict]:
+    """Videos published in [start_ts, end_ts), optionally filtered by channel."""
+    q = (
+        db.client.table("videos")
+        .select("*")
+        .gte("published_at", start_ts)
+        .lt("published_at", end_ts)
+    )
+    if channel_ids_tuple:
+        q = q.in_("channel_id", list(channel_ids_tuple))
+    return q.execute().data or []
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _load_new_video_channel_ids(start_ts: str, end_ts: str) -> list[dict]:
+    """Just {channel_id} per new video — for ranking in the ONE_CLUB case.
+    Unfiltered so we can rank the current club against all others."""
+    return (
+        db.client.table("videos")
+        .select("channel_id")
+        .gte("published_at", start_ts)
+        .lt("published_at", end_ts)
+        .execute()
+        .data or []
+    )
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _load_videos_by_ids(ids_tuple: tuple) -> list[dict]:
+    """Full video rows for a list of IDs — used by the Most Watched detail table."""
+    if not ids_tuple:
+        return []
+    return (
+        db.client.table("videos")
+        .select("*")
+        .in_("id", list(ids_tuple))
+        .execute()
+        .data or []
+    )
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _load_video_snapshots_cached(captured_date: str, channel_ids_tuple: tuple | None) -> list[dict]:
+    """Per-day video snapshots, server-side filtered by channel via inner
+    join to videos. Returns trimmed rows {video_id, view_count, channel_id}."""
+    rows = db.get_video_snapshots_for_date_filtered(
+        captured_date,
+        channel_ids=list(channel_ids_tuple) if channel_ids_tuple else None,
+    )
+    out = []
+    for r in rows:
+        v = r.get("videos") or {}
+        out.append({
+            "video_id": r.get("video_id"),
+            "view_count": r.get("view_count") or 0,
+            "channel_id": v.get("channel_id") if isinstance(v, dict) else None,
+        })
+    return out
+
+
 # ── Read global filter ──────────────────────────────────────
 g_league, g_club = get_global_filter()
 ONE_CLUB = g_club is not None
@@ -61,9 +144,7 @@ else:
 _cet_today = datetime.now(CET).date()
 _cet_yesterday = _cet_today - timedelta(days=1)
 try:
-    _recent_snaps = db.client.table("channel_snapshots") \
-        .select("captured_date").order("captured_date", desc=True).limit(2000).execute().data
-    _snap_dates = sorted({s["captured_date"] for s in _recent_snaps}, reverse=True)
+    _snap_dates = _load_snapshot_dates()
     # Find the most recent snapshot on or before CET yesterday
     _valid = [d for d in _snap_dates if d <= _cet_yesterday.isoformat()]
     if _valid:
@@ -85,36 +166,6 @@ prev_iso = prev_day.isoformat()
 # ── Load snapshots ──────────────────────────────────────────
 LOOKBACK_DAYS = 14
 lookback_iso = (day - timedelta(days=LOOKBACK_DAYS)).isoformat()
-
-
-@st.cache_data(ttl=300, show_spinner=False)
-def _load_chan_snaps(since_iso: str) -> list[dict]:
-    """Cache the 14-day channel snapshots — only changes after daily cron.
-    TTL 5min = fast subsequent loads; cron runs at 03:15 UTC so cache is
-    naturally refreshed during the first view each morning."""
-    return db.get_all_snapshots(since_date=since_iso)
-
-
-@st.cache_data(ttl=300, show_spinner=False)
-def _load_video_snapshots(captured_date: str, channel_ids_tuple: tuple | None) -> list[dict]:
-    """Fetch video snapshots for one day, filtered server-side by channel
-    via an inner join on videos. Returns trimmed rows with video_id,
-    view_count, and the channel_id flattened out."""
-    rows = db.get_video_snapshots_for_date_filtered(
-        captured_date,
-        channel_ids=list(channel_ids_tuple) if channel_ids_tuple else None,
-    )
-    # Flatten the embedded videos.channel_id so downstream code stays simple
-    out = []
-    for r in rows:
-        v = r.get("videos") or {}
-        out.append({
-            "video_id": r.get("video_id"),
-            "view_count": r.get("view_count") or 0,
-            "channel_id": v.get("channel_id") if isinstance(v, dict) else None,
-        })
-    return out
-
 
 with st.spinner(f"Loading snapshots for {day_iso}…"):
     # 1) Channel snapshots (cached)
@@ -146,8 +197,8 @@ for s in chan_snaps:
 # fetches + a batched video→channel lookup).
 _prev_snap_date = max(prev_date_by_cid.values(), default=None) if prev_date_by_cid else None
 _fc_tuple = tuple(sorted(filter_cids)) if filter_cids is not None else None
-vid_snaps_day = _load_video_snapshots(day_iso, _fc_tuple)
-vid_snaps_prev = _load_video_snapshots(_prev_snap_date, _fc_tuple) if _prev_snap_date else []
+vid_snaps_day = _load_video_snapshots_cached(day_iso, _fc_tuple)
+vid_snaps_prev = _load_video_snapshots_cached(_prev_snap_date, _fc_tuple) if _prev_snap_date else []
 
 vmap_day = {s["video_id"]: s for s in vid_snaps_day}
 vmap_prev = {s["video_id"]: s for s in vid_snaps_prev}
@@ -174,15 +225,7 @@ _day_start_cet = datetime(day.year, day.month, day.day, tzinfo=CET)
 _day_end_cet = _day_start_cet + timedelta(days=1)
 start_ts = _day_start_cet.astimezone(timezone.utc).isoformat()
 end_ts = _day_end_cet.astimezone(timezone.utc).isoformat()
-_q_new = (
-    db.client.table("videos")
-    .select("*")
-    .gte("published_at", start_ts)
-    .lt("published_at", end_ts)
-)
-if filter_cids is not None:
-    _q_new = _q_new.in_("channel_id", list(filter_cids))
-new_video_rows = _q_new.execute().data or []
+new_video_rows = _load_new_videos(start_ts, end_ts, _fc_tuple)
 
 # ── Compute per-channel deltas ────────────────────────────────
 def _ch_delta(cid: str, field: str) -> int | None:
@@ -228,14 +271,8 @@ if ONE_CLUB:
         if a and b:
             _all_view_deltas[cid] = int(a.get("total_views", 0) or 0) - int(b.get("total_views", 0) or 0)
 
-    # New videos per club (unfiltered query for ranking)
-    _all_new_q = (
-        db.client.table("videos")
-        .select("channel_id")
-        .gte("published_at", start_ts)
-        .lt("published_at", end_ts)
-    )
-    _all_new_rows = _all_new_q.execute().data or []
+    # New videos per club (unfiltered — needed to rank this club vs all others)
+    _all_new_rows = _load_new_video_channel_ids(start_ts, end_ts)
     _all_new_counts: dict[str, int] = {}
     for v in _all_new_rows:
         _all_new_counts[v["channel_id"]] = _all_new_counts.get(v["channel_id"], 0) + 1
@@ -630,13 +667,7 @@ else:
     _top_n = 10 if ONE_CLUB else 20
     trending.sort(key=lambda t: t["delta"], reverse=True)
     top_ids = [t["id"] for t in trending[:_top_n]]
-    vid_rows = (
-        db.client.table("videos")
-        .select("*")
-        .in_("id", top_ids)
-        .execute()
-        .data or []
-    )
+    vid_rows = _load_videos_by_ids(tuple(sorted(top_ids)))
     vid_by_id = {v["id"]: v for v in vid_rows}
 
     _tv_rows = ""
