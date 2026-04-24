@@ -173,7 +173,7 @@ _link = "color:#FAFAFA;text-decoration:underline;text-decoration-color:#555"
 st.markdown(
     f"""<div style="line-height:1.6">
     Hi, I'm <a href="https://linkedin.com/in/carlodemarchis" target="_blank" style="{_link}"><b>Carlo De Marchis</b></a>
-    — <a href="https://www.linkedin.com/newsletters/a-guy-with-a-scarf-6998145822441775104/" target="_blank" style="{_link}"><i>a guy with a scarf</i></a>
+    — <a href="https://www.linkedin.com/newsletters/a-guy-with-a-scarf-6998145822441775104/" target="_blank" style="{_link}"><i>A Guy With A Scarf</i></a>
     — and this is a small side project born from my passion for data, stats and visualisation.
     A starting point to explore how the chain from <b>information → insights → action</b> might
     evolve today, with AI as the substrate that augments each step. It'll keep changing based
