@@ -257,31 +257,100 @@ with col2:
     fig.update_layout(showlegend=False, xaxis_title="", margin=dict(t=40, b=40))
     st.plotly_chart(fig, use_container_width=True)
 
-# ── Season activity ──────────────────────────────────────────
-_has_season = any(int(p.get("season_views") or 0) > 0 for p in players)
-if _has_season:
-    st.markdown("---")
-    st.subheader("This season")
-    st.caption("Videos published in the current season window. Comparable to what we show for clubs.")
+# ── Posting activity ─────────────────────────────────────────
+# Fetch last upload date per player (single query, fast)
+st.markdown("---")
+st.subheader("Posting activity")
+st.caption(
+    "Players run their channels on their own rhythm — unlike clubs, many go dormant "
+    "for months or years. This shows who's actually still posting."
+)
 
-    _season_rows = []
-    for p in sorted(players,
-                    key=lambda c: int(c.get("season_views") or 0),
-                    reverse=True):
-        _sv = int(p.get("season_views") or 0)
-        _ln = int(p.get("season_long_videos") or 0)
-        _sn = int(p.get("season_short_videos") or 0)
-        _lv = int(p.get("season_live_videos") or 0)
-        _total_vids = _ln + _sn + _lv
-        _season_rows.append({
-            "Player": p.get("name"),
-            "Season Videos": _total_vids,
-            "Long / Shorts / Live": f"{_ln} / {_sn} / {_lv}",
-            "Season Views": _sv,
-            "Avg Views/Video": _sv // max(_total_vids, 1) if _total_vids else 0,
-        })
-    _season_df = pd.DataFrame(_season_rows)
-    _season_df["Season Videos"] = _season_df["Season Videos"].apply(fmt_num)
-    _season_df["Season Views"] = _season_df["Season Views"].apply(fmt_num)
-    _season_df["Avg Views/Video"] = _season_df["Avg Views/Video"].apply(fmt_num)
-    st.dataframe(_season_df, use_container_width=True, hide_index=True)
+# Last upload per player channel (since Aug 2025 window)
+_last_by_cid: dict[str, str] = {}
+try:
+    _last_resp = (
+        db.client.table("videos")
+        .select("channel_id,published_at")
+        .in_("channel_id", [p["id"] for p in players])
+        .order("published_at", desc=True)
+        .execute()
+        .data or []
+    )
+    for r in _last_resp:
+        cid = r.get("channel_id")
+        if cid and cid not in _last_by_cid:
+            _last_by_cid[cid] = (r.get("published_at") or "")[:10]
+except Exception:
+    pass
+
+# For fully-dormant players (no videos in DB), fetch last upload live from YouTube
+from src.youtube_api import YouTubeClient as _YT
+_yt = _YT(os.getenv("YOUTUBE_API_KEY", ""))
+for p in players:
+    if p["id"] in _last_by_cid:
+        continue
+    yt_cid = p.get("youtube_channel_id")
+    if not yt_cid or not yt_cid.startswith("UC"):
+        continue
+    try:
+        uploads = "UU" + yt_cid[2:]
+        recent = _yt.get_recent_video_entries(uploads, max_results=1)
+        if recent:
+            _last_by_cid[p["id"]] = (recent[0].get("published") or "")[:10]
+    except Exception:
+        pass
+
+
+def _days_since(iso: str) -> int | None:
+    if not iso:
+        return None
+    try:
+        d = datetime.fromisoformat(iso + "T00:00:00+00:00")
+        return (now - d).days
+    except Exception:
+        return None
+
+
+def _status(days: int | None) -> tuple[str, str]:
+    if days is None:
+        return "—", "#666"
+    if days <= 14:
+        return "🟢 Active", "#00CC96"
+    if days <= 90:
+        return "🟡 Slowing", "#FFA15A"
+    if days <= 365:
+        return "🟠 Quiet", "#FF6B6B"
+    return "🔴 Dormant", "#AA2222"
+
+
+_activity_rows: list[dict] = []
+for p in players:
+    last_iso = _last_by_cid.get(p["id"], "")
+    days = _days_since(last_iso)
+    status_label, _ = _status(days)
+    _sv = int(p.get("season_views") or 0)
+    _ln = int(p.get("season_long_videos") or 0)
+    _sn = int(p.get("season_short_videos") or 0)
+    _lv = int(p.get("season_live_videos") or 0)
+    season_vids = _ln + _sn + _lv
+    _activity_rows.append({
+        "Player": p.get("name", "?"),
+        "Last upload": last_iso or "—",
+        "Days ago": days if days is not None else 99999,
+        "Status": status_label,
+        "Season videos": season_vids,
+        "Season views": _sv,
+    })
+
+_activity_df = pd.DataFrame(_activity_rows).sort_values("Days ago", ascending=True)
+# Hide the raw "Days ago" numeric column — it was only for sorting
+_display = _activity_df.drop(columns=["Days ago"]).copy()
+_display["Season videos"] = _display["Season videos"].apply(fmt_num)
+_display["Season views"] = _display["Season views"].apply(fmt_num)
+st.dataframe(_display, use_container_width=True, hide_index=True)
+
+st.caption(
+    "Status: 🟢 Active (≤14d)  ·  🟡 Slowing (≤90d)  ·  🟠 Quiet (≤1y)  ·  🔴 Dormant (>1y). "
+    "Season window: published since the current-season start date (2025-08-01 for European football)."
+)
