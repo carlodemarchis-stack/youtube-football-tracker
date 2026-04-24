@@ -182,6 +182,19 @@ def _status(days: int | None) -> tuple[str, str]:
     return "🔴 Dormant", "#AA2222"
 
 
+def _status_dot(days: int | None) -> str:
+    """Just the coloured dot — no text. Used in the leaderboard."""
+    if days is None:
+        return "—"
+    if days <= 14:
+        return "🟢"
+    if days <= 30:
+        return "🟡"
+    if days <= 90:
+        return "🟠"
+    return "🔴"
+
+
 # ── Leaderboard table ────────────────────────────────────────
 st.markdown("---")
 st.subheader("Leaderboard")
@@ -197,6 +210,7 @@ for i, p in enumerate(players, 1):
     _last_iso = _last_by_cid.get(p["id"], "")
     _days = _days_since(_last_iso)
     _status_label, _ = _status(_days)
+    _status_dot_s = _status_dot(_days)
     _status_sort = _days if _days is not None else 99999
     _age = _age_from_dob(p.get("dob"))
     _age_disp = f"{_age}" if _age is not None else "—"
@@ -222,7 +236,7 @@ for i, p in enumerate(players, 1):
         <td style="padding:6px 12px">{dot}</td>
         <td style="padding:6px 12px" data-val="{name}">{name}</td>
         <td style="padding:6px 12px;text-align:right" data-val="{_age_sort}">{_age_disp}</td>
-        <td style="padding:6px 12px;text-align:left;white-space:nowrap" data-val="{_status_sort}">{_status_label}</td>
+        <td style="padding:6px 12px;text-align:center" data-val="{_status_sort}" title="{_status_label} · last upload {(_days if _days is not None else '—')}d ago">{_status_dot_s}</td>
         <td style="padding:6px 12px;text-align:center" data-val="{launched_val}">{launched}</td>
         <td style="padding:6px 12px;text-align:right" data-val="{subs}">{fmt_num(subs)}</td>
         <td style="padding:6px 12px;text-align:right" data-val="{spy}">{fmt_num(spy)}</td>
@@ -251,7 +265,7 @@ components.html(f"""
   <th></th>
   <th data-col="2" data-type="str" style="text-align:left">Player</th>
   <th data-col="3" data-type="num" style="text-align:right">Age</th>
-  <th data-col="4" data-type="num" style="text-align:left">Active</th>
+  <th data-col="4" data-type="num" style="text-align:center">Active</th>
   <th data-col="5" data-type="num" style="text-align:center">Since</th>
   <th data-col="6" data-type="num" style="text-align:right" class="active">Subs ▼</th>
   <th data-col="7" data-type="num" style="text-align:right">Subs/Year</th>
@@ -294,6 +308,11 @@ components.html(f"""
 }})();
 </script>
 """, height=_tbl_h, scrolling=False)
+
+st.caption(
+    "**Active** reflects days since the player's latest YouTube upload: "
+    "🟢 ≤14d  ·  🟡 ≤30d  ·  🟠 ≤90d  ·  🔴 >90d."
+)
 
 
 # ── Charts ───────────────────────────────────────────────────
