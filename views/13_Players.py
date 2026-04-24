@@ -335,15 +335,40 @@ for p in players:
         "Days ago": days if days is not None else 99999,
         "Status": status_label,
         "Season videos": season_vids,
+        "L/S/Lv": f"{_ln} / {_sn} / {_lv}",
         "Season views": _sv,
+        "_long": _ln,
+        "_short": _sn,
+        "_live": _lv,
     })
 
 _activity_df = pd.DataFrame(_activity_rows).sort_values("Days ago", ascending=True)
-# Hide the raw "Days ago" numeric column — it was only for sorting
-_display = _activity_df.drop(columns=["Days ago"]).copy()
+# Hide the raw "Days ago" + per-format numeric columns — only used for sort / chart
+_display = _activity_df.drop(columns=["Days ago", "_long", "_short", "_live"]).copy()
 _display["Season videos"] = _display["Season videos"].apply(fmt_num)
 _display["Season views"] = _display["Season views"].apply(fmt_num)
 st.dataframe(_display, use_container_width=True, hide_index=True)
+
+# Stacked bar chart — season video mix by format
+_mix = _activity_df[["Player", "_long", "_short", "_live"]].rename(
+    columns={"_long": "Long", "_short": "Shorts", "_live": "Live"}
+)
+_mix_long = _mix.melt(id_vars="Player", var_name="Format", value_name="Videos")
+_mix_long = _mix_long[_mix_long["Videos"] > 0]
+if not _mix_long.empty:
+    # Preserve the table's sort order (most recently active first) on the x-axis
+    _order = _activity_df["Player"].tolist()
+    fig = px.bar(
+        _mix_long, x="Player", y="Videos", color="Format",
+        title="Season video mix by format",
+        color_discrete_map={"Long": "#636EFA", "Shorts": "#FFA15A", "Live": "#EF553B"},
+        category_orders={"Player": _order, "Format": ["Long", "Shorts", "Live"]},
+    )
+    fig.update_layout(
+        barmode="stack", xaxis_title="", yaxis_title="Season videos",
+        margin=dict(t=40, b=40), legend_title_text="",
+    )
+    st.plotly_chart(fig, use_container_width=True)
 
 st.caption(
     "Status: 🟢 Active (≤14d)  ·  🟡 Slowing (≤30d)  ·  🟠 Quiet (≤90d)  ·  🔴 Dormant (>90d). "
