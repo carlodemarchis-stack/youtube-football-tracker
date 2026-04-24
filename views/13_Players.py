@@ -258,7 +258,6 @@ for i, p in enumerate(players, 1):
         <td style="padding:6px 12px">{dot}</td>
         <td style="padding:6px 12px" data-val="{name}">{name}</td>
         <td style="padding:6px 12px;text-align:right" data-val="{_age_sort}">{_age_disp}</td>
-        <td style="padding:6px 12px;text-align:center" data-val="{_status_sort}" title="{_status_label} · last upload {(_days if _days is not None else '—')}d ago">{_status_dot_s}</td>
         <td style="padding:6px 12px;text-align:center" data-val="{_career_sort}" title="{_career_label}">{_career_d}</td>
         <td style="padding:6px 12px;text-align:center" data-val="{launched_val}">{launched}</td>
         <td style="padding:6px 12px;text-align:right" data-val="{subs}">{fmt_num(subs)}</td>
@@ -268,6 +267,7 @@ for i, p in enumerate(players, 1):
         <td style="padding:6px 12px;text-align:right" data-val="{videos}">{fmt_num(videos)}</td>
         <td style="padding:6px 12px;text-align:center;white-space:nowrap;color:#aaa" data-val="{_slsv}">{_ln} / {_sn} / {_lv}</td>
         <td style="padding:6px 12px;text-align:right" data-val="{vpv}">{fmt_num(vpv)}</td>
+        <td style="padding:6px 12px;text-align:center" data-val="{_status_sort}" title="{_status_label} · last upload {(_days if _days is not None else '—')}d ago">{_status_dot_s}</td>
     </tr>"""
 
 _tbl_h = len(players) * 38 + 80
@@ -288,16 +288,16 @@ components.html(f"""
   <th></th>
   <th data-col="2" data-type="str" style="text-align:left">Player</th>
   <th data-col="3" data-type="num" style="text-align:right">Age</th>
-  <th data-col="4" data-type="num" style="text-align:center">Updates</th>
-  <th data-col="5" data-type="num" style="text-align:center">Career</th>
-  <th data-col="6" data-type="num" style="text-align:center">Since</th>
-  <th data-col="7" data-type="num" style="text-align:right" class="active">Subs ▼</th>
-  <th data-col="8" data-type="num" style="text-align:right">Subs/Year</th>
-  <th data-col="9" data-type="num" style="text-align:right">Total Views</th>
-  <th data-col="10" data-type="num" style="text-align:right">Views/Sub</th>
-  <th data-col="11" data-type="num" style="text-align:right">Videos</th>
-  <th data-col="12" data-type="num" style="text-align:center" title="Season: Long / Shorts / Live">L/S/Lv</th>
-  <th data-col="13" data-type="num" style="text-align:right">Views/Video</th>
+  <th data-col="4" data-type="num" style="text-align:center">Career</th>
+  <th data-col="5" data-type="num" style="text-align:center">Since</th>
+  <th data-col="6" data-type="num" style="text-align:right" class="active">Subs ▼</th>
+  <th data-col="7" data-type="num" style="text-align:right">Subs/Year</th>
+  <th data-col="8" data-type="num" style="text-align:right">Total Views</th>
+  <th data-col="9" data-type="num" style="text-align:right">Views/Sub</th>
+  <th data-col="10" data-type="num" style="text-align:right">Videos</th>
+  <th data-col="11" data-type="num" style="text-align:center" title="Season: Long / Shorts / Live">L/S/Lv</th>
+  <th data-col="12" data-type="num" style="text-align:right">Views/Video</th>
+  <th data-col="13" data-type="num" style="text-align:center">Updates</th>
 </tr></thead>
 <tbody>{rows_html}</tbody>
 </table>
@@ -306,7 +306,7 @@ components.html(f"""
   const table = document.querySelector('.pl');
   const tbody = table.querySelector('tbody');
   const headers = table.querySelectorAll('th[data-col]');
-  let currentCol = 7, currentAsc = false;
+  let currentCol = 6, currentAsc = false;
   function sort(colIdx, type) {{
     const rows = Array.from(tbody.rows);
     const isStr = type === 'str';
