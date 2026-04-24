@@ -495,6 +495,11 @@ components.html(f"""
 </script>
 """, height=_act_h, scrolling=False)
 
+st.caption(
+    "**Status** — days since the player's latest YouTube upload: "
+    "🟢 Active (≤14d)  ·  🟡 Slowing (≤30d)  ·  🟠 Quiet (≤90d)  ·  🔴 Dormant (>90d)."
+)
+
 # Stacked bar chart — season video mix by format
 _mix = _activity_df[["Player", "_long", "_short", "_live"]].rename(
     columns={"_long": "Long", "_short": "Shorts", "_live": "Live"}
@@ -517,6 +522,5 @@ if not _mix_long.empty:
     st.plotly_chart(fig, use_container_width=True)
 
 st.caption(
-    "Status: 🟢 Active (≤14d)  ·  🟡 Slowing (≤30d)  ·  🟠 Quiet (≤90d)  ·  🔴 Dormant (>90d). "
     "Season window: published since the current-season start date (2025-08-01 for European football)."
 )
