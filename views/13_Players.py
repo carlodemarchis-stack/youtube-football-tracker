@@ -98,6 +98,17 @@ now = datetime.now(timezone.utc)
 color_map = get_global_color_map() or {}
 dual = get_global_color_map_dual() or {}
 
+def _age_from_dob(dob_iso: str | None) -> int | None:
+    if not dob_iso:
+        return None
+    try:
+        d = datetime.fromisoformat(str(dob_iso)[:10] + "T00:00:00+00:00")
+        years = (now - d).days / 365.25
+        return int(years) if years > 0 else None
+    except Exception:
+        return None
+
+
 def _subs_per_year(subs: int, launched_iso: str | None) -> int:
     if not launched_iso or not subs:
         return 0
@@ -187,6 +198,9 @@ for i, p in enumerate(players, 1):
     _days = _days_since(_last_iso)
     _status_label, _ = _status(_days)
     _status_sort = _days if _days is not None else 99999
+    _age = _age_from_dob(p.get("dob"))
+    _age_disp = f"{_age}" if _age is not None else "—"
+    _age_sort = _age if _age is not None else 0
     launched = (p.get("launched_at") or "")[:4] or "-"
     launched_val = (p.get("launched_at") or "9999")[:4]
     subs = int(p.get("subscriber_count") or 0)
@@ -207,6 +221,7 @@ for i, p in enumerate(players, 1):
         <td style="padding:6px 12px;text-align:right;color:#888" data-val="{i}">{i}</td>
         <td style="padding:6px 12px">{dot}</td>
         <td style="padding:6px 12px" data-val="{name}">{name}</td>
+        <td style="padding:6px 12px;text-align:right" data-val="{_age_sort}">{_age_disp}</td>
         <td style="padding:6px 12px;text-align:left;white-space:nowrap" data-val="{_status_sort}">{_status_label}</td>
         <td style="padding:6px 12px;text-align:center" data-val="{launched_val}">{launched}</td>
         <td style="padding:6px 12px;text-align:right" data-val="{subs}">{fmt_num(subs)}</td>
@@ -235,15 +250,16 @@ components.html(f"""
   <th data-col="0" data-type="num" style="text-align:right">#</th>
   <th></th>
   <th data-col="2" data-type="str" style="text-align:left">Player</th>
-  <th data-col="3" data-type="num" style="text-align:left">Active</th>
-  <th data-col="4" data-type="num" style="text-align:center">Since</th>
-  <th data-col="5" data-type="num" style="text-align:right" class="active">Subs ▼</th>
-  <th data-col="6" data-type="num" style="text-align:right">Subs/Year</th>
-  <th data-col="7" data-type="num" style="text-align:right">Total Views</th>
-  <th data-col="8" data-type="num" style="text-align:right">Views/Sub</th>
-  <th data-col="9" data-type="num" style="text-align:right">Videos</th>
-  <th data-col="10" data-type="num" style="text-align:center" title="Season: Long / Shorts / Live">L/S/Lv</th>
-  <th data-col="11" data-type="num" style="text-align:right">Views/Video</th>
+  <th data-col="3" data-type="num" style="text-align:right">Age</th>
+  <th data-col="4" data-type="num" style="text-align:left">Active</th>
+  <th data-col="5" data-type="num" style="text-align:center">Since</th>
+  <th data-col="6" data-type="num" style="text-align:right" class="active">Subs ▼</th>
+  <th data-col="7" data-type="num" style="text-align:right">Subs/Year</th>
+  <th data-col="8" data-type="num" style="text-align:right">Total Views</th>
+  <th data-col="9" data-type="num" style="text-align:right">Views/Sub</th>
+  <th data-col="10" data-type="num" style="text-align:right">Videos</th>
+  <th data-col="11" data-type="num" style="text-align:center" title="Season: Long / Shorts / Live">L/S/Lv</th>
+  <th data-col="12" data-type="num" style="text-align:right">Views/Video</th>
 </tr></thead>
 <tbody>{rows_html}</tbody>
 </table>
@@ -252,7 +268,7 @@ components.html(f"""
   const table = document.querySelector('.pl');
   const tbody = table.querySelector('tbody');
   const headers = table.querySelectorAll('th[data-col]');
-  let currentCol = 5, currentAsc = false;
+  let currentCol = 6, currentAsc = false;
   function sort(colIdx, type) {{
     const rows = Array.from(tbody.rows);
     const isStr = type === 'str';
