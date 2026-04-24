@@ -195,6 +195,10 @@ for i, p in enumerate(players, 1):
     vps = views // max(subs, 1)
     vpv = views // max(videos, 1)
     spy = _subs_per_year(subs, p.get("launched_at"))
+    _ln = int(p.get("season_long_videos") or 0)
+    _sn = int(p.get("season_short_videos") or 0)
+    _lv = int(p.get("season_live_videos") or 0)
+    _slsv = _ln + _sn + _lv
     handle = p.get("handle", "") or ""
     yt_url = f"https://www.youtube.com/{handle}" if handle else ""
     row_click = (f'onclick="window.open(\'{yt_url}\',\'_blank\',\'noopener\')" '
@@ -210,6 +214,7 @@ for i, p in enumerate(players, 1):
         <td style="padding:6px 12px;text-align:right" data-val="{views}">{fmt_num(views)}</td>
         <td style="padding:6px 12px;text-align:right" data-val="{vps}">{fmt_num(vps)}</td>
         <td style="padding:6px 12px;text-align:right" data-val="{videos}">{fmt_num(videos)}</td>
+        <td style="padding:6px 12px;text-align:center;white-space:nowrap;color:#aaa" data-val="{_slsv}">{_ln} / {_sn} / {_lv}</td>
         <td style="padding:6px 12px;text-align:right" data-val="{vpv}">{fmt_num(vpv)}</td>
     </tr>"""
 
@@ -237,7 +242,8 @@ components.html(f"""
   <th data-col="7" data-type="num" style="text-align:right">Total Views</th>
   <th data-col="8" data-type="num" style="text-align:right">Views/Sub</th>
   <th data-col="9" data-type="num" style="text-align:right">Videos</th>
-  <th data-col="10" data-type="num" style="text-align:right">Views/Video</th>
+  <th data-col="10" data-type="num" style="text-align:center" title="Season: Long / Shorts / Live">L/S/Lv</th>
+  <th data-col="11" data-type="num" style="text-align:right">Views/Video</th>
 </tr></thead>
 <tbody>{rows_html}</tbody>
 </table>
