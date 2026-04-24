@@ -98,13 +98,6 @@ now = datetime.now(timezone.utc)
 color_map = get_global_color_map() or {}
 dual = get_global_color_map_dual() or {}
 
-_COUNTRY_FLAG = {
-    "IT": "🇮🇹", "EN": "🇬🇧", "GB": "🇬🇧", "ES": "🇪🇸", "DE": "🇩🇪",
-    "FR": "🇫🇷", "US": "🇺🇸", "PT": "🇵🇹", "BR": "🇧🇷", "AR": "🇦🇷",
-    "NL": "🇳🇱", "BE": "🇧🇪", "UY": "🇺🇾", "CO": "🇨🇴", "MX": "🇲🇽",
-}
-
-
 def _subs_per_year(subs: int, launched_iso: str | None) -> int:
     if not launched_iso or not subs:
         return 0
@@ -120,6 +113,64 @@ def _subs_per_year(subs: int, launched_iso: str | None) -> int:
         return 0
 
 
+# ── Last-upload lookup (needed for leaderboard "Active" column) ──
+_last_by_cid: dict[str, str] = {}
+try:
+    _last_resp = (
+        db.client.table("videos")
+        .select("channel_id,published_at")
+        .in_("channel_id", [p["id"] for p in players])
+        .order("published_at", desc=True)
+        .execute()
+        .data or []
+    )
+    for r in _last_resp:
+        cid = r.get("channel_id")
+        if cid and cid not in _last_by_cid:
+            _last_by_cid[cid] = (r.get("published_at") or "")[:10]
+except Exception:
+    pass
+
+# Fallback via live YouTube API for fully-dormant players (none in DB)
+from src.youtube_api import YouTubeClient as _YT
+_yt = _YT(os.getenv("YOUTUBE_API_KEY", ""))
+for p in players:
+    if p["id"] in _last_by_cid:
+        continue
+    yt_cid = p.get("youtube_channel_id")
+    if not yt_cid or not yt_cid.startswith("UC"):
+        continue
+    try:
+        uploads = "UU" + yt_cid[2:]
+        recent = _yt.get_recent_video_entries(uploads, max_results=1)
+        if recent:
+            _last_by_cid[p["id"]] = (recent[0].get("published") or "")[:10]
+    except Exception:
+        pass
+
+
+def _days_since(iso: str) -> int | None:
+    if not iso:
+        return None
+    try:
+        d = datetime.fromisoformat(iso + "T00:00:00+00:00")
+        return (now - d).days
+    except Exception:
+        return None
+
+
+def _status(days: int | None) -> tuple[str, str]:
+    if days is None:
+        return "—", "#666"
+    if days <= 14:
+        return "🟢 Active", "#00CC96"
+    if days <= 30:
+        return "🟡 Slowing", "#FFA15A"
+    if days <= 90:
+        return "🟠 Quiet", "#FF6B6B"
+    return "🔴 Dormant", "#AA2222"
+
+
 # ── Leaderboard table ────────────────────────────────────────
 st.markdown("---")
 st.subheader("Leaderboard")
@@ -132,8 +183,10 @@ for i, p in enumerate(players, 1):
            f'background:{c1};border:1px solid rgba(255,255,255,0.3);position:relative">'
            f'<span style="display:block;width:7px;height:7px;border-radius:50%;'
            f'background:{c2};position:absolute;top:2.5px;left:2.5px"></span></span>')
-    country = (p.get("country") or "").upper()
-    flag = _COUNTRY_FLAG.get(country, "")
+    _last_iso = _last_by_cid.get(p["id"], "")
+    _days = _days_since(_last_iso)
+    _status_label, _ = _status(_days)
+    _status_sort = _days if _days is not None else 99999
     launched = (p.get("launched_at") or "")[:4] or "-"
     launched_val = (p.get("launched_at") or "9999")[:4]
     subs = int(p.get("subscriber_count") or 0)
@@ -150,7 +203,7 @@ for i, p in enumerate(players, 1):
         <td style="padding:6px 12px;text-align:right;color:#888" data-val="{i}">{i}</td>
         <td style="padding:6px 12px">{dot}</td>
         <td style="padding:6px 12px" data-val="{name}">{name}</td>
-        <td style="padding:6px 12px;text-align:center">{flag}</td>
+        <td style="padding:6px 12px;text-align:left;white-space:nowrap" data-val="{_status_sort}">{_status_label}</td>
         <td style="padding:6px 12px;text-align:center" data-val="{launched_val}">{launched}</td>
         <td style="padding:6px 12px;text-align:right" data-val="{subs}">{fmt_num(subs)}</td>
         <td style="padding:6px 12px;text-align:right" data-val="{spy}">{fmt_num(spy)}</td>
@@ -177,7 +230,7 @@ components.html(f"""
   <th data-col="0" data-type="num" style="text-align:right">#</th>
   <th></th>
   <th data-col="2" data-type="str" style="text-align:left">Player</th>
-  <th style="text-align:center">Country</th>
+  <th data-col="3" data-type="num" style="text-align:left">Active</th>
   <th data-col="4" data-type="num" style="text-align:center">Since</th>
   <th data-col="5" data-type="num" style="text-align:right" class="active">Subs ▼</th>
   <th data-col="6" data-type="num" style="text-align:right">Subs/Year</th>
@@ -266,64 +319,6 @@ st.caption(
     "for months or years. This shows who's actually still posting."
 )
 
-# Last upload per player channel (since Aug 2025 window)
-_last_by_cid: dict[str, str] = {}
-try:
-    _last_resp = (
-        db.client.table("videos")
-        .select("channel_id,published_at")
-        .in_("channel_id", [p["id"] for p in players])
-        .order("published_at", desc=True)
-        .execute()
-        .data or []
-    )
-    for r in _last_resp:
-        cid = r.get("channel_id")
-        if cid and cid not in _last_by_cid:
-            _last_by_cid[cid] = (r.get("published_at") or "")[:10]
-except Exception:
-    pass
-
-# For fully-dormant players (no videos in DB), fetch last upload live from YouTube
-from src.youtube_api import YouTubeClient as _YT
-_yt = _YT(os.getenv("YOUTUBE_API_KEY", ""))
-for p in players:
-    if p["id"] in _last_by_cid:
-        continue
-    yt_cid = p.get("youtube_channel_id")
-    if not yt_cid or not yt_cid.startswith("UC"):
-        continue
-    try:
-        uploads = "UU" + yt_cid[2:]
-        recent = _yt.get_recent_video_entries(uploads, max_results=1)
-        if recent:
-            _last_by_cid[p["id"]] = (recent[0].get("published") or "")[:10]
-    except Exception:
-        pass
-
-
-def _days_since(iso: str) -> int | None:
-    if not iso:
-        return None
-    try:
-        d = datetime.fromisoformat(iso + "T00:00:00+00:00")
-        return (now - d).days
-    except Exception:
-        return None
-
-
-def _status(days: int | None) -> tuple[str, str]:
-    if days is None:
-        return "—", "#666"
-    if days <= 14:
-        return "🟢 Active", "#00CC96"
-    if days <= 90:
-        return "🟡 Slowing", "#FFA15A"
-    if days <= 365:
-        return "🟠 Quiet", "#FF6B6B"
-    return "🔴 Dormant", "#AA2222"
-
-
 _activity_rows: list[dict] = []
 for p in players:
     last_iso = _last_by_cid.get(p["id"], "")
@@ -351,6 +346,6 @@ _display["Season views"] = _display["Season views"].apply(fmt_num)
 st.dataframe(_display, use_container_width=True, hide_index=True)
 
 st.caption(
-    "Status: 🟢 Active (≤14d)  ·  🟡 Slowing (≤90d)  ·  🟠 Quiet (≤1y)  ·  🔴 Dormant (>1y). "
+    "Status: 🟢 Active (≤14d)  ·  🟡 Slowing (≤30d)  ·  🟠 Quiet (≤90d)  ·  🔴 Dormant (>90d). "
     "Season window: published since the current-season start date (2025-08-01 for European football)."
 )
