@@ -168,22 +168,33 @@ try:
 except Exception:
     pass
 
+_link = "color:#FAFAFA;text-decoration:underline;text-decoration-color:#555"
+
 st.markdown(
-    "Hi, I'm **Carlo De Marchis** — *a guy with a scarf* — and this is a small "
-    "side project born from my passion for data, stats and visualisation. "
-    "A starting point to explore how the chain from **information → insights → "
-    "action** might evolve today, with AI as the substrate that augments each step. "
-    "It'll keep changing based on what I learn and what you tell me."
+    f"""<div style="line-height:1.6">
+    Hi, I'm <a href="https://linkedin.com/in/carlodemarchis" target="_blank" style="{_link}"><b>Carlo De Marchis</b></a>
+    — <a href="https://www.linkedin.com/newsletters/a-guy-with-a-scarf-6998145822441775104/" target="_blank" style="{_link}"><i>a guy with a scarf</i></a>
+    — and this is a small side project born from my passion for data, stats and visualisation.
+    A starting point to explore how the chain from <b>information → insights → action</b> might
+    evolve today, with AI as the substrate that augments each step. It'll keep changing based
+    on what I learn and what you tell me.
+    </div>""",
+    unsafe_allow_html=True,
 )
 
 st.markdown(
-    "A window into how football clubs use YouTube — built for **club social "
-    "teams** looking to benchmark and learn from peers, and for **curious fans** "
-    "who want to see what their team (and everyone else) is actually doing.\n\n"
-    "The idea came from working with [Paola Marinone](https://linkedin.com/in/paolamarinone) "
-    "and [Bengu Atamer](https://linkedin.com/in/benguatamer) at **BuzzMyVideos** — "
-    "they pulled me deep into the mechanics of YouTube and the creators who live on it. "
-    "This tracker applies that same lens to football."
+    f"""<div style="line-height:1.6;margin-top:12px">
+    A window into how football clubs use YouTube — built for <b>club social teams</b> looking
+    to benchmark and learn from peers, and for <b>curious fans</b> who want to see what their
+    team (and everyone else) is actually doing.
+    <br><br>
+    The idea came from working with
+    <a href="https://linkedin.com/in/paolamarinone" target="_blank" style="{_link}">Paola Marinone</a>
+    and <a href="https://linkedin.com/in/benguatamer" target="_blank" style="{_link}">Bengu Atamer</a>
+    at <b>BuzzMyVideos</b> — they pulled me deep into the mechanics of YouTube and the creators
+    who live on it. This tracker applies that same lens to football.
+    </div>""",
+    unsafe_allow_html=True,
 )
 
 # ── Biggest gainers this week (snapshot-driven) ─────────────────
