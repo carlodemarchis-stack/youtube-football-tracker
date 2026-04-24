@@ -410,13 +410,92 @@ for p in players:
     })
 
 _activity_df = pd.DataFrame(_activity_rows).sort_values("Days ago", ascending=True)
-# Hide the raw "Days ago" + per-format numeric columns — only used for sort / chart
-_display = _activity_df.drop(columns=["Days ago", "_long", "_short", "_live"]).copy()
-_display["Season videos"] = _display["Season videos"].apply(fmt_num)
-_display["Season views"] = _display["Season views"].apply(fmt_num)
-# Height scales with row count so every player shows without inner scroll.
-_act_h = (len(_display) + 1) * 35 + 3
-st.dataframe(_display, use_container_width=True, hide_index=True, height=_act_h)
+
+# Build a styled HTML table matching the leaderboard's look.
+_act_rows_html = ""
+for idx, (_, r) in enumerate(_activity_df.iterrows(), 1):
+    pname = r["Player"]
+    pdata = next((pp for pp in players if pp.get("name") == pname), {})
+    c1, c2 = dual.get(pname, (color_map.get(pname, "#636EFA"), "#FFFFFF"))
+    pdot = (f'<span style="display:inline-block;width:14px;height:14px;border-radius:50%;'
+            f'background:{c1};border:1px solid rgba(255,255,255,0.3);position:relative">'
+            f'<span style="display:block;width:7px;height:7px;border-radius:50%;'
+            f'background:{c2};position:absolute;top:2.5px;left:2.5px"></span></span>')
+    handle = pdata.get("handle", "") or ""
+    yt_url = f"https://www.youtube.com/{handle}" if handle else ""
+    rclick = (f'onclick="window.open(\'{yt_url}\',\'_blank\',\'noopener\')" '
+              f'style="cursor:pointer"') if yt_url else ""
+    d = r["Days ago"]
+    d_disp = f"{d}d ago" if d < 99999 else "—"
+    _act_rows_html += f"""<tr {rclick}>
+        <td style="padding:6px 12px;text-align:right;color:#888" data-val="{idx}">{idx}</td>
+        <td style="padding:6px 12px">{pdot}</td>
+        <td style="padding:6px 12px" data-val="{pname}">{pname}</td>
+        <td style="padding:6px 12px;text-align:center" data-val="{r['Last upload']}">{r['Last upload']}</td>
+        <td style="padding:6px 12px;text-align:right" data-val="{d}">{d_disp}</td>
+        <td style="padding:6px 12px;text-align:left;white-space:nowrap" data-val="{d}">{r['Status']}</td>
+        <td style="padding:6px 12px;text-align:right" data-val="{r['Season videos']}">{fmt_num(r['Season videos'])}</td>
+        <td style="padding:6px 12px;text-align:center;white-space:nowrap;color:#aaa" data-val="{r['Season videos']}">{r['L/S/Lv']}</td>
+        <td style="padding:6px 12px;text-align:right" data-val="{r['Season views']}">{fmt_num(r['Season views'])}</td>
+    </tr>"""
+
+_act_h = len(_activity_df) * 40 + 90
+components.html(f"""
+<style>
+  .pl2 {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
+          font-family:"Source Sans Pro",sans-serif; }}
+  .pl2 th {{ padding:6px 12px; user-select:none; border-bottom:2px solid #444; }}
+  .pl2 th[data-col] {{ cursor:pointer; }}
+  .pl2 th[data-col]:hover {{ color:#636EFA; }}
+  .pl2 td {{ padding:6px 12px; border-bottom:1px solid #262730; vertical-align:middle; }}
+  .pl2 tr:hover td {{ background:#1a1c24; }}
+  .pl2 .active {{ color:#636EFA; }}
+</style>
+<table class="pl2">
+<thead><tr>
+  <th data-col="0" data-type="num" style="text-align:right">#</th>
+  <th></th>
+  <th data-col="2" data-type="str" style="text-align:left">Player</th>
+  <th data-col="3" data-type="str" style="text-align:center">Last upload</th>
+  <th data-col="4" data-type="num" style="text-align:right" class="active">Days ago ▲</th>
+  <th data-col="5" data-type="num" style="text-align:left">Status</th>
+  <th data-col="6" data-type="num" style="text-align:right">Season videos</th>
+  <th data-col="7" data-type="num" style="text-align:center" title="Long / Shorts / Live">L/S/Lv</th>
+  <th data-col="8" data-type="num" style="text-align:right">Season views</th>
+</tr></thead>
+<tbody>{_act_rows_html}</tbody>
+</table>
+<script>
+(function() {{
+  const table = document.querySelector('.pl2');
+  const tbody = table.querySelector('tbody');
+  const headers = table.querySelectorAll('th[data-col]');
+  let currentCol = 4, currentAsc = true;
+  function sort(colIdx, type) {{
+    const rows = Array.from(tbody.rows);
+    const isStr = type === 'str';
+    if (colIdx === currentCol) currentAsc = !currentAsc;
+    else {{ currentCol = colIdx; currentAsc = isStr; }}
+    rows.sort((a, b) => {{
+      const va = a.cells[colIdx].dataset.val || '';
+      const vb = b.cells[colIdx].dataset.val || '';
+      let cmp = isStr ? va.localeCompare(vb) : ((parseFloat(va)||0) - (parseFloat(vb)||0));
+      return currentAsc ? cmp : -cmp;
+    }});
+    rows.forEach(r => tbody.appendChild(r));
+    headers.forEach(h => {{
+      h.classList.remove('active');
+      h.textContent = h.textContent.replace(/ [▲▼]/g, '');
+    }});
+    const a = table.querySelector('th[data-col="' + colIdx + '"]');
+    a.classList.add('active');
+    a.textContent += currentAsc ? ' ▲' : ' ▼';
+  }}
+  headers.forEach(h => h.addEventListener('click',
+    () => sort(parseInt(h.dataset.col), h.dataset.type || 'num')));
+}})();
+</script>
+""", height=_act_h, scrolling=False)
 
 # Stacked bar chart — season video mix by format
 _mix = _activity_df[["Player", "_long", "_short", "_live"]].rename(
