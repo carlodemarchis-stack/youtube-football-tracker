@@ -57,6 +57,8 @@ if league is None and _scope == "Overall":
 
     league_stats: dict[str, dict] = {}
     for ch in all_channels:
+        if ch.get("entity_type") == "Player":
+            continue  # Players live on their own page
         lg = get_league_for_channel(ch)
         if not lg:
             continue
@@ -416,7 +418,7 @@ if club is None:
         if include_league:
             clubs_only = league_channels
         else:
-            clubs_only = [ch for ch in league_channels if ch.get("entity_type") != "League"]
+            clubs_only = [ch for ch in league_channels if ch.get("entity_type") not in ("League", "Player")]
 
     if not clubs_only:
         st.info("No clubs in this league yet.")

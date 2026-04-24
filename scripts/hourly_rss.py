@@ -74,11 +74,12 @@ def main() -> int:
     total = len(channels)
     log(f"Hourly check — {total} channels (playlistItems API)")
 
-    # Build a quick lookup: youtube_channel_id → db channel record
+    # Build a quick lookup: youtube_channel_id → db channel record.
+    # Skip leagues (no videos to check) and Players (handled by daily_players.py only).
     ch_by_yt_id: dict[str, dict] = {}
     for ch in channels:
         yt_id = ch.get("youtube_channel_id")
-        if yt_id and ch.get("entity_type") != "League":
+        if yt_id and ch.get("entity_type") not in ("League", "Player"):
             ch_by_yt_id[yt_id] = ch
 
     # Collect all new video IDs across all channels

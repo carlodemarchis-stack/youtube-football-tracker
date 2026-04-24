@@ -61,8 +61,10 @@ def main() -> int:
     db = Database(sb_url, sb_key)
 
     channels = db.get_all_channels()
+    # Players have their own dedicated cron (scripts/daily_players.py) — skip them here.
+    channels = [c for c in channels if c.get("entity_type") != "Player"]
     total = len(channels)
-    log(f"Found {total} channels")
+    log(f"Found {total} channels (Players excluded — handled by daily_players.py)")
 
     ok = 0
     new_videos_total = 0

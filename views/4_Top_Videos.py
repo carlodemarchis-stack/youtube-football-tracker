@@ -93,13 +93,17 @@ else:
     df = pd.DataFrame(all_videos)
     df["channel_name"] = df["channels"].apply(lambda c: c["name"] if c else "Unknown")
     ch_by_name = {ch["name"]: ch for ch in all_channels}
+    # Always drop Players from Top Videos — they live on their own page
+    _exclude_players = {n for n, c in ch_by_name.items() if c.get("entity_type") == "Player"}
+    if _exclude_players:
+        df = df[~df["channel_name"].isin(_exclude_players)]
     if scope == "Leagues only":
         keep = {n for n, c in ch_by_name.items() if c.get("entity_type") == "League"}
         df = df[df["channel_name"].isin(keep)]
         color_field = "channel_name"
         color_map = get_global_color_map()
     elif scope == "All clubs":
-        keep = {n for n, c in ch_by_name.items() if c.get("entity_type") != "League"}
+        keep = {n for n, c in ch_by_name.items() if c.get("entity_type") not in ("League", "Player")}
         df = df[df["channel_name"].isin(keep)]
         ch_to_league = {n: league_with_flag(get_league_for_channel(c)) for n, c in ch_by_name.items()}
         df["league"] = df["channel_name"].map(ch_to_league).fillna("Other")
@@ -124,18 +128,18 @@ if not club:
         # One league selected — use its channels
         base_channels = league_channels
         if include_league:
-            table_channels = base_channels
+            table_channels = [ch for ch in base_channels if ch.get("entity_type") != "Player"]
         else:
-            table_channels = [ch for ch in base_channels if ch.get("entity_type") != "League"]
+            table_channels = [ch for ch in base_channels if ch.get("entity_type") not in ("League", "Player")]
     else:
         # All leagues — respect scope
         scope = get_all_leagues_scope()
         if scope == "Leagues only":
             table_channels = [ch for ch in all_channels if ch.get("entity_type") == "League"]
         elif scope == "All clubs":
-            table_channels = [ch for ch in all_channels if ch.get("entity_type") != "League"]
+            table_channels = [ch for ch in all_channels if ch.get("entity_type") not in ("League", "Player")]
         else:
-            table_channels = all_channels
+            table_channels = [ch for ch in all_channels if ch.get("entity_type") != "Player"]
 
     if not table_channels:
         _loading.empty()

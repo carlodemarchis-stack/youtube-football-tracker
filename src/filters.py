@@ -4,6 +4,18 @@ import streamlit as st
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
 
 
+# Entity types that should never appear in the main League/Club UX.
+# Players live on their own page and are excluded from everything else
+# to keep that feature isolated and killable without ripple effects.
+_NON_CLUB_TYPES = ("League", "Player")
+
+
+def is_club(ch: dict) -> bool:
+    """True if a channel belongs in the club/league UX (not a Player,
+    not the league channel itself)."""
+    return ch.get("entity_type") not in _NON_CLUB_TYPES
+
+
 def _sync_query_params(league: str, club: str):
     """Silently update URL bar so filter survives browser reload."""
     target = {}
@@ -100,7 +112,7 @@ def render_header_filter(channels: list[dict]) -> tuple[str | None, dict | None]
 
     # Club dropdown
     league_channels = leagues.get(selected_league, [])
-    clubs = [ch for ch in league_channels if ch.get("entity_type") != "League"]
+    clubs = [ch for ch in league_channels if is_club(ch)]
     has_league_channel = any(ch.get("entity_type") == "League" for ch in league_channels)
     clubs.sort(key=lambda c: c.get("subscriber_count", 0), reverse=True)
 
@@ -311,11 +323,13 @@ def get_channels_for_filter(channels: list[dict], league: str | None) -> list[di
         if scope == "Leagues only":
             return [ch for ch in channels if ch.get("entity_type") == "League"]
         if scope == "All clubs":
-            return [ch for ch in channels if ch.get("entity_type") != "League"]
-        return channels
+            return [ch for ch in channels if is_club(ch)]
+        # Overall: exclude Players (they live on their own page) but keep leagues
+        return [ch for ch in channels if ch.get("entity_type") != "Player"]
     return [
         ch for ch in channels
-        if COUNTRY_TO_LEAGUE.get(ch.get("country", ""), ch.get("country", "")) == league
+        if ch.get("entity_type") != "Player"
+        and COUNTRY_TO_LEAGUE.get(ch.get("country", ""), ch.get("country", "")) == league
     ]
 
 
@@ -326,7 +340,7 @@ def get_league_for_channel(ch: dict) -> str:
 
 def render_club_header(channel: dict, all_channels: list[dict]) -> None:
     """Render a club's name with inline subscriber ranks (league + overall)."""
-    clubs = [c for c in all_channels if c.get("entity_type") != "League"]
+    clubs = [c for c in all_channels if is_club(c)]
     clubs.sort(key=lambda c: c.get("subscriber_count", 0), reverse=True)
     overall_rank = next((i + 1 for i, c in enumerate(clubs) if c["id"] == channel["id"]), None)
     overall_total = len(clubs)

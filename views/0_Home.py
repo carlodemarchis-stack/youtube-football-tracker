@@ -28,6 +28,8 @@ if st.session_state.get("_feed_mode"):
 
     db = Database(SUPABASE_URL, SUPABASE_KEY)
     all_channels = get_global_channels() or db.get_all_channels()
+    # Players are isolated — never show in the public feed
+    all_channels = [c for c in all_channels if c.get("entity_type") != "Player"]
     color_map = get_global_color_map() or {}
     dual = get_global_color_map_dual() or {}
 
@@ -154,6 +156,8 @@ try:
     _league_counts: dict[str, int] = {}
     _league_has_channel: dict[str, bool] = {}
     for _c in _chs:
+        if _c.get("entity_type") == "Player":
+            continue  # Players live on their own page
         _lg = COUNTRY_TO_LEAGUE.get((_c.get("country") or "").upper(), _c.get("country") or "—")
         if _c.get("entity_type") == "League":
             _league_has_channel[_lg] = True
@@ -212,7 +216,7 @@ try:
         _gainers = []
         for cid, s in _by_ch.items():
             ch = _ch_by_id.get(cid)
-            if not ch or ch.get("entity_type") == "League" or len(s) < 2:
+            if not ch or ch.get("entity_type") in ("League", "Player") or len(s) < 2:
                 continue
             # YouTube rounds subscriber_count to the nearest 10K — 7d subs delta
             # is too coarse (everyone shows ±100K). Rank by Δ total_views instead.

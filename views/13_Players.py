@@ -1,0 +1,287 @@
+"""Players page — top football players on YouTube (personal channels).
+
+Deliberately isolated from the rest of the app:
+- No inclusion in global League/Club filter
+- No integration with Channels / Top Videos / Compare / Season / AI Analysis / Daily Recap
+- No per-player detail page — clicking a row opens the YouTube channel
+- Powered by its own dedicated daily cron (scripts/daily_players.py)
+
+Kill-switch: delete this file, the nav entry in app.py, the cron script,
+its Railway service, and the Player rows in `channels`. Zero impact elsewhere.
+"""
+from __future__ import annotations
+
+import os
+from datetime import datetime, timezone
+
+import streamlit as st
+import streamlit.components.v1 as components
+import pandas as pd
+import plotly.express as px
+from dotenv import load_dotenv
+
+from src.database import Database
+from src.analytics import fmt_num
+from src.auth import require_login
+from src.filters import (
+    get_global_channels, get_global_color_map, get_global_color_map_dual,
+    render_page_subtitle,
+)
+from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
+
+load_dotenv()
+require_login()
+
+st.title("Players")
+
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
+if not SUPABASE_URL or not SUPABASE_KEY:
+    st.error("Set SUPABASE_URL and SUPABASE_KEY.")
+    st.stop()
+
+db = Database(SUPABASE_URL, SUPABASE_KEY)
+all_channels = get_global_channels() or db.get_all_channels()
+players = [c for c in all_channels if c.get("entity_type") == "Player"]
+
+_players_updated = db.get_last_fetch_time("daily_players")
+render_page_subtitle(
+    "Top football players on YouTube — personal channels",
+    updated_raw=_players_updated,
+)
+
+if not players:
+    st.info(
+        "No players tracked yet. Seed the 10 player rows in `channels` "
+        "(see `db/players_seed.sql`) and run `scripts/daily_players.py` "
+        "to backfill stats."
+    )
+    st.stop()
+
+# ── Sort by subscribers desc ─────────────────────────────────
+players.sort(key=lambda c: int(c.get("subscriber_count") or 0), reverse=True)
+
+# ── Narrative headline stat ──────────────────────────────────
+_top = players[0]
+_top_subs = int(_top.get("subscriber_count") or 0)
+_all_clubs = [c for c in all_channels if c.get("entity_type") not in ("League", "Player")]
+# Find a league whose aggregate club subs < top player's subs (for the headline)
+_league_totals: dict[str, int] = {}
+for c in _all_clubs:
+    lg = COUNTRY_TO_LEAGUE.get((c.get("country") or "").upper(), "")
+    if not lg:
+        continue
+    _league_totals[lg] = _league_totals.get(lg, 0) + int(c.get("subscriber_count") or 0)
+
+_beaten_leagues = [lg for lg, tot in _league_totals.items() if tot < _top_subs]
+if _beaten_leagues and _top.get("name"):
+    _beats = ", ".join(f"**{lg}**" for lg in sorted(_beaten_leagues,
+                        key=lambda lg: _league_totals[lg], reverse=True)[:3])
+    st.info(
+        f"**{_top['name']}** alone has **{fmt_num(_top_subs)} subs** — more than "
+        f"every club combined in {_beats}."
+    )
+
+# ── KPIs ─────────────────────────────────────────────────────
+_tot_subs = sum(int(c.get("subscriber_count") or 0) for c in players)
+_tot_views = sum(int(c.get("total_views") or 0) for c in players)
+_tot_videos = sum(int(c.get("video_count") or 0) for c in players)
+
+k1, k2, k3, k4 = st.columns(4)
+k1.metric("Players tracked", len(players))
+k2.metric("Total subscribers", fmt_num(_tot_subs))
+k3.metric("Total views", fmt_num(_tot_views))
+k4.metric("Total videos", fmt_num(_tot_videos))
+
+# ── Helpers ──────────────────────────────────────────────────
+now = datetime.now(timezone.utc)
+color_map = get_global_color_map() or {}
+dual = get_global_color_map_dual() or {}
+
+_COUNTRY_FLAG = {
+    "IT": "🇮🇹", "EN": "🇬🇧", "GB": "🇬🇧", "ES": "🇪🇸", "DE": "🇩🇪",
+    "FR": "🇫🇷", "US": "🇺🇸", "PT": "🇵🇹", "BR": "🇧🇷", "AR": "🇦🇷",
+    "NL": "🇳🇱", "BE": "🇧🇪", "UY": "🇺🇾", "CO": "🇨🇴", "MX": "🇲🇽",
+}
+
+
+def _subs_per_year(subs: int, launched_iso: str | None) -> int:
+    if not launched_iso or not subs:
+        return 0
+    try:
+        d = datetime.fromisoformat(str(launched_iso).replace("Z", "+00:00"))
+        if d.tzinfo is None:
+            d = d.replace(tzinfo=timezone.utc)
+        years = (now - d).days / 365.25
+        if years <= 0.1:
+            return 0
+        return int(int(subs) / years)
+    except Exception:
+        return 0
+
+
+# ── Leaderboard table ────────────────────────────────────────
+st.markdown("---")
+st.subheader("Leaderboard")
+
+rows_html = ""
+for i, p in enumerate(players, 1):
+    name = p.get("name", "?")
+    c1, c2 = dual.get(name, (color_map.get(name, "#636EFA"), "#FFFFFF"))
+    dot = (f'<span style="display:inline-block;width:14px;height:14px;border-radius:50%;'
+           f'background:{c1};border:1px solid rgba(255,255,255,0.3);position:relative">'
+           f'<span style="display:block;width:7px;height:7px;border-radius:50%;'
+           f'background:{c2};position:absolute;top:2.5px;left:2.5px"></span></span>')
+    country = (p.get("country") or "").upper()
+    flag = _COUNTRY_FLAG.get(country, "")
+    launched = (p.get("launched_at") or "")[:4] or "-"
+    launched_val = (p.get("launched_at") or "9999")[:4]
+    subs = int(p.get("subscriber_count") or 0)
+    views = int(p.get("total_views") or 0)
+    videos = int(p.get("video_count") or 0)
+    vps = views // max(subs, 1)
+    vpv = views // max(videos, 1)
+    spy = _subs_per_year(subs, p.get("launched_at"))
+    handle = p.get("handle", "") or ""
+    yt_url = f"https://www.youtube.com/{handle}" if handle else ""
+    row_click = (f'onclick="window.open(\'{yt_url}\',\'_blank\',\'noopener\')" '
+                 f'style="cursor:pointer"') if yt_url else ""
+    rows_html += f"""<tr {row_click}>
+        <td style="padding:6px 12px;text-align:right;color:#888" data-val="{i}">{i}</td>
+        <td style="padding:6px 12px">{dot}</td>
+        <td style="padding:6px 12px" data-val="{name}">{name}</td>
+        <td style="padding:6px 12px;text-align:center">{flag}</td>
+        <td style="padding:6px 12px;text-align:center" data-val="{launched_val}">{launched}</td>
+        <td style="padding:6px 12px;text-align:right" data-val="{subs}">{fmt_num(subs)}</td>
+        <td style="padding:6px 12px;text-align:right" data-val="{spy}">{fmt_num(spy)}</td>
+        <td style="padding:6px 12px;text-align:right" data-val="{views}">{fmt_num(views)}</td>
+        <td style="padding:6px 12px;text-align:right" data-val="{vps}">{fmt_num(vps)}</td>
+        <td style="padding:6px 12px;text-align:right" data-val="{videos}">{fmt_num(videos)}</td>
+        <td style="padding:6px 12px;text-align:right" data-val="{vpv}">{fmt_num(vpv)}</td>
+    </tr>"""
+
+_tbl_h = len(players) * 38 + 80
+components.html(f"""
+<style>
+  .pl {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
+         font-family:"Source Sans Pro",sans-serif; }}
+  .pl th {{ padding:6px 12px; user-select:none; border-bottom:2px solid #444; }}
+  .pl th[data-col] {{ cursor:pointer; }}
+  .pl th[data-col]:hover {{ color:#636EFA; }}
+  .pl td {{ padding:6px 12px; border-bottom:1px solid #262730; vertical-align:middle; }}
+  .pl tr:hover td {{ background:#1a1c24; }}
+  .pl .active {{ color:#636EFA; }}
+</style>
+<table class="pl">
+<thead><tr>
+  <th data-col="0" data-type="num" style="text-align:right">#</th>
+  <th></th>
+  <th data-col="2" data-type="str" style="text-align:left">Player</th>
+  <th style="text-align:center">Country</th>
+  <th data-col="4" data-type="num" style="text-align:center">Since</th>
+  <th data-col="5" data-type="num" style="text-align:right" class="active">Subs ▼</th>
+  <th data-col="6" data-type="num" style="text-align:right">Subs/Year</th>
+  <th data-col="7" data-type="num" style="text-align:right">Total Views</th>
+  <th data-col="8" data-type="num" style="text-align:right">Views/Sub</th>
+  <th data-col="9" data-type="num" style="text-align:right">Videos</th>
+  <th data-col="10" data-type="num" style="text-align:right">Views/Video</th>
+</tr></thead>
+<tbody>{rows_html}</tbody>
+</table>
+<script>
+(function() {{
+  const table = document.querySelector('.pl');
+  const tbody = table.querySelector('tbody');
+  const headers = table.querySelectorAll('th[data-col]');
+  let currentCol = 5, currentAsc = false;
+  function sort(colIdx, type) {{
+    const rows = Array.from(tbody.rows);
+    const isStr = type === 'str';
+    if (colIdx === currentCol) currentAsc = !currentAsc;
+    else {{ currentCol = colIdx; currentAsc = isStr; }}
+    rows.sort((a, b) => {{
+      const va = a.cells[colIdx].dataset.val || '';
+      const vb = b.cells[colIdx].dataset.val || '';
+      let cmp = isStr ? va.localeCompare(vb) : ((parseFloat(va)||0) - (parseFloat(vb)||0));
+      return currentAsc ? cmp : -cmp;
+    }});
+    rows.forEach(r => tbody.appendChild(r));
+    headers.forEach(h => {{
+      h.classList.remove('active');
+      h.textContent = h.textContent.replace(/ [▲▼]/g, '');
+    }});
+    const a = table.querySelector('th[data-col="' + colIdx + '"]');
+    a.classList.add('active');
+    a.textContent += currentAsc ? ' ▲' : ' ▼';
+  }}
+  headers.forEach(h => h.addEventListener('click',
+    () => sort(parseInt(h.dataset.col), h.dataset.type || 'num')));
+}})();
+</script>
+""", height=_tbl_h, scrolling=False)
+
+
+# ── Charts ───────────────────────────────────────────────────
+st.markdown("---")
+st.subheader("How they compare")
+
+_df = pd.DataFrame([{
+    "Player": p.get("name"),
+    "Subs": int(p.get("subscriber_count") or 0),
+    "Subs/Year": _subs_per_year(int(p.get("subscriber_count") or 0), p.get("launched_at")),
+} for p in players])
+
+log_scale = st.checkbox(
+    "Log scale on subscribers (recommended — one player dwarfs the rest)",
+    value=True,
+)
+
+col1, col2 = st.columns(2)
+with col1:
+    fig = px.bar(
+        _df.sort_values("Subs", ascending=False),
+        x="Player", y="Subs",
+        color="Player", color_discrete_map=color_map,
+        title="Total subscribers",
+        log_y=log_scale,
+    )
+    fig.update_layout(showlegend=False, xaxis_title="", margin=dict(t=40, b=40))
+    st.plotly_chart(fig, use_container_width=True)
+with col2:
+    fig = px.bar(
+        _df.sort_values("Subs/Year", ascending=False),
+        x="Player", y="Subs/Year",
+        color="Player", color_discrete_map=color_map,
+        title="Subscribers / year (normalised for channel age)",
+    )
+    fig.update_layout(showlegend=False, xaxis_title="", margin=dict(t=40, b=40))
+    st.plotly_chart(fig, use_container_width=True)
+
+# ── Season activity ──────────────────────────────────────────
+_has_season = any(int(p.get("season_views") or 0) > 0 for p in players)
+if _has_season:
+    st.markdown("---")
+    st.subheader("This season")
+    st.caption("Videos published in the current season window. Comparable to what we show for clubs.")
+
+    _season_rows = []
+    for p in sorted(players,
+                    key=lambda c: int(c.get("season_views") or 0),
+                    reverse=True):
+        _sv = int(p.get("season_views") or 0)
+        _ln = int(p.get("season_long_videos") or 0)
+        _sn = int(p.get("season_short_videos") or 0)
+        _lv = int(p.get("season_live_videos") or 0)
+        _total_vids = _ln + _sn + _lv
+        _season_rows.append({
+            "Player": p.get("name"),
+            "Season Videos": _total_vids,
+            "Long / Shorts / Live": f"{_ln} / {_sn} / {_lv}",
+            "Season Views": _sv,
+            "Avg Views/Video": _sv // max(_total_vids, 1) if _total_vids else 0,
+        })
+    _season_df = pd.DataFrame(_season_rows)
+    _season_df["Season Videos"] = _season_df["Season Videos"].apply(fmt_num)
+    _season_df["Season Views"] = _season_df["Season Views"].apply(fmt_num)
+    _season_df["Avg Views/Video"] = _season_df["Avg Views/Video"].apply(fmt_num)
+    st.dataframe(_season_df, use_container_width=True, hide_index=True)

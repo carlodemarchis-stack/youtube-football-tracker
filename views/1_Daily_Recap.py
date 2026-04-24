@@ -146,13 +146,17 @@ def _load_video_snapshots_cached(captured_date: str, channel_ids_tuple: tuple | 
 # ── Read global filter ──────────────────────────────────────
 g_league, g_club = get_global_filter()
 ONE_CLUB = g_club is not None
-# The channel_id(s) to restrict computations to (None = all)
+# The channel_id(s) to restrict computations to.
+# Players are always excluded — they live on their own page.
+_non_player_ids = {c["id"] for c in all_channels if c.get("entity_type") != "Player"}
 if ONE_CLUB:
     filter_cids = {g_club["id"]}
 elif g_league:
-    filter_cids = {c["id"] for c in all_channels if get_league_for_channel(c) == g_league}
+    filter_cids = {c["id"] for c in all_channels
+                   if c.get("entity_type") != "Player"
+                   and get_league_for_channel(c) == g_league}
 else:
-    filter_cids = None  # all
+    filter_cids = _non_player_ids
 
 # ── Date picker ────────────────────────────────────────────────
 # Default to CET yesterday. Pick the most recent snapshot that falls on or
@@ -293,7 +297,7 @@ if ONE_CLUB:
     for v in _all_new_rows:
         _all_new_counts[v["channel_id"]] = _all_new_counts.get(v["channel_id"], 0) + 1
 
-    _clubs_only = [c for c in all_channels if c.get("entity_type") != "League"]
+    _clubs_only = [c for c in all_channels if c.get("entity_type") not in ("League", "Player")]
     _ch_league = get_league_for_channel(g_club)
     _peers = [c for c in _clubs_only if get_league_for_channel(c) == _ch_league]
 
@@ -392,8 +396,8 @@ if not ONE_CLUB:
             if vfmt not in ("long", "short", "live"):
                 vfmt = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
             lg_agg[lg][vfmt] = lg_agg[lg].get(vfmt, 0) + 1
-            # Track per-league, per-club counts (exclude the league channel itself)
-            if ch.get("entity_type") != "League":
+            # Track per-league, per-club counts (exclude the league channel and Players)
+            if ch.get("entity_type") not in ("League", "Player"):
                 lg_club_counts.setdefault(lg, {})[ch["id"]] = \
                     lg_club_counts.setdefault(lg, {}).get(ch["id"], 0) + 1
 

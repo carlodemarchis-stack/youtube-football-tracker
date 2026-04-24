@@ -69,6 +69,8 @@ if league is None and _scope == "Overall":
     # Aggregate stats per league
     league_stats = {}
     for ch in all_channels:
+        if ch.get("entity_type") == "Player":
+            continue  # Players live on their own page
         lg = get_league_for_channel(ch)
         if not lg:
             continue
@@ -247,7 +249,7 @@ if league is None and _scope == "Overall":
 
     # ── All Channels table (same as zoom-2) ──────────────────
     st.subheader("All Channels")
-    _all_clubs = [ch for ch in all_channels if ch.get("entity_type") != "League"]
+    _all_clubs = [ch for ch in all_channels if ch.get("entity_type") not in ("League", "Player")]
     _all_df = compute_channel_comparison(_all_clubs)
     _all_color_map = get_global_color_map()
     _all_dual = get_global_color_map_dual()
@@ -362,7 +364,7 @@ elif club is None:
     elif include_league:
         clubs_only = league_channels
     else:
-        clubs_only = [ch for ch in league_channels if ch.get("entity_type") != "League"]
+        clubs_only = [ch for ch in league_channels if ch.get("entity_type") not in ("League", "Player")]
 
     # Totals banner for the selection
     total_subs = sum(ch.get("subscriber_count", 0) for ch in clubs_only)
@@ -593,7 +595,7 @@ else:
 
     # compute ranks across different metrics, vs league peers and vs all clubs
     from src.filters import get_league_for_channel as _get_lg
-    _clubs = [c for c in all_channels if c.get("entity_type") != "League"]
+    _clubs = [c for c in all_channels if c.get("entity_type") not in ("League", "Player")]
     _ch_league = _get_lg(channel)
     _peers = [c for c in _clubs if _get_lg(c) == _ch_league]
     _metric_getters = {

@@ -56,7 +56,9 @@ def main() -> int:
 
     # ── 1. Channel stats + channel_snapshots ─────────────────────
     channels = db.get_all_channels()
-    log(f"Step 1: refreshing stats for {len(channels)} channels")
+    # Players have their own dedicated cron — skip them here
+    channels = [c for c in channels if c.get("entity_type") != "Player"]
+    log(f"Step 1: refreshing stats for {len(channels)} channels (Players excluded)")
     ch_ok = 0
     ch_failed: list[tuple[str, str]] = []
 
@@ -87,10 +89,19 @@ def main() -> int:
         for n, e in ch_failed[:5]:
             log(f"    - {n}: {e}")
 
-    # ── 2. Video stats (ALL videos) ──────────────────────────────
+    # ── 2. Video stats (ALL videos — excluding Player videos) ────
     rows = db.get_all_video_rows()
+    # Exclude Player videos — handled by daily_players.py instead
+    _player_cids = {c["id"] for c in db.get_all_channels()
+                    if c.get("entity_type") == "Player"}
+    if _player_cids:
+        # get_all_video_rows returns id + youtube_video_id only, not channel_id.
+        # Fetch channel_id for all videos once, then filter.
+        _resp = db.client.table("videos").select("id,channel_id").execute().data or []
+        _vid_to_cid = {r["id"]: r.get("channel_id") for r in _resp}
+        rows = [r for r in rows if _vid_to_cid.get(r["id"]) not in _player_cids]
     total_videos = len(rows)
-    log(f"Step 2: refreshing stats for {total_videos} videos")
+    log(f"Step 2: refreshing stats for {total_videos} videos (Player videos excluded)")
 
     id_to_dbid = {r["youtube_video_id"]: r["id"] for r in rows}
     yt_ids = list(id_to_dbid.keys())
@@ -133,7 +144,8 @@ def main() -> int:
     # ── 3. Recompute top100_stats + season_views per channel ─────
     # Refresh channels list (may have new IDs from step 1)
     channels = db.get_all_channels()
-    club_channels = [c for c in channels if c.get("entity_type") != "League"]
+    # Players have their own dedicated cron — skip them here
+    club_channels = [c for c in channels if c.get("entity_type") not in ("League", "Player")]
     log(f"Step 3: recomputing top100_stats for {len(club_channels)} club channels")
 
     stats_ok = 0
