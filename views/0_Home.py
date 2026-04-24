@@ -185,13 +185,21 @@ try:
             ch = _ch_by_id.get(cid)
             if not ch or ch.get("entity_type") == "League" or len(s) < 2:
                 continue
-            d7 = delta(s, "subscriber_count", 7)
-            if d7 is None:
+            # YouTube rounds subscriber_count to the nearest 10K — 7d subs delta
+            # is too coarse (everyone shows ±100K). Rank by Δ total_views instead.
+            d7_views = delta(s, "total_views", 7)
+            if d7_views is None:
                 continue
-            _gainers.append({"name": ch["name"], "subs": s[-1].get("subscriber_count", 0) or 0, "d7": d7, "handle": ch.get("handle", "")})
+            _gainers.append({
+                "name": ch["name"],
+                "views": int(s[-1].get("total_views", 0) or 0),
+                "subs": int(s[-1].get("subscriber_count", 0) or 0),
+                "d7_views": int(d7_views),
+                "handle": ch.get("handle", ""),
+            })
 
         if _gainers:
-            _gainers.sort(key=lambda g: g["d7"], reverse=True)
+            _gainers.sort(key=lambda g: g["d7_views"], reverse=True)
             top5 = _gainers[:5]
             color_map = get_global_color_map()
             dual = get_global_color_map_dual()
@@ -200,14 +208,14 @@ try:
             for i, g in enumerate(top5, 1):
                 c1, c2 = dual.get(g["name"], (color_map.get(g["name"], "#636EFA"), "#FFFFFF"))
                 dot = f'<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:{c1};border:1px solid rgba(255,255,255,0.3);position:relative"><span style="display:block;width:7px;height:7px;border-radius:50%;background:{c2};position:absolute;top:2.5px;left:2.5px"></span></span>'
-                col = "#00CC96" if g["d7"] > 0 else ("#EF553B" if g["d7"] < 0 else "#888")
-                sgn = "+" if g["d7"] >= 0 else ""
+                col = "#00CC96" if g["d7_views"] > 0 else ("#EF553B" if g["d7_views"] < 0 else "#888")
+                sgn = "+" if g["d7_views"] >= 0 else ""
                 rows += f"""<tr>
                     <td style="padding:6px 12px;color:#888">{i}</td>
                     <td style="padding:6px 12px">{dot}</td>
                     <td style="padding:6px 12px">{g['name']}</td>
-                    <td style="padding:6px 12px;text-align:right">{fmt_num(g['subs'])}</td>
-                    <td style="padding:6px 12px;text-align:right;color:{col}">{sgn}{fmt_num(g['d7'])}</td>
+                    <td style="padding:6px 12px;text-align:right">{fmt_num(g['views'])}</td>
+                    <td style="padding:6px 12px;text-align:right;color:{col}">{sgn}{fmt_num(g['d7_views'])}</td>
                 </tr>"""
             components.html(f"""
             <style>
@@ -218,8 +226,8 @@ try:
             </style>
             <table class="home-g"><thead><tr>
               <th>#</th><th></th><th>Club</th>
-              <th style="text-align:right">Subscribers</th>
-              <th style="text-align:right">Δ Subs 7d</th>
+              <th style="text-align:right">Total Views</th>
+              <th style="text-align:right">Δ Views 7d</th>
             </tr></thead><tbody>{rows}</tbody></table>
             """, height=len(top5) * 37 + 80, scrolling=False)
 except Exception:
