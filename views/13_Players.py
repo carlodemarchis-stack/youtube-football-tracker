@@ -431,8 +431,7 @@ for idx, (_, r) in enumerate(_activity_df.iterrows(), 1):
         <td style="padding:6px 12px;text-align:right;color:#888" data-val="{idx}">{idx}</td>
         <td style="padding:6px 12px">{pdot}</td>
         <td style="padding:6px 12px" data-val="{pname}">{pname}</td>
-        <td style="padding:6px 12px;text-align:center" data-val="{r['Last upload']}">{r['Last upload']}</td>
-        <td style="padding:6px 12px;text-align:right" data-val="{d}">{d_disp}</td>
+        <td style="padding:6px 12px;text-align:right" data-val="{d}" title="{r['Last upload']}">{d_disp}</td>
         <td style="padding:6px 12px;text-align:left;white-space:nowrap" data-val="{d}">{r['Status']}</td>
         <td style="padding:6px 12px;text-align:right" data-val="{r['Season videos']}">{fmt_num(r['Season videos'])}</td>
         <td style="padding:6px 12px;text-align:center;white-space:nowrap;color:#aaa" data-val="{r['Season videos']}">{r['L/S/Lv']}</td>
@@ -456,12 +455,11 @@ components.html(f"""
   <th data-col="0" data-type="num" style="text-align:right">#</th>
   <th></th>
   <th data-col="2" data-type="str" style="text-align:left">Player</th>
-  <th data-col="3" data-type="str" style="text-align:center">Last upload</th>
-  <th data-col="4" data-type="num" style="text-align:right" class="active">Days ago ▲</th>
-  <th data-col="5" data-type="num" style="text-align:left">Status</th>
-  <th data-col="6" data-type="num" style="text-align:right">Season videos</th>
-  <th data-col="7" data-type="num" style="text-align:center" title="Long / Shorts / Live">L/S/Lv</th>
-  <th data-col="8" data-type="num" style="text-align:right">Season views</th>
+  <th data-col="3" data-type="num" style="text-align:right" class="active">Last upload ▲</th>
+  <th data-col="4" data-type="num" style="text-align:left">Status</th>
+  <th data-col="5" data-type="num" style="text-align:right">Season videos</th>
+  <th data-col="6" data-type="num" style="text-align:center" title="Long / Shorts / Live">L/S/Lv</th>
+  <th data-col="7" data-type="num" style="text-align:right">Season views</th>
 </tr></thead>
 <tbody>{_act_rows_html}</tbody>
 </table>
@@ -470,7 +468,7 @@ components.html(f"""
   const table = document.querySelector('.pl2');
   const tbody = table.querySelector('tbody');
   const headers = table.querySelectorAll('th[data-col]');
-  let currentCol = 4, currentAsc = true;
+  let currentCol = 3, currentAsc = true;
   function sort(colIdx, type) {{
     const rows = Array.from(tbody.rows);
     const isStr = type === 'str';
