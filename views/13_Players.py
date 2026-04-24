@@ -270,7 +270,8 @@ for i, p in enumerate(players, 1):
         <td style="padding:6px 12px;text-align:center" data-val="{_status_sort}" title="{_status_label} · last upload {(_days if _days is not None else '—')}d ago">{_status_dot_s}</td>
     </tr>"""
 
-_tbl_h = len(players) * 38 + 80
+# Dynamic height — grows with the roster so every row is visible (no inner scroll).
+_tbl_h = len(players) * 40 + 90
 components.html(f"""
 <style>
   .pl {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
@@ -413,7 +414,9 @@ _activity_df = pd.DataFrame(_activity_rows).sort_values("Days ago", ascending=Tr
 _display = _activity_df.drop(columns=["Days ago", "_long", "_short", "_live"]).copy()
 _display["Season videos"] = _display["Season videos"].apply(fmt_num)
 _display["Season views"] = _display["Season views"].apply(fmt_num)
-st.dataframe(_display, use_container_width=True, hide_index=True)
+# Height scales with row count so every player shows without inner scroll.
+_act_h = (len(_display) + 1) * 35 + 3
+st.dataframe(_display, use_container_width=True, hide_index=True, height=_act_h)
 
 # Stacked bar chart — season video mix by format
 _mix = _activity_df[["Player", "_long", "_short", "_live"]].rename(
