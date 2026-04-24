@@ -169,6 +169,14 @@ except Exception:
     pass
 
 st.markdown(
+    "Hi, I'm **Carlo De Marchis** — *a guy with a scarf* — and this is a small "
+    "side project born from my passion for data, stats and visualisation. "
+    "A starting point to explore how the chain from **information → insights → "
+    "action** might evolve today, with AI as the substrate that augments each step. "
+    "It'll keep changing based on what I learn and what you tell me."
+)
+
+st.markdown(
     "A window into how football clubs use YouTube — built for **club social "
     "teams** looking to benchmark and learn from peers, and for **curious fans** "
     "who want to see what their team (and everyone else) is actually doing.\n\n"
