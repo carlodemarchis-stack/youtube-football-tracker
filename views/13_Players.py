@@ -182,6 +182,26 @@ def _status(days: int | None) -> tuple[str, str]:
     return "🔴 Dormant", "#AA2222"
 
 
+# Retired / still-playing career status — hardcoded by substring match
+# against channel name. Edit as careers change.
+_RETIRED_NAMES = (
+    "Rio Ferdinand", "Ben Foster", "Iker Casillas",
+    "Peter Crouch", "Sergio Agüero", "Sergio Aguero",
+)
+
+
+def _is_retired(name: str) -> bool:
+    n = (name or "").lower()
+    return any(r.lower() in n for r in _RETIRED_NAMES)
+
+
+def _career_dot(name: str) -> tuple[str, int]:
+    """Return (dot, sort_key). 0 = active (green), 1 = retired (red)."""
+    if _is_retired(name):
+        return "🔴", 1
+    return "🟢", 0
+
+
 def _status_dot(days: int | None) -> str:
     """Just the coloured dot — no text. Used in the leaderboard."""
     if days is None:
@@ -212,6 +232,8 @@ for i, p in enumerate(players, 1):
     _status_label, _ = _status(_days)
     _status_dot_s = _status_dot(_days)
     _status_sort = _days if _days is not None else 99999
+    _career_d, _career_sort = _career_dot(name)
+    _career_label = "Retired" if _career_sort else "Currently playing"
     _age = _age_from_dob(p.get("dob"))
     _age_disp = f"{_age}" if _age is not None else "—"
     _age_sort = _age if _age is not None else 0
@@ -237,6 +259,7 @@ for i, p in enumerate(players, 1):
         <td style="padding:6px 12px" data-val="{name}">{name}</td>
         <td style="padding:6px 12px;text-align:right" data-val="{_age_sort}">{_age_disp}</td>
         <td style="padding:6px 12px;text-align:center" data-val="{_status_sort}" title="{_status_label} · last upload {(_days if _days is not None else '—')}d ago">{_status_dot_s}</td>
+        <td style="padding:6px 12px;text-align:center" data-val="{_career_sort}" title="{_career_label}">{_career_d}</td>
         <td style="padding:6px 12px;text-align:center" data-val="{launched_val}">{launched}</td>
         <td style="padding:6px 12px;text-align:right" data-val="{subs}">{fmt_num(subs)}</td>
         <td style="padding:6px 12px;text-align:right" data-val="{spy}">{fmt_num(spy)}</td>
@@ -265,15 +288,16 @@ components.html(f"""
   <th></th>
   <th data-col="2" data-type="str" style="text-align:left">Player</th>
   <th data-col="3" data-type="num" style="text-align:right">Age</th>
-  <th data-col="4" data-type="num" style="text-align:center">Active</th>
-  <th data-col="5" data-type="num" style="text-align:center">Since</th>
-  <th data-col="6" data-type="num" style="text-align:right" class="active">Subs ▼</th>
-  <th data-col="7" data-type="num" style="text-align:right">Subs/Year</th>
-  <th data-col="8" data-type="num" style="text-align:right">Total Views</th>
-  <th data-col="9" data-type="num" style="text-align:right">Views/Sub</th>
-  <th data-col="10" data-type="num" style="text-align:right">Videos</th>
-  <th data-col="11" data-type="num" style="text-align:center" title="Season: Long / Shorts / Live">L/S/Lv</th>
-  <th data-col="12" data-type="num" style="text-align:right">Views/Video</th>
+  <th data-col="4" data-type="num" style="text-align:center">Updates</th>
+  <th data-col="5" data-type="num" style="text-align:center">Career</th>
+  <th data-col="6" data-type="num" style="text-align:center">Since</th>
+  <th data-col="7" data-type="num" style="text-align:right" class="active">Subs ▼</th>
+  <th data-col="8" data-type="num" style="text-align:right">Subs/Year</th>
+  <th data-col="9" data-type="num" style="text-align:right">Total Views</th>
+  <th data-col="10" data-type="num" style="text-align:right">Views/Sub</th>
+  <th data-col="11" data-type="num" style="text-align:right">Videos</th>
+  <th data-col="12" data-type="num" style="text-align:center" title="Season: Long / Shorts / Live">L/S/Lv</th>
+  <th data-col="13" data-type="num" style="text-align:right">Views/Video</th>
 </tr></thead>
 <tbody>{rows_html}</tbody>
 </table>
@@ -282,7 +306,7 @@ components.html(f"""
   const table = document.querySelector('.pl');
   const tbody = table.querySelector('tbody');
   const headers = table.querySelectorAll('th[data-col]');
-  let currentCol = 6, currentAsc = false;
+  let currentCol = 7, currentAsc = false;
   function sort(colIdx, type) {{
     const rows = Array.from(tbody.rows);
     const isStr = type === 'str';
@@ -310,8 +334,9 @@ components.html(f"""
 """, height=_tbl_h, scrolling=False)
 
 st.caption(
-    "**Active** reflects days since the player's latest YouTube upload: "
-    "🟢 ≤14d  ·  🟡 ≤30d  ·  🟠 ≤90d  ·  🔴 >90d."
+    "**Updates** — days since the player's latest YouTube upload: "
+    "🟢 ≤14d  ·  🟡 ≤30d  ·  🟠 ≤90d  ·  🔴 >90d.  "
+    "**Career** — 🟢 currently playing  ·  🔴 retired."
 )
 
 
