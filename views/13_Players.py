@@ -432,7 +432,7 @@ for idx, (_, r) in enumerate(_activity_df.iterrows(), 1):
         <td style="padding:6px 12px">{pdot}</td>
         <td style="padding:6px 12px" data-val="{pname}">{pname}</td>
         <td style="padding:6px 12px;text-align:right" data-val="{d}" title="{r['Last upload']}">{d_disp}</td>
-        <td style="padding:6px 12px;text-align:left;white-space:nowrap" data-val="{d}">{r['Status']}</td>
+        <td style="padding:6px 12px;text-align:center" data-val="{d}" title="{r['Status']}">{_status_dot(None if d >= 99999 else d)}</td>
         <td style="padding:6px 12px;text-align:right" data-val="{r['Season videos']}">{fmt_num(r['Season videos'])}</td>
         <td style="padding:6px 12px;text-align:center;white-space:nowrap;color:#aaa" data-val="{r['Season videos']}">{r['L/S/Lv']}</td>
         <td style="padding:6px 12px;text-align:right" data-val="{r['Season views']}">{fmt_num(r['Season views'])}</td>
@@ -456,7 +456,7 @@ components.html(f"""
   <th></th>
   <th data-col="2" data-type="str" style="text-align:left">Player</th>
   <th data-col="3" data-type="num" style="text-align:right" class="active">Last upload ▲</th>
-  <th data-col="4" data-type="num" style="text-align:left">Status</th>
+  <th data-col="4" data-type="num" style="text-align:center">Status</th>
   <th data-col="5" data-type="num" style="text-align:right">Season videos</th>
   <th data-col="6" data-type="num" style="text-align:center" title="Long / Shorts / Live">L/S/Lv</th>
   <th data-col="7" data-type="num" style="text-align:right">Season views</th>
