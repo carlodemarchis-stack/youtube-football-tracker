@@ -219,8 +219,22 @@ def _status_dot(days: int | None) -> str:
 st.markdown("---")
 st.subheader("Leaderboard")
 
+_career_filter = st.radio(
+    "Show",
+    ["All", "Currently playing", "Retired"],
+    horizontal=True,
+    key="players_career_filter",
+    label_visibility="collapsed",
+)
+if _career_filter == "Currently playing":
+    _filtered = [p for p in players if not _is_retired(p.get("name", ""))]
+elif _career_filter == "Retired":
+    _filtered = [p for p in players if _is_retired(p.get("name", ""))]
+else:
+    _filtered = players
+
 rows_html = ""
-for i, p in enumerate(players, 1):
+for i, p in enumerate(_filtered, 1):
     name = p.get("name", "?")
     c1, c2 = dual.get(name, (color_map.get(name, "#636EFA"), "#FFFFFF"))
     dot = (f'<span style="display:inline-block;width:14px;height:14px;border-radius:50%;'
@@ -271,7 +285,7 @@ for i, p in enumerate(players, 1):
     </tr>"""
 
 # Dynamic height — grows with the roster so every row is visible (no inner scroll).
-_tbl_h = len(players) * 40 + 90
+_tbl_h = max(len(_filtered), 1) * 40 + 90
 components.html(f"""
 <style>
   .pl {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
