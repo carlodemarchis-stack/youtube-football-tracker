@@ -6,11 +6,14 @@ and is unreliable for run-and-exit scripts). This container stays alive
 and triggers jobs at the right times using simple sleep loops.
 
 Schedule (UTC):
-  - Hourly RSS:        every hour from 05:03 to 22:03
-  - Hourly Reddit:     every hour from 05:07 to 22:07
-  - Daily Federations: 00:30 every day
-  - Daily refresh:     03:30 every day
-  - Weekly refresh:    04:00 every Monday
+  - Hourly RSS:     every hour from 05:03 to 22:03
+  - Hourly Reddit:  every hour from 05:07 to 22:07
+  - Daily refresh:  03:30 every day
+  - Weekly refresh: 04:00 every Monday
+
+Note: daily_players.py and daily_federations.py run on their own dedicated
+Railway services (NOT in this scheduler) — kept isolated so each can be
+paused / killed independently.
 
 Env vars required:
     YOUTUBE_API_KEY
@@ -66,7 +69,6 @@ def main() -> None:
     last_hourly_hour = -1
     last_reddit_hour = -1
     last_daily_day = -1
-    last_federations_day = -1
     last_weekly_isoweek = (-1, -1)
 
     while True:
@@ -91,13 +93,6 @@ def main() -> None:
             last_reddit_hour = hour
             threading.Thread(
                 target=run_script, args=("hourly_reddit.py",), daemon=True
-            ).start()
-
-        # ── Daily Federations: at 00:30 (≈ 01:30 CET) ─────────
-        if hour == 0 and minute >= 30 and last_federations_day != day:
-            last_federations_day = day
-            threading.Thread(
-                target=run_script, args=("daily_federations.py",), daemon=True
             ).start()
 
         # ── Daily refresh: at 03:30 ───────────────────────────
