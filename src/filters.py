@@ -7,7 +7,7 @@ from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
 # Entity types that should never appear in the main League/Club UX.
 # Players live on their own page and are excluded from everything else
 # to keep that feature isolated and killable without ripple effects.
-_NON_CLUB_TYPES = ("League", "Player")
+_NON_CLUB_TYPES = ("League", "Player", "Federation")
 
 
 def is_club(ch: dict) -> bool:
@@ -324,11 +324,12 @@ def get_channels_for_filter(channels: list[dict], league: str | None) -> list[di
             return [ch for ch in channels if ch.get("entity_type") == "League"]
         if scope == "All clubs":
             return [ch for ch in channels if is_club(ch)]
-        # Overall: exclude Players (they live on their own page) but keep leagues
-        return [ch for ch in channels if ch.get("entity_type") != "Player"]
+        # Overall: exclude Players + Federations (own pages) but keep leagues
+        return [ch for ch in channels
+                if ch.get("entity_type") not in ("Player", "Federation")]
     return [
         ch for ch in channels
-        if ch.get("entity_type") != "Player"
+        if ch.get("entity_type") not in ("Player", "Federation")
         and COUNTRY_TO_LEAGUE.get(ch.get("country", ""), ch.get("country", "")) == league
     ]
 
