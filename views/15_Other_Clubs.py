@@ -176,6 +176,8 @@ st.caption(
 rows_html = ""
 for i, p in enumerate(clubs_o, 1):
     name = p.get("name", "?")
+    _cc = (p.get("country") or "").upper()
+    name_disp = f"{name} <span style='color:#888'>({_cc})</span>" if _cc else name
     c1, c2 = dual.get(name, (color_map.get(name, "#636EFA"), "#FFFFFF"))
     dot = (f'<span style="display:inline-block;width:14px;height:14px;border-radius:50%;'
            f'background:{c1};border:1px solid rgba(255,255,255,0.3);position:relative">'
@@ -205,7 +207,7 @@ for i, p in enumerate(clubs_o, 1):
     rows_html += f"""<tr {row_click}>
         <td style="padding:6px 12px;text-align:right;color:#888" data-val="{i}">{i}</td>
         <td style="padding:6px 12px">{dot}</td>
-        <td style="padding:6px 12px;white-space:nowrap" data-val="{name}">{name}</td>
+        <td style="padding:6px 12px;white-space:nowrap" data-val="{name}">{name_disp}</td>
         <td style="padding:6px 12px;text-align:center" data-val="{launched_val}">{launched}</td>
         <td style="padding:6px 12px;text-align:right" data-val="{subs}">{fmt_num(subs)}</td>
         <td style="padding:6px 12px;text-align:right" data-val="{spy}">{fmt_num(spy)}</td>
@@ -229,11 +231,11 @@ components.html(f"""
   .pl tr:hover td {{ background:#1a1c24; }}
   .pl .active {{ color:#636EFA; }}
 </style>
-<table class="pl">
+<div style="overflow-x:auto;width:100%"><table class="pl">
 <thead><tr>
   <th data-col="0" data-type="num" style="text-align:right">#</th>
   <th></th>
-  <th data-col="2" data-type="str" style="text-align:left">Other club</th>
+  <th data-col="2" data-type="str" style="text-align:left">Club</th>
   <th data-col="3" data-type="num" style="text-align:center">Since</th>
   <th data-col="4" data-type="num" style="text-align:right" class="active">Subs ▼</th>
   <th data-col="5" data-type="num" style="text-align:right">Subs/Year</th>
@@ -245,7 +247,7 @@ components.html(f"""
   <th data-col="11" data-type="num" style="text-align:center">Updates</th>
 </tr></thead>
 <tbody>{rows_html}</tbody>
-</table>
+</table></div>
 <script>
 (function() {{
   const table = document.querySelector('.pl');
@@ -373,10 +375,12 @@ for idx, (_, r) in enumerate(_activity_df.iterrows(), 1):
               f'style="cursor:pointer"') if yt_url else ""
     d = r["Days ago"]
     d_disp = f"{d}d ago" if d < 99999 else "—"
+    _pcc = (pdata.get("country") or "").upper()
+    pname_disp = f"{pname} <span style='color:#888'>({_pcc})</span>" if _pcc else pname
     _act_rows_html += f"""<tr {rclick}>
         <td style="padding:6px 12px;text-align:right;color:#888" data-val="{idx}">{idx}</td>
         <td style="padding:6px 12px">{pdot}</td>
-        <td style="padding:6px 12px;white-space:nowrap" data-val="{pname}">{pname}</td>
+        <td style="padding:6px 12px;white-space:nowrap" data-val="{pname}">{pname_disp}</td>
         <td style="padding:6px 12px;text-align:right" data-val="{d}" title="{r['Last upload']}">{d_disp}</td>
         <td style="padding:6px 12px;text-align:center" data-val="{d}" title="{r['Status']}">{_status_dot(None if d >= 99999 else d)}</td>
         <td style="padding:6px 12px;text-align:right" data-val="{r['Season videos']}">{fmt_num(r['Season videos'])}</td>
@@ -396,11 +400,11 @@ components.html(f"""
   .pl2 tr:hover td {{ background:#1a1c24; }}
   .pl2 .active {{ color:#636EFA; }}
 </style>
-<table class="pl2">
+<div style="overflow-x:auto;width:100%"><table class="pl2">
 <thead><tr>
   <th data-col="0" data-type="num" style="text-align:right">#</th>
   <th></th>
-  <th data-col="2" data-type="str" style="text-align:left">Other club</th>
+  <th data-col="2" data-type="str" style="text-align:left">Club</th>
   <th data-col="3" data-type="num" style="text-align:right" class="active">Last upload ▲</th>
   <th data-col="4" data-type="num" style="text-align:center">Status</th>
   <th data-col="5" data-type="num" style="text-align:right">Season videos</th>
@@ -408,7 +412,7 @@ components.html(f"""
   <th data-col="7" data-type="num" style="text-align:right">Season views</th>
 </tr></thead>
 <tbody>{_act_rows_html}</tbody>
-</table>
+</table></div>
 <script>
 (function() {{
   const table = document.querySelector('.pl2');
