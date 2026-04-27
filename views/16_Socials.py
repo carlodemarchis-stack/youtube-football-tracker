@@ -13,6 +13,7 @@ import streamlit.components.v1 as components
 from dotenv import load_dotenv
 
 from src.database import Database
+from src.analytics import fmt_num
 from src.auth import require_login
 from src.filters import (
     get_global_filter, get_global_channels, get_channels_for_filter,
