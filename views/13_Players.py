@@ -284,8 +284,8 @@ for i, p in enumerate(_filtered, 1):
         <td style="padding:6px 12px;text-align:center" data-val="{_status_sort}" title="{_status_label} · last upload {(_days if _days is not None else '—')}d ago">{_status_dot_s}</td>
     </tr>"""
 
-# Dynamic height — grows with the roster so every row is visible (no inner scroll).
-_tbl_h = max(len(_filtered), 1) * 40 + 90
+# Initial iframe height — JS below auto-resizes to real scrollHeight on load.
+_tbl_h = max(len(_filtered), 1) * 44 + 140
 components.html(f"""
 <style>
   .pl {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
@@ -344,6 +344,13 @@ components.html(f"""
   }}
   headers.forEach(h => h.addEventListener('click',
     () => sort(parseInt(h.dataset.col), h.dataset.type || 'num')));
+  // Auto-fit iframe to real content so no row is ever clipped.
+  function _fit() {{
+    const h = document.documentElement.scrollHeight + 8;
+    window.parent.postMessage({{type:'streamlit:setFrameHeight', height: h}}, '*');
+  }}
+  new ResizeObserver(_fit).observe(document.body);
+  _fit();
 }})();
 </script>
 """, height=_tbl_h, scrolling=False)
@@ -452,7 +459,7 @@ for idx, (_, r) in enumerate(_activity_df.iterrows(), 1):
         <td style="padding:6px 12px;text-align:right" data-val="{r['Season views']}">{fmt_num(r['Season views'])}</td>
     </tr>"""
 
-_act_h = len(_activity_df) * 40 + 90
+_act_h = len(_activity_df) * 44 + 140
 components.html(f"""
 <style>
   .pl2 {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
@@ -505,6 +512,12 @@ components.html(f"""
   }}
   headers.forEach(h => h.addEventListener('click',
     () => sort(parseInt(h.dataset.col), h.dataset.type || 'num')));
+  function _fit() {{
+    const h = document.documentElement.scrollHeight + 8;
+    window.parent.postMessage({{type:'streamlit:setFrameHeight', height: h}}, '*');
+  }}
+  new ResizeObserver(_fit).observe(document.body);
+  _fit();
 }})();
 </script>
 """, height=_act_h, scrolling=False)
