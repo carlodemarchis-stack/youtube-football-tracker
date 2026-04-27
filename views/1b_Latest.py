@@ -45,7 +45,10 @@ if g_club:
 elif g_league:
     ch_ids = [c["id"] for c in all_channels if get_league_for_channel(c) == g_league]
 else:
-    ch_ids = None
+    # Always restrict to allowed channels — Players + Federations are
+    # already filtered out of `all_channels` above. Without this, the
+    # SQL query returns all videos including those isolated entity types.
+    ch_ids = [c["id"] for c in all_channels]
 
 # ── Format filter ────────────────────────────────────────────
 _fc1, _fc2, _fc3 = st.columns([4, 1, 1])
