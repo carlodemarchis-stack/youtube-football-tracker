@@ -33,7 +33,7 @@ if g_league:
 else:
     filtered_channels = all_channels
 
-clubs = [ch for ch in filtered_channels if ch.get("entity_type") not in ("League", "Player", "Federation", "OtherClub")]
+clubs = [ch for ch in filtered_channels if ch.get("entity_type") not in ("League", "Player", "Federation", "OtherClub", "WomenClub")]
 
 if not clubs:
     st.warning("No clubs loaded yet.")

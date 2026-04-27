@@ -31,7 +31,7 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 db = Database(SUPABASE_URL, SUPABASE_KEY)
 all_channels = get_global_channels() or db.get_all_channels()
 # Players are isolated — never show in Latest Videos (they have their own page)
-all_channels = [c for c in all_channels if c.get("entity_type") not in ("Player", "Federation", "OtherClub")]
+all_channels = [c for c in all_channels if c.get("entity_type") not in ("Player", "Federation", "OtherClub", "WomenClub")]
 
 color_map = get_global_color_map()
 dual = get_global_color_map_dual()

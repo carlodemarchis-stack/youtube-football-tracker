@@ -63,7 +63,7 @@ def main() -> int:
     channels = db.get_all_channels()
     # Players + Federations have their own dedicated crons — skip them here.
     channels = [c for c in channels
-                if c.get("entity_type") not in ("Player", "Federation", "OtherClub")]
+                if c.get("entity_type") not in ("Player", "Federation", "OtherClub", "WomenClub")]
     total = len(channels)
     log(f"Found {total} channels (Players + Federations excluded — handled by their dedicated crons)")
 

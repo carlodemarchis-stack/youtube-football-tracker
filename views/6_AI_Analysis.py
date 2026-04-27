@@ -59,7 +59,7 @@ if is_stale:
 
 # ── Club KPI banner (same as Channels page) ─────────────────
 from src.filters import get_league_for_channel as _get_lg
-_clubs = [c for c in all_channels if c.get("entity_type") not in ("League", "Player", "Federation", "OtherClub")]
+_clubs = [c for c in all_channels if c.get("entity_type") not in ("League", "Player", "Federation", "OtherClub", "WomenClub")]
 _ch_league = _get_lg(channel)
 _peers = [c for c in _clubs if _get_lg(c) == _ch_league]
 
