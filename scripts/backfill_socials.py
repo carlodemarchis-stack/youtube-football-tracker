@@ -55,6 +55,15 @@ PROPS: dict[str, tuple[str, str]] = {
 
 FOOTBALL_KEYWORDS = ("football", "soccer", "calcio", "fútbol")
 
+# Manual QID overrides for clubs whose name search picks the wrong entity
+# (typically a women's team, sub-org, or stadium ranks above the senior club).
+# Match is by exact channel name in the DB.
+QID_OVERRIDES: dict[str, str] = {
+    "AS Roma":            "Q2739",   # men's senior team (was picking Q56084793 = women)
+    "Genoa Cfc - Official": "Q2074", # name in DB had no Wikidata hit
+    # Add more as we spot them.
+}
+
 
 def log(msg: str) -> None:
     print(msg, flush=True)
@@ -145,7 +154,7 @@ def main() -> int:
             skipped += 1
             continue
 
-        qid = search_qid(name)
+        qid = QID_OVERRIDES.get(name) or search_qid(name)
         if not qid:
             log(f"  ✗  {name}: no Wikidata match")
             failed += 1
