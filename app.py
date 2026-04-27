@@ -87,10 +87,14 @@ if SUPABASE_URL and SUPABASE_KEY:
     db = Database(SUPABASE_URL, SUPABASE_KEY)
     all_channels = db.get_all_channels()
     if all_channels:
-        league, club = render_header_filter(all_channels)
-        st.session_state["_global_league"] = league
-        st.session_state["_global_club"] = club
+        # Always cache the channel list so isolated pages can read it,
+        # but only render the league/club filter on pages where it applies.
         st.session_state["_global_channels"] = all_channels
+        _no_filter_pages = {"Players", "Federations"}
+        if getattr(pg, "title", "") not in _no_filter_pages:
+            league, club = render_header_filter(all_channels)
+            st.session_state["_global_league"] = league
+            st.session_state["_global_club"] = club
 
 st.markdown("---")
 

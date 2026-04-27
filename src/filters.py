@@ -36,15 +36,17 @@ def _sync_query_params(league: str, club: str):
 def render_header_filter(channels: list[dict]) -> tuple[str | None, dict | None]:
     """Render cascading league/club filter. Returns (league_name, channel_dict_or_None)."""
 
-    # Build league list from channels
+    # Build league list from clubs only — leagues, players and federations
+    # have their own pages and would leak country codes (AF/AS/BR/EU/WW…)
+    # into the dropdown otherwise.
     leagues = {}
     for ch in channels:
+        if not is_club(ch):
+            continue
         country = ch.get("country", "")
         league = COUNTRY_TO_LEAGUE.get(country, country)
         if league:
-            if league not in leagues:
-                leagues[league] = []
-            leagues[league].append(ch)
+            leagues.setdefault(league, []).append(ch)
 
     league_names = sorted(leagues.keys())
     league_options = ["All Leagues"] + league_names
