@@ -270,7 +270,7 @@ for i, p in enumerate(_filtered, 1):
     rows_html += f"""<tr {row_click}>
         <td style="padding:6px 12px;text-align:right;color:#888" data-val="{i}">{i}</td>
         <td style="padding:6px 12px">{dot}</td>
-        <td style="padding:6px 12px" data-val="{name}">{name}</td>
+        <td style="padding:6px 12px;white-space:nowrap" data-val="{name}">{name}</td>
         <td style="padding:6px 12px;text-align:right" data-val="{_age_sort}">{_age_disp}</td>
         <td style="padding:6px 12px;text-align:center" data-val="{_career_sort}" title="{_career_label}">{_career_d}</td>
         <td style="padding:6px 12px;text-align:center" data-val="{launched_val}">{launched}</td>
@@ -285,7 +285,7 @@ for i, p in enumerate(_filtered, 1):
     </tr>"""
 
 # Initial iframe height — JS below auto-resizes to real scrollHeight on load.
-_tbl_h = max(len(_filtered), 1) * 44 + 140
+_tbl_h = max(len(_filtered), 1) * 42 + 55
 components.html(f"""
 <style>
   .pl {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
@@ -451,7 +451,7 @@ for idx, (_, r) in enumerate(_activity_df.iterrows(), 1):
     _act_rows_html += f"""<tr {rclick}>
         <td style="padding:6px 12px;text-align:right;color:#888" data-val="{idx}">{idx}</td>
         <td style="padding:6px 12px">{pdot}</td>
-        <td style="padding:6px 12px" data-val="{pname}">{pname}</td>
+        <td style="padding:6px 12px;white-space:nowrap" data-val="{pname}">{pname}</td>
         <td style="padding:6px 12px;text-align:right" data-val="{d}" title="{r['Last upload']}">{d_disp}</td>
         <td style="padding:6px 12px;text-align:center" data-val="{d}" title="{r['Status']}">{_status_dot(None if d >= 99999 else d)}</td>
         <td style="padding:6px 12px;text-align:right" data-val="{r['Season videos']}">{fmt_num(r['Season videos'])}</td>
@@ -459,7 +459,7 @@ for idx, (_, r) in enumerate(_activity_df.iterrows(), 1):
         <td style="padding:6px 12px;text-align:right" data-val="{r['Season views']}">{fmt_num(r['Season views'])}</td>
     </tr>"""
 
-_act_h = len(_activity_df) * 44 + 140
+_act_h = len(_activity_df) * 42 + 55
 components.html(f"""
 <style>
   .pl2 {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
