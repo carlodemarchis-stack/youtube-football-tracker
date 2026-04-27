@@ -233,6 +233,12 @@ elif _career_filter == "Retired":
 else:
     _filtered = players
 
+st.caption(
+    "**Updates** — days since the player's latest YouTube upload: "
+    "🟢 ≤14d  ·  🟡 ≤30d  ·  🟠 ≤90d  ·  🔴 >90d.  "
+    "**Career** — 🟢 currently playing  ·  🔴 retired."
+)
+
 rows_html = ""
 for i, p in enumerate(_filtered, 1):
     name = p.get("name", "?")
@@ -354,12 +360,6 @@ components.html(f"""
 }})();
 </script>
 """, height=_tbl_h, scrolling=False)
-
-st.caption(
-    "**Updates** — days since the player's latest YouTube upload: "
-    "🟢 ≤14d  ·  🟡 ≤30d  ·  🟠 ≤90d  ·  🔴 >90d.  "
-    "**Career** — 🟢 currently playing  ·  🔴 retired."
-)
 
 
 # ── Charts ───────────────────────────────────────────────────

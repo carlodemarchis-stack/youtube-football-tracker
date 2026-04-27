@@ -165,6 +165,11 @@ def _status_dot(days: int | None) -> str:
 st.markdown("---")
 st.subheader("Leaderboard")
 
+st.caption(
+    "**Updates** — days since the federation's latest YouTube upload: "
+    "🟢 ≤14d  ·  🟡 ≤30d  ·  🟠 ≤90d  ·  🔴 >90d."
+)
+
 rows_html = ""
 for i, p in enumerate(feds, 1):
     name = p.get("name", "?")
@@ -275,11 +280,6 @@ components.html(f"""
 }})();
 </script>
 """, height=_tbl_h, scrolling=False)
-
-st.caption(
-    "**Updates** — days since the federation's latest YouTube upload: "
-    "🟢 ≤14d  ·  🟡 ≤30d  ·  🟠 ≤90d  ·  🔴 >90d."
-)
 
 
 # ── Charts ───────────────────────────────────────────────────
