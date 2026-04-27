@@ -170,6 +170,21 @@ try:
             for lg, n in sorted(_league_counts.items(), key=lambda x: -x[1])
         ]
         st.caption(f"Covering {len(_league_counts)} leagues: " + " · ".join(_parts))
+
+    # Also-tracking line: Players + Federations (isolated entity types)
+    _players = [c for c in _chs if c.get("entity_type") == "Player"]
+    _feds = [c for c in _chs if c.get("entity_type") == "Federation"]
+    if _players or _feds:
+        from src.analytics import fmt_num as _fmt
+        _bits = []
+        if _players:
+            _ps = sum(int(c.get("subscriber_count") or 0) for c in _players)
+            _bits.append(f"⚽ **{len(_players)} players** ({_fmt(_ps)} subs)")
+        if _feds:
+            _fs = sum(int(c.get("subscriber_count") or 0) for c in _feds)
+            _bits.append(f"🏛️ **{len(_feds)} federations** ({_fmt(_fs)} subs)")
+        st.caption("Also tracking: " + "  ·  ".join(_bits)
+                   + " — see the dedicated pages.")
 except Exception:
     pass
 

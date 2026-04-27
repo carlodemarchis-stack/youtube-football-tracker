@@ -83,6 +83,9 @@ if st.query_params.get("view") == "feed":
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 
+_no_filter_pages = {"Players", "Federations"}
+_show_filter = getattr(pg, "title", "") not in _no_filter_pages
+
 if SUPABASE_URL and SUPABASE_KEY:
     db = Database(SUPABASE_URL, SUPABASE_KEY)
     all_channels = db.get_all_channels()
@@ -90,13 +93,13 @@ if SUPABASE_URL and SUPABASE_KEY:
         # Always cache the channel list so isolated pages can read it,
         # but only render the league/club filter on pages where it applies.
         st.session_state["_global_channels"] = all_channels
-        _no_filter_pages = {"Players", "Federations"}
-        if getattr(pg, "title", "") not in _no_filter_pages:
+        if _show_filter:
             league, club = render_header_filter(all_channels)
             st.session_state["_global_league"] = league
             st.session_state["_global_club"] = club
 
-st.markdown("---")
+if _show_filter:
+    st.markdown("---")
 
 # ── YouTube overlay player (one per session) ─────────────────
 import streamlit.components.v1 as _components
