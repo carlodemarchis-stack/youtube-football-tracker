@@ -57,8 +57,8 @@ if league is None and _scope == "Overall":
 
     league_stats: dict[str, dict] = {}
     for ch in all_channels:
-        if ch.get("entity_type") == "Player":
-            continue  # Players live on their own page
+        if ch.get("entity_type") in ("Player", "Federation"):
+            continue  # Players + Federations live on their own pages
         lg = get_league_for_channel(ch)
         if not lg:
             continue

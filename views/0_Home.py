@@ -40,7 +40,8 @@ if st.session_state.get("_feed_mode"):
     elif g_league:
         ch_ids = [c["id"] for c in all_channels if get_league_for_channel(c) == g_league]
     else:
-        ch_ids = None
+        # all_channels has Players + Federations already filtered out above
+        ch_ids = [c["id"] for c in all_channels]
 
     st.title("Feed")
     fmt_options = ["All", "Long", "Shorts", "Live"]
@@ -156,8 +157,8 @@ try:
     _league_counts: dict[str, int] = {}
     _league_has_channel: dict[str, bool] = {}
     for _c in _chs:
-        if _c.get("entity_type") == "Player":
-            continue  # Players live on their own page
+        if _c.get("entity_type") in ("Player", "Federation"):
+            continue  # Players + Federations live on their own pages
         _lg = COUNTRY_TO_LEAGUE.get((_c.get("country") or "").upper(), _c.get("country") or "—")
         if _c.get("entity_type") == "League":
             _league_has_channel[_lg] = True
@@ -216,7 +217,7 @@ try:
         _gainers = []
         for cid, s in _by_ch.items():
             ch = _ch_by_id.get(cid)
-            if not ch or ch.get("entity_type") in ("League", "Player") or len(s) < 2:
+            if not ch or ch.get("entity_type") in ("League", "Player", "Federation") or len(s) < 2:
                 continue
             # YouTube rounds subscriber_count to the nearest 10K — 7d subs delta
             # is too coarse (everyone shows ±100K). Rank by Δ total_views instead.

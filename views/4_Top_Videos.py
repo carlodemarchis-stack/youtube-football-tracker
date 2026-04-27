@@ -93,10 +93,11 @@ else:
     df = pd.DataFrame(all_videos)
     df["channel_name"] = df["channels"].apply(lambda c: c["name"] if c else "Unknown")
     ch_by_name = {ch["name"]: ch for ch in all_channels}
-    # Always drop Players from Top Videos — they live on their own page
-    _exclude_players = {n for n, c in ch_by_name.items() if c.get("entity_type") == "Player"}
-    if _exclude_players:
-        df = df[~df["channel_name"].isin(_exclude_players)]
+    # Always drop Players + Federations — they live on their own pages
+    _exclude_isolated = {n for n, c in ch_by_name.items()
+                         if c.get("entity_type") in ("Player", "Federation")}
+    if _exclude_isolated:
+        df = df[~df["channel_name"].isin(_exclude_isolated)]
     if scope == "Leagues only":
         keep = {n for n, c in ch_by_name.items() if c.get("entity_type") == "League"}
         df = df[df["channel_name"].isin(keep)]
