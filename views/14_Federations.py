@@ -164,7 +164,10 @@ def _status_dot(days: int | None) -> str:
 # ── Leaderboard table ────────────────────────────────────────
 st.markdown("---")
 st.subheader("Leaderboard")
-
+st.caption(
+    "Every tracked federation ranked by subscribers. "
+    "Click any row to open the channel on YouTube; click any column header to re-sort."
+)
 st.caption(
     "**Updates** — days since the federation's latest YouTube upload: "
     "🟢 ≤14d  ·  🟡 ≤30d  ·  🟠 ≤90d  ·  🔴 >90d."
@@ -325,6 +328,10 @@ st.caption(
     "Federations spike around tournaments and qualifiers, then go quiet. "
     "This shows who's currently posting."
 )
+st.caption(
+    "**Status** — days since the federation's latest YouTube upload: "
+    "🟢 Active (≤14d)  ·  🟡 Slowing (≤30d)  ·  🟠 Quiet (≤90d)  ·  🔴 Dormant (>90d)."
+)
 
 _activity_rows: list[dict] = []
 for p in feds:
@@ -439,11 +446,6 @@ components.html(f"""
 }})();
 </script>
 """, height=_act_h, scrolling=False)
-
-st.caption(
-    "**Status** — days since the federation's latest YouTube upload: "
-    "🟢 Active (≤14d)  ·  🟡 Slowing (≤30d)  ·  🟠 Quiet (≤90d)  ·  🔴 Dormant (>90d)."
-)
 
 # Stacked bar chart — season video mix by format
 _mix = _activity_df[["Federation", "_long", "_short", "_live"]].rename(

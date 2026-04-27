@@ -218,7 +218,15 @@ def _status_dot(days: int | None) -> str:
 # ── Leaderboard table ────────────────────────────────────────
 st.markdown("---")
 st.subheader("Leaderboard")
-
+st.caption(
+    "Every tracked player ranked by subscribers. "
+    "Click any row to open the channel on YouTube; click any column header to re-sort."
+)
+st.caption(
+    "**Updates** — days since the player's latest YouTube upload: "
+    "🟢 ≤14d  ·  🟡 ≤30d  ·  🟠 ≤90d  ·  🔴 >90d.  "
+    "**Career** — 🟢 currently playing  ·  🔴 retired."
+)
 _career_filter = st.radio(
     "Show",
     ["All", "Currently playing", "Retired"],
@@ -232,12 +240,6 @@ elif _career_filter == "Retired":
     _filtered = [p for p in players if _is_retired(p.get("name", ""))]
 else:
     _filtered = players
-
-st.caption(
-    "**Updates** — days since the player's latest YouTube upload: "
-    "🟢 ≤14d  ·  🟡 ≤30d  ·  🟠 ≤90d  ·  🔴 >90d.  "
-    "**Career** — 🟢 currently playing  ·  🔴 retired."
-)
 
 rows_html = ""
 for i, p in enumerate(_filtered, 1):
@@ -406,6 +408,10 @@ st.caption(
     "Players run their channels on their own rhythm — unlike clubs, many go dormant "
     "for months or years. This shows who's actually still posting."
 )
+st.caption(
+    "**Status** — days since the player's latest YouTube upload: "
+    "🟢 Active (≤14d)  ·  🟡 Slowing (≤30d)  ·  🟠 Quiet (≤90d)  ·  🔴 Dormant (>90d)."
+)
 
 _activity_rows: list[dict] = []
 for p in players:
@@ -521,11 +527,6 @@ components.html(f"""
 }})();
 </script>
 """, height=_act_h, scrolling=False)
-
-st.caption(
-    "**Status** — days since the player's latest YouTube upload: "
-    "🟢 Active (≤14d)  ·  🟡 Slowing (≤30d)  ·  🟠 Quiet (≤90d)  ·  🔴 Dormant (>90d)."
-)
 
 # Stacked bar chart — season video mix by format
 _mix = _activity_df[["Player", "_long", "_short", "_live"]].rename(
