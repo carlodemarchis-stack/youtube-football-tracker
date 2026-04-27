@@ -24,10 +24,11 @@ from src.filters import (
 load_dotenv()
 require_login()
 
-st.title("Socials")
+st.title("Other Social")
 render_page_subtitle(
-    "Other social platforms each tracked club operates on — "
-    "data sourced from Wikidata"
+    "Where each club is active beyond YouTube — "
+    "Instagram, X, Facebook, TikTok and more, plus follower counts. "
+    "Click any badge to open the platform in a new tab."
 )
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
@@ -135,10 +136,9 @@ for i, c in enumerate(rows, 1):
     </tr>"""
 
 st.caption(
-    f"**{total_with_socials}/{len(rows)}** clubs have linked socials · "
-    f"{total_links} total platform link(s) tracked. "
-    "If a club is missing — its Wikidata entry doesn't expose those properties yet. "
-    "Re-run `scripts/backfill_socials.py` (admin) to refresh."
+    f"**{total_with_socials}/{len(rows)}** clubs with at least one platform link · "
+    f"{total_links} total links. Click any badge to open that account in a new tab; "
+    "click a club name to open their YouTube channel."
 )
 
 components.html(f"""
@@ -163,22 +163,12 @@ components.html(f"""
 </div>
 """, height=len(rows) * 46 + 70, scrolling=False)
 
-st.caption(
-    "**How this is sourced.** Each club's Wikidata entry is queried for "
-    "Twitter/X (P2002), Instagram (P2003), Facebook (P2013), TikTok (P7085), "
-    "Threads (P11245), Telegram (P3789), Snapchat (P5263), Twitch (P6573), "
-    "VK (P3185), Weibo (P8057), Mastodon (P4033) and Official website (P856). "
-    "Click any badge to open the platform in a new tab."
-)
-
-
 # ── Followers leaderboard ──────────────────────────────────────────
 st.markdown("---")
 st.subheader("Followers across platforms")
 st.caption(
-    "Latest follower count per platform. YouTube comes from our daily cron; "
-    "the rest from manual / browser-driven snapshots stored in "
-    "`follower_snapshots`. Click any header to re-sort."
+    "Latest follower count per platform — YouTube updates daily, the rest "
+    "are point-in-time snapshots. Click any column header to re-sort."
 )
 
 # Platforms to include as columns (skip non-follower-bearing ones)
@@ -320,6 +310,7 @@ components.html(f"""
 """, height=_lb_h, scrolling=False)
 
 st.caption(
-    "Follower numbers shown are the most recent value in `follower_snapshots`. "
-    "Re-run a benchmark on the **Data** page (admin) to refresh."
+    "Counts are best-effort: some platforms abbreviate (\"1.2M\"), some hide "
+    "the number from logged-out viewers, and a few clubs run multiple "
+    "regional accounts. Treat these as a snapshot, not a precise count."
 )
