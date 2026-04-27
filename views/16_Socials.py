@@ -120,14 +120,16 @@ for i, c in enumerate(rows, 1):
     if socials:
         total_with_socials += 1
         total_links += sum(1 for k, *_ in PLATFORMS if socials.get(k))
-    yt_link = (f'<a href="{yt_url}" target="_blank" rel="noopener" '
-               f'style="color:#aaa;font-size:11px;text-decoration:none">YT ↗</a>'
-               ) if yt_url else ""
+    name_html = (
+        f'<a href="{yt_url}" target="_blank" rel="noopener" '
+        f'style="color:#FAFAFA;text-decoration:none;border-bottom:1px dotted #555">'
+        f'<b>{name}</b></a>'
+    ) if yt_url else f"<b>{name}</b>"
     rows_html += f"""<tr>
         <td style="padding:8px 12px;text-align:right;color:#888">{i}</td>
         <td style="padding:8px 12px">{dot}</td>
-        <td style="padding:8px 12px;white-space:nowrap"><b>{name}</b></td>
-        <td style="padding:8px 12px">{_badges(socials)} {yt_link}</td>
+        <td style="padding:8px 12px;white-space:nowrap">{name_html}</td>
+        <td style="padding:8px 12px">{_badges(socials)}</td>
     </tr>"""
 
 st.caption(
