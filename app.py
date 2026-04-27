@@ -78,6 +78,30 @@ if is_admin():
 pg = st.navigation(nav)
 show_auth_sidebar()
 
+# Hide Streamlit Cloud chrome (hamburger / deploy button / "Made with
+# Streamlit" footer / GitHub badge / source link) for non-admin viewers
+# so they get a cleaner public-facing app. Admins keep the full toolbar
+# for debugging and deploys.
+if not is_admin():
+    st.markdown("""
+        <style>
+          #MainMenu {visibility: hidden !important;}
+          header [data-testid="stToolbar"] {visibility: hidden !important;}
+          .stDeployButton {display: none !important;}
+          .stAppDeployButton {display: none !important;}
+          [data-testid="stStatusWidget"] {display: none !important;}
+          [data-testid="stDecoration"] {display: none !important;}
+          footer {visibility: hidden !important;}
+          .viewerBadge_link__qRIco,
+          .viewerBadge_container__r5tak,
+          .viewerBadge_button__bp24L,
+          [data-testid="stAppViewerBadge"],
+          ._container_gzau3_1,
+          ._link_gzau3_10,
+          ._profilePreview_gzau3_63 {display: none !important;}
+        </style>
+    """, unsafe_allow_html=True)
+
 # ── Global header filter ──────────────────────────────────────
 if st.query_params.get("view") == "feed":
     st.session_state["_feed_mode"] = True
