@@ -217,32 +217,38 @@ for i, c in enumerate(rows, 1):
         f'<b>{name}</b></a>'
     ) if yt_url else f"<b>{name}</b>"
 
-    # Build the per-platform cells
+    # Build the per-platform cells + accumulate total
     plat_cells = ""
     yt_subs = int(c.get("subscriber_count") or 0)
     snaps = _followers_map.get(c["id"], {})
+    total = 0
     for key, _label, _bg, _fg in _FCOLS:
         if key == "youtube":
             n = yt_subs
         else:
             row = snaps.get(key)
             n = int(row["follower_count"]) if row else 0
+        total += n
         if n > 0:
             plat_cells += (f'<td style="padding:6px 12px;text-align:right" '
                            f'data-val="{n}">{fmt_num(n)}</td>')
         else:
             plat_cells += '<td style="padding:6px 12px;text-align:right;color:#555" data-val="0">—</td>'
 
+    total_cell = (f'<td style="padding:6px 12px;text-align:right;font-weight:600" '
+                  f'data-val="{total}">{fmt_num(total)}</td>')
+
     _lb_rows_html += f"""<tr>
         <td style="padding:6px 12px;text-align:right;color:#888" data-val="{i}">{i}</td>
         <td style="padding:6px 12px">{dot}</td>
         <td style="padding:6px 12px;white-space:nowrap" data-val="{name}">{name_html}</td>
+        {total_cell}
         {plat_cells}
     </tr>"""
 
-# Header row — column index includes the 3 leading non-platform columns
+# Header row — col 0=# / col 2=Club / col 3=Total / cols 4+ = platforms
 _thead_extra = ""
-for idx, (key, label, bg, fg) in enumerate(_FCOLS, start=3):
+for idx, (key, label, bg, fg) in enumerate(_FCOLS, start=4):
     title = key.capitalize()
     _thead_extra += (
         f'<th data-col="{idx}" data-type="num" '
@@ -272,6 +278,7 @@ components.html(f"""
   <th data-col="0" data-type="num" style="text-align:right">#</th>
   <th></th>
   <th data-col="2" data-type="str" style="text-align:left">Club</th>
+  <th data-col="3" data-type="num" style="text-align:right;color:#FAFAFA">Total</th>
   {_thead_extra}
 </tr></thead>
 <tbody>{_lb_rows_html}</tbody>
