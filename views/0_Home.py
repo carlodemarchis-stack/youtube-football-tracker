@@ -320,6 +320,14 @@ st.markdown(
     **Top Videos** — the 100 most-viewed videos for your selection with
     rank-by-views chart, rank-vs-year scatter, year distribution, theme
     pie, and a sortable video list.
+
+    **Players** — top football players' personal YouTube channels (Cristiano,
+    Messi, Neymar, Mbappé, Haaland…). Standalone leaderboard with subs,
+    views, posting activity, and career status. Isolated from clubs/leagues.
+
+    **Federations** — FIFA, UEFA, the five confederations and major national
+    associations. Same shape as Players: leaderboard, subs/year, posting
+    activity, season video mix.
     """
 )
 
@@ -371,7 +379,12 @@ st.caption(
     "\"Season\" views cover videos *published* in-season; views on older videos during the season aren't counted.\n\n"
     "**When we fetch data.** New video discovery runs **hourly** via RSS feeds (fast, lightweight). "
     "Full stats refresh runs **daily** — subscriber counts, view counts, and snapshots for ranks and deltas. "
-    "A **weekly** sweep recomputes top-100 aggregates and back-fills any missed videos.\n\n"
+    "A **weekly** sweep recomputes top-100 aggregates and back-fills any missed videos. "
+    "**Players** and **Federations** have their own dedicated daily crons (running at ~01:00 and ~01:30 CET) "
+    "so those features can be paused or killed independently of the main pipeline.\n\n"
+    "**Players + Federations are isolated.** They live on their own pages and are deliberately excluded "
+    "from every league/club view, leaderboard, and aggregate — they don't compete with clubs in the rankings, "
+    "don't appear in Top Videos, Latest Videos, or Compare. Treat them as a separate lens.\n\n"
     "**Work in progress.** This is a research project. Expect it to evolve constantly — "
     "new metrics, new leagues, new views, occasional bugs, and the odd late-night experiment."
 )
