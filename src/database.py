@@ -823,6 +823,30 @@ class Database:
         resp = self.client.table("follower_snapshots").insert(payload).execute()
         return (resp.data or [{}])[0]
 
+    def get_latest_follower_snapshots_bulk(self, channel_ids: list[str]) -> dict[str, dict[str, dict]]:
+        """Latest snapshot per platform across many channels in one query.
+        Returns {channel_id: {platform: row}}."""
+        if not channel_ids:
+            return {}
+        rows = (
+            self.client.table("follower_snapshots")
+            .select("*")
+            .in_("channel_id", channel_ids)
+            .order("captured_at", desc=True)
+            .execute()
+            .data or []
+        )
+        out: dict[str, dict[str, dict]] = {}
+        for r in rows:
+            cid = r.get("channel_id")
+            plat = r.get("platform")
+            if not cid or not plat:
+                continue
+            ch = out.setdefault(cid, {})
+            if plat not in ch:
+                ch[plat] = r
+        return out
+
     def get_latest_follower_snapshots(self, channel_id: str) -> dict[str, dict]:
         """Return the most recent snapshot per platform for one channel —
         a {platform: row} dict."""
