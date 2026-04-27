@@ -29,7 +29,7 @@ if st.session_state.get("_feed_mode"):
     db = Database(SUPABASE_URL, SUPABASE_KEY)
     all_channels = get_global_channels() or db.get_all_channels()
     # Players are isolated — never show in the public feed
-    all_channels = [c for c in all_channels if c.get("entity_type") != "Player"]
+    all_channels = [c for c in all_channels if c.get("entity_type") not in ("Player", "Federation")]
     color_map = get_global_color_map() or {}
     dual = get_global_color_map_dual() or {}
 

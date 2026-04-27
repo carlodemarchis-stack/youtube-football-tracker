@@ -418,7 +418,7 @@ if club is None:
         if include_league:
             clubs_only = league_channels
         else:
-            clubs_only = [ch for ch in league_channels if ch.get("entity_type") not in ("League", "Player")]
+            clubs_only = [ch for ch in league_channels if ch.get("entity_type") not in ("League", "Player", "Federation")]
 
     if not clubs_only:
         st.info("No clubs in this league yet.")

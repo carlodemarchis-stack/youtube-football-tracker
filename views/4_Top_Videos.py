@@ -103,7 +103,7 @@ else:
         color_field = "channel_name"
         color_map = get_global_color_map()
     elif scope == "All clubs":
-        keep = {n for n, c in ch_by_name.items() if c.get("entity_type") not in ("League", "Player")}
+        keep = {n for n, c in ch_by_name.items() if c.get("entity_type") not in ("League", "Player", "Federation")}
         df = df[df["channel_name"].isin(keep)]
         ch_to_league = {n: league_with_flag(get_league_for_channel(c)) for n, c in ch_by_name.items()}
         df["league"] = df["channel_name"].map(ch_to_league).fillna("Other")
@@ -128,18 +128,18 @@ if not club:
         # One league selected — use its channels
         base_channels = league_channels
         if include_league:
-            table_channels = [ch for ch in base_channels if ch.get("entity_type") != "Player"]
+            table_channels = [ch for ch in base_channels if ch.get("entity_type") not in ("Player", "Federation")]
         else:
-            table_channels = [ch for ch in base_channels if ch.get("entity_type") not in ("League", "Player")]
+            table_channels = [ch for ch in base_channels if ch.get("entity_type") not in ("League", "Player", "Federation")]
     else:
         # All leagues — respect scope
         scope = get_all_leagues_scope()
         if scope == "Leagues only":
             table_channels = [ch for ch in all_channels if ch.get("entity_type") == "League"]
         elif scope == "All clubs":
-            table_channels = [ch for ch in all_channels if ch.get("entity_type") not in ("League", "Player")]
+            table_channels = [ch for ch in all_channels if ch.get("entity_type") not in ("League", "Player", "Federation")]
         else:
-            table_channels = [ch for ch in all_channels if ch.get("entity_type") != "Player"]
+            table_channels = [ch for ch in all_channels if ch.get("entity_type") not in ("Player", "Federation")]
 
     if not table_channels:
         _loading.empty()
