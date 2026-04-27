@@ -41,7 +41,7 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 
 db = Database(SUPABASE_URL, SUPABASE_KEY)
 all_channels = get_global_channels() or db.get_all_channels()
-clubs_o = [c for c in all_channels if c.get("entity_type") == "Other club"]
+clubs_o = [c for c in all_channels if c.get("entity_type") == "OtherClub"]
 
 _oc_updated = db.get_last_fetch_time("daily_other_clubs")
 render_page_subtitle(
@@ -290,7 +290,7 @@ st.markdown("---")
 st.subheader("How they compare")
 
 _df = pd.DataFrame([{
-    "Other club": p.get("name"),
+    "Club": p.get("name"),
     "Subs": int(p.get("subscriber_count") or 0),
     "Subs/Year": _subs_per_year(int(p.get("subscriber_count") or 0), p.get("launched_at")),
 } for p in clubs_o])
@@ -304,8 +304,8 @@ col1, col2 = st.columns(2)
 with col1:
     fig = px.bar(
         _df.sort_values("Subs", ascending=False),
-        x="Other club", y="Subs",
-        color="Other club", color_discrete_map=color_map,
+        x="Club", y="Subs",
+        color="Club", color_discrete_map=color_map,
         title="Total subscribers",
         log_y=log_scale,
     )
@@ -314,8 +314,8 @@ with col1:
 with col2:
     fig = px.bar(
         _df.sort_values("Subs/Year", ascending=False),
-        x="Other club", y="Subs/Year",
-        color="Other club", color_discrete_map=color_map,
+        x="Club", y="Subs/Year",
+        color="Club", color_discrete_map=color_map,
         title="Subscribers / year (normalised for channel age)",
     )
     fig.update_layout(showlegend=False, xaxis_title="", margin=dict(t=40, b=40))
@@ -344,7 +344,7 @@ for p in clubs_o:
     _lv = int(p.get("season_live_videos") or 0)
     season_vids = _ln + _sn + _lv
     _activity_rows.append({
-        "Other club": p.get("name", "?"),
+        "Club": p.get("name", "?"),
         "Last upload": last_iso or "—",
         "Days ago": days if days is not None else 99999,
         "Status": status_label,
@@ -360,7 +360,7 @@ _activity_df = pd.DataFrame(_activity_rows).sort_values("Days ago", ascending=Tr
 
 _act_rows_html = ""
 for idx, (_, r) in enumerate(_activity_df.iterrows(), 1):
-    pname = r["Other club"]
+    pname = r["Club"]
     pdata = next((pp for pp in clubs_o if pp.get("name") == pname), {})
     c1, c2 = dual.get(pname, (color_map.get(pname, "#636EFA"), "#FFFFFF"))
     pdot = (f'<span style="display:inline-block;width:14px;height:14px;border-radius:50%;'
@@ -448,18 +448,18 @@ components.html(f"""
 """, height=_act_h, scrolling=False)
 
 # Stacked bar chart — season video mix by format
-_mix = _activity_df[["Other club", "_long", "_short", "_live"]].rename(
+_mix = _activity_df[["Club", "_long", "_short", "_live"]].rename(
     columns={"_long": "Long", "_short": "Shorts", "_live": "Live"}
 )
-_mix_long = _mix.melt(id_vars="Other club", var_name="Format", value_name="Videos")
+_mix_long = _mix.melt(id_vars="Club", var_name="Format", value_name="Videos")
 _mix_long = _mix_long[_mix_long["Videos"] > 0]
 if not _mix_long.empty:
-    _order = _activity_df["Other club"].tolist()
+    _order = _activity_df["Club"].tolist()
     fig = px.bar(
-        _mix_long, x="Other club", y="Videos", color="Format",
+        _mix_long, x="Club", y="Videos", color="Format",
         title="Season video mix by format",
         color_discrete_map={"Long": "#636EFA", "Shorts": "#FFA15A", "Live": "#EF553B"},
-        category_orders={"Other club": _order, "Format": ["Long", "Shorts", "Live"]},
+        category_orders={"Club": _order, "Format": ["Long", "Shorts", "Live"]},
     )
     fig.update_layout(
         barmode="stack", xaxis_title="", yaxis_title="Season videos",
