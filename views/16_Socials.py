@@ -67,13 +67,17 @@ PLATFORMS = [
     ("x",         "X",  "#000000", "#FFFFFF"),
     ("facebook",  "FB", "#1877F2", "#FFFFFF"),
     ("tiktok",    "TT", "#010101", "#FFFFFF"),
+    ("youtube",   "YT", "#FF0000", "#FFFFFF"),
     ("threads",   "Th", "#000000", "#FFFFFF"),
+    ("linkedin",  "LI", "#0A66C2", "#FFFFFF"),
     ("telegram",  "Tg", "#26A5E4", "#FFFFFF"),
+    ("whatsapp",  "WA", "#25D366", "#FFFFFF"),
     ("snapchat",  "SC", "#FFFC00", "#000000"),
     ("twitch",    "Tw", "#9146FF", "#FFFFFF"),
     ("vk",        "VK", "#0077FF", "#FFFFFF"),
     ("weibo",     "Wb", "#E6162D", "#FFFFFF"),
     ("mastodon",  "Ms", "#6364FF", "#FFFFFF"),
+    ("music",     "🎵", "#1DB954", "#FFFFFF"),
 ]
 
 
