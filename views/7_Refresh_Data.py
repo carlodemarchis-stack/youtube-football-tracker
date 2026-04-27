@@ -679,6 +679,109 @@ if ai_start and selected:
 # FETCH HISTORY
 # ══════════════════════════════════════════════════════════════
 
+# ══════════════════════════════════════════════════════════════
+# BENCHMARK SOCIAL FOLLOWERS  (manual / interactive only for now)
+# ══════════════════════════════════════════════════════════════
+st.markdown("---")
+st.subheader("📊 Benchmark social followers")
+st.caption(
+    "Capture follower counts across the non-YouTube platforms we track. "
+    "Pick a club / league channel that has socials, open each link in a new "
+    "tab, paste the follower count, and save. YouTube comes from our existing "
+    "channel stats — no need to enter it. History stored in `follower_snapshots`."
+)
+
+_bench_pool = [
+    c for c in all_channels
+    if c.get("entity_type") in ("Club", "League")
+    and (c.get("socials") or {})
+]
+_bench_pool.sort(key=lambda c: (c.get("country") or "", c.get("name") or ""))
+
+if not _bench_pool:
+    st.info(
+        "No clubs/leagues with socials yet. Run "
+        "`scripts/backfill_socials.py` (Wikidata) and "
+        "`scripts/check_socials_via_website.py` to populate."
+    )
+else:
+    _bench_options = [f"{c['name']} ({c.get('country', '')})" for c in _bench_pool]
+    _idx = st.selectbox("Channel", range(len(_bench_options)),
+                         format_func=lambda i: _bench_options[i],
+                         key="_bench_channel_idx")
+    _ch = _bench_pool[_idx]
+    _socials = _ch.get("socials") or {}
+    # Skip 'website' and 'music' (they're not follower-bearing platforms)
+    _follow_platforms = [(k, v) for k, v in _socials.items()
+                         if k not in ("website", "music")]
+
+    if not _follow_platforms:
+        st.caption("This channel has no follower-bearing platforms tracked.")
+    else:
+        _latest = db.get_latest_follower_snapshots(_ch["id"])
+        _yt_subs = int(_ch.get("subscriber_count") or 0)
+
+        st.markdown(f"**{_ch['name']}** — current snapshot")
+        _hdr_cols = st.columns([2, 2, 2, 1])
+        _hdr_cols[0].caption("**Platform**")
+        _hdr_cols[1].caption("**Last value**")
+        _hdr_cols[2].caption("**New value**")
+        _hdr_cols[3].caption("**Open**")
+
+        # YouTube row (read-only)
+        _yt_cols = st.columns([2, 2, 2, 1])
+        _yt_cols[0].markdown("**YouTube** _(auto)_")
+        _yt_cols[1].markdown(f"`{fmt_num(_yt_subs)}`")
+        _yt_cols[2].caption("from daily cron — not editable")
+        _yt_handle = _ch.get("handle") or ""
+        if _yt_handle:
+            _yt_cols[3].markdown(f"[↗](https://www.youtube.com/{_yt_handle})")
+
+        _new_values: dict[str, int | None] = {}
+        for plat_key, plat_url in _follow_platforms:
+            row_cols = st.columns([2, 2, 2, 1])
+            row_cols[0].markdown(f"**{plat_key}**")
+            prev = _latest.get(plat_key)
+            if prev:
+                _ago = pd.Timestamp(prev["captured_at"]).strftime("%Y-%m-%d")
+                row_cols[1].markdown(f"`{fmt_num(prev['follower_count'])}` _({_ago})_")
+            else:
+                row_cols[1].caption("—")
+            _new_values[plat_key] = row_cols[2].number_input(
+                f"new_{plat_key}", min_value=0, value=0,
+                label_visibility="collapsed", step=1,
+                key=f"_bench_input_{_ch['id']}_{plat_key}",
+            )
+            row_cols[3].markdown(f"[↗]({plat_url})")
+
+        _src_col1, _src_col2 = st.columns([1, 3])
+        _source = _src_col1.selectbox("Source", ["manual", "chrome", "api"],
+                                        key=f"_bench_source_{_ch['id']}")
+        _notes = _src_col2.text_input("Notes (optional)",
+                                        key=f"_bench_notes_{_ch['id']}")
+
+        if st.button("💾 Save snapshot", key=f"_bench_save_{_ch['id']}", type="primary"):
+            saved = 0
+            errors = 0
+            for k, v in _new_values.items():
+                if not v or v <= 0:
+                    continue
+                try:
+                    db.insert_follower_snapshot(
+                        channel_id=_ch["id"], platform=k,
+                        follower_count=int(v), source=_source,
+                        notes=_notes or None,
+                    )
+                    saved += 1
+                except Exception as e:
+                    errors += 1
+                    st.error(f"  ✗ {k}: {e}")
+            if saved:
+                st.success(f"✓ Saved {saved} snapshot row(s) for {_ch['name']}")
+                st.rerun()
+            elif not errors:
+                st.warning("No values entered — nothing saved.")
+
 with st.expander("Fetch History"):
     history = db.get_fetch_history(limit=20)
     if history:

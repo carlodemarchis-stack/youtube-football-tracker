@@ -805,6 +805,42 @@ class Database:
     def delete_channel(self, channel_id: str):
         self.client.table("channels").delete().eq("id", channel_id).execute()
 
+    # ── Follower snapshots (non-YouTube socials) ──────────────
+
+    def insert_follower_snapshot(self, channel_id: str, platform: str,
+                                  follower_count: int, source: str = "manual",
+                                  notes: str | None = None) -> dict:
+        """Insert a new follower-count snapshot row. Each call creates a new
+        row so we keep history. Use the latest row for current values."""
+        payload = {
+            "channel_id": channel_id,
+            "platform": platform,
+            "follower_count": int(follower_count),
+            "source": source,
+        }
+        if notes:
+            payload["notes"] = notes
+        resp = self.client.table("follower_snapshots").insert(payload).execute()
+        return (resp.data or [{}])[0]
+
+    def get_latest_follower_snapshots(self, channel_id: str) -> dict[str, dict]:
+        """Return the most recent snapshot per platform for one channel —
+        a {platform: row} dict."""
+        rows = (
+            self.client.table("follower_snapshots")
+            .select("*")
+            .eq("channel_id", channel_id)
+            .order("captured_at", desc=True)
+            .execute()
+            .data or []
+        )
+        out: dict[str, dict] = {}
+        for r in rows:
+            p = r.get("platform")
+            if p and p not in out:
+                out[p] = r
+        return out
+
     def get_active_channels(self) -> list[dict]:
         resp = (
             self.client.table("channels")
