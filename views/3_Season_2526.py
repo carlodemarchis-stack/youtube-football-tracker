@@ -245,6 +245,8 @@ if league is None and _scope == "Overall":
 
     ch_rows = []
     for ch in all_channels:
+        if ch.get("entity_type") in ("Player", "Federation"):
+            continue  # isolated entity types live on their own pages
         if not include_league and ch.get("entity_type") == "League":
             continue
         lv = int(ch.get("season_long_views") or 0)
