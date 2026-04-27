@@ -37,6 +37,7 @@ viewer_pages = [
     st.Page("views/2_Clubs.py", title="Channels"),
     st.Page("views/3_Season_2526.py", title="Season 25/26"),
     st.Page("views/4_Top_Videos.py", title="Top Videos"),
+    st.Page("views/16_Socials.py", title="Socials"),
     st.Page("views/13_Players.py", title="Players"),
     st.Page("views/14_Federations.py", title="Federations"),
     st.Page("views/15_Other_Clubs.py", title="Other Clubs"),
