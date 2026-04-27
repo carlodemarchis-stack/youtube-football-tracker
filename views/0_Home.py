@@ -29,7 +29,7 @@ if st.session_state.get("_feed_mode"):
     db = Database(SUPABASE_URL, SUPABASE_KEY)
     all_channels = get_global_channels() or db.get_all_channels()
     # Players are isolated — never show in the public feed
-    all_channels = [c for c in all_channels if c.get("entity_type") not in ("Player", "Federation")]
+    all_channels = [c for c in all_channels if c.get("entity_type") not in ("Player", "Federation", "OtherClub")]
     color_map = get_global_color_map() or {}
     dual = get_global_color_map_dual() or {}
 
@@ -157,7 +157,7 @@ try:
     _league_counts: dict[str, int] = {}
     _league_has_channel: dict[str, bool] = {}
     for _c in _chs:
-        if _c.get("entity_type") in ("Player", "Federation"):
+        if _c.get("entity_type") in ("Player", "Federation", "OtherClub"):
             continue  # Players + Federations live on their own pages
         _lg = COUNTRY_TO_LEAGUE.get((_c.get("country") or "").upper(), _c.get("country") or "—")
         if _c.get("entity_type") == "League":
@@ -171,10 +171,11 @@ try:
         ]
         st.caption(f"Covering {len(_league_counts)} leagues: " + " · ".join(_parts))
 
-    # Also-tracking line: Players + Federations (isolated entity types)
+    # Also-tracking line: Players + Federations + Other Clubs (isolated)
     _players = [c for c in _chs if c.get("entity_type") == "Player"]
     _feds = [c for c in _chs if c.get("entity_type") == "Federation"]
-    if _players or _feds:
+    _others = [c for c in _chs if c.get("entity_type") == "OtherClub"]
+    if _players or _feds or _others:
         from src.analytics import fmt_num as _fmt
         _bits = []
         if _players:
@@ -183,6 +184,9 @@ try:
         if _feds:
             _fs = sum(int(c.get("subscriber_count") or 0) for c in _feds)
             _bits.append(f"🏛️ **{len(_feds)} federations** ({_fmt(_fs)} subs)")
+        if _others:
+            _os = sum(int(c.get("subscriber_count") or 0) for c in _others)
+            _bits.append(f"🌍 **{len(_others)} other clubs** ({_fmt(_os)} subs)")
         st.caption("Also tracking: " + "  ·  ".join(_bits)
                    + " — see the dedicated pages.")
 except Exception:
@@ -232,7 +236,7 @@ try:
         _gainers = []
         for cid, s in _by_ch.items():
             ch = _ch_by_id.get(cid)
-            if not ch or ch.get("entity_type") in ("League", "Player", "Federation") or len(s) < 2:
+            if not ch or ch.get("entity_type") in ("League", "Player", "Federation", "OtherClub") or len(s) < 2:
                 continue
             # YouTube rounds subscriber_count to the nearest 10K — 7d subs delta
             # is too coarse (everyone shows ±100K). Rank by Δ total_views instead.
@@ -328,6 +332,10 @@ st.markdown(
     **Federations** — FIFA, UEFA, the five confederations and major national
     associations. Same shape as Players: leaderboard, subs/year, posting
     activity, season video mix.
+
+    **Other Clubs** — top global clubs *outside* the big-5 European leagues
+    (Brazil, Argentina, Turkey, Portugal, Netherlands, Scotland, Saudi
+    Arabia, MLS, Liga MX). Standalone leaderboard + posting activity.
     """
 )
 
@@ -380,11 +388,13 @@ st.caption(
     "**When we fetch data.** New video discovery runs **hourly** via RSS feeds (fast, lightweight). "
     "Full stats refresh runs **daily** — subscriber counts, view counts, and snapshots for ranks and deltas. "
     "A **weekly** sweep recomputes top-100 aggregates and back-fills any missed videos. "
-    "**Players** and **Federations** have their own dedicated daily crons (running at ~01:00 and ~01:30 CET) "
-    "so those features can be paused or killed independently of the main pipeline.\n\n"
-    "**Players + Federations are isolated.** They live on their own pages and are deliberately excluded "
-    "from every league/club view, leaderboard, and aggregate — they don't compete with clubs in the rankings, "
-    "don't appear in Top Videos, Latest Videos, or Compare. Treat them as a separate lens.\n\n"
+    "**Players**, **Federations** and **Other Clubs** each have their own dedicated daily crons "
+    "(running at ~01:00, ~01:30 and ~01:45 CET) so those features can be paused or killed "
+    "independently of the main pipeline.\n\n"
+    "**Players, Federations and Other Clubs are isolated.** They live on their own pages and are "
+    "deliberately excluded from every league/club view, leaderboard, and aggregate — they don't "
+    "compete with the big-5 clubs in rankings, don't appear in Top Videos, Latest Videos, or "
+    "Compare. Treat them as separate lenses.\n\n"
     "**Work in progress.** This is a research project. Expect it to evolve constantly — "
     "new metrics, new leagues, new views, occasional bugs, and the odd late-night experiment."
 )

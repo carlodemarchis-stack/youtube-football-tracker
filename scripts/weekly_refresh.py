@@ -57,7 +57,7 @@ def main() -> int:
     # ── 1. Channel stats + channel_snapshots ─────────────────────
     channels = db.get_all_channels()
     # Players + Federations have their own dedicated crons — skip them here
-    channels = [c for c in channels if c.get("entity_type") not in ("Player", "Federation")]
+    channels = [c for c in channels if c.get("entity_type") not in ("Player", "Federation", "OtherClub")]
     log(f"Step 1: refreshing stats for {len(channels)} channels (Players + Federations excluded)")
     ch_ok = 0
     ch_failed: list[tuple[str, str]] = []
@@ -93,7 +93,7 @@ def main() -> int:
     rows = db.get_all_video_rows()
     # Exclude Player + Federation videos — handled by their dedicated crons
     _player_cids = {c["id"] for c in db.get_all_channels()
-                    if c.get("entity_type") in ("Player", "Federation")}
+                    if c.get("entity_type") in ("Player", "Federation", "OtherClub")}
     if _player_cids:
         # get_all_video_rows returns id + youtube_video_id only, not channel_id.
         # Fetch channel_id for all videos once, then filter.
@@ -145,7 +145,7 @@ def main() -> int:
     # Refresh channels list (may have new IDs from step 1)
     channels = db.get_all_channels()
     # Players + Federations have their own dedicated crons — skip them here
-    club_channels = [c for c in channels if c.get("entity_type") not in ("League", "Player", "Federation")]
+    club_channels = [c for c in channels if c.get("entity_type") not in ("League", "Player", "Federation", "OtherClub")]
     log(f"Step 3: recomputing top100_stats for {len(club_channels)} club channels")
 
     stats_ok = 0

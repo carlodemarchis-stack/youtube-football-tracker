@@ -39,6 +39,7 @@ viewer_pages = [
     st.Page("views/4_Top_Videos.py", title="Top Videos"),
     st.Page("views/13_Players.py", title="Players"),
     st.Page("views/14_Federations.py", title="Federations"),
+    st.Page("views/15_Other_Clubs.py", title="Other Clubs"),
     # st.Page("views/12_Reddit.py", title="Reddit"),  # disabled — Reddit blocks cloud IPs
 ]
 
@@ -83,7 +84,7 @@ if st.query_params.get("view") == "feed":
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 
-_no_filter_pages = {"Players", "Federations"}
+_no_filter_pages = {"Players", "Federations", "Other Clubs"}
 _show_filter = getattr(pg, "title", "") not in _no_filter_pages
 
 if SUPABASE_URL and SUPABASE_KEY:
