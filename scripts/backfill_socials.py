@@ -61,6 +61,11 @@ FOOTBALL_KEYWORDS = ("football", "soccer", "calcio", "fútbol")
 QID_OVERRIDES: dict[str, str] = {
     "AS Roma":            "Q2739",   # men's senior team (was picking Q56084793 = women)
     "Genoa Cfc - Official": "Q2074", # name in DB had no Wikidata hit
+    # Bundesliga — Wikidata search picked sub-orgs / parent verein
+    "Borussia Dortmund":  "Q41420",  # football club, not e.V. parent
+    "Eintracht Frankfurt": "Q151616",# football arm
+    "FC St. Pauli":       "Q35344",
+    "FCH ClubTV":         "Q5074",   # 1. FC Heidenheim (channel branded ClubTV)
     # Add more as we spot them.
 }
 
