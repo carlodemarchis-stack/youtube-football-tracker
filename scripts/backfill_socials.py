@@ -66,6 +66,20 @@ QID_OVERRIDES: dict[str, str] = {
     "Eintracht Frankfurt": "Q151616",# football arm
     "FC St. Pauli":       "Q35344",
     "FCH ClubTV":         "Q5074",   # 1. FC Heidenheim (channel branded ClubTV)
+    # Premier League — names with extra qualifiers fail wbsearchentities
+    "Leeds United Official":            "Q1128631", # Leeds United F.C.
+    "Official Brighton & Hove Albion FC": "Q19453",  # Brighton & Hove Albion F.C.
+    # La Liga — Wikidata search picked sub-orgs / sponsorship entities
+    "Sevilla FC":           "Q8770",    # senior men (was picking Q5647276 = women)
+    "FC Barcelona":         "Q7156",    # senior men (was picking Q13562063 = sub-org)
+    "RealOviedo":           "Q316137",  # name has no space → no search hit
+    "Real Sociedad TV":     "Q8696",    # channel branded "TV"
+    "Elche Club de Fútbol 💚🌴": "Q9714", # name has emojis → search fails
+    # Ligue 1 — names with hyphens / extra qualifiers fail wbsearchentities
+    "PSG - Paris Saint-Germain":      "Q483020",  # PSG senior men
+    "Stade Rennais F.C. - Officiel":  "Q220189",  # Stade Rennais
+    "HavreAthleticClub":              "Q200299",  # Le Havre AC
+    "RCLens":                         "Q231649",  # RC Lens senior team
     # Add more as we spot them.
 }
 

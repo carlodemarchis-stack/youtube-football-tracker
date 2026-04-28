@@ -168,7 +168,8 @@ st.markdown("---")
 st.subheader("Followers across platforms")
 st.caption(
     "Latest follower count per platform — YouTube updates daily, the rest "
-    "are point-in-time snapshots. Click any column header to re-sort."
+    "are point-in-time snapshots. Click any column header to re-sort. "
+    "**?** = account exists, no follower count yet. **—** = club isn't on this platform."
 )
 
 # Platforms to include as columns (skip non-follower-bearing ones)
@@ -208,22 +209,35 @@ for i, c in enumerate(rows, 1):
     ) if yt_url else f"<b>{name}</b>"
 
     # Build the per-platform cells + accumulate total
+    # Three states:
+    #   has count           → number
+    #   URL on file, no count → "?" (we know they're there, no measurement yet)
+    #   not on platform      → "—"
     plat_cells = ""
     yt_subs = int(c.get("subscriber_count") or 0)
     snaps = _followers_map.get(c["id"], {})
+    socials = c.get("socials") or {}
     total = 0
     for key, _label, _bg, _fg in _FCOLS:
         if key == "youtube":
             n = yt_subs
+            has_url = True  # YouTube is the channel itself
         else:
             row = snaps.get(key)
             n = int(row["follower_count"]) if row else 0
+            has_url = key in socials
         total += n
         if n > 0:
             plat_cells += (f'<td style="padding:6px 12px;text-align:right" '
                            f'data-val="{n}">{fmt_num(n)}</td>')
+        elif has_url:
+            # Account exists but no follower count yet — sort below numeric
+            # values but above truly-absent platforms
+            plat_cells += ('<td style="padding:6px 12px;text-align:right;color:#aaa" '
+                           'data-val="-1" title="Account exists, no count yet">?</td>')
         else:
-            plat_cells += '<td style="padding:6px 12px;text-align:right;color:#555" data-val="0">—</td>'
+            plat_cells += ('<td style="padding:6px 12px;text-align:right;color:#444" '
+                           'data-val="-2" title="Not on this platform">—</td>')
 
     total_cell = (f'<td style="padding:6px 12px;text-align:right;font-weight:600" '
                   f'data-val="{total}">{fmt_num(total)}</td>')

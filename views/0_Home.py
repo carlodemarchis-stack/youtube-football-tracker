@@ -171,11 +171,12 @@ try:
         ]
         st.caption(f"Covering {len(_league_counts)} leagues: " + " · ".join(_parts))
 
-    # Also-tracking line: Players + Federations + Other Clubs (isolated)
+    # Also-tracking line: Players + Federations + Other Clubs + Women (isolated)
     _players = [c for c in _chs if c.get("entity_type") == "Player"]
     _feds = [c for c in _chs if c.get("entity_type") == "Federation"]
     _others = [c for c in _chs if c.get("entity_type") == "OtherClub"]
-    if _players or _feds or _others:
+    _women = [c for c in _chs if c.get("entity_type") == "WomenClub"]
+    if _players or _feds or _others or _women:
         from src.analytics import fmt_num as _fmt
         _bits = []
         if _players:
@@ -187,6 +188,9 @@ try:
         if _others:
             _os = sum(int(c.get("subscriber_count") or 0) for c in _others)
             _bits.append(f"🌍 **{len(_others)} other clubs** ({_fmt(_os)} subs)")
+        if _women:
+            _ws = sum(int(c.get("subscriber_count") or 0) for c in _women)
+            _bits.append(f"👩 **{len(_women)} women's clubs** ({_fmt(_ws)} subs)")
         st.caption("Also tracking: " + "  ·  ".join(_bits)
                    + " — see the dedicated pages.")
 except Exception:
@@ -325,6 +329,11 @@ st.markdown(
     rank-by-views chart, rank-vs-year scatter, year distribution, theme
     pie, and a sortable video list.
 
+    **Other Social** — beyond YouTube: each club's footprint across
+    Instagram, X, Facebook, TikTok, Threads, LinkedIn (and more). Badge
+    grid linking to every account, plus a sortable follower-count
+    leaderboard with one column per platform.
+
     **Players** — top football players' personal YouTube channels (Cristiano,
     Messi, Neymar, Mbappé, Haaland…). Standalone leaderboard with subs,
     views, posting activity, and career status. Isolated from clubs/leagues.
@@ -336,6 +345,10 @@ st.markdown(
     **Other Clubs** — top global clubs *outside* the big-5 European leagues
     (Brazil, Argentina, Turkey, Portugal, Netherlands, Scotland, Saudi
     Arabia, MLS, Liga MX). Standalone leaderboard + posting activity.
+
+    **Women** — top women's football clubs (Barça Femení, Lyon Féminin,
+    Chelsea Women, Arsenal Women…). Standalone leaderboard, isolated
+    from the men's-team views and aggregates.
     """
 )
 
@@ -388,13 +401,13 @@ st.caption(
     "**When we fetch data.** New video discovery runs **hourly** via RSS feeds (fast, lightweight). "
     "Full stats refresh runs **daily** — subscriber counts, view counts, and snapshots for ranks and deltas. "
     "A **weekly** sweep recomputes top-100 aggregates and back-fills any missed videos. "
-    "**Players**, **Federations** and **Other Clubs** each have their own dedicated daily crons "
-    "(running at ~01:00, ~01:30 and ~01:45 CET) so those features can be paused or killed "
-    "independently of the main pipeline.\n\n"
-    "**Players, Federations and Other Clubs are isolated.** They live on their own pages and are "
-    "deliberately excluded from every league/club view, leaderboard, and aggregate — they don't "
-    "compete with the big-5 clubs in rankings, don't appear in Top Videos, Latest Videos, or "
-    "Compare. Treat them as separate lenses.\n\n"
+    "**Players**, **Federations**, **Other Clubs** and **Women's clubs** each have their own "
+    "dedicated daily crons (running at ~01:00, ~01:30, ~01:45 and ~02:00 CET) so those "
+    "features can be paused or killed independently of the main pipeline.\n\n"
+    "**Players, Federations, Other Clubs and Women's clubs are isolated.** They live on their "
+    "own pages and are deliberately excluded from every league/club view, leaderboard, and "
+    "aggregate — they don't compete with the big-5 clubs in rankings, don't appear in Top "
+    "Videos, Latest Videos, or Compare. Treat them as separate lenses.\n\n"
     "**Work in progress.** This is a research project. Expect it to evolve constantly — "
     "new metrics, new leagues, new views, occasional bugs, and the odd late-night experiment."
 )
