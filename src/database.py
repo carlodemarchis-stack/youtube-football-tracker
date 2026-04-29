@@ -529,6 +529,12 @@ class Database:
             fmt = (v.get("format") or "").lower()
             if fmt not in ("long", "short", "live"):
                 fmt = "long" if dur >= 60 else "short"
+            # Skip scheduled / unaired live streams: format='live' with no
+            # duration AND no views means the stream hasn't aired yet (or was
+            # cancelled). They bloat the live count without representing
+            # real content.
+            if fmt == "live" and dur == 0 and vc == 0:
+                continue
             sb["likes"] += lk
             sb["comments"] += cm
             if fmt == "live":
