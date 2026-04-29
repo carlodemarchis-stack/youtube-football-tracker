@@ -450,6 +450,14 @@ if len(_all_dates) >= 2:
     import altair as alt
     trend_df = pd.DataFrame(trend_rows)
 
+    # Shared chart geometry so the two charts visually align across columns.
+    # minExtent on the y-axis pins the gutter width, so the plotted x-axis
+    # starts at the same screen X in both charts (otherwise label widths
+    # like "1,200,000" vs "30" misalign the columns by ~30px).
+    _CHART_HEIGHT = 280
+    _Y_AXIS_GUTTER = 60          # px reserved for y-axis labels in both charts
+    _X_AXIS = alt.Axis(labelAngle=-45, title=None)
+
     tc1, tc2 = st.columns(2)
     with tc1:
         st.caption("👁️ Δ Channel Views per day")
@@ -457,12 +465,13 @@ if len(_all_dates) >= 2:
         _ymin_v = min(r["Δ Channel Views"] for r in trend_rows) if trend_rows else 0
         _pad_v = max((_ymax_v - _ymin_v) * 0.1, 1)
         c1 = alt.Chart(trend_df).mark_line(color="#636EFA", strokeWidth=2).encode(
-            x=alt.X("Date:N", axis=alt.Axis(labelAngle=-45, title=None)),
+            x=alt.X("Date:N", axis=_X_AXIS),
             y=alt.Y("Δ Channel Views:Q",
                     scale=alt.Scale(domain=[_ymin_v - _pad_v, _ymax_v + _pad_v]),
-                    title=None),
+                    title=None,
+                    axis=alt.Axis(format="~s", minExtent=_Y_AXIS_GUTTER)),
             tooltip=["Date", alt.Tooltip("Δ Channel Views:Q", format=",")],
-        ).properties(height=280).interactive(bind_y=False)
+        ).properties(height=_CHART_HEIGHT).interactive(bind_y=False)
         st.altair_chart(c1, use_container_width=True)
 
     with tc2:
@@ -471,8 +480,9 @@ if len(_all_dates) >= 2:
             fmt_df = pd.DataFrame(fmt_rows)
             _FORMAT_COLORS = {"Long": "#636EFA", "Shorts": "#FF6B6B", "Live": "#00CC96"}
             c2 = alt.Chart(fmt_df).mark_area(opacity=0.85).encode(
-                x=alt.X("Date:N", axis=alt.Axis(labelAngle=-45, title=None)),
-                y=alt.Y("New Videos:Q", stack="zero", title=None),
+                x=alt.X("Date:N", axis=_X_AXIS),
+                y=alt.Y("New Videos:Q", stack="zero", title=None,
+                        axis=alt.Axis(minExtent=_Y_AXIS_GUTTER)),
                 color=alt.Color(
                     "Format:N",
                     sort=["Long", "Shorts", "Live"],
@@ -484,7 +494,7 @@ if len(_all_dates) >= 2:
                 ),
                 order=alt.Order("Format:N", sort="ascending"),
                 tooltip=["Date", "Format", "New Videos"],
-            ).properties(height=280).interactive(bind_y=False)
+            ).properties(height=_CHART_HEIGHT).interactive(bind_y=False)
             st.altair_chart(c2, use_container_width=True)
         else:
             st.caption("No videos in this window.")
