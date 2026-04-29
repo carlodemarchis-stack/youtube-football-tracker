@@ -889,7 +889,8 @@ else:
     _total_v_banner = long_views + short_views + live_views
     _total_n_banner = long_videos + short_videos + live_videos
     _avg_vpv_banner = _total_v_banner // max(_total_n_banner, 1)
-    _eng_rate = (_rate(total_likes + total_comments, total_views) * 100) if total_views else 0
+    # _rate already returns a percentage (num / den * 100). Don't double-multiply.
+    _eng_rate = _rate(total_likes + total_comments, total_views)
 
     # KPI banner row
     k1, k2, k3, k4, k5, k6 = st.columns(6)
