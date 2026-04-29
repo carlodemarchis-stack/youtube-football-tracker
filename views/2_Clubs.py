@@ -213,10 +213,23 @@ if league is None and _scope == "Overall":
         lg_df["views_per_sub"] = (lg_df["total_views"] / lg_df["total_subs"].replace(0, 1)).astype(int)
         lg_df["avg_subs_per_club"] = (lg_df["clubs_subs"] / lg_df["clubs"].replace(0, 1)).astype(int)
 
+        # Fixed brand colors per league — same palette used in Daily Recap.
+        # Pins each league to one color across every chart so it's easy to
+        # track e.g. Serie A across all 9 panes.
+        _LEAGUE_COLORS = {
+            "Serie A":        "#008FD7",
+            "Premier League": "#3D195B",
+            "La Liga":        "#EE8707",
+            "Bundesliga":     "#D20515",
+            "Ligue 1":        "#091C3E",
+            "MLS":            "#1A2B5F",
+        }
+
         def make_league_bar(data, y_col, title):
             sorted_data = data.sort_values(y_col, ascending=False)
             fig = px.bar(sorted_data, x="League", y=y_col, color="League", title=title,
-                         category_orders={"League": sorted_data["League"].tolist()})
+                         category_orders={"League": sorted_data["League"].tolist()},
+                         color_discrete_map=_LEAGUE_COLORS)
             fig.update_layout(showlegend=False, xaxis_title="", yaxis_title="", margin=dict(t=40, b=20))
             return fig
 
