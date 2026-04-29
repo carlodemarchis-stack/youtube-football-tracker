@@ -496,7 +496,15 @@ if len(_all_dates) >= 2:
     # like "1,200,000" vs "30" misalign the columns by ~30px).
     _CHART_HEIGHT = 280
     _Y_AXIS_GUTTER = 60          # px reserved for y-axis labels in both charts
-    _X_AXIS = alt.Axis(labelAngle=-45, title=None)
+    # "Apr 28 Tue" format on the x-axis. labelExpr lets us combine
+    # short month-day with day-of-week in one tick, two-line layout.
+    _X_AXIS = alt.Axis(
+        labelAngle=-45,
+        title=None,
+        labelExpr=(
+            "[timeFormat(datum.value, '%b %d'), timeFormat(datum.value, '%a')]"
+        ),
+    )
 
     tc1, tc2 = st.columns(2)
     with tc1:
@@ -505,7 +513,7 @@ if len(_all_dates) >= 2:
         _ymin_v = min(r["Δ Channel Views"] for r in trend_rows) if trend_rows else 0
         _pad_v = max((_ymax_v - _ymin_v) * 0.1, 1)
         c1 = alt.Chart(trend_df).mark_line(color="#636EFA", strokeWidth=2).encode(
-            x=alt.X("Date:N", axis=_X_AXIS),
+            x=alt.X("Date:T", axis=_X_AXIS),
             y=alt.Y("Δ Channel Views:Q",
                     scale=alt.Scale(domain=[_ymin_v - _pad_v, _ymax_v + _pad_v]),
                     title=None,
@@ -536,7 +544,7 @@ if len(_all_dates) >= 2:
         if fmt_rows:
             fmt_df = pd.DataFrame(fmt_rows)
             c2 = alt.Chart(fmt_df).mark_area(opacity=0.85).encode(
-                x=alt.X("Date:N", axis=_X_AXIS),
+                x=alt.X("Date:T", axis=_X_AXIS),
                 y=alt.Y("New Videos:Q", stack="zero", title=None,
                         axis=alt.Axis(minExtent=_Y_AXIS_GUTTER)),
                 color=alt.Color(
