@@ -323,7 +323,6 @@ if league is None and _scope == "Overall":
             <td style="padding:6px 12px;text-align:right" data-val="{live_vpv}">{_v(live_vpv)}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{long_dur}">{_dur(long_dur)}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{short_dur}">{_dur(short_dur)}</td>
-            <td style="padding:6px 12px;text-align:right" data-val="{live_dur}">{_dur(live_dur)}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{row['likes']}">{_v(row['likes'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{row['comments']}">{_v(row['comments'])}</td>
         </tr>"""
@@ -348,7 +347,7 @@ if league is None and _scope == "Overall":
         <th colspan="4" style="text-align:center;border-bottom:2px solid #636EFA;color:#636EFA">Views</th>
         <th colspan="4" style="text-align:center;border-bottom:2px solid #00CC96;color:#00CC96">Videos</th>
         <th colspan="4" style="text-align:center;border-bottom:2px solid #FFA15A;color:#FFA15A">Views/Video</th>
-        <th colspan="3" style="text-align:center;border-bottom:2px solid #AB63FA;color:#AB63FA">Avg Duration</th>
+        <th colspan="2" style="text-align:center;border-bottom:2px solid #AB63FA;color:#AB63FA">Avg Duration</th>
         <th colspan="2" style="text-align:center;border-bottom:2px solid #EF553B;color:#EF553B">Engagement</th>
     </tr>
     <tr style="border-bottom:2px solid #444">
@@ -368,9 +367,8 @@ if league is None and _scope == "Overall":
         <th data-col="13" data-type="num" style="text-align:right">Live</th>
         <th data-col="14" data-type="num" style="text-align:right">Long</th>
         <th data-col="15" data-type="num" style="text-align:right">Shorts</th>
-        <th data-col="16" data-type="num" style="text-align:right">Live</th>
-        <th data-col="17" data-type="num" style="text-align:right">Likes</th>
-        <th data-col="18" data-type="num" style="text-align:right">Comments</th>
+        <th data-col="16" data-type="num" style="text-align:right">Likes</th>
+        <th data-col="17" data-type="num" style="text-align:right">Comments</th>
     </tr>
     </thead>
     <tbody>{ch_rows_html}</tbody>
