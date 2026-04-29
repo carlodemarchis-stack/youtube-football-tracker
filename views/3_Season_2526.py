@@ -164,21 +164,21 @@ if league is None and _scope == "Overall":
     sorted_leagues = sorted(league_stats.items(), key=lambda kv: kv[1]["views"], reverse=True)
     rows_html = ""
     for lg, s in sorted_leagues:
-        vpv = s["views"] // max(s["videos"], 1)
         long_vpv = s["long_views"] // max(s["long_v"], 1)
         short_vpv = s["short_views"] // max(s["short_v"], 1)
+        live_vpv = s["live_views"] // max(s["live_v"], 1) if s.get("live_v") else 0
         er = ((s["likes"] + s["comments"]) / s["views"] * 100) if s["views"] else 0.0
         rows_html += f"""<tr>
             <td style="padding:6px 12px">{LEAGUE_FLAG.get(lg, '')} {lg}</td>
-            <td style="padding:6px 12px;text-align:right">{fmt_num(s['views'])}</td>
             <td style="padding:6px 12px;text-align:right">{fmt_num(s['long_views'])}</td>
             <td style="padding:6px 12px;text-align:right">{fmt_num(s['short_views'])}</td>
-            <td style="padding:6px 12px;text-align:right">{fmt_num(s['videos'])}</td>
+            <td style="padding:6px 12px;text-align:right">{fmt_num(s['live_views'])}</td>
             <td style="padding:6px 12px;text-align:right">{fmt_num(s['long_v'])}</td>
             <td style="padding:6px 12px;text-align:right">{fmt_num(s['short_v'])}</td>
-            <td style="padding:6px 12px;text-align:right">{fmt_num(vpv)}</td>
+            <td style="padding:6px 12px;text-align:right">{fmt_num(s['live_v'])}</td>
             <td style="padding:6px 12px;text-align:right">{fmt_num(long_vpv)}</td>
             <td style="padding:6px 12px;text-align:right">{fmt_num(short_vpv)}</td>
+            <td style="padding:6px 12px;text-align:right">{fmt_num(live_vpv)}</td>
             <td style="padding:6px 12px;text-align:right">{fmt_num(s['likes'])}</td>
             <td style="padding:6px 12px;text-align:right">{fmt_num(s['comments'])}</td>
             <td style="padding:6px 12px;text-align:right">{er:.2f}%</td>
@@ -201,15 +201,15 @@ if league is None and _scope == "Overall":
         </tr>
         <tr>
           <th style="text-align:left">League</th>
-          <th style="text-align:right">All</th>
           <th style="text-align:right">Long</th>
           <th style="text-align:right">Shorts</th>
-          <th style="text-align:right">All</th>
+          <th style="text-align:right">Live</th>
           <th style="text-align:right">Long</th>
           <th style="text-align:right">Shorts</th>
-          <th style="text-align:right">All</th>
+          <th style="text-align:right">Live</th>
           <th style="text-align:right">Long</th>
           <th style="text-align:right">Shorts</th>
+          <th style="text-align:right">Live</th>
           <th style="text-align:right">Likes</th>
           <th style="text-align:right">Comments</th>
           <th style="text-align:right">Rate</th>
@@ -264,12 +264,15 @@ if league is None and _scope == "Overall":
             "all_views": av, "all_videos": an,
             "long_views": lv, "long_videos": ln,
             "short_views": sv, "short_videos": sn,
+            "live_views": vv, "live_videos": vn,
             "long_dur_total": int(ch.get("season_long_dur_avg") or 0) * max(ln, 1),
             "short_dur_total": int(ch.get("season_short_dur_avg") or 0) * max(sn, 1),
+            "live_dur_total": int(ch.get("season_live_dur_avg") or 0) * max(vn, 1),
             "likes": int(ch.get("season_likes") or 0),
             "comments": int(ch.get("season_comments") or 0),
         })
-    ch_rows.sort(key=lambda r: r["all_views"], reverse=True)
+    # Default sort key matches the visible "Long ▼" header in column 2.
+    ch_rows.sort(key=lambda r: r["long_views"], reverse=True)
 
     def _v(val):
         v = int(val)
@@ -288,26 +291,28 @@ if league is None and _scope == "Overall":
         dot = f'<span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:{_c1};border:1px solid rgba(255,255,255,0.3);position:relative"><span style="display:block;width:8px;height:8px;border-radius:50%;background:{_c2};position:absolute;top:3px;left:3px"></span></span>'
         handle = row.get("handle", "")
         _row_click = f'onclick="window.open(\'https://www.youtube.com/{handle}\',\'_blank\',\'noopener\')" style="cursor:pointer"' if handle else ''
-        all_vpv = row["all_views"] // max(row["all_videos"], 1)
         long_vpv = row["long_views"] // max(row["long_videos"], 1)
         short_vpv = row["short_views"] // max(row["short_videos"], 1)
+        live_vpv = row["live_views"] // max(row["live_videos"], 1)
         long_dur = row["long_dur_total"] // max(row["long_videos"], 1)
         short_dur = row["short_dur_total"] // max(row["short_videos"], 1)
+        live_dur = row["live_dur_total"] // max(row["live_videos"], 1)
 
         ch_rows_html += f"""<tr {_row_click}>
             <td style="padding:6px 12px">{dot}</td>
             <td style="padding:6px 12px" data-val="{row['name']}">{row['name']}</td>
-            <td style="padding:6px 12px;text-align:right" data-val="{row['all_views']}">{_v(row['all_views'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{row['long_views']}">{_v(row['long_views'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{row['short_views']}">{_v(row['short_views'])}</td>
-            <td style="padding:6px 12px;text-align:right" data-val="{row['all_videos']}">{_v(row['all_videos'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{row['live_views']}">{_v(row['live_views'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{row['long_videos']}">{_v(row['long_videos'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{row['short_videos']}">{_v(row['short_videos'])}</td>
-            <td style="padding:6px 12px;text-align:right" data-val="{all_vpv}">{_v(all_vpv)}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{row['live_videos']}">{_v(row['live_videos'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{long_vpv}">{_v(long_vpv)}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{short_vpv}">{_v(short_vpv)}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{live_vpv}">{_v(live_vpv)}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{long_dur}">{_dur(long_dur)}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{short_dur}">{_dur(short_dur)}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{live_dur}">{_dur(live_dur)}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{row['likes']}">{_v(row['likes'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{row['comments']}">{_v(row['comments'])}</td>
         </tr>"""
@@ -332,25 +337,26 @@ if league is None and _scope == "Overall":
         <th colspan="3" style="text-align:center;border-bottom:2px solid #636EFA;color:#636EFA">Views</th>
         <th colspan="3" style="text-align:center;border-bottom:2px solid #00CC96;color:#00CC96">Videos</th>
         <th colspan="3" style="text-align:center;border-bottom:2px solid #FFA15A;color:#FFA15A">Views/Video</th>
-        <th colspan="2" style="text-align:center;border-bottom:2px solid #AB63FA;color:#AB63FA">Avg Duration</th>
+        <th colspan="3" style="text-align:center;border-bottom:2px solid #AB63FA;color:#AB63FA">Avg Duration</th>
         <th colspan="2" style="text-align:center;border-bottom:2px solid #EF553B;color:#EF553B">Engagement</th>
     </tr>
     <tr style="border-bottom:2px solid #444">
         <th style="width:30px"></th>
         <th data-col="1" data-type="str" style="text-align:left">Channel</th>
-        <th data-col="2" data-type="num" style="text-align:right" class="active">All ▼</th>
-        <th data-col="3" data-type="num" style="text-align:right">Long</th>
-        <th data-col="4" data-type="num" style="text-align:right">Shorts</th>
-        <th data-col="5" data-type="num" style="text-align:right">All</th>
-        <th data-col="6" data-type="num" style="text-align:right">Long</th>
-        <th data-col="7" data-type="num" style="text-align:right">Shorts</th>
-        <th data-col="8" data-type="num" style="text-align:right">All</th>
-        <th data-col="9" data-type="num" style="text-align:right">Long</th>
-        <th data-col="10" data-type="num" style="text-align:right">Shorts</th>
+        <th data-col="2" data-type="num" style="text-align:right" class="active">Long ▼</th>
+        <th data-col="3" data-type="num" style="text-align:right">Shorts</th>
+        <th data-col="4" data-type="num" style="text-align:right">Live</th>
+        <th data-col="5" data-type="num" style="text-align:right">Long</th>
+        <th data-col="6" data-type="num" style="text-align:right">Shorts</th>
+        <th data-col="7" data-type="num" style="text-align:right">Live</th>
+        <th data-col="8" data-type="num" style="text-align:right">Long</th>
+        <th data-col="9" data-type="num" style="text-align:right">Shorts</th>
+        <th data-col="10" data-type="num" style="text-align:right">Live</th>
         <th data-col="11" data-type="num" style="text-align:right">Long</th>
         <th data-col="12" data-type="num" style="text-align:right">Shorts</th>
-        <th data-col="13" data-type="num" style="text-align:right">Likes</th>
-        <th data-col="14" data-type="num" style="text-align:right">Comments</th>
+        <th data-col="13" data-type="num" style="text-align:right">Live</th>
+        <th data-col="14" data-type="num" style="text-align:right">Likes</th>
+        <th data-col="15" data-type="num" style="text-align:right">Comments</th>
     </tr>
     </thead>
     <tbody>{ch_rows_html}</tbody>
