@@ -897,7 +897,7 @@ else:
     trending.sort(key=lambda t: t["delta"], reverse=True)
     trending = trending[:_top_n]
 
-st.subheader(f"🔥 {_mw_scope}Most watched videos on {day_iso}")
+st.subheader(f"🔥 {_mw_scope}Most watched videos on {day.strftime('%b %d, %Y')}")
 
 if not trending:
     st.caption("No video snapshot data available for this day yet.")
