@@ -19,6 +19,14 @@ Env vars required:
     YOUTUBE_API_KEY
     SUPABASE_URL
     SUPABASE_KEY
+
+Env vars optional:
+    YOUTUBE_API_KEY_HEAVY  — separate key for daily_refresh + hourly_rss (the
+                             big quota consumers). Inherited by subprocesses;
+                             daily_refresh.py and hourly_rss.py prefer it
+                             over YOUTUBE_API_KEY when set. Other jobs
+                             (weekly_refresh, hourly_reddit) use the regular
+                             YOUTUBE_API_KEY.
 """
 from __future__ import annotations
 
@@ -126,6 +134,9 @@ if __name__ == "__main__":
         val = os.environ.get(var, "")
         status = "✓" if val else "✗ MISSING"
         log(f"  {var}: {status}")
+    # Optional heavy-quota key for daily_refresh + hourly_rss
+    heavy = os.environ.get("YOUTUBE_API_KEY_HEAVY", "")
+    log(f"  YOUTUBE_API_KEY_HEAVY: {'✓ (heavy jobs will use this)' if heavy else '— not set, all jobs share YOUTUBE_API_KEY'}")
 
     log("═" * 50)
 
