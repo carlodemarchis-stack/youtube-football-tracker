@@ -420,7 +420,8 @@ if len(_all_dates) >= 2:
     @st.cache_data(ttl=3600, show_spinner=False)
     def _load_videos_for_format_trend(start_iso: str, end_iso: str,
                                       channel_ids_tuple: tuple | None) -> list[dict]:
-        """Live fallback — paginated to bypass Supabase's 1000-row limit."""
+        """Live fallback — paginated to bypass Supabase's 1000-row limit.
+        ORDER BY required for stable pagination across pages."""
         page = 1000
         offset = 0
         out: list[dict] = []
@@ -429,6 +430,7 @@ if len(_all_dates) >= 2:
                  .select("published_at,format,duration_seconds,channel_id")
                  .gte("published_at", start_iso)
                  .lt("published_at", end_iso)
+                 .order("published_at")
                  .range(offset, offset + page - 1))
             if channel_ids_tuple:
                 q = q.in_("channel_id", list(channel_ids_tuple))

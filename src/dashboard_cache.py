@@ -84,7 +84,12 @@ def write(db, name: str, scope_key: str, payload: object) -> None:
 # ── compute: format trend (per-day Long / Shorts / Live counts) ─────────
 def _fetch_videos_window(db, start_iso: str, end_iso: str,
                          channel_ids: list[str] | None) -> list[dict]:
-    """Paginated scan of videos.published_at + format + channel_id."""
+    """Paginated scan of videos.published_at + format + channel_id.
+
+    IMPORTANT: must include .order(...) — without an explicit sort key,
+    PostgREST may return rows in different orders across pages, causing
+    pagination to drop or duplicate rows.
+    """
     page = 1000
     offset = 0
     out: list[dict] = []
@@ -94,6 +99,7 @@ def _fetch_videos_window(db, start_iso: str, end_iso: str,
             .select("published_at,format,duration_seconds,channel_id")
             .gte("published_at", start_iso)
             .lt("published_at", end_iso)
+            .order("published_at")
             .range(offset, offset + page - 1)
         )
         if channel_ids:
