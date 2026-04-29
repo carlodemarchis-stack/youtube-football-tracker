@@ -14,7 +14,8 @@ Steps:
      fresh view counts written in step 2).
 
 Env vars required:
-    YOUTUBE_API_KEY
+    YOUTUBE_API_KEY        (regular key — fallback)
+    YOUTUBE_API_KEY_HEAVY  (optional — preferred if set, used for big quota jobs)
     SUPABASE_URL
     SUPABASE_KEY
 """
@@ -39,15 +40,18 @@ def log(msg: str) -> None:
 
 
 def main() -> int:
-    yt_key = os.environ.get("YOUTUBE_API_KEY", "").strip().strip('"').strip("'")
+    # Prefer dedicated heavy-quota key if set, else fall back to regular key.
+    yt_key = (os.environ.get("YOUTUBE_API_KEY_HEAVY", "").strip().strip('"').strip("'")
+              or os.environ.get("YOUTUBE_API_KEY", "").strip().strip('"').strip("'"))
+    yt_key_source = "YOUTUBE_API_KEY_HEAVY" if os.environ.get("YOUTUBE_API_KEY_HEAVY", "").strip() else "YOUTUBE_API_KEY"
     sb_url = os.environ.get("SUPABASE_URL", "").strip().strip('"').strip("'")
     sb_key = os.environ.get("SUPABASE_KEY", "").strip().strip('"').strip("'")
 
     if not (yt_key and sb_url and sb_key):
-        log("FATAL: missing YOUTUBE_API_KEY / SUPABASE_URL / SUPABASE_KEY")
+        log("FATAL: missing YOUTUBE_API_KEY (or YOUTUBE_API_KEY_HEAVY) / SUPABASE_URL / SUPABASE_KEY")
         return 2
 
-    log(f"Starting weekly refresh — url_len={len(sb_url)} key_len={len(sb_key)} yt_len={len(yt_key)}")
+    log(f"Starting weekly refresh — yt_key_source={yt_key_source} url_len={len(sb_url)} key_len={len(sb_key)} yt_len={len(yt_key)}")
     yt = YouTubeClient(yt_key)
     db = Database(sb_url, sb_key)
 

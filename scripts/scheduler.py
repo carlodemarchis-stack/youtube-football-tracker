@@ -21,12 +21,11 @@ Env vars required:
     SUPABASE_KEY
 
 Env vars optional:
-    YOUTUBE_API_KEY_HEAVY  — separate key for daily_refresh + hourly_rss (the
-                             big quota consumers). Inherited by subprocesses;
-                             daily_refresh.py and hourly_rss.py prefer it
-                             over YOUTUBE_API_KEY when set. Other jobs
-                             (weekly_refresh, hourly_reddit) use the regular
-                             YOUTUBE_API_KEY.
+    YOUTUBE_API_KEY_HEAVY  — separate key for the big quota consumers
+                             (daily_refresh, hourly_rss, weekly_refresh).
+                             Inherited by subprocesses; those scripts prefer
+                             it over YOUTUBE_API_KEY when set. hourly_reddit
+                             doesn't use the YouTube API.
 """
 from __future__ import annotations
 
