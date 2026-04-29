@@ -481,10 +481,26 @@ if len(_all_dates) >= 2:
         st.altair_chart(c1, use_container_width=True)
 
     with tc2:
-        st.caption("🎬 New videos per day — by format")
+        # Inline legend in the caption (instead of Altair's bottom legend) so
+        # the chart's plot area matches the left chart's height exactly. A
+        # bottom legend would steal ~30px of vertical space and misalign the
+        # two x-axis baselines.
+        _FORMAT_COLORS = {"Long": "#636EFA", "Shorts": "#FF6B6B", "Live": "#00CC96"}
+        _legend_html = "  ".join(
+            f'<span style="display:inline-flex;align-items:center;gap:4px">'
+            f'<span style="display:inline-block;width:10px;height:10px;'
+            f'border-radius:2px;background:{c}"></span>'
+            f'<span style="font-size:0.8rem;color:#aaa">{lbl}</span></span>'
+            for lbl, c in _FORMAT_COLORS.items()
+        )
+        st.markdown(
+            f'<div style="font-size:14px;color:rgba(250,250,250,0.6);'
+            f'line-height:1.6">🎬 New videos per day — by format &nbsp;&nbsp; '
+            f'{_legend_html}</div>',
+            unsafe_allow_html=True,
+        )
         if fmt_rows:
             fmt_df = pd.DataFrame(fmt_rows)
-            _FORMAT_COLORS = {"Long": "#636EFA", "Shorts": "#FF6B6B", "Live": "#00CC96"}
             c2 = alt.Chart(fmt_df).mark_area(opacity=0.85).encode(
                 x=alt.X("Date:N", axis=_X_AXIS),
                 y=alt.Y("New Videos:Q", stack="zero", title=None,
@@ -496,7 +512,7 @@ if len(_all_dates) >= 2:
                         domain=list(_FORMAT_COLORS.keys()),
                         range=list(_FORMAT_COLORS.values()),
                     ),
-                    legend=alt.Legend(title=None, orient="bottom"),
+                    legend=None,  # rendered above as inline HTML
                 ),
                 order=alt.Order("Format:N", sort="ascending"),
                 tooltip=["Date", "Format", "New Videos"],
