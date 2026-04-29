@@ -338,7 +338,8 @@ if not club:
 
 filtered = df.sort_values("view_count", ascending=False).head(100).reset_index(drop=True)
 
-current_year = datetime.now(timezone.utc).year
+from zoneinfo import ZoneInfo as _ZoneInfo
+current_year = datetime.now(_ZoneInfo("Europe/Rome")).year
 
 # ── Views by Rank chart ───────────────────────────────────────
 st.subheader("Views by Rank")

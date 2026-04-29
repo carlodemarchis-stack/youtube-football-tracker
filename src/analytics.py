@@ -477,7 +477,10 @@ def classify_videos(videos: list[dict]) -> list[dict]:
 
 def compute_tier_stats(df: pd.DataFrame, current_year: int | None = None) -> dict:
     if current_year is None:
-        current_year = datetime.now(timezone.utc).year
+        # Use CET (Europe/Rome) — matches the rest of the app's user-facing
+        # date logic. Differs from UTC only on Jan 1 between 00:00 CET and 01:00 UTC.
+        from zoneinfo import ZoneInfo
+        current_year = datetime.now(ZoneInfo("Europe/Rome")).year
 
     if df.empty:
         return {"top_10": {}, "top_50": {}, "top_100": {}, "current_year": {}}

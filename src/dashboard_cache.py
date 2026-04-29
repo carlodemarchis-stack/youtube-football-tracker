@@ -18,10 +18,16 @@ from __future__ import annotations
 import json
 from datetime import date, datetime, timedelta, timezone
 from typing import Iterable
+from zoneinfo import ZoneInfo
 
 # Lookback window for the format-trend chart. Must match what the Daily Recap
 # page expects (see views/1_Daily_Recap.py: LOOKBACK_DAYS).
 FORMAT_TREND_LOOKBACK_DAYS = 14
+
+# Bucket dates in CET — matches the Daily Recap page (date picker, KPI counts,
+# everything else is CET). UTC bucketing would attribute videos published in
+# the late-night CET hours (≈22:00–23:59 UTC) to the wrong day.
+CET = ZoneInfo("Europe/Rome")
 
 
 # ── scope_key helpers ────────────────────────────────────────────────────
@@ -125,26 +131,31 @@ def compute_format_trend(db, channel_ids: list[str] | None,
             ]
         }
     """
-    # Use UTC dates for storage — page renders in CET on read, but the bucket
-    # math is identical because we bucket on the published_at *date*, not time.
-    today = datetime.now(timezone.utc).date()
-    start = today - timedelta(days=lookback_days)
-    start_iso = start.isoformat() + "T00:00:00+00:00"
-    end_iso = today.isoformat() + "T00:00:00+00:00"
+    # CET-bucketed (matches the Daily Recap page's KPI line + date picker).
+    # Window: [start_cet 00:00 CET, today_cet 00:00 CET) — i.e. all of yesterday
+    # and the previous (lookback_days - 1) full CET days.
+    today_cet = datetime.now(CET).date()
+    start_cet = today_cet - timedelta(days=lookback_days)
+    start_iso = datetime.combine(start_cet, datetime.min.time(), tzinfo=CET) \
+                       .astimezone(timezone.utc).isoformat()
+    end_iso   = datetime.combine(today_cet, datetime.min.time(), tzinfo=CET) \
+                       .astimezone(timezone.utc).isoformat()
 
     videos = _fetch_videos_window(db, start_iso, end_iso, channel_ids)
 
     buckets: dict[str, dict[str, int]] = {}
     # Pre-seed every date so days with 0 videos still render
-    d = start
-    while d < today:
+    d = start_cet
+    while d < today_cet:
         buckets[d.isoformat()] = {"long": 0, "short": 0, "live": 0}
         d += timedelta(days=1)
 
     for v in videos:
         pub = v.get("published_at") or ""
         try:
-            dkey = datetime.fromisoformat(pub.replace("Z", "+00:00")).date().isoformat()
+            # Convert UTC published_at → CET date
+            dkey = datetime.fromisoformat(pub.replace("Z", "+00:00")) \
+                           .astimezone(CET).date().isoformat()
         except Exception:
             continue
         if dkey not in buckets:
@@ -158,7 +169,7 @@ def compute_format_trend(db, channel_ids: list[str] | None,
         {"date": d, "long": b["long"], "short": b["short"], "live": b["live"]}
         for d, b in sorted(buckets.items())
     ]
-    return {"as_of": today.isoformat(), "rows": rows}
+    return {"as_of": today_cet.isoformat(), "rows": rows}
 
 
 # ── rebuild orchestrator ─────────────────────────────────────────────────
