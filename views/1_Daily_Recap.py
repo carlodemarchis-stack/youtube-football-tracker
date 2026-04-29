@@ -387,93 +387,107 @@ _today_iso = datetime.now(CET).date().isoformat()
 _all_dates = [d for d in _all_dates if d < _today_iso]
 
 if len(_all_dates) >= 2:
-    # Stacked area: each "series" contributes a slice to the daily total.
-    #   ONE_CLUB:  one series (the club itself)
-    #   ONE_LEAGUE: one series per club in that league
-    #   ALL:       one series per league
-    # New videos per day = sum of (video_count[d] - video_count[d_prev]) across clubs.
-    # Avoids a separate videos table query (which hits the default 1000-row
-    # Supabase limit and drops recent rows, causing the trailing "0" artifact).
-    if ONE_CLUB:
-        _series_for = lambda cid: g_club["name"]
-    elif g_league:
-        _series_for = lambda cid: (ch_by_id.get(cid, {}).get("name") or "?")
-    else:
-        _series_for = lambda cid: get_league_for_channel(ch_by_id.get(cid, {})) or "—"
-
+    # Δ Channel Views per day — single-series total (channel_snapshots delta).
+    # New Videos per day  — stacked area by format (Long / Shorts / Live),
+    #                       computed from the videos table's published_at + format.
     trend_rows = []
     for i in range(1, len(_all_dates)):
         d = _all_dates[i]
         d_prev = _all_dates[i - 1]
         cur_snaps = _snap_by_date.get(d, {})
         prev_snaps = _snap_by_date.get(d_prev, {})
-        # Aggregate by series (league or club name)
-        per_series: dict[str, dict[str, int]] = {}  # series → {views, videos}
+        dv_total = 0
         for cid, snap in cur_snaps.items():
             prev = prev_snaps.get(cid)
             if not prev:
                 continue
-            dv = int(snap.get("total_views") or 0) - int(prev.get("total_views") or 0)
-            # Clamp negative deltas (happens if videos get deleted/made private)
-            dc = max(0, int(snap.get("video_count") or 0) - int(prev.get("video_count") or 0))
-            s_key = _series_for(cid)
-            agg = per_series.setdefault(s_key, {"views": 0, "videos": 0})
-            agg["views"] += dv
-            agg["videos"] += dc
-        for s_key, agg in per_series.items():
-            trend_rows.append({
-                "Date": d, "Series": s_key,
-                "Δ Channel Views": agg["views"],
-                "New Videos": agg["videos"],
-            })
+            dv_total += int(snap.get("total_views") or 0) - int(prev.get("total_views") or 0)
+        trend_rows.append({"Date": d, "Δ Channel Views": dv_total})
 
-    if trend_rows:
-        import altair as alt
-        trend_df = pd.DataFrame(trend_rows)
-        # Series sort order: by total volume across the window (largest at bottom)
-        _series_order = (trend_df.groupby("Series")["Δ Channel Views"]
-                                 .sum().sort_values(ascending=False).index.tolist())
+    # Per-day Long / Shorts / Live counts from videos.published_at (CET-bucketed).
+    @st.cache_data(ttl=300, show_spinner=False)
+    def _load_videos_for_format_trend(start_iso: str, end_iso: str,
+                                      channel_ids_tuple: tuple | None) -> list[dict]:
+        """Lightweight scan: just published_at + format + duration over window."""
+        q = (db.client.table("videos")
+             .select("published_at,format,duration_seconds,channel_id")
+             .gte("published_at", start_iso)
+             .lt("published_at", end_iso))
+        if channel_ids_tuple:
+            q = q.in_("channel_id", list(channel_ids_tuple))
+        return q.execute().data or []
 
-        # Optional brand-color override for league names (when stacking by league)
-        _LEAGUE_COLORS = {
-            "Serie A":        "#008FD7",
-            "Premier League": "#3D195B",
-            "La Liga":        "#EE8707",
-            "Bundesliga":     "#D20515",
-            "Ligue 1":        "#091C3E",
-            "MLS":            "#1A2B5F",
-        }
-        _color_field = alt.Color(
-            "Series:N",
-            sort=_series_order,
-            legend=alt.Legend(title=None, orient="bottom"),
-            scale=alt.Scale(
-                domain=list(_LEAGUE_COLORS.keys()),
-                range=list(_LEAGUE_COLORS.values()),
-            ) if (not ONE_CLUB and not g_league) else alt.Undefined,
-        )
+    _trend_start_iso = (datetime.combine(date.fromisoformat(_all_dates[0]),
+                                         datetime.min.time(), tzinfo=CET)
+                        .astimezone(timezone.utc).isoformat())
+    _trend_end_iso = (datetime.combine(date.fromisoformat(_today_iso),
+                                       datetime.min.time(), tzinfo=CET)
+                      .astimezone(timezone.utc).isoformat())
+    _videos_in_window = _load_videos_for_format_trend(
+        _trend_start_iso, _trend_end_iso, _fc_tuple
+    )
 
-        tc1, tc2 = st.columns(2)
-        with tc1:
-            st.caption("👁️ Δ Channel Views per day")
-            c1 = alt.Chart(trend_df).mark_area(opacity=0.85).encode(
-                x=alt.X("Date:N", axis=alt.Axis(labelAngle=-45, title=None)),
-                y=alt.Y("Δ Channel Views:Q", stack="zero", title=None),
-                color=_color_field,
-                order=alt.Order("Series:N", sort="ascending"),
-                tooltip=["Date", "Series", alt.Tooltip("Δ Channel Views:Q", format=",")],
-            ).properties(height=280).interactive(bind_y=False)
-            st.altair_chart(c1, use_container_width=True)
-        with tc2:
-            st.caption("🎬 New videos per day")
-            c2 = alt.Chart(trend_df).mark_area(opacity=0.85).encode(
+    fmt_rows: list[dict] = []
+    fmt_buckets: dict[str, dict[str, int]] = {}  # date -> {long, short, live}
+    for v in _videos_in_window:
+        pub = v.get("published_at") or ""
+        try:
+            dt_cet = datetime.fromisoformat(pub.replace("Z", "+00:00")).astimezone(CET)
+        except Exception:
+            continue
+        dkey = dt_cet.date().isoformat()
+        if dkey >= _today_iso:
+            continue  # exclude in-progress day
+        fmt = (v.get("format") or "").lower()
+        if fmt not in ("long", "short", "live"):
+            fmt = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
+        b = fmt_buckets.setdefault(dkey, {"long": 0, "short": 0, "live": 0})
+        b[fmt] += 1
+    for d, b in fmt_buckets.items():
+        for label, key in (("Long", "long"), ("Shorts", "short"), ("Live", "live")):
+            fmt_rows.append({"Date": d, "Format": label, "New Videos": b[key]})
+
+    import altair as alt
+    trend_df = pd.DataFrame(trend_rows)
+
+    tc1, tc2 = st.columns(2)
+    with tc1:
+        st.caption("👁️ Δ Channel Views per day")
+        _ymax_v = max(r["Δ Channel Views"] for r in trend_rows) if trend_rows else 0
+        _ymin_v = min(r["Δ Channel Views"] for r in trend_rows) if trend_rows else 0
+        _pad_v = max((_ymax_v - _ymin_v) * 0.1, 1)
+        c1 = alt.Chart(trend_df).mark_line(color="#636EFA", strokeWidth=2).encode(
+            x=alt.X("Date:N", axis=alt.Axis(labelAngle=-45, title=None)),
+            y=alt.Y("Δ Channel Views:Q",
+                    scale=alt.Scale(domain=[_ymin_v - _pad_v, _ymax_v + _pad_v]),
+                    title=None),
+            tooltip=["Date", alt.Tooltip("Δ Channel Views:Q", format=",")],
+        ).properties(height=280).interactive(bind_y=False)
+        st.altair_chart(c1, use_container_width=True)
+
+    with tc2:
+        st.caption("🎬 New videos per day — by format")
+        if fmt_rows:
+            fmt_df = pd.DataFrame(fmt_rows)
+            _FORMAT_COLORS = {"Long": "#636EFA", "Shorts": "#FF6B6B", "Live": "#00CC96"}
+            c2 = alt.Chart(fmt_df).mark_area(opacity=0.85).encode(
                 x=alt.X("Date:N", axis=alt.Axis(labelAngle=-45, title=None)),
                 y=alt.Y("New Videos:Q", stack="zero", title=None),
-                color=_color_field,
-                order=alt.Order("Series:N", sort="ascending"),
-                tooltip=["Date", "Series", "New Videos"],
+                color=alt.Color(
+                    "Format:N",
+                    sort=["Long", "Shorts", "Live"],
+                    scale=alt.Scale(
+                        domain=list(_FORMAT_COLORS.keys()),
+                        range=list(_FORMAT_COLORS.values()),
+                    ),
+                    legend=alt.Legend(title=None, orient="bottom"),
+                ),
+                order=alt.Order("Format:N", sort="ascending"),
+                tooltip=["Date", "Format", "New Videos"],
             ).properties(height=280).interactive(bind_y=False)
             st.altair_chart(c2, use_container_width=True)
+        else:
+            st.caption("No videos in this window.")
 else:
     st.caption("Need at least 2 snapshot dates to show trends. Come back after the next cron run.")
 
