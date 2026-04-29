@@ -496,14 +496,13 @@ if len(_all_dates) >= 2:
     # like "1,200,000" vs "30" misalign the columns by ~30px).
     _CHART_HEIGHT = 280
     _Y_AXIS_GUTTER = 60          # px reserved for y-axis labels in both charts
-    # "Apr 28 Tue" format on the x-axis. labelExpr lets us combine
-    # short month-day with day-of-week in one tick, two-line layout.
+    # x-axis: "Apr 28 Tue" on a single line, every day shown (no auto-skip).
     _X_AXIS = alt.Axis(
         labelAngle=-45,
         title=None,
-        labelExpr=(
-            "[timeFormat(datum.value, '%b %d'), timeFormat(datum.value, '%a')]"
-        ),
+        format="%b %d %a",
+        tickCount={"interval": "day", "step": 1},
+        labelOverlap=False,
     )
 
     tc1, tc2 = st.columns(2)
