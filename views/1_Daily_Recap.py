@@ -417,7 +417,10 @@ if len(_all_dates) >= 2:
             q = q.in_("channel_id", list(channel_ids_tuple))
         return q.execute().data or []
 
-    _trend_start_iso = (datetime.combine(date.fromisoformat(_all_dates[0]),
+    # Align format chart's x-axis to the views chart's: both span _all_dates[1:].
+    # (views chart drops _all_dates[0] because deltas need a previous snapshot)
+    _aligned_dates = set(_all_dates[1:]) if len(_all_dates) >= 2 else set()
+    _trend_start_iso = (datetime.combine(date.fromisoformat(_all_dates[1]),
                                          datetime.min.time(), tzinfo=CET)
                         .astimezone(timezone.utc).isoformat())
     _trend_end_iso = (datetime.combine(date.fromisoformat(_today_iso),
@@ -428,7 +431,11 @@ if len(_all_dates) >= 2:
     )
 
     fmt_rows: list[dict] = []
-    fmt_buckets: dict[str, dict[str, int]] = {}  # date -> {long, short, live}
+    # Pre-seed every date in the aligned window with zeros so days with no
+    # videos still appear (avoids gaps that visually break x-axis alignment).
+    fmt_buckets: dict[str, dict[str, int]] = {
+        d: {"long": 0, "short": 0, "live": 0} for d in _aligned_dates
+    }
     for v in _videos_in_window:
         pub = v.get("published_at") or ""
         try:
@@ -436,13 +443,12 @@ if len(_all_dates) >= 2:
         except Exception:
             continue
         dkey = dt_cet.date().isoformat()
-        if dkey >= _today_iso:
-            continue  # exclude in-progress day
+        if dkey not in _aligned_dates:
+            continue
         fmt = (v.get("format") or "").lower()
         if fmt not in ("long", "short", "live"):
             fmt = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
-        b = fmt_buckets.setdefault(dkey, {"long": 0, "short": 0, "live": 0})
-        b[fmt] += 1
+        fmt_buckets[dkey][fmt] += 1
     for d, b in fmt_buckets.items():
         for label, key in (("Long", "long"), ("Shorts", "short"), ("Live", "live")):
             fmt_rows.append({"Date": d, "Format": label, "New Videos": b[key]})
