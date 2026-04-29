@@ -365,6 +365,79 @@ else:
         <div style="font-size:0.8rem;color:#888">{most_active[1]} videos posted</div>
     </div>""", unsafe_allow_html=True)
 
+# ── Trend chart ──────────────────────────────────────────────
+# Show Δ Views and New Videos per day across all available snapshot dates.
+st.markdown("---")
+st.subheader("📈 Daily trends")
+
+# We already loaded chan_snaps (lookback window). Build per-date aggregates.
+# Group all channel snapshots by captured_date
+_snap_by_date: dict[str, dict[str, dict]] = {}  # date -> {cid -> snap}
+for s in chan_snaps:
+    d = s.get("captured_date", "")
+    cid = s["channel_id"]
+    if filter_cids is not None and cid not in filter_cids:
+        continue
+    _snap_by_date.setdefault(d, {})[cid] = s
+
+_all_dates = sorted(_snap_by_date.keys())
+
+# Exclude today (incomplete data) from the trend chart
+_today_iso = datetime.now(CET).date().isoformat()
+_all_dates = [d for d in _all_dates if d < _today_iso]
+
+if len(_all_dates) >= 2:
+    # Compute per-day aggregates from channel_snapshots we already loaded.
+    # New videos per day = sum of (video_count[d] - video_count[d_prev]) across clubs.
+    # Avoids a separate videos table query (which hits the default 1000-row
+    # Supabase limit and drops recent rows, causing the trailing "0" artifact).
+    trend_rows = []
+    for i in range(1, len(_all_dates)):
+        d = _all_dates[i]
+        d_prev = _all_dates[i - 1]
+        cur_snaps = _snap_by_date.get(d, {})
+        prev_snaps = _snap_by_date.get(d_prev, {})
+        dv_total = 0   # Δ total_views
+        dv_count = 0   # Δ video_count (= new videos posted that day)
+        for cid, snap in cur_snaps.items():
+            prev = prev_snaps.get(cid)
+            if not prev:
+                continue
+            dv_total += int(snap.get("total_views") or 0) - int(prev.get("total_views") or 0)
+            # Clamp negative deltas (happens if videos get deleted/made private)
+            dc = int(snap.get("video_count") or 0) - int(prev.get("video_count") or 0)
+            if dc > 0:
+                dv_count += dc
+        trend_rows.append({"Date": d, "Δ Channel Views": dv_total, "New Videos": dv_count})
+
+    if trend_rows:
+        import altair as alt
+        trend_df = pd.DataFrame(trend_rows)
+
+        tc1, tc2 = st.columns(2)
+        with tc1:
+            st.caption("👁️ Δ Channel Views per day")
+            _ymax_v = max(r["Δ Channel Views"] for r in trend_rows)
+            _ymin_v = min(r["Δ Channel Views"] for r in trend_rows)
+            _pad_v = max((_ymax_v - _ymin_v) * 0.1, 1)
+            c1 = alt.Chart(trend_df).mark_line(color="#636EFA", strokeWidth=2).encode(
+                x=alt.X("Date:N", axis=alt.Axis(labelAngle=-45, title=None)),
+                y=alt.Y("Δ Channel Views:Q", scale=alt.Scale(domain=[_ymin_v - _pad_v, _ymax_v + _pad_v]), title=None),
+                tooltip=["Date", "Δ Channel Views"],
+            ).properties(height=250).interactive(bind_y=False)
+            st.altair_chart(c1, use_container_width=True)
+        with tc2:
+            st.caption("🎬 New videos per day")
+            _ymax_n = max(r["New Videos"] for r in trend_rows)
+            c2 = alt.Chart(trend_df).mark_line(color="#00CC96", strokeWidth=2).encode(
+                x=alt.X("Date:N", axis=alt.Axis(labelAngle=-45, title=None)),
+                y=alt.Y("New Videos:Q", scale=alt.Scale(domain=[0, _ymax_n * 1.1 + 1]), title=None),
+                tooltip=["Date", "New Videos"],
+            ).properties(height=250).interactive(bind_y=False)
+            st.altair_chart(c2, use_container_width=True)
+else:
+    st.caption("Need at least 2 snapshot dates to show trends. Come back after the next cron run.")
+
 # ── Per-league summary ────────────────────────────────────────
 # Hide when viewing a single club (it would be a one-row table for that club's league).
 if not ONE_CLUB:
@@ -813,76 +886,3 @@ if new_video_rows and not ONE_CLUB:
     </table>
     {yt_popup_js()}
     """, height=min(_mw_top_n, len(_mw_sorted)) * 86 + 80, scrolling=True)
-
-# ── Trend chart ──────────────────────────────────────────────
-# Show Δ Views and New Videos per day across all available snapshot dates.
-st.markdown("---")
-st.subheader("📈 Daily trends")
-
-# We already loaded chan_snaps (lookback window). Build per-date aggregates.
-# Group all channel snapshots by captured_date
-_snap_by_date: dict[str, dict[str, dict]] = {}  # date -> {cid -> snap}
-for s in chan_snaps:
-    d = s.get("captured_date", "")
-    cid = s["channel_id"]
-    if filter_cids is not None and cid not in filter_cids:
-        continue
-    _snap_by_date.setdefault(d, {})[cid] = s
-
-_all_dates = sorted(_snap_by_date.keys())
-
-# Exclude today (incomplete data) from the trend chart
-_today_iso = datetime.now(CET).date().isoformat()
-_all_dates = [d for d in _all_dates if d < _today_iso]
-
-if len(_all_dates) >= 2:
-    # Compute per-day aggregates from channel_snapshots we already loaded.
-    # New videos per day = sum of (video_count[d] - video_count[d_prev]) across clubs.
-    # Avoids a separate videos table query (which hits the default 1000-row
-    # Supabase limit and drops recent rows, causing the trailing "0" artifact).
-    trend_rows = []
-    for i in range(1, len(_all_dates)):
-        d = _all_dates[i]
-        d_prev = _all_dates[i - 1]
-        cur_snaps = _snap_by_date.get(d, {})
-        prev_snaps = _snap_by_date.get(d_prev, {})
-        dv_total = 0   # Δ total_views
-        dv_count = 0   # Δ video_count (= new videos posted that day)
-        for cid, snap in cur_snaps.items():
-            prev = prev_snaps.get(cid)
-            if not prev:
-                continue
-            dv_total += int(snap.get("total_views") or 0) - int(prev.get("total_views") or 0)
-            # Clamp negative deltas (happens if videos get deleted/made private)
-            dc = int(snap.get("video_count") or 0) - int(prev.get("video_count") or 0)
-            if dc > 0:
-                dv_count += dc
-        trend_rows.append({"Date": d, "Δ Channel Views": dv_total, "New Videos": dv_count})
-
-    if trend_rows:
-        import altair as alt
-        trend_df = pd.DataFrame(trend_rows)
-
-        tc1, tc2 = st.columns(2)
-        with tc1:
-            st.caption("👁️ Δ Channel Views per day")
-            _ymax_v = max(r["Δ Channel Views"] for r in trend_rows)
-            _ymin_v = min(r["Δ Channel Views"] for r in trend_rows)
-            _pad_v = max((_ymax_v - _ymin_v) * 0.1, 1)
-            c1 = alt.Chart(trend_df).mark_line(color="#636EFA", strokeWidth=2).encode(
-                x=alt.X("Date:N", axis=alt.Axis(labelAngle=-45, title=None)),
-                y=alt.Y("Δ Channel Views:Q", scale=alt.Scale(domain=[_ymin_v - _pad_v, _ymax_v + _pad_v]), title=None),
-                tooltip=["Date", "Δ Channel Views"],
-            ).properties(height=250).interactive(bind_y=False)
-            st.altair_chart(c1, use_container_width=True)
-        with tc2:
-            st.caption("🎬 New videos per day")
-            _ymax_n = max(r["New Videos"] for r in trend_rows)
-            c2 = alt.Chart(trend_df).mark_line(color="#00CC96", strokeWidth=2).encode(
-                x=alt.X("Date:N", axis=alt.Axis(labelAngle=-45, title=None)),
-                y=alt.Y("New Videos:Q", scale=alt.Scale(domain=[0, _ymax_n * 1.1 + 1]), title=None),
-                tooltip=["Date", "New Videos"],
-            ).properties(height=250).interactive(bind_y=False)
-            st.altair_chart(c2, use_container_width=True)
-else:
-    st.caption("Need at least 2 snapshot dates to show trends. Come back after the next cron run.")
