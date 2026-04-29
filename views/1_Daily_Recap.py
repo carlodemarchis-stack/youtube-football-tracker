@@ -404,13 +404,23 @@ if len(_all_dates) >= 2:
             dv_total += int(snap.get("total_views") or 0) - int(prev.get("total_views") or 0)
         trend_rows.append({"Date": d, "Δ Channel Views": dv_total})
 
-    # Per-day Long / Shorts / Live counts from videos.published_at (CET-bucketed).
-    # Paginates to bypass Supabase's default 1000-row limit — without this
-    # the "All Leagues / All Clubs" view truncates and recent days show 0.
+    # Per-day Long / Shorts / Live counts. Try the persisted dashboard_cache
+    # first (precomputed by daily_refresh, ≤24h fresh, ~1ms read). Fall back
+    # to a paginated live query only on cache miss (e.g. fresh install before
+    # the next daily cron, or for the ONE_CLUB scope which we don't precompute).
+    from src import dashboard_cache as _dc
+
+    if ONE_CLUB:
+        _scope_key = _dc.scope_club(g_club["id"])
+    elif g_league:
+        _scope_key = _dc.scope_league(g_league)
+    else:
+        _scope_key = _dc.scope_all()
+
     @st.cache_data(ttl=3600, show_spinner=False)
     def _load_videos_for_format_trend(start_iso: str, end_iso: str,
                                       channel_ids_tuple: tuple | None) -> list[dict]:
-        """Lightweight scan: just published_at + format + duration over window."""
+        """Live fallback — paginated to bypass Supabase's 1000-row limit."""
         page = 1000
         offset = 0
         out: list[dict] = []
@@ -432,35 +442,45 @@ if len(_all_dates) >= 2:
     # Align format chart's x-axis to the views chart's: both span _all_dates[1:].
     # (views chart drops _all_dates[0] because deltas need a previous snapshot)
     _aligned_dates = set(_all_dates[1:]) if len(_all_dates) >= 2 else set()
-    _trend_start_iso = (datetime.combine(date.fromisoformat(_all_dates[1]),
-                                         datetime.min.time(), tzinfo=CET)
-                        .astimezone(timezone.utc).isoformat())
-    _trend_end_iso = (datetime.combine(date.fromisoformat(_today_iso),
-                                       datetime.min.time(), tzinfo=CET)
-                      .astimezone(timezone.utc).isoformat())
-    _videos_in_window = _load_videos_for_format_trend(
-        _trend_start_iso, _trend_end_iso, _fc_tuple
-    )
-
-    fmt_rows: list[dict] = []
-    # Pre-seed every date in the aligned window with zeros so days with no
-    # videos still appear (avoids gaps that visually break x-axis alignment).
     fmt_buckets: dict[str, dict[str, int]] = {
         d: {"long": 0, "short": 0, "live": 0} for d in _aligned_dates
     }
-    for v in _videos_in_window:
-        pub = v.get("published_at") or ""
-        try:
-            dt_cet = datetime.fromisoformat(pub.replace("Z", "+00:00")).astimezone(CET)
-        except Exception:
-            continue
-        dkey = dt_cet.date().isoformat()
-        if dkey not in _aligned_dates:
-            continue
-        fmt = (v.get("format") or "").lower()
-        if fmt not in ("long", "short", "live"):
-            fmt = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
-        fmt_buckets[dkey][fmt] += 1
+
+    # Try persisted cache (only for all + per-league; ONE_CLUB falls through)
+    _cached = None if ONE_CLUB else _dc.read(db, "format_trend", _scope_key)
+    if _cached and _cached.get("payload"):
+        for r in (_cached["payload"].get("rows") or []):
+            d = r.get("date")
+            if d in fmt_buckets:
+                fmt_buckets[d] = {"long": int(r.get("long") or 0),
+                                  "short": int(r.get("short") or 0),
+                                  "live": int(r.get("live") or 0)}
+    else:
+        # Live fallback — paginated query against videos table
+        _trend_start_iso = (datetime.combine(date.fromisoformat(_all_dates[1]),
+                                             datetime.min.time(), tzinfo=CET)
+                            .astimezone(timezone.utc).isoformat())
+        _trend_end_iso = (datetime.combine(date.fromisoformat(_today_iso),
+                                           datetime.min.time(), tzinfo=CET)
+                          .astimezone(timezone.utc).isoformat())
+        _videos_in_window = _load_videos_for_format_trend(
+            _trend_start_iso, _trend_end_iso, _fc_tuple
+        )
+        for v in _videos_in_window:
+            pub = v.get("published_at") or ""
+            try:
+                dt_cet = datetime.fromisoformat(pub.replace("Z", "+00:00")).astimezone(CET)
+            except Exception:
+                continue
+            dkey = dt_cet.date().isoformat()
+            if dkey not in _aligned_dates:
+                continue
+            fmt = (v.get("format") or "").lower()
+            if fmt not in ("long", "short", "live"):
+                fmt = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
+            fmt_buckets[dkey][fmt] += 1
+
+    fmt_rows: list[dict] = []
     for d, b in fmt_buckets.items():
         for label, key in (("Long", "long"), ("Shorts", "short"), ("Live", "live")):
             fmt_rows.append({"Date": d, "Format": label, "New Videos": b[key]})

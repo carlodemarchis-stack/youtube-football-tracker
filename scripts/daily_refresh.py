@@ -203,6 +203,15 @@ def main() -> int:
     except Exception as e:
         log(f"season snapshot step failed: {e}")
 
+    # ── Rebuild dashboard cache (precomputed aggregates Daily Recap reads) ─
+    # Daily Recap shows yesterday's data; once this cron has populated today's
+    # snapshots, the cache is final until tomorrow's run. Cheap (~5s).
+    try:
+        from src import dashboard_cache as _dc
+        _dc.rebuild_all(db, log=log)
+    except Exception as e:
+        log(f"dashboard_cache rebuild failed (non-fatal): {e}")
+
     elapsed = time.time() - start
     log(f"Done in {elapsed:.1f}s — channels_ok={ok} failed={len(failed)} new_videos={new_videos_total} video_snapshots={video_snapshots_written}")
 
