@@ -46,13 +46,13 @@ dual = get_global_color_map_dual()
 
 
 # ── Cached data loaders (5 min TTL — data changes after daily cron) ─
-@st.cache_data(ttl=300, show_spinner=False)
+@st.cache_data(ttl=3600, show_spinner=False)
 def _load_chan_snaps(since_iso: str) -> list[dict]:
     """Cache the 14-day channel snapshots — only changes after daily cron."""
     return db.get_all_snapshots(since_date=since_iso)
 
 
-@st.cache_data(ttl=300, show_spinner=False)
+@st.cache_data(ttl=3600, show_spinner=False)
 def _load_snapshot_dates() -> list[str]:
     """Available snapshot dates (for the date-picker default)."""
     rows = (
@@ -66,7 +66,7 @@ def _load_snapshot_dates() -> list[str]:
     return sorted({r["captured_date"] for r in rows}, reverse=True)
 
 
-@st.cache_data(ttl=300, show_spinner=False)
+@st.cache_data(ttl=3600, show_spinner=False)
 def _load_new_videos(start_ts: str, end_ts: str, channel_ids_tuple: tuple | None) -> list[dict]:
     """Videos published in [start_ts, end_ts), optionally filtered by channel."""
     q = (
@@ -80,7 +80,7 @@ def _load_new_videos(start_ts: str, end_ts: str, channel_ids_tuple: tuple | None
     return q.execute().data or []
 
 
-@st.cache_data(ttl=300, show_spinner=False)
+@st.cache_data(ttl=3600, show_spinner=False)
 def _load_new_video_channel_ids(start_ts: str, end_ts: str) -> list[dict]:
     """Just {channel_id} per new video — for ranking in the ONE_CLUB case.
     Unfiltered so we can rank the current club against all others."""
@@ -94,7 +94,7 @@ def _load_new_video_channel_ids(start_ts: str, end_ts: str) -> list[dict]:
     )
 
 
-@st.cache_data(ttl=300, show_spinner=False)
+@st.cache_data(ttl=3600, show_spinner=False)
 def _load_top_video_deltas(captured_date: str, limit: int,
                              channel_ids_tuple: tuple | None) -> list[dict]:
     """Top videos by Δ views on a date — served from pre-computed
@@ -110,7 +110,7 @@ def _load_top_video_deltas(captured_date: str, limit: int,
         return []
 
 
-@st.cache_data(ttl=300, show_spinner=False)
+@st.cache_data(ttl=3600, show_spinner=False)
 def _load_videos_by_ids(ids_tuple: tuple) -> list[dict]:
     """Full video rows for a list of IDs — used by the Most Watched detail table."""
     if not ids_tuple:
@@ -124,7 +124,7 @@ def _load_videos_by_ids(ids_tuple: tuple) -> list[dict]:
     )
 
 
-@st.cache_data(ttl=300, show_spinner=False)
+@st.cache_data(ttl=3600, show_spinner=False)
 def _load_video_snapshots_cached(captured_date: str, channel_ids_tuple: tuple | None) -> list[dict]:
     """Per-day video snapshots, server-side filtered by channel via inner
     join to videos. Returns trimmed rows {video_id, view_count, channel_id}."""
@@ -407,7 +407,7 @@ if len(_all_dates) >= 2:
     # Per-day Long / Shorts / Live counts from videos.published_at (CET-bucketed).
     # Paginates to bypass Supabase's default 1000-row limit — without this
     # the "All Leagues / All Clubs" view truncates and recent days show 0.
-    @st.cache_data(ttl=300, show_spinner=False)
+    @st.cache_data(ttl=3600, show_spinner=False)
     def _load_videos_for_format_trend(start_iso: str, end_iso: str,
                                       channel_ids_tuple: tuple | None) -> list[dict]:
         """Lightweight scan: just published_at + format + duration over window."""
