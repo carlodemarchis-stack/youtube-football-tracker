@@ -405,17 +405,29 @@ if len(_all_dates) >= 2:
         trend_rows.append({"Date": d, "Δ Channel Views": dv_total})
 
     # Per-day Long / Shorts / Live counts from videos.published_at (CET-bucketed).
+    # Paginates to bypass Supabase's default 1000-row limit — without this
+    # the "All Leagues / All Clubs" view truncates and recent days show 0.
     @st.cache_data(ttl=300, show_spinner=False)
     def _load_videos_for_format_trend(start_iso: str, end_iso: str,
                                       channel_ids_tuple: tuple | None) -> list[dict]:
         """Lightweight scan: just published_at + format + duration over window."""
-        q = (db.client.table("videos")
-             .select("published_at,format,duration_seconds,channel_id")
-             .gte("published_at", start_iso)
-             .lt("published_at", end_iso))
-        if channel_ids_tuple:
-            q = q.in_("channel_id", list(channel_ids_tuple))
-        return q.execute().data or []
+        page = 1000
+        offset = 0
+        out: list[dict] = []
+        while True:
+            q = (db.client.table("videos")
+                 .select("published_at,format,duration_seconds,channel_id")
+                 .gte("published_at", start_iso)
+                 .lt("published_at", end_iso)
+                 .range(offset, offset + page - 1))
+            if channel_ids_tuple:
+                q = q.in_("channel_id", list(channel_ids_tuple))
+            rows = q.execute().data or []
+            out.extend(rows)
+            if len(rows) < page:
+                break
+            offset += page
+        return out
 
     # Align format chart's x-axis to the views chart's: both span _all_dates[1:].
     # (views chart drops _all_dates[0] because deltas need a previous snapshot)
