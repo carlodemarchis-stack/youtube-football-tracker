@@ -318,7 +318,7 @@ def decorate_with_badges(note_text: str, channels: list[dict],
     """
     import re
     from src.channels import LEAGUE_FLAG
-    from src.dot import dual_dot
+    from src.dot import channel_badge
 
     if color_map is None or dual_map is None:
         try:
@@ -375,23 +375,32 @@ def decorate_with_badges(note_text: str, channels: list[dict],
         if not rx.search(decorated):
             continue
 
+        # Same badge format as the core-page tables (src.dot.channel_badge):
+        # league channels get a country flag in a fixed-size box, clubs get
+        # the standard concentric dual_dot. Identical visual treatment makes
+        # the inline AI note match the dots in every table on the site.
         if kind == "club":
             ch = payload
-            c1, c2 = dual_map.get(
-                ch["name"],
-                (color_map.get(ch["name"], "#636EFA"), "#FFFFFF"),
-            )
-            badge = dual_dot(c1, c2, 14)
+            badge = channel_badge(ch, color_map, dual_map, 14)
         else:
-            flag = payload
-            badge = f'<span>{flag}</span>'
+            # Synthetic League channel record so channel_badge returns the
+            # flag in the same standard box wrapper as table cells.
+            country_for_league = {
+                "Serie A": "IT", "Premier League": "EN", "La Liga": "ES",
+                "Bundesliga": "DE", "Ligue 1": "FR", "MLS": "US",
+            }.get(name)
+            badge = channel_badge(
+                {"entity_type": "League", "country": country_for_league},
+                color_map, dual_map, 14,
+            )
 
         def _build_repl(m):
             displayed = m.group(0)  # includes any possessive suffix
+            # Inline span: small gap between badge and name, no flex wrapper
+            # (flex changes baseline alignment inside italic body text).
             return (
-                f'<span style="white-space:nowrap;display:inline-flex;'
-                f'align-items:center;gap:5px;vertical-align:middle">'
-                f'{badge}<span>{displayed}</span></span>'
+                f'<span style="white-space:nowrap">'
+                f'{badge}&nbsp;<span style="vertical-align:middle">{displayed}</span></span>'
             )
         # Replace each match with a placeholder; the real HTML for each
         # placeholder is stored separately so a later regex never sees
