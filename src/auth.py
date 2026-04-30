@@ -268,26 +268,43 @@ _GENERIC_EMAIL_DOMAINS = {
 
 def _show_onboarding_card(user: dict):
     """One-time form: first name, last name, company, optional LinkedIn URL.
-    Pre-fills from Google OAuth profile and email domain when possible."""
-    email = user.get("email", "")
-    display = user.get("display_name", "") or ""
+    Pre-fills from Google OAuth (given_name / family_name / email) and the
+    email-domain heuristic for Company when possible."""
+    email = user.get("email", "") or ""
+    display = (user.get("display_name") or "").strip()
 
-    # Try to split display_name into first / last
-    default_first, default_last = "", ""
+    # ── Pre-fill: First name / Last name / Email from Google ──
+    default_first, default_last, default_email = "", "", email
     try:
         if st.user.is_logged_in:
             default_first = (getattr(st.user, "given_name", "") or "").strip()
             default_last = (getattr(st.user, "family_name", "") or "").strip()
+            default_email = ((getattr(st.user, "email", "") or "").strip()
+                             or default_email)
     except Exception:
         pass
+    # Fallback: split display_name when given/family aren't available
+    # (e.g. Supabase magic-link auth, or Google account with no first/last).
     if not default_first and display:
-        parts = display.strip().split(None, 1)
+        parts = display.split(None, 1)
         default_first = parts[0]
-        default_last = parts[1] if len(parts) > 1 else ""
+        if len(parts) > 1 and not default_last:
+            default_last = parts[1]
+    # Last-resort fallback: derive from the email's local part.
+    if not default_first and default_email and "@" in default_email:
+        local = default_email.split("@", 1)[0]
+        # 'jane.doe' → 'Jane Doe'; 'jane' → 'Jane'
+        bits = [p for p in local.replace("_", ".").replace("-", ".").split(".")
+                if p]
+        if bits:
+            default_first = bits[0].capitalize()
+            if len(bits) > 1 and not default_last:
+                default_last = " ".join(b.capitalize() for b in bits[1:])
 
-    # Pre-fill company from email domain if not a generic provider
-    domain = email.split("@", 1)[1].lower() if "@" in email else ""
-    default_company = "" if domain in _GENERIC_EMAIL_DOMAINS or not domain else domain.split(".")[0].title()
+    # Pre-fill Company from email domain if not a generic provider
+    domain = default_email.split("@", 1)[1].lower() if "@" in default_email else ""
+    default_company = ("" if domain in _GENERIC_EMAIL_DOMAINS or not domain
+                       else domain.split(".")[0].title())
 
     st.markdown("## 👋 Welcome")
     st.caption(
@@ -298,6 +315,10 @@ def _show_onboarding_card(user: dict):
         col1, col2 = st.columns(2)
         first_name = col1.text_input("First name", value=default_first)
         last_name = col2.text_input("Last name", value=default_last)
+        # Email shown read-only — useful confirmation, can't be edited
+        # (user is already authenticated under it).
+        st.text_input("Email", value=default_email, disabled=True,
+                      help="Linked to your sign-in account.")
         company = st.text_input(
             "Company", value=default_company,
             placeholder="e.g. DAZN, AS Roma, freelance, student",
