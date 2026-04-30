@@ -576,8 +576,15 @@ else:
     st.caption("Need at least 2 snapshot dates to show trends. Come back after the next cron run.")
 
 # ── Per-league summary ────────────────────────────────────────
-# Hide when viewing a single club (it would be a one-row table for that club's league).
-if not ONE_CLUB:
+# Hide for:
+#   - single-club view (one-row table)
+#   - 'Leagues only' sub-scope (rows would only show the league channel's
+#     own activity, not aggregated club activity — confusing)
+_show_per_league_summary = (
+    not ONE_CLUB
+    and not (g_league is None and get_all_leagues_scope() == "Leagues only")
+)
+if _show_per_league_summary:
     st.markdown("---")
     st.subheader("📊 Per-league summary")
     lg_agg: dict[str, dict] = {}
