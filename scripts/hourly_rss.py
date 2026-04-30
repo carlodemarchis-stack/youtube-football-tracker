@@ -80,11 +80,12 @@ def main() -> int:
     log(f"Hourly check — {total} channels (playlistItems API)")
 
     # Build a quick lookup: youtube_channel_id → db channel record.
-    # Skip leagues (no videos to check) and Players (handled by daily_players.py only).
+    # Skip Players / Federations / Other Clubs / Women — each has its own
+    # dedicated daily cron. League channels are now tracked here.
     ch_by_yt_id: dict[str, dict] = {}
     for ch in channels:
         yt_id = ch.get("youtube_channel_id")
-        if yt_id and ch.get("entity_type") not in ("League", "Player", "Federation", "OtherClub", "WomenClub"):
+        if yt_id and ch.get("entity_type") not in ("Player", "Federation", "OtherClub", "WomenClub"):
             ch_by_yt_id[yt_id] = ch
 
     # Collect all new video IDs across all channels

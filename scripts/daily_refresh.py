@@ -97,7 +97,8 @@ def main() -> int:
 
             # ── 2. Ingest any NEW season videos ──
             ch_season_since = get_season_since(ch)
-            if ch.get("entity_type") != "League" and channel_db_id:
+            new_ids: list[str] = []
+            if channel_db_id:
                 season = yt.get_video_ids_since_by_format(yt_id, ch_season_since)
                 long_ids = season.get("long", [])
                 short_ids = season.get("shorts", [])
@@ -139,7 +140,7 @@ def main() -> int:
                     pass
 
             ok += 1
-            extra = f" (+{len(new_ids) if ch.get('entity_type') != 'League' else 0} new)" if ch.get("entity_type") != "League" else ""
+            extra = f" (+{len(new_ids)} new)" if new_ids else ""
             log(f"[{i}/{total}] {name} — subs={stats.get('subscriber_count', 0):,} videos={stats.get('video_count', 0)}{extra}")
         except Exception as e:
             failed.append((name, str(e)[:200]))
