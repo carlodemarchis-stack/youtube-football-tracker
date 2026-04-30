@@ -202,7 +202,9 @@ def rebuild_all(db, log=print) -> None:
         payload = compute_format_trend(db, ids)
         write(db, "format_trend", scope_league(lg), payload)
 
-    # 3. daily_note: yesterday's witty AI commentary (best-effort)
+    # 3. daily_note: yesterday's witty AI commentary (best-effort).
+    # Decoration (inline country flags before each club/league name)
+    # happens here at write time, so pages just read ready-to-render HTML.
     try:
         from src import ai_note as _an
         from datetime import datetime as _dt, timedelta as _td
@@ -211,11 +213,14 @@ def rebuild_all(db, log=print) -> None:
         payload = _an.compose_payload(db, target)
         note = _an.generate_daily_note(payload, log=log)
         if note:
+            html = _an.decorate_with_badges(note, chans)
             write(db, "daily_note", target.isoformat(),
-                  {"text": note, "payload_summary": {
+                  {"text": note,         # raw model output (kept for debug)
+                   "html": html,         # decoration-ready HTML used by pages
+                   "payload_summary": {
                       "total_new_videos": payload["totals"]["new_videos"],
                       "weekday": payload["weekday"],
-                  }})
+                   }})
     except Exception as e:
         log(f"[dashboard_cache] daily_note failed (non-fatal): {e}")
 

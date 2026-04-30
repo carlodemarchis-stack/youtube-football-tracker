@@ -302,37 +302,45 @@ NAME_ALIASES: dict[str, str] = {
 
 
 def decorate_with_badges(note_text: str, channels: list[dict],
-                         color_map: dict, dual_map: dict) -> str:
-    """Inject a small concentric dot before any club name and a flag
-    before any league name in the note. Returns HTML-ready string.
+                         color_map: dict | None = None,
+                         dual_map: dict | None = None) -> str:
+    """Inject the standard concentric club dot, or the league flag,
+    before each recognized name in the note. Returns HTML-ready string.
 
-    Notes:
-    - Replacements are case-sensitive and require word boundaries — avoids
-      matching mid-word and avoids re-decorating already-replaced spans.
-    - Longest names match first ('Real Madrid' before 'Real') so we don't
-      end up with double dots.
-    - Uses placeholders during substitution to avoid re-matching the
-      decoration HTML on a subsequent pass.
+    Uses src.dot.dual_dot() at the standard 14 px size — same format as
+    every page's table dots — so the AI note visually matches the rest
+    of the app. color_map / dual_map can be omitted; the function falls
+    back to the global ones built from channel records.
+
+    - Case-sensitive, word-boundary matching avoids mid-word hits.
+    - Longest names match first ('Real Madrid' before 'Real').
+    - Placeholders prevent regex re-matching of injected HTML.
     """
     import re
-    from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
+    from src.channels import LEAGUE_FLAG
     from src.dot import dual_dot
 
-    # Build the full name → canonical map: every channel name maps to itself
-    # plus the curated aliases above. Aliases that point to a name not in
-    # our channels list are silently dropped (so old aliases can't crash).
+    if color_map is None or dual_map is None:
+        try:
+            from src.filters import (_build_color_map as _bcm,
+                                      _build_color_map_dual as _bcmd)
+            color_map = color_map or _bcm(channels)
+            dual_map = dual_map or _bcmd(channels)
+        except Exception:
+            color_map = color_map or {c["name"]: "#636EFA" for c in channels}
+            dual_map = dual_map or {c["name"]: ("#636EFA", "#FFFFFF")
+                                    for c in channels}
+
     name_by_canonical = {c["name"]: c for c in channels}
-    targets: dict[str, dict] = {}      # display_name → channel record
+    targets: dict[str, dict] = {}
     for c in channels:
         targets[c["name"]] = c
     for alias, canonical in NAME_ALIASES.items():
         if canonical in name_by_canonical and alias not in targets:
             targets[alias] = name_by_canonical[canonical]
 
-    # League names mapped to their flag
     leagues = {lg: flag for lg, flag in LEAGUE_FLAG.items()}
 
-    # Order: longest first so 'Real Madrid' matches before 'Real'
     by_length = sorted(
         [(name, ("club", ch)) for name, ch in targets.items()] +
         [(name, ("league", flag)) for name, flag in leagues.items()],
@@ -343,37 +351,31 @@ def decorate_with_badges(note_text: str, channels: list[dict],
     decorated = note_text
 
     for name, (kind, payload) in by_length:
-        # Word-boundary regex that handles unicode (München, Atlético…)
-        pattern = (r"(?<![\w'])"
-                   + re.escape(name)
-                   + r"(?![\w'])")
+        pattern = r"(?<![\w\'])" + re.escape(name) + r"(?![\w\'])"
         rx = re.compile(pattern)
         if not rx.search(decorated):
             continue
 
         if kind == "club":
             ch = payload
-            c1, c2 = dual_map.get(ch["name"],
-                                   (color_map.get(ch["name"], "#636EFA"), "#FFFFFF"))
-            badge = dual_dot(c1, c2, 12)
+            c1, c2 = dual_map.get(
+                ch["name"],
+                (color_map.get(ch["name"], "#636EFA"), "#FFFFFF"),
+            )
+            badge = dual_dot(c1, c2, 14)
         else:
             flag = payload
-            badge = f'<span style="margin-right:2px">{flag}</span>'
+            badge = f'<span>{flag}</span>'
 
-        # Insert badge BEFORE the matched name and wrap together so they
-        # stay on the same line.
         replacement_html = (
             f'<span style="white-space:nowrap;display:inline-flex;'
-            f'align-items:baseline;gap:5px">{badge}<span>{name}</span></span>'
+            f'align-items:center;gap:5px;vertical-align:middle">'
+            f'{badge}<span>{name}</span></span>'
         )
         idx = len(placeholders)
         placeholders.append(replacement_html)
-        # Replace each occurrence with a placeholder; we substitute the real
-        # HTML in the second pass so subsequent regexes never see (and
-        # never accidentally match inside) the inserted markup.
         decorated = rx.sub(f"\x00BADGE_{idx}\x00", decorated)
 
-    # Resolve placeholders → real HTML
     for i, html in enumerate(placeholders):
         decorated = decorated.replace(f"\x00BADGE_{i}\x00", html)
 

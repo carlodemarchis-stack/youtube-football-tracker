@@ -195,19 +195,20 @@ prev_day = day - timedelta(days=1)
 # ── AI commentary note (cached, computed by daily_refresh) ─────
 try:
     from src import dashboard_cache as _dc
-    from src.ai_note import decorate_with_badges as _decorate_note
     _note_row = _dc.read(db, "daily_note", day.isoformat())
     if _note_row and _note_row.get("payload"):
-        _note_txt = (_note_row["payload"].get("text") or "").strip()
-        if _note_txt:
-            _decorated = _decorate_note(_note_txt, all_channels, color_map, dual)
+        _p = _note_row["payload"]
+        # Prefer pre-decorated HTML (with badge injection); fall back to
+        # the raw text for older cache rows that pre-date decoration.
+        _note_body = (_p.get("html") or _p.get("text") or "").strip()
+        if _note_body:
             # Slightly faded for older dates so users know it's "as of that day"
             _is_recent = (datetime.now(CET).date() - day).days <= 1
             _color = "#cccccc" if _is_recent else "#888"
             st.markdown(
                 f'<div style="font-style:italic;color:{_color};line-height:1.6;'
                 f'border-left:3px solid #636EFA;padding:6px 14px;margin:6px 0 16px 0">'
-                f'{_decorated}</div>',
+                f'{_note_body}</div>',
                 unsafe_allow_html=True,
             )
 except Exception:

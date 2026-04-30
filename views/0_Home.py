@@ -231,7 +231,6 @@ try:
     from zoneinfo import ZoneInfo as _ZI
     from datetime import timedelta as _td
     from src import dashboard_cache as _dc
-    from src.ai_note import decorate_with_badges as _decorate_note
     SUPABASE_URL = os.getenv("SUPABASE_URL", "")
     SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
     if SUPABASE_URL and SUPABASE_KEY:
@@ -239,20 +238,18 @@ try:
         _y = (datetime.now(_ZI("Europe/Rome")).date() - _td(days=1))
         _note_row = _dc.read(_db_note, "daily_note", _y.isoformat())
         if _note_row and _note_row.get("payload"):
-            _note_txt = (_note_row["payload"].get("text") or "").strip()
-            if _note_txt:
-                _all_chs = (st.session_state.get("_global_channels") or
-                            _db_note.get_all_channels())
-                _cmap = get_global_color_map() or {}
-                _dmap = get_global_color_map_dual() or {}
-                _decorated = _decorate_note(_note_txt, _all_chs, _cmap, _dmap)
+            _p = _note_row["payload"]
+            # Prefer pre-decorated HTML (with badge injection); fall back
+            # to raw text for older cache rows that pre-date decoration.
+            _note_body = (_p.get("html") or _p.get("text") or "").strip()
+            if _note_body:
                 st.markdown(
                     f'<div style="font-style:italic;color:#cccccc;line-height:1.6;'
                     f'border-left:3px solid #636EFA;padding:8px 14px;margin:18px 0">'
                     f'<div style="font-size:11px;color:#888;text-transform:uppercase;'
                     f'letter-spacing:0.5px;margin-bottom:4px;font-style:normal">'
                     f'Yesterday in football YouTube · {_y.strftime("%a %b %d")}</div>'
-                    f'{_decorated}</div>',
+                    f'{_note_body}</div>',
                     unsafe_allow_html=True,
                 )
 except Exception:
