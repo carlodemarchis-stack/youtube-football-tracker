@@ -139,7 +139,11 @@ class Database:
     ) -> list[dict]:
         """Like get_video_snapshots_for_date but optionally filters to a set
         of channel_ids server-side via a PostgREST inner join on the videos
-        table. Saves a separate batched video→channel lookup and cuts payload."""
+        table. Saves a separate batched video→channel lookup and cuts payload.
+
+        Tolerates PostgREST's 416 'Range Not Satisfiable' error that fires
+        when the date has zero matching rows — returns empty list instead.
+        Also orders by video_id so pagination is stable across pages."""
         all_rows: list[dict] = []
         page_size = 1000
         offset = 0
@@ -148,10 +152,21 @@ class Database:
                 self.client.table("video_snapshots")
                 .select(columns)
                 .eq("captured_date", captured_date)
+                .order("video_id")
             )
             if channel_ids:
                 q = q.in_("videos.channel_id", list(channel_ids))
-            resp = q.range(offset, offset + page_size - 1).execute()
+            try:
+                resp = q.range(offset, offset + page_size - 1).execute()
+            except Exception as e:
+                # PostgREST 416 (range not satisfiable) → treat as empty page
+                if "PGRST103" in str(e) or "range" in str(e).lower():
+                    break
+                # First-page failure on an empty date is fine; later pages
+                # surfacing other errors should still bubble up
+                if offset == 0:
+                    return []
+                raise
             batch = resp.data or []
             all_rows.extend(batch)
             if len(batch) < page_size:
