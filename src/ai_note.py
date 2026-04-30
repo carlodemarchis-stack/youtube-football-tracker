@@ -235,6 +235,151 @@ def compose_payload(db, target_date: date) -> dict:
     }
 
 
+# Common short forms a feature writer might use. Maps each variant to the
+# canonical channel name as stored in the channels table. When the model
+# writes "Barça", we still want the FC Barcelona dot rendered next to it.
+# Keep this conservative — when in doubt, leave it off (better to miss a
+# decoration than to mis-attribute a club).
+NAME_ALIASES: dict[str, str] = {
+    # Serie A
+    "Inter": "Inter",
+    "Milan": "AC Milan",
+    "Juve": "Juventus",
+    "Roma": "AS Roma",
+    "Lazio": "S.S. Lazio",
+    "Napoli": "SSC Napoli",
+    "Atalanta": "Atalanta BC",
+    "Fiorentina": "ACF Fiorentina",
+    "Bologna": "Bologna FC 1909",
+    # Premier League
+    "Spurs": "Tottenham Hotspur",
+    "Tottenham": "Tottenham Hotspur",
+    "Man United": "Manchester United",
+    "Man Utd": "Manchester United",
+    "Man City": "Man City",
+    "City": "Man City",
+    "Liverpool": "Liverpool FC",
+    "Chelsea": "Chelsea Football Club",
+    "Newcastle": "Newcastle United",
+    "West Ham": "West Ham United FC",
+    "Villa": "Aston Villa Football Club",
+    "Aston Villa": "Aston Villa Football Club",
+    "Forest": "Nottingham Forest FC ",
+    "Brighton": "Official Brighton & Hove Albion FC",
+    # Bundesliga
+    "Bayern": "FC Bayern München",
+    "Dortmund": "Borussia Dortmund",
+    "BVB": "Borussia Dortmund",
+    "Leverkusen": "Bayer 04 Leverkusen",
+    "Leipzig": "RB Leipzig",
+    # La Liga
+    "Barça": "FC Barcelona",
+    "Barca": "FC Barcelona",
+    "Barcelona": "FC Barcelona",
+    "Real": "Real Madrid",
+    "Atléti": "Atlético de Madrid",
+    "Atleti": "Atlético de Madrid",
+    "Atletico": "Atlético de Madrid",
+    "Atlético Madrid": "Atlético de Madrid",
+    "Sevilla": "Sevilla FC",
+    "Betis": "Real Betis Balompié",
+    "Valencia": "Valencia CF",
+    "Athletic": "Athletic Club",
+    "Villarreal": "Villarreal CF",
+    "Real Sociedad": "Real Sociedad TV",
+    # Ligue 1
+    "PSG": "PSG - Paris Saint-Germain",
+    "Paris Saint-Germain": "PSG - Paris Saint-Germain",
+    "OM": "OM",
+    "Marseille": "OM",
+    "Lyon": "Olympique Lyonnais",
+    "OL": "Olympique Lyonnais",
+    "Monaco": "AS MONACO",
+    "Lille": "LOSC",
+    "Lens": "RCLens",
+    "Nice": "OGC Nice",
+}
+
+
+def decorate_with_badges(note_text: str, channels: list[dict],
+                         color_map: dict, dual_map: dict) -> str:
+    """Inject a small concentric dot before any club name and a flag
+    before any league name in the note. Returns HTML-ready string.
+
+    Notes:
+    - Replacements are case-sensitive and require word boundaries — avoids
+      matching mid-word and avoids re-decorating already-replaced spans.
+    - Longest names match first ('Real Madrid' before 'Real') so we don't
+      end up with double dots.
+    - Uses placeholders during substitution to avoid re-matching the
+      decoration HTML on a subsequent pass.
+    """
+    import re
+    from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
+    from src.dot import dual_dot
+
+    # Build the full name → canonical map: every channel name maps to itself
+    # plus the curated aliases above. Aliases that point to a name not in
+    # our channels list are silently dropped (so old aliases can't crash).
+    name_by_canonical = {c["name"]: c for c in channels}
+    targets: dict[str, dict] = {}      # display_name → channel record
+    for c in channels:
+        targets[c["name"]] = c
+    for alias, canonical in NAME_ALIASES.items():
+        if canonical in name_by_canonical and alias not in targets:
+            targets[alias] = name_by_canonical[canonical]
+
+    # League names mapped to their flag
+    leagues = {lg: flag for lg, flag in LEAGUE_FLAG.items()}
+
+    # Order: longest first so 'Real Madrid' matches before 'Real'
+    by_length = sorted(
+        [(name, ("club", ch)) for name, ch in targets.items()] +
+        [(name, ("league", flag)) for name, flag in leagues.items()],
+        key=lambda kv: -len(kv[0]),
+    )
+
+    placeholders: list[str] = []
+    decorated = note_text
+
+    for name, (kind, payload) in by_length:
+        # Word-boundary regex that handles unicode (München, Atlético…)
+        pattern = (r"(?<![\w'])"
+                   + re.escape(name)
+                   + r"(?![\w'])")
+        rx = re.compile(pattern)
+        if not rx.search(decorated):
+            continue
+
+        if kind == "club":
+            ch = payload
+            c1, c2 = dual_map.get(ch["name"],
+                                   (color_map.get(ch["name"], "#636EFA"), "#FFFFFF"))
+            badge = dual_dot(c1, c2, 12)
+        else:
+            flag = payload
+            badge = f'<span style="margin-right:2px">{flag}</span>'
+
+        # Insert badge BEFORE the matched name and wrap together so they
+        # stay on the same line.
+        replacement_html = (
+            f'<span style="white-space:nowrap;display:inline-flex;'
+            f'align-items:baseline;gap:5px">{badge}<span>{name}</span></span>'
+        )
+        idx = len(placeholders)
+        placeholders.append(replacement_html)
+        # Replace each occurrence with a placeholder; we substitute the real
+        # HTML in the second pass so subsequent regexes never see (and
+        # never accidentally match inside) the inserted markup.
+        decorated = rx.sub(f"\x00BADGE_{idx}\x00", decorated)
+
+    # Resolve placeholders → real HTML
+    for i, html in enumerate(placeholders):
+        decorated = decorated.replace(f"\x00BADGE_{i}\x00", html)
+
+    return decorated
+
+
 def _looks_like_invented_score(text: str, video_titles: list[str]) -> bool:
     """Reject any score pattern (e.g. '2-1') in the note that doesn't appear
     in the source video titles. Cheap insurance against hallucinated results."""
