@@ -20,7 +20,7 @@ from src.filters import (
     get_global_color_map, get_global_color_map_dual,
     render_page_subtitle,
 )
-from src.dot import dual_dot
+from src.dot import dual_dot, channel_badge
 
 load_dotenv()
 require_login()
@@ -42,14 +42,25 @@ db = Database(SUPABASE_URL, SUPABASE_KEY)
 all_channels = get_global_channels() or db.get_all_channels()
 
 # ── Apply global filter ──────────────────────────────────────
+# Top-5 European leagues — used to include the 5 league channels themselves
+# alongside their clubs (Serie A, PL, La Liga, Bundesliga, Ligue 1).
+from src.channels import COUNTRY_TO_LEAGUE
+_TOP5 = {"Serie A", "Premier League", "La Liga", "Bundesliga", "Ligue 1"}
+
+def _is_top5_league_channel(c: dict) -> bool:
+    if c.get("entity_type") != "League":
+        return False
+    return COUNTRY_TO_LEAGUE.get((c.get("country") or "").upper()) in _TOP5
+
 g_league, g_club = get_global_filter()
 if g_club:
     rows = [g_club]
 elif g_league:
     rows = [c for c in get_channels_for_filter(all_channels, g_league)
-            if c.get("entity_type") == "Club"]
+            if c.get("entity_type") == "Club" or _is_top5_league_channel(c)]
 else:
-    rows = [c for c in all_channels if c.get("entity_type") == "Club"]
+    rows = [c for c in all_channels
+            if c.get("entity_type") == "Club" or _is_top5_league_channel(c)]
 
 # Sort by subscribers desc
 rows.sort(key=lambda c: int(c.get("subscriber_count") or 0), reverse=True)
@@ -115,8 +126,7 @@ for i, c in enumerate(rows, 1):
     name = c.get("name", "?")
     handle = c.get("handle", "") or ""
     yt_url = f"https://www.youtube.com/{handle}" if handle else ""
-    c1, c2 = dual.get(name, (color_map.get(name, "#636EFA"), "#FFFFFF"))
-    dot = dual_dot(c1, c2, 14)
+    dot = channel_badge(c, color_map, dual, 14)
     socials = c.get("socials") or {}
     if socials:
         total_with_socials += 1
@@ -195,8 +205,7 @@ for i, c in enumerate(rows, 1):
     name = c.get("name", "?")
     handle = c.get("handle", "") or ""
     yt_url = f"https://www.youtube.com/{handle}" if handle else ""
-    c1, c2 = dual.get(name, (color_map.get(name, "#636EFA"), "#FFFFFF"))
-    dot = dual_dot(c1, c2, 14)
+    dot = channel_badge(c, color_map, dual, 14)
     name_html = (
         f'<a href="{yt_url}" target="_blank" rel="noopener" '
         f'style="color:#FAFAFA;text-decoration:none;border-bottom:1px dotted #555">'
