@@ -322,14 +322,20 @@ def decorate_with_badges(note_text: str, channels: list[dict],
 
     if color_map is None or dual_map is None:
         try:
-            from src.filters import (_build_color_map as _bcm,
-                                      _build_color_map_dual as _bcmd)
-            color_map = color_map or _bcm(channels)
-            dual_map = dual_map or _bcmd(channels)
+            from src.filters import (get_global_color_map,
+                                      get_global_color_map_dual)
+            color_map = color_map or get_global_color_map()
+            dual_map = dual_map or get_global_color_map_dual()
         except Exception:
-            color_map = color_map or {c["name"]: "#636EFA" for c in channels}
-            dual_map = dual_map or {c["name"]: ("#636EFA", "#FFFFFF")
-                                    for c in channels}
+            pass
+        # Last-resort fallback: derive from channel records' color/color2
+        if not color_map:
+            color_map = {c["name"]: (c.get("color") or "#636EFA")
+                         for c in channels}
+        if not dual_map:
+            dual_map = {c["name"]: (c.get("color") or "#636EFA",
+                                    c.get("color2") or "#FFFFFF")
+                        for c in channels}
 
     name_by_canonical = {c["name"]: c for c in channels}
     targets: dict[str, dict] = {}
@@ -351,7 +357,14 @@ def decorate_with_badges(note_text: str, channels: list[dict],
     decorated = note_text
 
     for name, (kind, payload) in by_length:
-        pattern = r"(?<![\w\'])" + re.escape(name) + r"(?![\w\'])"
+        # Match the name as a whole word, optionally followed by a
+        # possessive 's or '. The trailing apostrophe-s ends up *inside*
+        # the rendered name so 'Bundesliga's' becomes a single decorated
+        # span instead of a leftover orphan 's.
+        pattern = (r"(?<![\w'])"
+                   + re.escape(name)
+                   + r"(?:['’]s|['’])?"
+                   + r"(?!\w)")
         rx = re.compile(pattern)
         if not rx.search(decorated):
             continue
@@ -367,14 +380,21 @@ def decorate_with_badges(note_text: str, channels: list[dict],
             flag = payload
             badge = f'<span>{flag}</span>'
 
-        replacement_html = (
-            f'<span style="white-space:nowrap;display:inline-flex;'
-            f'align-items:center;gap:5px;vertical-align:middle">'
-            f'{badge}<span>{name}</span></span>'
-        )
-        idx = len(placeholders)
-        placeholders.append(replacement_html)
-        decorated = rx.sub(f"\x00BADGE_{idx}\x00", decorated)
+        def _build_repl(m):
+            displayed = m.group(0)  # includes any possessive suffix
+            return (
+                f'<span style="white-space:nowrap;display:inline-flex;'
+                f'align-items:center;gap:5px;vertical-align:middle">'
+                f'{badge}<span>{displayed}</span></span>'
+            )
+        # Replace each match with a placeholder; the real HTML for each
+        # placeholder is stored separately so a later regex never sees
+        # the inserted markup.
+        for m in list(rx.finditer(decorated)):
+            idx = len(placeholders)
+            placeholders.append(_build_repl(m))
+            decorated = decorated.replace(m.group(0),
+                                          f"\x00BADGE_{idx}\x00", 1)
 
     for i, html in enumerate(placeholders):
         decorated = decorated.replace(f"\x00BADGE_{i}\x00", html)
