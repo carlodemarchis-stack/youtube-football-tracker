@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import streamlit as st
 from dotenv import load_dotenv
-from src.auth import show_auth_sidebar, is_admin, is_premium, is_logged_in
+from src.auth import show_auth_sidebar, is_admin, is_premium, is_logged_in, gate_onboarding
 from src.database import Database
 from src.filters import render_header_filter
 
@@ -78,6 +78,12 @@ if is_admin():
 
 pg = st.navigation(nav)
 show_auth_sidebar()
+
+# Global onboarding gate: any logged-in user who hasn't completed the
+# one-time profile form sees it before any page renders — including the
+# public Home page which has no require_login() of its own. This makes
+# sign-up flow consistent everywhere.
+gate_onboarding()
 
 # Hide Streamlit Cloud chrome (hamburger / deploy button / "Made with
 # Streamlit" footer / GitHub badge / source link) for non-admin viewers

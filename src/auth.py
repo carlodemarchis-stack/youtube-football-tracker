@@ -354,6 +354,22 @@ def require_login():
     return user
 
 
+def gate_onboarding():
+    """Global gate: if a user is logged in but hasn't completed onboarding,
+    render the onboarding form full-screen and stop the script.
+
+    Safe to call on every page — including public ones — because it's a
+    no-op when the user isn't logged in. Intended to run from app.py so
+    it covers Home (which has no require_login()) and any future page
+    that forgets to gate itself."""
+    user = get_current_user()
+    if user is None:
+        return
+    if _needs_onboarding(user):
+        _show_onboarding_card(user)
+        st.stop()
+
+
 def require_premium():
     """Block page if user is not premium or admin. Shows an upgrade CTA for viewers."""
     user = require_login()
