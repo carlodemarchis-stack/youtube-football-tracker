@@ -347,6 +347,12 @@ def decorate_with_badges(note_text: str, channels: list[dict],
 
     leagues = {lg: flag for lg, flag in LEAGUE_FLAG.items()}
 
+    # League names always win over channel names. The Bundesliga channel
+    # (entity_type='League') has the same name as the league itself; we
+    # want the German flag rendered, not the channel's own brand color.
+    for lg in leagues:
+        targets.pop(lg, None)
+
     by_length = sorted(
         [(name, ("club", ch)) for name, ch in targets.items()] +
         [(name, ("league", flag)) for name, flag in leagues.items()],
