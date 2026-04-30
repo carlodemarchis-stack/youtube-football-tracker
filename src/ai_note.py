@@ -58,8 +58,15 @@ def compose_payload(db, target_date: date) -> dict:
     """Build the structured input the model will riff on.
 
     target_date is a CET date (the day we're reporting on).
+
+    Restricted to the top-5 European leagues only (Serie A, Premier League,
+    La Liga, Bundesliga, Ligue 1) plus their 5 league channels. MLS / other
+    leagues live in COUNTRY_TO_LEAGUE but are NOT considered here.
     """
     from src.channels import COUNTRY_TO_LEAGUE
+
+    # Hard allowlist — anything outside this set is invisible to the AI note.
+    TOP5_LEAGUES = {"Serie A", "Premier League", "La Liga", "Bundesliga", "Ligue 1"}
 
     day_iso = target_date.isoformat()
     # Window for yesterday in UTC (the videos table stores UTC timestamps)
@@ -71,10 +78,14 @@ def compose_payload(db, target_date: date) -> dict:
 
     chans = db.get_all_channels()
     ch_by_id = {c["id"]: c for c in chans}
-    # Daily Recap excludes Players/Federations/OtherClub/Women — they have
-    # their own pages. Keep clubs + leagues here.
-    ECOSYSTEM_TYPES = {"Club", "League"}
-    ecosystem_ids = [c["id"] for c in chans if c.get("entity_type") in ECOSYSTEM_TYPES]
+    # Restrict to top-5 European leagues. Excludes Players / Federations /
+    # OtherClub / Women (own pages) AND MLS or any other league.
+    def _is_top5(c: dict) -> bool:
+        if c.get("entity_type") not in ("Club", "League"):
+            return False
+        lg = COUNTRY_TO_LEAGUE.get((c.get("country") or "").upper())
+        return lg in TOP5_LEAGUES
+    ecosystem_ids = [c["id"] for c in chans if _is_top5(c)]
 
     # ── Pull yesterday's videos
     videos = []
@@ -105,26 +116,32 @@ def compose_payload(db, target_date: date) -> dict:
             f = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
         b[f] += 1
 
-    # ── Per-league rollup
+    # ── Per-league rollup (includes the league's own channel — Serie A,
+    # Bundesliga etc. — alongside its clubs, since they share country codes)
     per_league: dict[str, dict] = {}
     for cid, b in per_channel.items():
         ch = ch_by_id.get(cid) or {}
-        if ch.get("entity_type") != "Club":
+        if ch.get("entity_type") not in ("Club", "League"):
             continue
         lg = COUNTRY_TO_LEAGUE.get((ch.get("country") or "").upper())
         if not lg:
             continue
         agg = per_league.setdefault(lg, {"new": 0, "long": 0, "short": 0, "live": 0,
-                                          "club_counts": {}})
+                                          "club_counts": {},
+                                          "league_channel_count": 0})
         agg["new"] += b["new"]
         agg["long"] += b["long"]
         agg["short"] += b["short"]
         agg["live"] += b["live"]
-        agg["club_counts"][ch["name"]] = b["new"]
+        if ch.get("entity_type") == "League":
+            agg["league_channel_count"] = b["new"]
+        else:
+            agg["club_counts"][ch["name"]] = b["new"]
 
     per_league_out = []
     for lg, agg in sorted(per_league.items(), key=lambda kv: -kv[1]["new"]):
-        most_active = max(agg["club_counts"].items(), key=lambda kv: kv[1])
+        most_active = (max(agg["club_counts"].items(), key=lambda kv: kv[1])
+                       if agg["club_counts"] else (None, 0))
         per_league_out.append({
             "league": lg,
             "new_videos": agg["new"],
@@ -133,6 +150,7 @@ def compose_payload(db, target_date: date) -> dict:
             "live": agg["live"],
             "most_active_club": most_active[0],
             "most_active_count": most_active[1],
+            "league_channel_count": agg["league_channel_count"],
         })
 
     # ── 7-day baselines (videos table for new-video count only)
@@ -187,11 +205,12 @@ def compose_payload(db, target_date: date) -> dict:
         "domestic_cup": _count(r"\b(coppa|copa del rey|fa cup|dfb[- ]?pokal|coupe de france|league cup|carabao)\b"),
     }
 
-    # ── Quiet clubs: 0 videos yesterday and < 3 in the last 7 days too
-    # (cheaper estimate: just zero yesterday)
-    all_club_ids = [c["id"] for c in chans if c.get("entity_type") == "Club"]
+    # ── Quiet clubs: 0 videos yesterday. Restricted to top-5 league clubs.
+    top5_club_ids = [c["id"] for c in chans
+                     if c.get("entity_type") == "Club"
+                     and COUNTRY_TO_LEAGUE.get((c.get("country") or "").upper()) in TOP5_LEAGUES]
     quiet = []
-    for cid in all_club_ids:
+    for cid in top5_club_ids:
         if cid not in per_channel:
             ch = ch_by_id.get(cid) or {}
             quiet.append(ch.get("name", "?"))
