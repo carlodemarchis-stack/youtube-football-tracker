@@ -87,10 +87,12 @@ if st.session_state.get("_feed_mode"):
     st.caption(f"**{len(latest)}** latest videos · {_scope}")
 
     ch_by_id = {c["id"]: c for c in all_channels}
-    _COUNTRY_FLAG = {"IT": "\U0001F1EE\U0001F1F9", "EN": "\U0001F1EC\U0001F1E7",
+    # EN/GB → England subdivision flag (Premier League is English)
+    _ENG_FLAG = "\U0001F3F4\U000E0067\U000E0062\U000E0065\U000E006E\U000E0067\U000E007F"
+    _COUNTRY_FLAG = {"IT": "\U0001F1EE\U0001F1F9", "EN": _ENG_FLAG,
                      "ES": "\U0001F1EA\U0001F1F8", "DE": "\U0001F1E9\U0001F1EA",
                      "FR": "\U0001F1EB\U0001F1F7", "US": "\U0001F1FA\U0001F1F8",
-                     "GB": "\U0001F1EC\U0001F1E7"}
+                     "GB": _ENG_FLAG}
 
     cards_html = ""
     for v in latest:

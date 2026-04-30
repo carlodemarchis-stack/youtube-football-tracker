@@ -26,7 +26,11 @@ COUNTRY_TO_LEAGUE = {
 
 LEAGUE_FLAG = {
     "Serie A": "\U0001F1EE\U0001F1F9",
-    "Premier League": "\U0001F1EC\U0001F1E7",
+    # England flag (subdivision tag) instead of UK flag — Premier League is
+    # specifically English, and Welsh/Scottish/NI clubs play in their own
+    # leagues. Some older fonts may render this as a generic black flag;
+    # all modern OS/browser fonts (2023+) handle the GB-ENG tag sequence.
+    "Premier League": "\U0001F3F4\U000E0067\U000E0062\U000E0065\U000E006E\U000E0067\U000E007F",
     "La Liga": "\U0001F1EA\U0001F1F8",
     "Bundesliga": "\U0001F1E9\U0001F1EA",
     "Ligue 1": "\U0001F1EB\U0001F1F7",
