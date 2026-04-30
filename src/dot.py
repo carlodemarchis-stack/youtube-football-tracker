@@ -68,16 +68,16 @@ def dual_dot(c1: str, c2: str, size: int = 14, *, inline: bool = False) -> str:
             cells where a containing flex/grid handles alignment).
     """
     inner = max(2, size // 2)
-    offset = (size - inner) / 2
-    # Inline-style 'border' makes the dot retain its outline on rows
-    # with hover background changes.
+    # Center the inner dot via transform-translate (sub-pixel safe) — using
+    # absolute top/left math at half-pixel offsets caused asymmetric
+    # anti-aliasing where the inner dot looked off-center on some screens.
     valign = "vertical-align:middle;" if inline else ""
     return (
         f'<span style="display:inline-block;width:{size}px;height:{size}px;'
         f'border-radius:50%;background:{c1};border:1px solid rgba(255,255,255,0.3);'
-        f'position:relative;{valign}flex-shrink:0">'
+        f'position:relative;box-sizing:border-box;{valign}flex-shrink:0">'
         f'<span style="display:block;width:{inner}px;height:{inner}px;'
         f'border-radius:50%;background:{c2};position:absolute;'
-        f'top:{offset}px;left:{offset}px"></span>'
+        f'top:50%;left:50%;transform:translate(-50%,-50%)"></span>'
         f'</span>'
     )
