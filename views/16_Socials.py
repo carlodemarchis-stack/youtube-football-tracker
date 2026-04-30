@@ -20,6 +20,7 @@ from src.filters import (
     get_global_color_map, get_global_color_map_dual,
     render_page_subtitle,
 )
+from src.dot import dual_dot
 
 load_dotenv()
 require_login()
@@ -115,10 +116,7 @@ for i, c in enumerate(rows, 1):
     handle = c.get("handle", "") or ""
     yt_url = f"https://www.youtube.com/{handle}" if handle else ""
     c1, c2 = dual.get(name, (color_map.get(name, "#636EFA"), "#FFFFFF"))
-    dot = (f'<span style="display:inline-block;width:14px;height:14px;border-radius:50%;'
-           f'background:{c1};border:1px solid rgba(255,255,255,0.3);position:relative">'
-           f'<span style="display:block;width:7px;height:7px;border-radius:50%;'
-           f'background:{c2};position:absolute;top:2.5px;left:2.5px"></span></span>')
+    dot = dual_dot(c1, c2, 14)
     socials = c.get("socials") or {}
     if socials:
         total_with_socials += 1
@@ -198,10 +196,7 @@ for i, c in enumerate(rows, 1):
     handle = c.get("handle", "") or ""
     yt_url = f"https://www.youtube.com/{handle}" if handle else ""
     c1, c2 = dual.get(name, (color_map.get(name, "#636EFA"), "#FFFFFF"))
-    dot = (f'<span style="display:inline-block;width:14px;height:14px;border-radius:50%;'
-           f'background:{c1};border:1px solid rgba(255,255,255,0.3);position:relative">'
-           f'<span style="display:block;width:7px;height:7px;border-radius:50%;'
-           f'background:{c2};position:absolute;top:2.5px;left:2.5px"></span></span>')
+    dot = dual_dot(c1, c2, 14)
     name_html = (
         f'<a href="{yt_url}" target="_blank" rel="noopener" '
         f'style="color:#FAFAFA;text-decoration:none;border-bottom:1px dotted #555">'

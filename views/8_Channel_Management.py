@@ -126,6 +126,7 @@ def edit_channel_dialog(ch):
 
 # ── Channel list with edit buttons ────────────────────────────
 from src.channels import COUNTRY_TO_LEAGUE
+from src.dot import dual_dot
 
 # Group channels by league
 league_groups: dict[str, list] = {}
@@ -152,7 +153,7 @@ for league_name, league_chs in sorted(league_groups.items()):
         col_dot, col_name, col_handle, col_type, col_country, col_subs, col_data, col_ai, col_edit = st.columns([1, 3, 2, 2, 2, 2, 2, 2, 1])
         color = ch.get("color") or "#636EFA"
         color2 = ch.get("color2") or "#FFFFFF"
-        col_dot.markdown(f'<span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:{color};border:1px solid rgba(255,255,255,0.3);position:relative"><span style="display:block;width:8px;height:8px;border-radius:50%;background:{color2};position:absolute;top:3px;left:3px"></span></span>', unsafe_allow_html=True)
+        col_dot.markdown(dual_dot(color, color2, 14), unsafe_allow_html=True)
         col_name.write(ch.get("name", ""))
         col_handle.write(ch.get("handle", ""))
         col_type.write(ch.get("entity_type", ""))

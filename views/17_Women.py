@@ -111,6 +111,7 @@ except Exception:
 
 # Live YouTube fallback for other clubs with no videos in DB
 from src.youtube_api import YouTubeClient as _YT
+from src.dot import dual_dot
 _yt = _YT(os.getenv("YOUTUBE_API_KEY", ""))
 for p in clubs_o:
     if p["id"] in _last_by_cid:
@@ -179,10 +180,7 @@ for i, p in enumerate(clubs_o, 1):
     _cc = (p.get("country") or "").upper()
     name_disp = f"{name} <span style='color:#888'>({_cc})</span>" if _cc else name
     c1, c2 = dual.get(name, (color_map.get(name, "#636EFA"), "#FFFFFF"))
-    dot = (f'<span style="display:inline-block;width:14px;height:14px;border-radius:50%;'
-           f'background:{c1};border:1px solid rgba(255,255,255,0.3);position:relative">'
-           f'<span style="display:block;width:7px;height:7px;border-radius:50%;'
-           f'background:{c2};position:absolute;top:2.5px;left:2.5px"></span></span>')
+    dot = dual_dot(c1, c2, 14)
     _last_iso = _last_by_cid.get(p["id"], "")
     _days = _days_since(_last_iso)
     _status_label, _ = _status(_days)
@@ -365,10 +363,7 @@ for idx, (_, r) in enumerate(_activity_df.iterrows(), 1):
     pname = r["Club"]
     pdata = next((pp for pp in clubs_o if pp.get("name") == pname), {})
     c1, c2 = dual.get(pname, (color_map.get(pname, "#636EFA"), "#FFFFFF"))
-    pdot = (f'<span style="display:inline-block;width:14px;height:14px;border-radius:50%;'
-            f'background:{c1};border:1px solid rgba(255,255,255,0.3);position:relative">'
-            f'<span style="display:block;width:7px;height:7px;border-radius:50%;'
-            f'background:{c2};position:absolute;top:2.5px;left:2.5px"></span></span>')
+    pdot = dual_dot(c1, c2, 14)
     handle = pdata.get("handle", "") or ""
     yt_url = f"https://www.youtube.com/{handle}" if handle else ""
     rclick = (f'onclick="window.open(\'{yt_url}\',\'_blank\',\'noopener\')" '

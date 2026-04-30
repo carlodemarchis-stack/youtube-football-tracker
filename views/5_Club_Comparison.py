@@ -12,6 +12,7 @@ from src.analytics import fmt_num, yt_popup_js
 from src.filters import get_global_color_map, get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel, render_page_subtitle
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, get_season_since
 from src.auth import require_premium
+from src.dot import dual_dot
 
 load_dotenv()
 require_premium()
@@ -184,7 +185,7 @@ if all_vids:
         url = f"https://www.youtube.com/watch?v={yt_id}" if yt_id else ""
         title_cell = f'<a href="{url}" target="_blank" rel="noopener" style="color:#FAFAFA;text-decoration:none">{title}</a>' if url else title
         c1, c2 = _dual.get(club, (color_map.get(club, "#636EFA"), "#FFFFFF"))
-        dot = f'<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:{c1};border:1px solid rgba(255,255,255,0.3);vertical-align:middle;position:relative"><span style="display:block;width:6px;height:6px;border-radius:50%;background:{c2};position:absolute;top:2px;left:2px"></span></span>'
+        dot = dual_dot(c1, c2, 12, inline=True)
         _ch_obj = _ch_by_name_cmp.get(club, {})
         _flag = LEAGUE_FLAG.get(COUNTRY_TO_LEAGUE.get((_ch_obj.get("country") or "").strip(), ""), "")
         # Format & theme

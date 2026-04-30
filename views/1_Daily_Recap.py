@@ -20,6 +20,7 @@ from src.filters import (
     get_all_leagues_scope, is_club,
 )
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
+from src.dot import dual_dot
 
 load_dotenv()
 require_login()
@@ -793,7 +794,7 @@ def _gainer_table(metric: str, title: str, icon: str, positive_is_good: bool = T
         col = "#00CC96" if g["delta"] > 0 else ("#EF553B" if g["delta"] < 0 else "#888")
         sgn = "+" if g["delta"] >= 0 else ""
         pct_s = f'{g["pct"]:+.2f}%' if abs(g["pct"]) >= 0.01 else "+0.00%"
-        dot = f'<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:{c1};border:1px solid rgba(255,255,255,0.3);position:relative"><span style="display:block;width:7px;height:7px;border-radius:50%;background:{c2};position:absolute;top:2.5px;left:2.5px"></span></span>'
+        dot = dual_dot(c1, c2, 14)
         _sv = g.get("season_views", 0)
         season_col = f'<td style="padding:5px 10px;text-align:right" data-val="{_sv}">{fmt_num(_sv)}</td>' if is_views else ""
         # Column indices: 0=#, 1=dot, 2=name, 3=Total, 4=Season(if views), 5/4=Δ, 6/5=%
@@ -885,7 +886,7 @@ if not ONE_CLUB:
             pub_html = ""
             for i, r in enumerate(pub_sorted[:25], 1):
                 c1, c2 = dual.get(r["name"], (color_map.get(r["name"], "#636EFA"), "#FFFFFF"))
-                dot = f'<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:{c1};border:1px solid rgba(255,255,255,0.3);position:relative"><span style="display:block;width:7px;height:7px;border-radius:50%;background:{c2};position:absolute;top:2.5px;left:2.5px"></span></span>'
+                dot = dual_dot(c1, c2, 14)
                 lsl = f'{r["long"]} / {r["short"]} / {r["live"]}'
                 pub_html += f"""<tr>
                     <td style="padding:5px 10px;color:#888">{i}</td>
