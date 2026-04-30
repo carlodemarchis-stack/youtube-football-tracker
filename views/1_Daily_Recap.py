@@ -191,6 +191,25 @@ picked = st.date_input("Recap for", value=default_day, max_value=datetime.now(CE
 day = picked if isinstance(picked, date) else default_day
 prev_day = day - timedelta(days=1)
 
+# ── AI commentary note (cached, computed by daily_refresh) ─────
+try:
+    from src import dashboard_cache as _dc
+    _note_row = _dc.read(db, "daily_note", day.isoformat())
+    if _note_row and _note_row.get("payload"):
+        _note_txt = (_note_row["payload"].get("text") or "").strip()
+        if _note_txt:
+            # Slightly faded for older dates so users know it's "as of that day"
+            _is_recent = (datetime.now(CET).date() - day).days <= 1
+            _color = "#cccccc" if _is_recent else "#888"
+            st.markdown(
+                f'<div style="font-style:italic;color:{_color};line-height:1.6;'
+                f'border-left:3px solid #636EFA;padding:6px 14px;margin:6px 0 16px 0">'
+                f'{_note_txt}</div>',
+                unsafe_allow_html=True,
+            )
+except Exception:
+    pass  # never block the page on a missing/broken note
+
 day_iso = day.isoformat()
 prev_iso = prev_day.isoformat()
 
