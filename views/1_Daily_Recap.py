@@ -17,6 +17,7 @@ from src.auth import require_login
 from src.filters import (
     get_global_channels, get_global_color_map, get_global_color_map_dual,
     get_global_filter, get_league_for_channel, render_page_subtitle,
+    get_all_leagues_scope, is_club,
 )
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
 
@@ -156,7 +157,17 @@ elif g_league:
                    if c.get("entity_type") not in ("Player", "Federation", "OtherClub", "WomenClub")
                    and get_league_for_channel(c) == g_league}
 else:
-    filter_cids = _non_player_ids
+    # All Leagues — honour the sub-scope from the header filter:
+    #   Leagues only → just the 5 league channels
+    #   All clubs    → only clubs across leagues (skip league channels)
+    #   Overall      → both (clubs + league channels)
+    _scope = get_all_leagues_scope()
+    if _scope == "Leagues only":
+        filter_cids = {c["id"] for c in all_channels if c.get("entity_type") == "League"}
+    elif _scope == "All clubs":
+        filter_cids = {c["id"] for c in all_channels if is_club(c)}
+    else:  # "Overall"
+        filter_cids = _non_player_ids
 
 # ── Date picker ────────────────────────────────────────────────
 # Default to CET yesterday. Pick the most recent snapshot that falls on or
