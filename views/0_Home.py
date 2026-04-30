@@ -220,7 +220,7 @@ st.markdown(
     The idea came from working with
     <a href="https://linkedin.com/in/paolamarinone" target="_blank" style="{_link}">Paola Marinone</a>
     and <a href="https://linkedin.com/in/benguatamer" target="_blank" style="{_link}">Bengu Atamer</a>
-    at <b>BuzzMyVideos</b> — they pulled me deep into the mechanics of YouTube and the creators
+    at <a href="https://www.buzzmyvideos.com/" target="_blank" style="{_link}"><b>BuzzMyVideos</b></a> — they pulled me deep into the mechanics of YouTube and the creators
     who live on it. This tracker applies that same lens to football.
     </div>""",
     unsafe_allow_html=True,
@@ -238,10 +238,17 @@ try:
         _snaps = _db.get_all_snapshots(since_date=_since)
         _by_ch = group_by_channel(_snaps)
 
+        # Top-5 European leagues only — clubs + the 5 league channels.
+        _TOP5 = {"Serie A", "Premier League", "La Liga", "Bundesliga", "Ligue 1"}
         _gainers = []
         for cid, s in _by_ch.items():
             ch = _ch_by_id.get(cid)
-            if not ch or ch.get("entity_type") in ("League", "Player", "Federation", "OtherClub", "WomenClub") or len(s) < 2:
+            if not ch or len(s) < 2:
+                continue
+            if ch.get("entity_type") not in ("Club", "League"):
+                continue
+            _lg = COUNTRY_TO_LEAGUE.get((ch.get("country") or "").upper())
+            if _lg not in _TOP5:
                 continue
             # YouTube rounds subscriber_count to the nearest 10K — 7d subs delta
             # is too coarse (everyone shows ±100K). Rank by Δ total_views instead.
@@ -283,7 +290,7 @@ try:
               .home-g td {{ border-bottom:1px solid #262730; }}
             </style>
             <table class="home-g"><thead><tr>
-              <th>#</th><th></th><th>Club</th>
+              <th>#</th><th></th><th>Club / League</th>
               <th style="text-align:right">Total Views</th>
               <th style="text-align:right">Δ Views 7d</th>
             </tr></thead><tbody>{rows}</tbody></table>
