@@ -13,7 +13,7 @@ from src.analytics import fmt_num, yt_popup_js
 from src.growth import group_by_channel, delta
 from src.filters import get_global_color_map, get_global_color_map_dual
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
-from src.dot import dual_dot
+from src.dot import dual_dot, channel_badge
 
 load_dotenv()
 
@@ -114,7 +114,7 @@ if st.session_state.get("_feed_mode"):
           </div>
           <div class="card-info">
             <span class="card-flag">{flag}</span>
-            {dual_dot(c1, c2, 10)}
+            {channel_badge(ch, color_map, dual, 10)}
             <span class="card-club">{ch_name}</span>
           </div>
           <div class="card-title" title="{title}">{title}</div>
@@ -292,6 +292,7 @@ try:
                 "subs": int(s[-1].get("subscriber_count", 0) or 0),
                 "d7_views": int(d7_views),
                 "handle": ch.get("handle", ""),
+                "_ch": ch,
             })
 
         if _gainers:
@@ -302,8 +303,7 @@ try:
             st.subheader("🔥 Biggest gainers this week")
             rows = ""
             for i, g in enumerate(top5, 1):
-                c1, c2 = dual.get(g["name"], (color_map.get(g["name"], "#636EFA"), "#FFFFFF"))
-                dot = dual_dot(c1, c2, 14)
+                dot = channel_badge(g.get("_ch") or {}, color_map, dual, 14)
                 col = "#00CC96" if g["d7_views"] > 0 else ("#EF553B" if g["d7_views"] < 0 else "#888")
                 sgn = "+" if g["d7_views"] >= 0 else ""
                 rows += f"""<tr>

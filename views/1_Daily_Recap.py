@@ -20,7 +20,7 @@ from src.filters import (
     get_all_leagues_scope, is_club,
 )
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
-from src.dot import dual_dot
+from src.dot import dual_dot, channel_badge
 
 load_dotenv()
 require_login()
@@ -793,11 +793,10 @@ def _gainer_table(metric: str, title: str, icon: str, positive_is_good: bool = T
     top = gainers[:25]
     rows_html = ""
     for i, g in enumerate(top, 1):
-        c1, c2 = dual.get(g["name"], (color_map.get(g["name"], "#636EFA"), "#FFFFFF"))
         col = "#00CC96" if g["delta"] > 0 else ("#EF553B" if g["delta"] < 0 else "#888")
         sgn = "+" if g["delta"] >= 0 else ""
         pct_s = f'{g["pct"]:+.2f}%' if abs(g["pct"]) >= 0.01 else "+0.00%"
-        dot = dual_dot(c1, c2, 14)
+        dot = channel_badge(ch_by_id.get(g["id"]) or {}, color_map, dual, 14)
         _sv = g.get("season_views", 0)
         season_col = f'<td style="padding:5px 10px;text-align:right" data-val="{_sv}">{fmt_num(_sv)}</td>' if is_views else ""
         # Column indices: 0=#, 1=dot, 2=name, 3=Total, 4=Season(if views), 5/4=Δ, 6/5=%
@@ -877,7 +876,7 @@ if not ONE_CLUB:
             if not ch:
                 continue
             name = ch["name"]
-            pub_counts.setdefault(name, {"count": 0, "long": 0, "short": 0, "live": 0, "name": name, "league": get_league_for_channel(ch)})
+            pub_counts.setdefault(name, {"count": 0, "long": 0, "short": 0, "live": 0, "name": name, "league": get_league_for_channel(ch), "_ch": ch})
             pub_counts[name]["count"] += 1
             _vf = v.get("format") or ("long" if (v.get("duration_seconds") or 0) >= 60 else "short")
             if _vf in ("long", "short", "live"):
@@ -888,8 +887,7 @@ if not ONE_CLUB:
         if pub_sorted:
             pub_html = ""
             for i, r in enumerate(pub_sorted[:25], 1):
-                c1, c2 = dual.get(r["name"], (color_map.get(r["name"], "#636EFA"), "#FFFFFF"))
-                dot = dual_dot(c1, c2, 14)
+                dot = channel_badge(r.get("_ch") or {}, color_map, dual, 14)
                 lsl = f'{r["long"]} / {r["short"]} / {r["live"]}'
                 pub_html += f"""<tr>
                     <td style="padding:5px 10px;color:#888">{i}</td>

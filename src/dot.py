@@ -13,6 +13,49 @@ Use the helper instead of hand-rolling HTML so every page stays in sync.
 from __future__ import annotations
 
 
+# EN/GB → England subdivision flag (Premier League is English)
+_ENG_FLAG = "\U0001F3F4\U000E0067\U000E0062\U000E0065\U000E006E\U000E0067\U000E007F"
+_COUNTRY_FLAG = {
+    "IT": "\U0001F1EE\U0001F1F9",  # 🇮🇹
+    "EN": _ENG_FLAG,
+    "GB": _ENG_FLAG,
+    "ES": "\U0001F1EA\U0001F1F8",  # 🇪🇸
+    "DE": "\U0001F1E9\U0001F1EA",  # 🇩🇪
+    "FR": "\U0001F1EB\U0001F1F7",  # 🇫🇷
+    "US": "\U0001F1FA\U0001F1F8",  # 🇺🇸
+}
+
+
+def channel_badge(channel: dict, color_map: dict | None, dual_map: dict | None,
+                  size: int = 14) -> str:
+    """Return the right marker for a row in a club/league table.
+
+    - League channels (entity_type='League') get their country flag.
+    - Everything else (Club + fallback) gets the standard concentric dot.
+
+    Wraps the marker in a fixed-size box so column widths stay aligned
+    whether the cell holds a flag or a dot.
+    """
+    if (channel or {}).get("entity_type") == "League":
+        country = ((channel.get("country") or "")).upper()
+        flag = _COUNTRY_FLAG.get(country)
+        if flag:
+            # Match the dot's box dimensions so league rows align
+            return (
+                f'<span style="display:inline-flex;align-items:center;'
+                f'justify-content:center;width:{size}px;height:{size}px;'
+                f'font-size:{max(size - 2, 10)}px;line-height:1">{flag}</span>'
+            )
+    name = (channel or {}).get("name", "")
+    if dual_map and name in dual_map:
+        c1, c2 = dual_map[name]
+    elif color_map and name in color_map:
+        c1, c2 = color_map[name], "#FFFFFF"
+    else:
+        c1, c2 = "#636EFA", "#FFFFFF"
+    return dual_dot(c1, c2, size)
+
+
 def dual_dot(c1: str, c2: str, size: int = 14, *, inline: bool = False) -> str:
     """Return the standardized concentric two-color dot HTML.
 

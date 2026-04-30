@@ -12,7 +12,7 @@ from src.analytics import fmt_num, yt_popup_js
 from src.filters import get_global_color_map, get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel, render_page_subtitle
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, get_season_since
 from src.auth import require_premium
-from src.dot import dual_dot
+from src.dot import dual_dot, channel_badge
 
 load_dotenv()
 require_premium()
@@ -184,9 +184,8 @@ if all_vids:
         _likes = int(getattr(r, "like_count", 0) or 0)
         url = f"https://www.youtube.com/watch?v={yt_id}" if yt_id else ""
         title_cell = f'<a href="{url}" target="_blank" rel="noopener" style="color:#FAFAFA;text-decoration:none">{title}</a>' if url else title
-        c1, c2 = _dual.get(club, (color_map.get(club, "#636EFA"), "#FFFFFF"))
-        dot = dual_dot(c1, c2, 12, inline=True)
         _ch_obj = _ch_by_name_cmp.get(club, {})
+        dot = channel_badge(_ch_obj, color_map, _dual, 12)
         _flag = LEAGUE_FLAG.get(COUNTRY_TO_LEAGUE.get((_ch_obj.get("country") or "").strip(), ""), "")
         # Format & theme
         _fmt_raw = (getattr(r, "format", "") or "").lower()

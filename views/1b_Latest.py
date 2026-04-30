@@ -16,7 +16,7 @@ from src.filters import (
     get_global_channels, get_global_color_map, get_global_color_map_dual,
     get_global_filter, get_league_for_channel, render_page_subtitle,
 )
-from src.dot import dual_dot
+from src.dot import dual_dot, channel_badge
 
 load_dotenv()
 require_login()
@@ -157,7 +157,7 @@ if live_now:
           </div>
           <div class="ln-info">
             <span class="ln-flag">{LEAGUE_FLAG.get(COUNTRY_TO_LEAGUE.get((ch.get("country") or "").strip(), ""), "")}</span>
-            {dual_dot(c1, c2, 10)}
+            {channel_badge(ch, color_map, dual, 10)}
             <span class="ln-club">{ch_name}</span>
             {('<span class="ln-views">' + fmt_num(views) + ' views</span>') if views else ''}
           </div>
@@ -216,7 +216,7 @@ if mosaic_view:
           </div>
           <div class="card-info">
             <span class="card-flag">{flag}</span>
-            {dual_dot(c1, c2, 10)}
+            {channel_badge(ch, color_map, dual, 10)}
             <span class="card-club">{ch_name}</span>
           </div>
           <div class="card-title" title="{title}">{title}</div>

@@ -15,7 +15,7 @@ from src.analytics import compute_channel_comparison, compute_tier_stats, comput
 from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope, render_page_subtitle
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, league_with_flag
 from src.auth import require_login
-from src.dot import dual_dot
+from src.dot import dual_dot, channel_badge
 
 load_dotenv()
 require_login()
@@ -224,8 +224,7 @@ if not club:
 
         rows_html = ""
         for _, row in ch_df.iterrows():
-            c1, c2 = ch_dual_colors.get(row["name"], (ch_color_map.get(row["name"], "#636EFA"), "#FFFFFF"))
-            dot = dual_dot(c1, c2, 14)
+            dot = channel_badge(row.to_dict(), ch_color_map, ch_dual_colors, 14)
             handle = row.get("handle", "")
             _row_click = f'onclick="window.open(\'https://www.youtube.com/{handle}\',\'_blank\',\'noopener\')" style="cursor:pointer"' if handle else ''
             ss = t100_stats.get(row["name"], {})

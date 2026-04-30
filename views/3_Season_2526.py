@@ -13,7 +13,7 @@ from src.analytics import fmt_num, yt_popup_js
 from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope, get_league_for_channel, render_page_subtitle
 from src.auth import require_login
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, get_season_since, LEAGUE_SEASON_START
-from src.dot import dual_dot
+from src.dot import dual_dot, channel_badge
 
 load_dotenv()
 require_login()
@@ -269,6 +269,7 @@ if league is None and _scope == "Overall":
             continue
         ch_rows.append({
             "name": ch["name"], "handle": ch.get("handle", ""),
+            "entity_type": ch.get("entity_type"), "country": ch.get("country"),
             "all_views": av, "all_videos": an,
             "long_views": lv, "long_videos": ln,
             "short_views": sv, "short_videos": sn,
@@ -295,8 +296,7 @@ if league is None and _scope == "Overall":
 
     ch_rows_html = ""
     for row in ch_rows:
-        _c1, _c2 = dual_colors.get(row["name"], (color_map.get(row["name"], "#636EFA"), "#FFFFFF"))
-        dot = dual_dot(_c1, _c2, 14)
+        dot = channel_badge(row, color_map, dual_colors, 14)
         handle = row.get("handle", "")
         _row_click = f'onclick="window.open(\'https://www.youtube.com/{handle}\',\'_blank\',\'noopener\')" style="cursor:pointer"' if handle else ''
         all_vpv = row["all_views"] // max(row["all_videos"], 1)
@@ -463,6 +463,7 @@ if club is None:
         cm = int(ch.get("season_comments") or 0)
         season_rows.append({
             "name": ch["name"], "handle": ch.get("handle", ""),
+            "entity_type": ch.get("entity_type"), "country": ch.get("country"),
             "all_views": av, "all_videos": an,
             "all_vpv": av // max(an, 1),
             "long_views": lv, "long_videos": ln,
@@ -564,8 +565,7 @@ if club is None:
     # ── Build table rows ────────────────────────────────────────
     rows_html = ""
     for _, row in df.iterrows():
-        c1, c2 = dual_colors.get(row["name"], (color_map.get(row["name"], "#636EFA"), "#FFFFFF"))
-        dot = dual_dot(c1, c2, 14)
+        dot = channel_badge(row.to_dict(), color_map, dual_colors, 14)
         handle = row.get("handle", "")
         _row_click = f'onclick="window.open(\'https://www.youtube.com/{handle}\',\'_blank\',\'noopener\')" style="cursor:pointer"' if handle else ''
         def _v(val):

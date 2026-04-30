@@ -14,7 +14,7 @@ from src.analytics import compute_channel_comparison, fmt_num
 from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope, render_page_subtitle
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, get_season_since
 from src.auth import get_current_user, is_admin, require_login
-from src.dot import dual_dot
+from src.dot import dual_dot, channel_badge
 
 load_dotenv()
 require_login()
@@ -271,8 +271,7 @@ if league is None and _scope == "Overall":
     _all_df = _all_df.sort_values("subscriber_count", ascending=False).reset_index(drop=True)
     _all_rows = ""
     for _, _r in _all_df.iterrows():
-        _c1, _c2 = _all_dual.get(_r["name"], (_all_color_map.get(_r["name"], "#636EFA"), "#FFFFFF"))
-        _dot = dual_dot(_c1, _c2, 14)
+        _dot = channel_badge(_r.to_dict(), _all_color_map, _all_dual, 14)
         _handle = _r.get("handle", "")
         _row_click = f'onclick="window.open(\'https://www.youtube.com/{_handle}\',\'_blank\',\'noopener\')" style="cursor:pointer"' if _handle else ''
         _launched = (_r.get("launched_at") or "")[:4] or "-"
@@ -412,8 +411,7 @@ elif club is None:
     # ── Build table rows with data-val for JS sorting ────────
     rows_html = ""
     for _, row in df.iterrows():
-        c1, c2 = dual_colors.get(row["name"], (color_map.get(row["name"], "#636EFA"), "#FFFFFF"))
-        dot = dual_dot(c1, c2, 14)
+        dot = channel_badge(row.to_dict(), color_map, dual_colors, 14)
         handle = row.get("handle", "")
         _row_click = f'onclick="window.open(\'https://www.youtube.com/{handle}\',\'_blank\',\'noopener\')" style="cursor:pointer"' if handle else ''
         launched = (row.get("launched_at") or "")[:4] or "-"
