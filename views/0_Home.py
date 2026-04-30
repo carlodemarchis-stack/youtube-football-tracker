@@ -226,6 +226,32 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# ── Daily AI note (yesterday's commentary, computed by daily_refresh) ──
+try:
+    from zoneinfo import ZoneInfo as _ZI
+    from datetime import timedelta as _td
+    from src import dashboard_cache as _dc
+    SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+    SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
+    if SUPABASE_URL and SUPABASE_KEY:
+        _db_note = Database(SUPABASE_URL, SUPABASE_KEY)
+        _y = (datetime.now(_ZI("Europe/Rome")).date() - _td(days=1))
+        _note_row = _dc.read(_db_note, "daily_note", _y.isoformat())
+        if _note_row and _note_row.get("payload"):
+            _note_txt = (_note_row["payload"].get("text") or "").strip()
+            if _note_txt:
+                st.markdown(
+                    f'<div style="font-style:italic;color:#cccccc;line-height:1.6;'
+                    f'border-left:3px solid #636EFA;padding:8px 14px;margin:18px 0">'
+                    f'<div style="font-size:11px;color:#888;text-transform:uppercase;'
+                    f'letter-spacing:0.5px;margin-bottom:4px;font-style:normal">'
+                    f'Yesterday in football YouTube · {_y.strftime("%a %b %d")}</div>'
+                    f'{_note_txt}</div>',
+                    unsafe_allow_html=True,
+                )
+except Exception:
+    pass  # never block the page on a missing/broken note
+
 # ── Biggest gainers this week (snapshot-driven) ─────────────────
 try:
     SUPABASE_URL = os.getenv("SUPABASE_URL", "")
