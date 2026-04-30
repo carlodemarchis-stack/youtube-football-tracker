@@ -110,7 +110,7 @@ if st.query_params.get("view") == "feed":
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 
-_no_filter_pages = {"Players", "Federations", "Other Clubs", "Women"}
+_no_filter_pages = {"Home", "Players", "Federations", "Other Clubs", "Women"}
 _show_filter = getattr(pg, "title", "") not in _no_filter_pages
 
 if SUPABASE_URL and SUPABASE_KEY:
