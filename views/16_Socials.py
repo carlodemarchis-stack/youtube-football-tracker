@@ -98,9 +98,9 @@ PLATFORMS = [
 
 def _badges(socials: dict) -> str:
     """Render one badge per platform. When a platform has regional accounts
-    (e.g. x_regional list), show a small superscript with the count and a
-    tooltip listing 'N accounts' so the hover surfaces the multi-region
-    detail without bloating the row."""
+    (e.g. x_regional list), append a small superscript with the count and a
+    tooltip listing every handle.
+    """
     if not socials:
         return '<span style="color:#666">—</span>'
     out = ""
@@ -109,12 +109,25 @@ def _badges(socials: dict) -> str:
         if not url:
             continue
         u = (url or "").replace('"', "&quot;")
-        # Count main (1) + regional (len of <key>_regional list)
         regional = socials.get(f"{key}_regional") or []
-        n_accounts = 1 + (len(regional) if isinstance(regional, list) else 0)
-        title = (f"{key}: {n_accounts} accounts (1 main + {len(regional)} regional)"
-                 if n_accounts > 1 else f"{key}: {u}")
-        # Tiny "+N" suffix so the eye catches multi-region badges at a glance
+        if not isinstance(regional, list):
+            regional = []
+        n_accounts = 1 + len(regional)
+
+        # Build tooltip: each handle on its own line. &#10; → newline in
+        # most browsers' native tooltips.
+        def _handle(u_str):
+            u_str = (u_str or "").rstrip("/")
+            return u_str.split("/")[-1].lstrip("@") if u_str else ""
+        if n_accounts > 1:
+            lines = [f"{key}: {n_accounts} accounts",
+                     f"@{_handle(url)} (main)"]
+            for r_url in regional:
+                lines.append(f"@{_handle(r_url)}")
+            title = "&#10;".join(lines).replace('"', "&quot;")
+        else:
+            title = f"{key}: {u}"
+
         suffix = (f'<sup style="font-size:8px;margin-left:2px;opacity:0.85">'
                   f'+{len(regional)}</sup>') if n_accounts > 1 else ""
         out += (
@@ -229,39 +242,72 @@ for i, c in enumerate(rows, 1):
     #   URL on file, no count → "?" (we know they're there, no measurement yet)
     #   not on platform      → "—"
     # Family aggregation: any snapshot row with platform key '<base>' OR
-    # '<base>_<lang>' counts toward the same column. Account count = number
-    # of distinct accounts contributing.
+    # '<base>_<lang>' counts toward the same column. The cell shows the
+    # aggregate; the title attribute lists every account (handle + count)
+    # so hovering surfaces the breakdown without breaking column alignment.
     plat_cells = ""
     yt_subs = int(c.get("subscriber_count") or 0)
     snaps = _followers_map.get(c["id"], {})
     socials = c.get("socials") or {}
     total = 0
+
+    def _handle_from_url(u: str) -> str:
+        u = (u or "").rstrip("/")
+        if not u:
+            return ""
+        # Trim /add, /company/, etc. — keep the last meaningful path segment
+        seg = u.split("/")[-1]
+        return seg.lstrip("@")
+
     for key, _label, _bg, _fg in _FCOLS:
         if key == "youtube":
             n = yt_subs
             n_acc = 1
             has_url = True  # YouTube is the channel itself
+            breakdown = []
         else:
             # Sum main + regional siblings under this platform key
             n = 0
             n_acc = 0
+            breakdown = []
             for snap_key, snap_row in snaps.items():
                 if snap_key == key or snap_key.startswith(f"{key}_"):
                     cnt = int(snap_row.get("follower_count") or 0)
                     if cnt > 0:
                         n += cnt
                         n_acc += 1
+                        url = snap_row.get("source_url") or ""
+                        h = _handle_from_url(url)
+                        lang = "main" if snap_key == key else snap_key[len(key)+1:]
+                        breakdown.append((cnt, h, lang))
             # has_url accounts for both main URL and regional URL list
             has_url = (key in socials
                        or bool(socials.get(f"{key}_regional")))
         total += n
         if n > 0:
-            tip = (f' title="{n_acc} accounts (main + regional)"'
-                   if n_acc > 1 else "")
-            mark = (f'<sup style="font-size:9px;margin-left:2px;opacity:0.7;'
-                    f'color:#888">+{n_acc - 1}</sup>') if n_acc > 1 else ""
-            plat_cells += (f'<td style="padding:6px 12px;text-align:right"'
-                           f'{tip} data-val="{n}">{fmt_num(n)}{mark}</td>')
+            # Build a multi-line tooltip listing every account when n_acc > 1.
+            # &#10; renders as a newline in most browsers' native tooltips.
+            tip = ""
+            if n_acc > 1:
+                breakdown.sort(key=lambda r: -r[0])
+                lines = [f"{n_acc} accounts ({fmt_num(n)} total):"]
+                for cnt, h, lang in breakdown:
+                    if lang == "main":
+                        lines.append(f"@{h} (main): {fmt_num(cnt)}")
+                    else:
+                        lines.append(f"@{h} ({lang}): {fmt_num(cnt)}")
+                title_text = "&#10;".join(lines).replace('"', '&quot;')
+                tip = f' title="{title_text}"'
+            # Account-count marker placed BEFORE the number (left side) and
+            # right-aligned overall, so right edges of numbers stay flush
+            # across the column whether the cell has a marker or not.
+            mark = ""
+            if n_acc > 1:
+                mark = (f'<span style="font-size:9px;color:#666;'
+                        f'opacity:0.85;margin-right:4px">+{n_acc - 1}</span>')
+            plat_cells += (f'<td style="padding:6px 12px;text-align:right;'
+                           f'white-space:nowrap"{tip} data-val="{n}">'
+                           f'{mark}{fmt_num(n)}</td>')
         elif has_url:
             plat_cells += ('<td style="padding:6px 12px;text-align:right;color:#aaa" '
                            'data-val="-1" title="Account exists, no count yet">?</td>')
