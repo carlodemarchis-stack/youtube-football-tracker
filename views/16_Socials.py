@@ -97,6 +97,10 @@ PLATFORMS = [
 
 
 def _badges(socials: dict) -> str:
+    """Render one badge per platform. When a platform has regional accounts
+    (e.g. x_regional list), show a small superscript with the count and a
+    tooltip listing 'N accounts' so the hover surfaces the multi-region
+    detail without bloating the row."""
     if not socials:
         return '<span style="color:#666">—</span>'
     out = ""
@@ -104,16 +108,23 @@ def _badges(socials: dict) -> str:
         url = socials.get(key)
         if not url:
             continue
-        # Escape minimally to keep the HTML well-formed
         u = (url or "").replace('"', "&quot;")
+        # Count main (1) + regional (len of <key>_regional list)
+        regional = socials.get(f"{key}_regional") or []
+        n_accounts = 1 + (len(regional) if isinstance(regional, list) else 0)
+        title = (f"{key}: {n_accounts} accounts (1 main + {len(regional)} regional)"
+                 if n_accounts > 1 else f"{key}: {u}")
+        # Tiny "+N" suffix so the eye catches multi-region badges at a glance
+        suffix = (f'<sup style="font-size:8px;margin-left:2px;opacity:0.85">'
+                  f'+{len(regional)}</sup>') if n_accounts > 1 else ""
         out += (
             f'<a href="{u}" target="_blank" rel="noopener" '
-            f'title="{key}: {u}" '
+            f'title="{title}" '
             f'style="display:inline-flex;align-items:center;justify-content:center;'
             f'min-width:26px;height:22px;padding:0 7px;margin-right:4px;'
             f'border-radius:4px;background:{bg};color:{fg};font-size:11px;'
             f'font-weight:600;text-decoration:none;font-family:monospace">'
-            f'{label}</a>'
+            f'{label}{suffix}</a>'
         )
     return out or '<span style="color:#666">—</span>'
 
@@ -214,9 +225,12 @@ for i, c in enumerate(rows, 1):
 
     # Build the per-platform cells + accumulate total
     # Three states:
-    #   has count           → number
+    #   has count           → number (aggregate of main + regional accounts)
     #   URL on file, no count → "?" (we know they're there, no measurement yet)
     #   not on platform      → "—"
+    # Family aggregation: any snapshot row with platform key '<base>' OR
+    # '<base>_<lang>' counts toward the same column. Account count = number
+    # of distinct accounts contributing.
     plat_cells = ""
     yt_subs = int(c.get("subscriber_count") or 0)
     snaps = _followers_map.get(c["id"], {})
@@ -225,18 +239,30 @@ for i, c in enumerate(rows, 1):
     for key, _label, _bg, _fg in _FCOLS:
         if key == "youtube":
             n = yt_subs
+            n_acc = 1
             has_url = True  # YouTube is the channel itself
         else:
-            row = snaps.get(key)
-            n = int(row["follower_count"]) if row else 0
-            has_url = key in socials
+            # Sum main + regional siblings under this platform key
+            n = 0
+            n_acc = 0
+            for snap_key, snap_row in snaps.items():
+                if snap_key == key or snap_key.startswith(f"{key}_"):
+                    cnt = int(snap_row.get("follower_count") or 0)
+                    if cnt > 0:
+                        n += cnt
+                        n_acc += 1
+            # has_url accounts for both main URL and regional URL list
+            has_url = (key in socials
+                       or bool(socials.get(f"{key}_regional")))
         total += n
         if n > 0:
-            plat_cells += (f'<td style="padding:6px 12px;text-align:right" '
-                           f'data-val="{n}">{fmt_num(n)}</td>')
+            tip = (f' title="{n_acc} accounts (main + regional)"'
+                   if n_acc > 1 else "")
+            mark = (f'<sup style="font-size:9px;margin-left:2px;opacity:0.7;'
+                    f'color:#888">+{n_acc - 1}</sup>') if n_acc > 1 else ""
+            plat_cells += (f'<td style="padding:6px 12px;text-align:right"'
+                           f'{tip} data-val="{n}">{fmt_num(n)}{mark}</td>')
         elif has_url:
-            # Account exists but no follower count yet — sort below numeric
-            # values but above truly-absent platforms
             plat_cells += ('<td style="padding:6px 12px;text-align:right;color:#aaa" '
                            'data-val="-1" title="Account exists, no count yet">?</td>')
         else:
