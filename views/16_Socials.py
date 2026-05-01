@@ -404,3 +404,100 @@ st.caption(
     "the number from logged-out viewers, and a few clubs run multiple "
     "regional accounts. Treat these as a snapshot, not a precise count."
 )
+
+
+# ── Top X regional families ─────────────────────────────────────────
+# Surfaces clubs running multiple X accounts (main + language-specific
+# regionals). Built from follower_snapshots rows with platform 'x' or
+# 'x_<lang>'. Only clubs with ≥2 X accounts appear.
+st.markdown("---")
+st.subheader("🌍 Top X regional families")
+st.caption(
+    "Clubs running a main X account plus regional language siblings. "
+    "Most of European football's multi-region energy lives on X — "
+    "Instagram and TikTok are single-account-per-club by convention."
+)
+
+_x_families = []
+for c in rows:
+    snaps = _followers_map.get(c["id"], {})
+    accounts = []
+    for snap_key, snap_row in snaps.items():
+        if snap_key == "x" or snap_key.startswith("x_"):
+            cnt = int(snap_row.get("follower_count") or 0)
+            if cnt > 0:
+                lang = "main" if snap_key == "x" else snap_key[2:]
+                url = snap_row.get("source_url") or ""
+                handle = (url.rstrip("/").split("/")[-1] if url else "").lstrip("@")
+                accounts.append({"lang": lang, "handle": handle, "count": cnt, "url": url})
+    if len(accounts) >= 2:
+        accounts.sort(key=lambda a: -a["count"])
+        family_total = sum(a["count"] for a in accounts)
+        main_count = next((a["count"] for a in accounts if a["lang"] == "main"), 0)
+        regional_sum = family_total - main_count
+        _x_families.append({
+            "ch": c, "accounts": accounts,
+            "family": family_total, "main": main_count,
+            "regional_sum": regional_sum,
+            "n_acc": len(accounts),
+        })
+
+_x_families.sort(key=lambda f: -f["family"])
+
+if not _x_families:
+    st.info("No clubs in the current filter have multiple X accounts.")
+else:
+    _fam_rows = ""
+    for i, f in enumerate(_x_families, 1):
+        c = f["ch"]
+        cdot = channel_badge(c, color_map, dual, 14)
+        cname = c.get("name", "?")
+        # Build the breakdown chips: one small pill per account, brand-X-styled
+        chips = ""
+        for a in f["accounts"]:
+            lang_label = "main" if a["lang"] == "main" else a["lang"].upper()
+            chips += (
+                f'<a href="{a["url"]}" target="_blank" rel="noopener" '
+                f'title="@{a["handle"]} ({a["lang"]}) — {fmt_num(a["count"])}" '
+                f'style="display:inline-flex;align-items:center;gap:4px;'
+                f'padding:3px 8px;margin:2px 4px 2px 0;border-radius:12px;'
+                f'background:#1a1c24;border:1px solid #2c2f38;'
+                f'color:#FAFAFA;text-decoration:none;font-size:11px;'
+                f'white-space:nowrap">'
+                f'<span style="font-weight:700;color:#aaa">{lang_label}</span>'
+                f'<span>{fmt_num(a["count"])}</span></a>'
+            )
+        _fam_rows += f"""<tr>
+            <td style="padding:8px 12px;text-align:right;color:#888">{i}</td>
+            <td style="padding:8px 12px">{cdot}</td>
+            <td style="padding:8px 12px;white-space:nowrap;font-weight:600">{cname}</td>
+            <td style="padding:8px 12px;text-align:right;font-weight:600;color:#FAFAFA">{fmt_num(f['family'])}</td>
+            <td style="padding:8px 12px;text-align:right;color:#888">{fmt_num(f['main'])}</td>
+            <td style="padding:8px 12px;text-align:right;color:#00CC96">+{fmt_num(f['regional_sum'])}</td>
+            <td style="padding:8px 12px;text-align:right;color:#888">{f['n_acc']}</td>
+            <td style="padding:8px 12px">{chips}</td>
+        </tr>"""
+
+    components.html(f"""
+    <style>
+      .xf {{ width:100%; border-collapse:collapse; font-size:13px;
+             color:#FAFAFA; font-family:"Source Sans Pro",sans-serif; }}
+      .xf th {{ padding:8px 12px; border-bottom:2px solid #444;
+                color:#aaa; font-weight:600; text-align:right; }}
+      .xf th.l {{ text-align:left; }}
+      .xf td {{ border-bottom:1px solid #262730; vertical-align:middle; }}
+      .xf tr:hover td {{ background:#1a1c24; }}
+    </style>
+    <table class="xf">
+      <thead><tr>
+        <th>#</th><th></th>
+        <th class="l">Club / League</th>
+        <th>Family total</th>
+        <th>Main</th>
+        <th>+Regional</th>
+        <th>Accounts</th>
+        <th class="l">Breakdown</th>
+      </tr></thead>
+      <tbody>{_fam_rows}</tbody>
+    </table>
+    """, height=len(_x_families) * 56 + 90, scrolling=True)
