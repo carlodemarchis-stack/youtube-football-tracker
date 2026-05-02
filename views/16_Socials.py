@@ -195,6 +195,141 @@ components.html(f"""
 </div>
 """, height=len(rows) * 46 + 70, scrolling=False)
 
+# ── Single-club: full account list ──────────────────────────────────
+# When viewing one club, surface every individual account (main +
+# regionals across every platform) with handle, URL and current
+# follower count where we have it. The badge strip above is compact;
+# this section is the exhaustive view.
+if g_club:
+    _ch_id = g_club["id"]
+    _snaps_one = db.get_latest_follower_snapshots_bulk([_ch_id]).get(_ch_id, {})
+    _socials_one = g_club.get("socials") or {}
+
+    # Build (platform_label, [(handle, url, count_or_None, lang_tag)])
+    _PLATFORM_LABELS = {k: lbl for k, lbl, *_ in PLATFORMS}
+
+    def _h(u: str) -> str:
+        u = (u or "").rstrip("/")
+        return u.split("/")[-1].lstrip("@") if u else ""
+
+    def _count_for(snap_key: str) -> int | None:
+        row = _snaps_one.get(snap_key)
+        if not row:
+            return None
+        v = row.get("follower_count")
+        return int(v) if v else None
+
+    # YouTube first (always present)
+    _list_html = ""
+    yt_handle = g_club.get("handle") or ""
+    yt_url = f"https://www.youtube.com/{yt_handle}" if yt_handle else ""
+    yt_subs = int(g_club.get("subscriber_count") or 0)
+    if yt_url:
+        _list_html += (
+            '<div style="margin:0 0 14px 0">'
+            '<div style="font-weight:600;color:#aaa;font-size:12px;'
+            'margin-bottom:4px;letter-spacing:0.04em">YOUTUBE</div>'
+            f'<div style="padding:6px 0">'
+            f'<a href="{yt_url}" target="_blank" rel="noopener" '
+            f'style="color:#FAFAFA;text-decoration:none">'
+            f'<span style="color:#FF0000;font-weight:700;margin-right:8px">YT</span>'
+            f'<b>{yt_handle or "—"}</b></a>'
+            f'<span style="float:right;color:#aaa">{fmt_num(yt_subs)}</span>'
+            '</div></div>'
+        )
+
+    for key, label, bg, fg in PLATFORMS:
+        main_url = _socials_one.get(key)
+        regional = _socials_one.get(f"{key}_regional") or []
+        # Pull every snapshot row in this platform family
+        # ({key, key_<lang>, ...}) and index them by handle (extracted
+        # from the snapshot's `source` field, e.g. "x.com/LFC_Arabic").
+        family_rows = []
+        for snap_key, snap_row in _snaps_one.items():
+            if snap_key == key or snap_key.startswith(f"{key}_"):
+                family_rows.append((snap_key, snap_row))
+
+        if not main_url and not regional and not family_rows:
+            continue
+
+        # Build a {handle_lower: snap_row} map so we can attach counts
+        # to URLs from socials JSON regardless of which list they came in.
+        def _src_handle(sr):
+            s = (sr.get("source") or "").rstrip("/")
+            return s.split("/")[-1].lstrip("@").lower() if s else ""
+        snap_by_handle = {_src_handle(sr): (sk, sr) for sk, sr in family_rows
+                          if _src_handle(sr)}
+
+        accounts = []
+        seen = set()
+        if main_url:
+            h = _h(main_url)
+            cnt = _count_for(key)
+            accounts.append((h, main_url, cnt, "main"))
+            seen.add(h.lower())
+        for r_url in regional:
+            handle = _h(r_url)
+            if handle.lower() in seen:
+                continue
+            seen.add(handle.lower())
+            match = snap_by_handle.get(handle.lower())
+            if match:
+                sk, sr = match
+                cnt = int(sr["follower_count"]) if sr.get("follower_count") else None
+                lang = sk[len(key)+1:] if sk.startswith(f"{key}_") else "regional"
+            else:
+                cnt, lang = None, "regional"
+            accounts.append((handle, r_url, cnt, lang))
+        # Stragglers: snapshot rows whose handle wasn't in socials JSON.
+        for sk, sr in family_rows:
+            h = _src_handle(sr)
+            if not h or h in seen:
+                continue
+            seen.add(h)
+            cnt = int(sr["follower_count"]) if sr.get("follower_count") else None
+            lang = sk[len(key)+1:] if sk.startswith(f"{key}_") else "main"
+            url = f"https://{sr.get('source')}" if sr.get("source") else ""
+            accounts.append((h, url, cnt, lang))
+
+        items = ""
+        for handle, url, cnt, lang in accounts:
+            tag = ("main" if lang == "main" else lang.upper())
+            cnt_html = (f'<span style="float:right;color:#aaa">'
+                        f'{fmt_num(cnt)}</span>') if cnt else (
+                       '<span style="float:right;color:#666">—</span>')
+            items += (
+                f'<div style="padding:6px 0;border-bottom:1px solid #20222a">'
+                f'<a href="{url}" target="_blank" rel="noopener" '
+                f'style="color:#FAFAFA;text-decoration:none">'
+                f'<span style="display:inline-block;min-width:26px;'
+                f'text-align:center;padding:1px 6px;border-radius:3px;'
+                f'background:{bg};color:{fg};font-size:10px;font-weight:700;'
+                f'margin-right:8px">{label}</span>'
+                f'<b>@{handle}</b>'
+                f'<span style="color:#666;font-size:11px;margin-left:8px">'
+                f'{tag}</span></a>{cnt_html}</div>'
+            )
+        _list_html += (
+            f'<div style="margin:0 0 14px 0">'
+            f'<div style="font-weight:600;color:#aaa;font-size:12px;'
+            f'margin-bottom:4px;letter-spacing:0.04em">'
+            f'{key.upper()}'
+            f'{(" · " + str(len(accounts)) + " accounts") if len(accounts) > 1 else ""}'
+            f'</div>{items}</div>'
+        )
+
+    st.markdown("##### All accounts")
+    st.caption("Every individual handle on file for this club, "
+               "across every platform. Click any to open.")
+    if _list_html:
+        st.markdown(
+            f'<div style="font-family:\'Source Sans Pro\',sans-serif;'
+            f'color:#FAFAFA;font-size:14px">{_list_html}</div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.info("No accounts on file for this club yet.")
+
 # ── Followers leaderboard ──────────────────────────────────────────
 st.markdown("---")
 st.subheader("Followers across platforms")
