@@ -218,7 +218,10 @@ def rebuild_all(db, log=print) -> None:
         log(f"[dashboard_cache] previous_notes for context: {len(prev_notes)} day(s)")
         note = _an.generate_daily_note(payload, previous_notes=prev_notes, log=log)
         if note:
-            html = _an.decorate_with_badges(note, chans)
+            # Bake <br> per sentence into the HTML so consumers don't need
+            # to handle the per-line layout themselves (Streamlit's
+            # markdown processor collapses bare newlines).
+            html = _an.decorate_with_badges(note, chans).replace("\n", "<br>")
             write(db, "daily_note", target.isoformat(),
                   {"text": note,         # raw model output (kept for debug)
                    "html": html,         # decoration-ready HTML used by pages
