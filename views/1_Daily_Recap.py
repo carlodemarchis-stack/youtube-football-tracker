@@ -959,7 +959,7 @@ else:
         if not v:
             continue
         ch = ch_by_id.get(v["channel_id"]) or {}
-        club_c1, _ = dual.get(ch.get("name", ""), (color_map.get(ch.get("name", ""), "#636EFA"), "#FFFFFF"))
+        ch_dot = channel_badge(ch, color_map, dual, 12)
         yt_url = f"https://www.youtube.com/watch?v={v['youtube_video_id']}"
         thumb = v.get("thumbnail_url") or ""
         title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;")
@@ -973,11 +973,13 @@ else:
             fmt = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
         fmt_color = {"long": "#636EFA", "short": "#00CC96", "live": "#FFA15A"}.get(fmt, "#AAAAAA")
         fmt_label = {"long": "Long", "short": "Shorts", "live": "Live"}.get(fmt, fmt.title())
-        _tv_rows += f"""<tr style="border-left:3px solid {club_c1}">
+        _tv_rows += f"""<tr>
             <td style="padding:6px 12px;text-align:right;color:#888">{i}</td>
             <td style="padding:6px 12px"><a href="{yt_url}" target="_blank"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px"></a></td>
             <td style="padding:6px 12px">
-                <div style="color:#AAA;font-size:12px;margin-bottom:2px">{LEAGUE_FLAG.get(COUNTRY_TO_LEAGUE.get((ch.get('country') or '').strip(), ''), '')} {ch.get('name', '?')} · <span style="color:{fmt_color}">{fmt_label}</span> · {pub}</div>
+                <div style="color:#AAA;font-size:12px;margin-bottom:2px;display:flex;align-items:center;gap:6px">
+                  {ch_dot}<span>{ch.get('name', '?')} · <span style="color:{fmt_color}">{fmt_label}</span> · {pub}</span>
+                </div>
                 <a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none">{title}</a>
             </td>
             <td style="padding:6px 12px;text-align:right;color:#00CC96;font-weight:600">+{fmt_num(t['delta'])}</td>
@@ -1014,7 +1016,7 @@ if new_video_rows and not ONE_CLUB:
     _mw_rows = ""
     for i, v in enumerate(_mw_sorted[:_mw_top_n], 1):
         ch = ch_by_id.get(v["channel_id"]) or {}
-        club_c1, _ = dual.get(ch.get("name", ""), (color_map.get(ch.get("name", ""), "#636EFA"), "#FFFFFF"))
+        ch_dot = channel_badge(ch, color_map, dual, 12)
         yt_url = f"https://www.youtube.com/watch?v={v['youtube_video_id']}"
         thumb = v.get("thumbnail_url") or ""
         title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;")
@@ -1026,11 +1028,13 @@ if new_video_rows and not ONE_CLUB:
         views = int(v.get("view_count") or 0)
         likes = int(v.get("like_count") or 0)
         comments = int(v.get("comment_count") or 0)
-        _mw_rows += f"""<tr style="border-left:3px solid {club_c1}">
+        _mw_rows += f"""<tr>
             <td style="padding:6px 12px;text-align:right;color:#888">{i}</td>
             <td style="padding:6px 12px"><a href="{yt_url}" target="_blank"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px"></a></td>
             <td style="padding:6px 12px">
-                <div style="color:#AAA;font-size:12px;margin-bottom:2px">{LEAGUE_FLAG.get(COUNTRY_TO_LEAGUE.get((ch.get('country') or '').strip(), ''), '')} {ch.get('name', '?')} · <span style="color:{fmt_color}">{fmt_label}</span></div>
+                <div style="color:#AAA;font-size:12px;margin-bottom:2px;display:flex;align-items:center;gap:6px">
+                  {ch_dot}<span>{ch.get('name', '?')} · <span style="color:{fmt_color}">{fmt_label}</span></span>
+                </div>
                 <a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none">{title}</a>
             </td>
             <td style="padding:6px 12px;text-align:right;font-weight:600">{fmt_num(views)}</td>
