@@ -541,6 +541,11 @@ st.caption(
 # Surfaces clubs running multiple X accounts (main + language-specific
 # regionals). Built from follower_snapshots rows with platform 'x' or
 # 'x_<lang>'. Only clubs with ≥2 X accounts appear.
+# Hidden in single-club mode — the "All accounts" section above already
+# lists every X regional for the selected club.
+if g_club:
+    st.stop()
+
 st.markdown("---")
 st.subheader("🌍 Top X regional families")
 st.caption(
