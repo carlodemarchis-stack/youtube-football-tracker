@@ -206,10 +206,13 @@ def rebuild_all(db, log=print) -> None:
     # Decoration (inline country flags before each club/league name)
     # happens here at write time, so pages just read ready-to-render HTML.
     try:
+        import os as _os
         from src import ai_note as _an
         from datetime import datetime as _dt, timedelta as _td
         target = (_dt.now(CET).date() - _td(days=1))
-        log(f"[dashboard_cache] computing daily_note / {target.isoformat()}")
+        _key_present = bool(_os.environ.get("ANTHROPIC_API_KEY"))
+        log(f"[dashboard_cache] computing daily_note / {target.isoformat()} "
+            f"(ANTHROPIC_API_KEY {'set' if _key_present else 'MISSING'})")
         payload = _an.compose_payload(db, target)
         note = _an.generate_daily_note(payload, log=log)
         if note:
@@ -221,6 +224,9 @@ def rebuild_all(db, log=print) -> None:
                       "total_new_videos": payload["totals"]["new_videos"],
                       "weekday": payload["weekday"],
                    }})
+            log(f"[dashboard_cache] daily_note WRITTEN ({len(note)} chars)")
+        else:
+            log(f"[dashboard_cache] daily_note skipped — generator returned empty")
     except Exception as e:
         log(f"[dashboard_cache] daily_note failed (non-fatal): {e}")
 
