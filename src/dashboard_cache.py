@@ -214,7 +214,9 @@ def rebuild_all(db, log=print) -> None:
         log(f"[dashboard_cache] computing daily_note / {target.isoformat()} "
             f"(ANTHROPIC_API_KEY {'set' if _key_present else 'MISSING'})")
         payload = _an.compose_payload(db, target)
-        note = _an.generate_daily_note(payload, log=log)
+        prev_notes = _an.fetch_previous_notes(db, target, n=3)
+        log(f"[dashboard_cache] previous_notes for context: {len(prev_notes)} day(s)")
+        note = _an.generate_daily_note(payload, previous_notes=prev_notes, log=log)
         if note:
             html = _an.decorate_with_badges(note, chans)
             write(db, "daily_note", target.isoformat(),

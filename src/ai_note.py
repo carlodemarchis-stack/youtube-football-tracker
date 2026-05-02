@@ -33,6 +33,10 @@ Voice
   more than they admit. Never bombastic. Never fawning.
 - One small joke or aside per note is fine. No emojis except a single
   optional one at the end.
+- Vary your openings. The previous_notes field shows the last few days'
+  notes — don't reuse their opening pattern, marquee phrasing, or the
+  same metaphors. If yesterday opened with "Yesterday was…", today
+  opens differently.
 
 Hard constraints (will be checked)
 - Never invent match results, scores, standings, or transfer news. If a
@@ -48,10 +52,18 @@ Hard constraints (will be checked)
 What you'll get
 - A JSON blob of yesterday's per-channel and per-league summary.
 - The day's viral videos with titles + views.
+- viral_league_breakdown: how the top-10 most-watched split by league.
+  If one league dominates the top of the day (e.g. 6+ of the 10 from
+  the Premier League), call it out in one sentence. If the spread is
+  even, don't force it.
 - 7-day baselines so "above/below average" is grounded.
+- previous_notes: the last 3 days' notes — read them, then write
+  something that doesn't sound like more of the same.
 
-Output: exactly 2 short paragraphs, ~80 words total. Plain text. No
-markdown headers, no JSON, no list bullets. Don't pad."""
+Output format
+- Exactly 4-6 short sentences total, ~80 words.
+- Put each sentence on its own line (single newline between them).
+- Plain text. No markdown headers, no JSON, no list bullets. Don't pad."""
 
 
 def compose_payload(db, target_date: date) -> dict:
@@ -183,14 +195,25 @@ def compose_payload(db, target_date: date) -> dict:
     top_videos = sorted(videos, key=lambda v: v.get("view_count") or 0,
                         reverse=True)[:10]
     viral = []
+    viral_league_counts: dict[str, int] = {}
     for v in top_videos:
         ch = ch_by_id.get(v.get("channel_id")) or {}
+        league = COUNTRY_TO_LEAGUE.get((ch.get("country") or "").upper())
         viral.append({
             "club": ch.get("name", "?"),
+            "league": league,
             "title": (v.get("title") or "")[:200],
             "views": int(v.get("view_count") or 0),
             "format": v.get("format"),
         })
+        if league:
+            viral_league_counts[league] = viral_league_counts.get(league, 0) + 1
+
+    # Sort breakdown by count desc so the dominant league is first.
+    viral_league_breakdown = sorted(
+        [{"league": lg, "count": n} for lg, n in viral_league_counts.items()],
+        key=lambda r: -r["count"],
+    )
 
     # ── Cheap title-signal counts
     def _count(rx):
@@ -230,9 +253,34 @@ def compose_payload(db, target_date: date) -> dict:
         },
         "per_league": per_league_out,
         "viral_videos": viral,
+        "viral_league_breakdown": viral_league_breakdown,
         "title_signals": title_signals,
         "quiet_clubs": quiet,
     }
+
+
+def fetch_previous_notes(db, target_date: date, n: int = 3) -> list[dict]:
+    """Read the last n days of daily_note rows BEFORE target_date.
+    Returns oldest-first list of {date, text}. Used to feed the model
+    so it can avoid repeating yesterday's opener / phrasing."""
+    out = []
+    for back in range(1, n + 1):
+        d = (target_date - timedelta(days=back)).isoformat()
+        try:
+            row = (db.client.table("dashboard_cache")
+                   .select("payload")
+                   .eq("name", "daily_note")
+                   .eq("scope_key", d)
+                   .limit(1)
+                   .execute().data or [])
+        except Exception:
+            row = []
+        if row and row[0].get("payload"):
+            txt = (row[0]["payload"].get("text") or "").strip()
+            if txt:
+                out.append({"date": d, "text": txt})
+    out.reverse()  # oldest → newest so model sees recency progression
+    return out
 
 
 # Common short forms a feature writer might use. Maps each variant to the
@@ -432,8 +480,14 @@ def _looks_like_invented_score(text: str, video_titles: list[str]) -> bool:
     return False
 
 
-def generate_daily_note(payload: dict, log=print) -> str | None:
-    """Call Claude, return note text or None on failure / unsafe output."""
+def generate_daily_note(payload: dict,
+                        previous_notes: list[dict] | None = None,
+                        log=print) -> str | None:
+    """Call Claude, return note text or None on failure / unsafe output.
+
+    previous_notes: optional list of {date, text} for the last few days.
+    Passed alongside `payload` so the model can avoid repetition.
+    """
     api_key = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
     if not api_key:
         log("[ai_note] ANTHROPIC_API_KEY missing — skipping")
@@ -452,8 +506,11 @@ def generate_daily_note(payload: dict, log=print) -> str | None:
         log("[ai_note] anthropic package not installed — skipping")
         return None
 
-    user_message = "Yesterday's data:\n\n" + json.dumps(payload, indent=2,
-                                                       ensure_ascii=False)
+    full_input = {
+        "yesterday": payload,
+        "previous_notes": previous_notes or [],
+    }
+    user_message = json.dumps(full_input, indent=2, ensure_ascii=False)
     client = anthropic.Anthropic(api_key=api_key)
     for attempt in range(3):
         try:
@@ -487,4 +544,27 @@ def generate_daily_note(payload: dict, log=print) -> str | None:
         log("[ai_note] rejected — note contains a score not in source titles")
         return None
 
+    # Post-process: enforce one sentence per line. The model is asked to
+    # do this in the system prompt but doesn't always — splitting here
+    # guarantees the final layout regardless. Splits on sentence-ending
+    # punctuation followed by a space + capital letter (or quote).
+    note = _one_sentence_per_line(note)
+
     return note
+
+
+def _one_sentence_per_line(text: str) -> str:
+    """Reformat so each sentence sits on its own line.
+
+    Splits on `[.!?]` followed by whitespace + an uppercase letter or
+    open quote. Conservative: won't split on common abbreviations
+    inside the writing voice we expect (the model is told not to use
+    e.g. "Mr." or scores, so the abbreviation surface is small).
+    """
+    # First collapse any existing internal newlines + double spaces so
+    # we control the layout, regardless of what the model emitted.
+    text = re.sub(r"\s+", " ", text).strip()
+    # Insert a newline after sentence-ending punctuation when followed
+    # by a capital letter or open-quote that starts the next sentence.
+    parts = re.split(r"(?<=[.!?])\s+(?=[A-Z\"“])", text)
+    return "\n".join(p.strip() for p in parts if p.strip())

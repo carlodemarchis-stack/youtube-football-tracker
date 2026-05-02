@@ -246,10 +246,12 @@ try:
             _note_body = (_p.get("html") or _p.get("text") or "").strip()
             if _note_body:
                 st.markdown(
-                    f'<div style="font-style:italic;color:#cccccc;line-height:1.6;'
-                    f'border-left:3px solid #636EFA;padding:8px 14px;margin:18px 0">'
+                    f'<div style="font-style:italic;color:#cccccc;line-height:1.7;'
+                    f'border-left:3px solid #636EFA;padding:8px 14px;margin:18px 0;'
+                    f'white-space:pre-line">'
                     f'<div style="font-size:11px;color:#888;text-transform:uppercase;'
-                    f'letter-spacing:0.5px;margin-bottom:4px;font-style:normal">'
+                    f'letter-spacing:0.5px;margin-bottom:6px;font-style:normal;'
+                    f'white-space:normal">'
                     f'Yesterday in football YouTube · {_y.strftime("%a %b %d")}</div>'
                     f'{_note_body}</div>',
                     unsafe_allow_html=True,
