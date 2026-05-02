@@ -3,3 +3,4 @@ supabase>=2.0.0
 pandas>=2.1.0
 python-dotenv>=1.0.0
 isodate>=0.6.1
+anthropic>=0.30.0
