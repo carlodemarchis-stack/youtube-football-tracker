@@ -313,14 +313,14 @@ def _show_onboarding_card(user: dict):
     )
     with st.form("_onboarding_form", clear_on_submit=False):
         col1, col2 = st.columns(2)
-        first_name = col1.text_input("First name", value=default_first)
-        last_name = col2.text_input("Last name", value=default_last)
+        first_name = col1.text_input("First name *", value=default_first)
+        last_name = col2.text_input("Last name *", value=default_last)
         # Email shown read-only — useful confirmation, can't be edited
         # (user is already authenticated under it).
-        st.text_input("Email", value=default_email, disabled=True,
+        st.text_input("Email *", value=default_email, disabled=True,
                       help="Linked to your sign-in account.")
         company = st.text_input(
-            "Company", value=default_company,
+            "Company *", value=default_company,
             placeholder="e.g. DAZN, AS Roma, freelance, student",
         )
         linkedin_url = st.text_input(
