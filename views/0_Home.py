@@ -244,14 +244,15 @@ try:
             # Prefer pre-decorated HTML (with badge injection); fall back
             # to raw text for older cache rows that pre-date decoration.
             _note_body = (_p.get("html") or _p.get("text") or "").strip()
+            # Streamlit's markdown processor collapses bare newlines, so
+            # convert them to explicit <br> for the per-sentence layout.
+            _note_body = _note_body.replace("\n", "<br>")
             if _note_body:
                 st.markdown(
                     f'<div style="font-style:italic;color:#cccccc;line-height:1.7;'
-                    f'border-left:3px solid #636EFA;padding:8px 14px;margin:18px 0;'
-                    f'white-space:pre-line">'
+                    f'border-left:3px solid #636EFA;padding:8px 14px;margin:18px 0">'
                     f'<div style="font-size:11px;color:#888;text-transform:uppercase;'
-                    f'letter-spacing:0.5px;margin-bottom:6px;font-style:normal;'
-                    f'white-space:normal">'
+                    f'letter-spacing:0.5px;margin-bottom:6px;font-style:normal">'
                     f'Yesterday in football YouTube · {_y.strftime("%a %b %d")}</div>'
                     f'{_note_body}</div>',
                     unsafe_allow_html=True,
