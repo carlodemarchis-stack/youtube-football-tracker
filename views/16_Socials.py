@@ -241,24 +241,30 @@ if g_club:
     for key, label, bg, fg in PLATFORMS:
         main_url = _socials_one.get(key)
         regional = _socials_one.get(f"{key}_regional") or []
-        # Pull every snapshot row in this platform family
-        # ({key, key_<lang>, ...}) and index them by handle (extracted
-        # from the snapshot's `source` field, e.g. "x.com/LFC_Arabic").
-        family_rows = []
-        for snap_key, snap_row in _snaps_one.items():
-            if snap_key == key or snap_key.startswith(f"{key}_"):
-                family_rows.append((snap_key, snap_row))
-
-        if not main_url and not regional and not family_rows:
+        if not main_url and not regional:
             continue
 
-        # Build a {handle_lower: snap_row} map so we can attach counts
-        # to URLs from socials JSON regardless of which list they came in.
-        def _src_handle(sr):
-            s = (sr.get("source") or "").rstrip("/")
-            return s.split("/")[-1].lstrip("@").lower() if s else ""
-        snap_by_handle = {_src_handle(sr): (sk, sr) for sk, sr in family_rows
-                          if _src_handle(sr)}
+        # Helper: extract handle from a snapshot's source field, but ONLY
+        # when source looks like a URL. Old scrapes stored "chrome" as a
+        # method tag, not a URL — those rows have no handle to extract.
+        def _src_handle_url(sr):
+            s = (sr.get("source") or "").strip().rstrip("/")
+            if not s or "/" not in s:
+                return ""  # e.g. "chrome", "manual" — not a URL
+            return s.split("/")[-1].lstrip("@").lower()
+
+        # Index regional snapshots by handle (from URL-shaped source)
+        # AND by lang tag (from platform key) so we can match either way.
+        snap_by_handle = {}
+        snap_by_lang = {}
+        for snap_key, snap_row in _snaps_one.items():
+            if not snap_key.startswith(f"{key}_"):
+                continue
+            lang = snap_key[len(key)+1:]
+            snap_by_lang[lang] = (snap_key, snap_row)
+            h = _src_handle_url(snap_row)
+            if h:
+                snap_by_handle[h] = (snap_key, snap_row)
 
         accounts = []
         seen = set()
@@ -276,20 +282,10 @@ if g_club:
             if match:
                 sk, sr = match
                 cnt = int(sr["follower_count"]) if sr.get("follower_count") else None
-                lang = sk[len(key)+1:] if sk.startswith(f"{key}_") else "regional"
+                lang = sk[len(key)+1:]
             else:
                 cnt, lang = None, "regional"
             accounts.append((handle, r_url, cnt, lang))
-        # Stragglers: snapshot rows whose handle wasn't in socials JSON.
-        for sk, sr in family_rows:
-            h = _src_handle(sr)
-            if not h or h in seen:
-                continue
-            seen.add(h)
-            cnt = int(sr["follower_count"]) if sr.get("follower_count") else None
-            lang = sk[len(key)+1:] if sk.startswith(f"{key}_") else "main"
-            url = f"https://{sr.get('source')}" if sr.get("source") else ""
-            accounts.append((h, url, cnt, lang))
 
         items = ""
         for handle, url, cnt, lang in accounts:
