@@ -47,26 +47,30 @@ render_page_subtitle(
 )
 
 
-# ══════════════════════════════════════════════════════════════
-# ZOOM LEVEL 1: ALL LEAGUES — branch by scope
-# ══════════════════════════════════════════════════════════════
-_scope = get_all_leagues_scope() if league is None else "Overall"
-
-if league is None and _scope == "Overall":
-    # Aggregate season stats per league — using precomputed channel columns (zero video queries)
-    import plotly.graph_objects as go
-
-    league_stats: dict[str, dict] = {}
-    for ch in all_channels:
+# ──────────────────────────────────────────────────────────────
+# Shared helpers — used by zoom 1 (All Leagues, Overall) AND
+# zoom 2 (All Leagues, scope-toggle modes) so per-league charts
+# stay consistent across both.
+# ──────────────────────────────────────────────────────────────
+def _compute_league_stats(channels):
+    """Aggregate season stats per league from precomputed channel
+    columns. Returns {league_name: {views,videos,long_*,short_*,
+    live_*, likes, comments, *_dur_total}}. Excludes Players /
+    Federations / OtherClubs / WomenClubs (they have own pages)."""
+    stats: dict[str, dict] = {}
+    for ch in channels:
         if ch.get("entity_type") in ("Player", "Federation", "OtherClub", "WomenClub"):
-            continue  # Players + Federations live on their own pages
+            continue
         lg = get_league_for_channel(ch)
         if not lg:
             continue
-        s = league_stats.setdefault(lg, {
-            "videos": 0, "views": 0, "long_v": 0, "short_v": 0, "long_views": 0, "short_views": 0,
-            "likes": 0, "comments": 0, "long_likes": 0, "short_likes": 0, "long_comments": 0, "short_comments": 0,
-            "live_v": 0, "live_views": 0, "live_likes": 0, "live_comments": 0,
+        s = stats.setdefault(lg, {
+            "videos": 0, "views": 0,
+            "long_v": 0, "short_v": 0, "live_v": 0,
+            "long_views": 0, "short_views": 0, "live_views": 0,
+            "likes": 0, "comments": 0,
+            "long_likes": 0, "short_likes": 0, "live_likes": 0,
+            "long_comments": 0, "short_comments": 0, "live_comments": 0,
             "long_dur_total": 0, "short_dur_total": 0,
         })
         lv = int(ch.get("season_long_views") or 0)
@@ -87,11 +91,181 @@ if league is None and _scope == "Overall":
         s["long_comments"] += int(ch.get("season_long_comments") or 0)
         s["short_comments"] += int(ch.get("season_short_comments") or 0)
         s["live_comments"] += int(ch.get("season_live_comments") or 0)
-        # Total duration (in seconds) per format = avg-per-video * video-count;
-        # sum across channels then divide back out at render time = league-wide
-        # weighted average duration. Same approach as the per-channel rows.
         s["long_dur_total"]  += int(ch.get("season_long_dur_avg")  or 0) * ln
         s["short_dur_total"] += int(ch.get("season_short_dur_avg") or 0) * sn
+    return stats
+
+
+def _render_per_league_charts(sorted_leagues):
+    """5 bar charts comparing leagues: Views, Videos (stacked
+    Long/Shorts/Live), Engagement Rate, Avg Duration Long, Avg
+    Duration Shorts. Renders directly with st.plotly_chart."""
+    import plotly.graph_objects as go
+    lg_names = [lg for lg, _ in sorted_leagues]
+
+    fig_v = go.Figure()
+    fig_v.add_trace(go.Bar(name="Long",   x=lg_names, y=[s["long_views"]  for _, s in sorted_leagues], marker_color="#636EFA"))
+    fig_v.add_trace(go.Bar(name="Shorts", x=lg_names, y=[s["short_views"] for _, s in sorted_leagues], marker_color="#00CC96"))
+    fig_v.add_trace(go.Bar(name="Live",   x=lg_names, y=[s["live_views"]  for _, s in sorted_leagues], marker_color="#FFA15A"))
+    fig_v.update_layout(title="Season Views by League (Long / Shorts / Live)", barmode="stack",
+                        xaxis_title="", yaxis_title="", margin=dict(t=40, b=20),
+                        legend=dict(orientation="h", y=1.1, x=0.5, xanchor="center"),
+                        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                        font=dict(color="#FAFAFA"))
+
+    fig_n = go.Figure()
+    fig_n.add_trace(go.Bar(name="Long",   x=lg_names, y=[s["long_v"]   for _, s in sorted_leagues], marker_color="#636EFA"))
+    fig_n.add_trace(go.Bar(name="Shorts", x=lg_names, y=[s["short_v"]  for _, s in sorted_leagues], marker_color="#00CC96"))
+    fig_n.add_trace(go.Bar(name="Live",   x=lg_names, y=[s["live_v"]   for _, s in sorted_leagues], marker_color="#FFA15A"))
+    fig_n.update_layout(title="Season Videos by League (Long / Shorts / Live)", barmode="stack",
+                        xaxis_title="", yaxis_title="", margin=dict(t=40, b=20),
+                        legend=dict(orientation="h", y=1.1, x=0.5, xanchor="center"),
+                        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                        font=dict(color="#FAFAFA"))
+
+    c1, c2 = st.columns(2)
+    c1.plotly_chart(fig_v, use_container_width=True)
+    c2.plotly_chart(fig_n, use_container_width=True)
+
+    # Engagement Rate per league — peer-comparison metric
+    er_data = sorted(
+        [(lg, ((s["likes"] + s["comments"]) / s["views"] * 100) if s["views"] else 0.0)
+         for lg, s in sorted_leagues],
+        key=lambda kv: -kv[1],
+    )
+    if any(v > 0 for _, v in er_data):
+        fig_er = go.Figure()
+        fig_er.add_trace(go.Bar(
+            x=[lg for lg, _ in er_data], y=[v for _, v in er_data],
+            marker_color="#EF553B",
+            text=[f"{v:.2f}%" for _, v in er_data],
+            textposition="outside",
+        ))
+        fig_er.update_layout(
+            title="Engagement Rate by League (Likes + Comments / Views)",
+            xaxis_title="", yaxis_title="%", margin=dict(t=40, b=30),
+            showlegend=False,
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#FAFAFA"),
+        )
+        st.plotly_chart(fig_er, use_container_width=True)
+
+    # Avg Duration — Long-form
+    long_dur_data = sorted(
+        [(lg, s["long_dur_total"] // max(s["long_v"], 1)) for lg, s in sorted_leagues],
+        key=lambda kv: -kv[1],
+    )
+    if any(v > 0 for _, v in long_dur_data):
+        fig_ldur = go.Figure()
+        fig_ldur.add_trace(go.Bar(
+            name="Long",
+            x=[lg for lg, _ in long_dur_data],
+            y=[v for _, v in long_dur_data],
+            marker_color="#636EFA",
+            text=[f"{int(v)//60}:{int(v)%60:02d}" for _, v in long_dur_data],
+            textposition="outside",
+        ))
+        fig_ldur.update_layout(
+            title="Avg Duration by League — Long-form",
+            xaxis_title="", yaxis_title="Seconds", margin=dict(t=40, b=30),
+            showlegend=False,
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#FAFAFA"),
+        )
+        st.plotly_chart(fig_ldur, use_container_width=True)
+
+    # Avg Duration — Shorts
+    short_dur_data = sorted(
+        [(lg, s["short_dur_total"] // max(s["short_v"], 1)) for lg, s in sorted_leagues],
+        key=lambda kv: -kv[1],
+    )
+    if any(v > 0 for _, v in short_dur_data):
+        fig_sdur = go.Figure()
+        fig_sdur.add_trace(go.Bar(
+            name="Shorts",
+            x=[lg for lg, _ in short_dur_data],
+            y=[v for _, v in short_dur_data],
+            marker_color="#00CC96",
+            text=[f"{int(v)}s" for _, v in short_dur_data],
+            textposition="outside",
+        ))
+        fig_sdur.update_layout(
+            title="Avg Duration by League — Shorts",
+            xaxis_title="", yaxis_title="Seconds", margin=dict(t=40, b=30),
+            showlegend=False,
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#FAFAFA"),
+        )
+        st.plotly_chart(fig_sdur, use_container_width=True)
+
+
+def _render_top_season_videos(channel_ids, channels_by_id, since, limit=20, header="Top Season Videos"):
+    """Top-N season videos table, fed by get_top_season_videos. Same
+    look as the per-club Top Season Videos table at zoom 3 — channel
+    name on the meta line so the league/all-leagues version is
+    self-explanatory."""
+    vids = db.get_top_season_videos(channel_ids=channel_ids, since=since, limit=limit)
+    if not vids:
+        return
+    st.subheader(header)
+    rows = ""
+    for i, v in enumerate(vids, 1):
+        ch = channels_by_id.get(v.get("channel_id")) or v.get("channels") or {}
+        ch_name = ch.get("name", "?")
+        yt_url = f"https://www.youtube.com/watch?v={v['youtube_video_id']}"
+        thumb = v.get("thumbnail_url") or ""
+        _f = _fmt_of(v)
+        fmt_label = {"long": "Long", "short": "Shorts", "live": "Live"}[_f]
+        fmt_color = {"long": LONG_COLOR, "short": SHORT_COLOR, "live": LIVE_COLOR}[_f]
+        pub = (v.get("published_at") or "")[:10]
+        title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;")
+        rows += f"""<tr onclick="window.open('{yt_url}','_blank','noopener')" style="cursor:pointer">
+            <td style="padding:6px 12px;text-align:right;color:#888">{i}</td>
+            <td style="padding:6px 12px"><img src="{thumb}" style="width:120px;height:68px;object-fit:cover;border-radius:4px"></td>
+            <td style="padding:6px 12px">
+              <div style="font-size:12px;margin-bottom:2px">
+                <span style="color:#FAFAFA">{ch_name}</span> ·
+                <span style="color:{fmt_color}">{fmt_label}</span> ·
+                <span style="color:#888">{pub}</span>
+              </div>
+              <a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none">{title}</a>
+            </td>
+            <td style="padding:6px 12px;text-align:right">{fmt_num(int(v.get('view_count') or 0))}</td>
+            <td style="padding:6px 12px;text-align:right">{fmt_num(int(v.get('like_count') or 0))}</td>
+            <td style="padding:6px 12px;text-align:right">{fmt_num(int(v.get('comment_count') or 0))}</td>
+        </tr>"""
+    components.html(f"""
+    <style>
+        .top-vids {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
+                     font-family:"Source Sans Pro",sans-serif; }}
+        .top-vids th {{ padding:6px 12px; border-bottom:2px solid #444; text-align:left; }}
+        .top-vids td {{ border-bottom:1px solid #262730; }}
+        .top-vids tr:hover td {{ background:#1a1c24; }}
+    </style>
+    <table class="top-vids">
+    <thead><tr>
+        <th style="text-align:right">#</th>
+        <th></th>
+        <th>Video</th>
+        <th style="text-align:right">Views</th>
+        <th style="text-align:right">Likes</th>
+        <th style="text-align:right">Comments</th>
+    </tr></thead>
+    <tbody>{rows}</tbody>
+    </table>
+    """, height=len(vids) * 92 + 80, scrolling=True)
+
+
+# ══════════════════════════════════════════════════════════════
+# ZOOM LEVEL 1: ALL LEAGUES — branch by scope
+# ══════════════════════════════════════════════════════════════
+_scope = get_all_leagues_scope() if league is None else "Overall"
+
+if league is None and _scope == "Overall":
+    # Aggregate season stats per league — using precomputed channel columns (zero video queries)
+    import plotly.graph_objects as go
+
+    league_stats = _compute_league_stats(all_channels)
 
     if not league_stats:
         st.info("No season data yet.")
@@ -264,25 +438,10 @@ if league is None and _scope == "Overall":
     </div>
     """, height=len(sorted_leagues) * 37 + 130, scrolling=False)
 
-    # Two charts: season views by league, videos by league (stacked Long/Shorts/Live)
-    lg_names = [lg for lg, _ in sorted_leagues]
-    fig_v = go.Figure()
-    fig_v.add_trace(go.Bar(name="Long",   x=lg_names, y=[s["long_views"]  for _, s in sorted_leagues], marker_color="#636EFA"))
-    fig_v.add_trace(go.Bar(name="Shorts", x=lg_names, y=[s["short_views"] for _, s in sorted_leagues], marker_color="#00CC96"))
-    fig_v.add_trace(go.Bar(name="Live",   x=lg_names, y=[s["live_views"]  for _, s in sorted_leagues], marker_color="#FFA15A"))
-    fig_v.update_layout(title="Season Views by League (Long / Shorts / Live)", barmode="stack",
-                        xaxis_title="", yaxis_title="", margin=dict(t=40, b=20),
-                        legend=dict(orientation="h", y=1.1, x=0.5, xanchor="center"))
-    fig_n = go.Figure()
-    fig_n.add_trace(go.Bar(name="Long",   x=lg_names, y=[s["long_v"]   for _, s in sorted_leagues], marker_color="#636EFA"))
-    fig_n.add_trace(go.Bar(name="Shorts", x=lg_names, y=[s["short_v"]  for _, s in sorted_leagues], marker_color="#00CC96"))
-    fig_n.add_trace(go.Bar(name="Live",   x=lg_names, y=[s["live_v"]   for _, s in sorted_leagues], marker_color="#FFA15A"))
-    fig_n.update_layout(title="Season Videos by League (Long / Shorts / Live)", barmode="stack",
-                        xaxis_title="", yaxis_title="", margin=dict(t=40, b=20),
-                        legend=dict(orientation="h", y=1.1, x=0.5, xanchor="center"))
-    c1, c2 = st.columns(2)
-    c1.plotly_chart(fig_v, use_container_width=True)
-    c2.plotly_chart(fig_n, use_container_width=True)
+    # 5 per-league bar charts (Views, Videos, Engagement Rate,
+    # Avg Duration Long, Avg Duration Shorts) via shared helper —
+    # same set is reused in zoom 2 when league is None.
+    _render_per_league_charts(sorted_leagues)
 
     # ── All channels table — precomputed columns (zero video queries) ───
     st.subheader("All Channels — Season")
@@ -468,6 +627,14 @@ if league is None and _scope == "Overall":
     }})();
     </script>
     """, height=_ch_table_height, scrolling=False)
+
+    # ── Top season videos across the whole ecosystem ───────────
+    _all_ids = [c["id"] for c in all_channels
+                if c.get("entity_type") not in ("Player", "Federation", "OtherClub", "WomenClub")
+                and (include_league or c.get("entity_type") != "League")]
+    _ch_by_id = {c["id"]: c for c in all_channels}
+    _render_top_season_videos(_all_ids, _ch_by_id, SEASON_SINCE, limit=20,
+                              header="Top Season Videos — All Leagues")
 
     st.stop()
 
@@ -853,6 +1020,22 @@ if club is None:
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(color="#FAFAFA"),
         )
         st.plotly_chart(fig_sdur, use_container_width=True)
+
+    # ── When in All-Leagues sub-modes, also surface per-league
+    # comparison charts (same set as zoom 1's Overall view).
+    if league is None:
+        _ls = _compute_league_stats(clubs_only)
+        _sl = sorted(_ls.items(), key=lambda kv: kv[1]["views"], reverse=True)
+        if _sl:
+            _render_per_league_charts(_sl)
+
+    # ── Top season videos for this scope (whole filter or one league) ──
+    _scope_ids = [c["id"] for c in clubs_only]
+    _ch_by_id = {c["id"]: c for c in all_channels}
+    _hdr = (f"Top Season Videos — {league}" if league
+            else "Top Season Videos — All Leagues")
+    _render_top_season_videos(_scope_ids, _ch_by_id, SEASON_SINCE,
+                              limit=20, header=_hdr)
 
 else:
     # ══════════════════════════════════════════════════════════════

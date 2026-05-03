@@ -764,6 +764,27 @@ class Database:
         )
         return _fetch_all(query)
 
+    def get_top_season_videos(
+        self,
+        channel_ids: list[str] | None = None,
+        since: str = "2025-08-01",
+        limit: int = 20,
+    ) -> list[dict]:
+        """Top-N season videos by view count, optionally restricted to a
+        set of channels. Used for the season-wide / per-league "Top
+        videos" tables. Single Supabase round-trip with LIMIT pushed
+        down — fast even across 150+ channels."""
+        q = (
+            self.client.table("videos")
+            .select("*, channels(name, handle)")
+            .gte("published_at", since)
+            .order("view_count", desc=True)
+            .limit(limit)
+        )
+        if channel_ids:
+            q = q.in_("channel_id", channel_ids)
+        return q.execute().data or []
+
     # ── Channel Insights (AI) ────────────────────────────────
 
     def save_insights(self, channel_id: str, insights: dict, model: str = "claude-sonnet-4-20250514"):
