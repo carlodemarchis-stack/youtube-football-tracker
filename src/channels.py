@@ -38,6 +38,20 @@ LEAGUE_FLAG = {
 }
 
 
+# Brand colors for the 5 league channels. Used for per-league bar
+# charts where each bar is one league (one value, no format split).
+# Picked to match each league's official primary brand color while
+# staying visually distinct on a dark background.
+LEAGUE_COLOR = {
+    "Serie A":        "#008FD7",  # Lega Serie A azure
+    "Premier League": "#3D195B",  # PL purple
+    "La Liga":        "#EE8707",  # LaLiga orange (current branding)
+    "Bundesliga":     "#D3010C",  # DFL red
+    "Ligue 1":        "#091B59",  # Ligue 1 navy
+    "MLS":            "#001F47",  # MLS navy
+}
+
+
 LEAGUE_SEASON_START = {
     "Serie A": "2025-08-01",
     "Premier League": "2025-08-01",

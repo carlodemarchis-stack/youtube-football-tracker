@@ -12,7 +12,7 @@ from src.database import Database
 from src.analytics import fmt_num, yt_popup_js
 from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope, get_league_for_channel, render_page_subtitle
 from src.auth import require_login
-from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, get_season_since, LEAGUE_SEASON_START
+from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, LEAGUE_COLOR, get_season_since, LEAGUE_SEASON_START
 from src.dot import dual_dot, channel_badge
 
 load_dotenv()
@@ -163,12 +163,18 @@ def _render_per_league_charts(sorted_leagues):
         fig.update_xaxes(tickangle=-25)
         return fig
 
+    # League-brand color per bar (single value per league, so each bar
+    # gets its league's own color rather than one shared format color).
+    _GREY = "#888"  # fallback for unknown leagues
+    def _colors_for(rows):
+        return [LEAGUE_COLOR.get(lg, _GREY) for lg, _ in rows]
+
     er_fig = ldur_fig = sdur_fig = None
     if any(v > 0 for _, v in er_data):
         er_fig = go.Figure()
         er_fig.add_trace(go.Bar(
             x=[lg for lg, _ in er_data], y=[v for _, v in er_data],
-            marker_color="#EF553B",
+            marker_color=_colors_for(er_data),
             hovertemplate="%{x}: %{y:.2f}%<extra></extra>",
         ))
         _compact(er_fig, "Engagement Rate by League", "%")
@@ -177,7 +183,7 @@ def _render_per_league_charts(sorted_leagues):
         ldur_fig.add_trace(go.Bar(
             x=[lg for lg, _ in long_dur_data],
             y=[v for _, v in long_dur_data],
-            marker_color="#636EFA",
+            marker_color=_colors_for(long_dur_data),
             customdata=[f"{int(v)//60}:{int(v)%60:02d}" for _, v in long_dur_data],
             hovertemplate="%{x}: %{customdata}<extra></extra>",
         ))
@@ -187,7 +193,7 @@ def _render_per_league_charts(sorted_leagues):
         sdur_fig.add_trace(go.Bar(
             x=[lg for lg, _ in short_dur_data],
             y=[v for _, v in short_dur_data],
-            marker_color="#00CC96",
+            marker_color=_colors_for(short_dur_data),
             hovertemplate="%{x}: %{y}s<extra></extra>",
         ))
         _compact(sdur_fig, "Avg Duration by League — Shorts", "Seconds")
