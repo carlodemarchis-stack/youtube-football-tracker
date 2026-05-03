@@ -138,12 +138,30 @@ def render_header_filter(channels: list[dict]) -> tuple[str | None, dict | None]
     if st.session_state["_filter_club"] not in club_options:
         st.session_state["_filter_club"] = "All Clubs"
 
+    # Flag prefix for the dropdown — clubs and the league channel all
+    # belong to the same league, so they all get the same country flag
+    # (the dual-dot brand markers we use elsewhere are HTML and Streamlit
+    # selectbox can only render plain text). The "All …" rows stay
+    # unprefixed because they're scope toggles, not entity choices.
+    league_flag = LEAGUE_FLAG.get(selected_league, "")
+
+    def _fmt_club(name: str) -> str:
+        if name in ("All Clubs", "All Clubs + League"):
+            return name
+        # League-channel option already carries the 📺 prefix; show the
+        # flag after it for visual consistency with the rest of the list.
+        if name.startswith(LEAGUE_CHANNEL_PREFIX):
+            stripped = name[len(LEAGUE_CHANNEL_PREFIX):]
+            return f"{LEAGUE_CHANNEL_PREFIX}{league_flag} {stripped}".strip()
+        return f"{league_flag} {name}".strip() if league_flag else name
+
     with col2:
         selected_club = st.selectbox(
             "Club / League channel",
             club_options,
             index=club_options.index(st.session_state["_filter_club"]),
             key="_widget_club",
+            format_func=_fmt_club,
         )
         st.session_state["_filter_club"] = selected_club
 
