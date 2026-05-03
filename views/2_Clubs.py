@@ -840,70 +840,59 @@ else:
         st.metric("Avg Views/Video", fmt_num(avg_vpv_ch))
         st.markdown(_rank_html("vpv"), unsafe_allow_html=True)
 
-    # ── Content breakdown — donuts for lifetime format split ───
+    # ── 3 lifetime per-format donuts — same set used at All-Leagues
+    # and One-League zoom levels. All pulled from precomputed columns
+    # on the channel row (lifetime_long_views etc., backfilled by
+    # daily_refresh.py) so no per-page video query is needed.
     import plotly.graph_objects as go
-    long_n = channel.get("long_form_count", 0) or 0
-    short_n = channel.get("shorts_count", 0) or 0
-    live_n = channel.get("live_count", 0) or 0
+    long_n = int(channel.get("long_form_count") or 0)
+    short_n = int(channel.get("shorts_count") or 0)
+    live_n = int(channel.get("live_count") or 0)
+    long_v = int(channel.get("lifetime_long_views") or 0)
+    short_v = int(channel.get("lifetime_short_views") or 0)
+    live_v = int(channel.get("lifetime_live_views") or 0)
+
+    long_vpv  = long_v  // max(long_n,  1)
+    short_vpv = short_v // max(short_n, 1)
+    live_vpv  = live_v  // max(live_n,  1)
+
     fmt_total = long_n + short_n + live_n
-
     if fmt_total > 0:
-        # Compute views-by-format by scanning this channel's videos
-        with st.spinner("Computing views by format…"):
-            _all_vids = db.get_videos_by_channel(channel["id"])
+        _has_live = (live_v + live_n) > 0
+        _pie_labels = ["Long", "Shorts", "Live"] if _has_live else ["Long", "Shorts"]
+        _pie_colors = ["#636EFA", "#00CC96", "#FFA15A"] if _has_live else ["#636EFA", "#00CC96"]
 
-        def _fmt_of(v):
-            f = (v.get("format") or "").lower()
-            if f in ("long", "short", "live"):
-                return f
-            return "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
+        def _zv(l, s, v):
+            return [l, s, v] if _has_live else [l, s]
 
-        long_v = sum(v.get("view_count", 0) or 0 for v in _all_vids if _fmt_of(v) == "long")
-        short_v = sum(v.get("view_count", 0) or 0 for v in _all_vids if _fmt_of(v) == "short")
-        live_v = sum(v.get("view_count", 0) or 0 for v in _all_vids if _fmt_of(v) == "live")
-        views_total = long_v + short_v + live_v
-
-        col_pv1, col_pv2 = st.columns(2)
-        with col_pv1:
+        def _make_pie(values, hover_suffix, title):
             fig = go.Figure(go.Pie(
-                labels=["Long", "Shorts", "Live"],
-                values=[long_n, short_n, live_n],
-                marker=dict(colors=[CLUB_C1, CLUB_C2, "#FFA15A"]),
-                hole=0.55, sort=False,
-                textinfo="label+percent", textposition="inside",
-                hovertemplate="%{label}: %{value:,.0f}<extra></extra>",
+                labels=_pie_labels, values=values,
+                marker=dict(colors=_pie_colors), hole=0.45,
+                textinfo="percent+label", textposition="inside",
+                hovertemplate="%{label}: %{value:,.0f} " + hover_suffix + "<extra></extra>",
             ))
             fig.update_layout(
-                title=dict(text="Videos published (lifetime)", x=0.5),
-                showlegend=False, height=320,
+                title=dict(text=title, x=0.5), showlegend=False, height=300,
                 margin=dict(t=40, b=20, l=20, r=20),
                 paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                 font=dict(color="#FAFAFA"),
-                annotations=[dict(text=fmt_num(fmt_total), x=0.5, y=0.5, showarrow=False,
-                                  font=dict(size=18, color="#FAFAFA"))],
             )
-            st.plotly_chart(fig, use_container_width=True)
+            return fig
 
-        with col_pv2:
-            if views_total > 0:
-                fig_v = go.Figure(go.Pie(
-                    labels=["Long", "Shorts", "Live"],
-                    values=[long_v, short_v, live_v],
-                    marker=dict(colors=[CLUB_C1, CLUB_C2, "#FFA15A"]),
-                    hole=0.55, sort=False,
-                    textinfo="label+percent", textposition="inside",
-                    hovertemplate="%{label}: %{value:,.0f} views<extra></extra>",
-                ))
-                fig_v.update_layout(
-                    title=dict(text="Views by format (lifetime)", x=0.5),
-                    showlegend=False, height=320,
-                    margin=dict(t=40, b=20, l=20, r=20),
-                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                    font=dict(color="#FAFAFA"),
-                    annotations=[dict(text=fmt_num(views_total), x=0.5, y=0.5, showarrow=False,
-                                      font=dict(size=18, color="#FAFAFA"))],
-                )
-                st.plotly_chart(fig_v, use_container_width=True)
+        _pcols = st.columns(3)
+        with _pcols[0]:
+            st.plotly_chart(_make_pie(_zv(long_v, short_v, live_v),
+                                      "views", "Lifetime Views by Format"),
+                            use_container_width=True)
+        with _pcols[1]:
+            st.plotly_chart(_make_pie(_zv(long_n, short_n, live_n),
+                                      "videos", "Videos by Format"),
+                            use_container_width=True)
+        with _pcols[2]:
+            st.plotly_chart(_make_pie(_zv(long_vpv, short_vpv, live_vpv),
+                                      "views/video", "Avg Views/Video by Format"),
+                            use_container_width=True)
 
     # ── Growth (from channel_snapshots) ─────────────────────────
     from src.growth import delta as _gdelta, delta_since as _gdelta_since, days_covered as _gdays
