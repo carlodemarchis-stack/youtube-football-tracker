@@ -127,76 +127,78 @@ def _render_per_league_charts(sorted_leagues):
     c1.plotly_chart(fig_v, use_container_width=True)
     c2.plotly_chart(fig_n, use_container_width=True)
 
-    # Engagement Rate per league — peer-comparison metric
+    # Three secondary charts in one row: Engagement Rate, Avg Duration
+    # (Long), Avg Duration (Shorts). Same set, all derived from the
+    # league_stats aggregate — no fancy data wrangling.
     er_data = sorted(
         [(lg, ((s["likes"] + s["comments"]) / s["views"] * 100) if s["views"] else 0.0)
          for lg, s in sorted_leagues],
         key=lambda kv: -kv[1],
     )
-    if any(v > 0 for _, v in er_data):
-        fig_er = go.Figure()
-        fig_er.add_trace(go.Bar(
-            x=[lg for lg, _ in er_data], y=[v for _, v in er_data],
-            marker_color="#EF553B",
-            text=[f"{v:.2f}%" for _, v in er_data],
-            textposition="outside",
-        ))
-        fig_er.update_layout(
-            title="Engagement Rate by League (Likes + Comments / Views)",
-            xaxis_title="", yaxis_title="%", margin=dict(t=40, b=30),
-            showlegend=False,
-            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="#FAFAFA"),
-        )
-        st.plotly_chart(fig_er, use_container_width=True)
-
-    # Avg Duration — Long-form
     long_dur_data = sorted(
         [(lg, s["long_dur_total"] // max(s["long_v"], 1)) for lg, s in sorted_leagues],
         key=lambda kv: -kv[1],
     )
-    if any(v > 0 for _, v in long_dur_data):
-        fig_ldur = go.Figure()
-        fig_ldur.add_trace(go.Bar(
-            name="Long",
-            x=[lg for lg, _ in long_dur_data],
-            y=[v for _, v in long_dur_data],
-            marker_color="#636EFA",
-            text=[f"{int(v)//60}:{int(v)%60:02d}" for _, v in long_dur_data],
-            textposition="outside",
-        ))
-        fig_ldur.update_layout(
-            title="Avg Duration by League — Long-form",
-            xaxis_title="", yaxis_title="Seconds", margin=dict(t=40, b=30),
-            showlegend=False,
-            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="#FAFAFA"),
-        )
-        st.plotly_chart(fig_ldur, use_container_width=True)
-
-    # Avg Duration — Shorts
     short_dur_data = sorted(
         [(lg, s["short_dur_total"] // max(s["short_v"], 1)) for lg, s in sorted_leagues],
         key=lambda kv: -kv[1],
     )
-    if any(v > 0 for _, v in short_dur_data):
-        fig_sdur = go.Figure()
-        fig_sdur.add_trace(go.Bar(
-            name="Shorts",
-            x=[lg for lg, _ in short_dur_data],
-            y=[v for _, v in short_dur_data],
-            marker_color="#00CC96",
-            text=[f"{int(v)}s" for _, v in short_dur_data],
-            textposition="outside",
-        ))
-        fig_sdur.update_layout(
-            title="Avg Duration by League — Shorts",
-            xaxis_title="", yaxis_title="Seconds", margin=dict(t=40, b=30),
-            showlegend=False,
+
+    # Compact layout when the row is squeezed: shorter title, smaller
+    # margins, no outside-bar labels (those wrap awkwardly in narrow
+    # columns and force the plot height to grow).
+    def _compact(fig, title, ylabel):
+        fig.update_layout(
+            title=dict(text=title, font=dict(size=14)),
+            xaxis_title="", yaxis_title=ylabel,
+            margin=dict(t=40, b=20, l=10, r=10),
+            showlegend=False, height=320,
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
             font=dict(color="#FAFAFA"),
         )
-        st.plotly_chart(fig_sdur, use_container_width=True)
+        fig.update_xaxes(tickangle=-25)
+        return fig
+
+    er_fig = ldur_fig = sdur_fig = None
+    if any(v > 0 for _, v in er_data):
+        er_fig = go.Figure()
+        er_fig.add_trace(go.Bar(
+            x=[lg for lg, _ in er_data], y=[v for _, v in er_data],
+            marker_color="#EF553B",
+            hovertemplate="%{x}: %{y:.2f}%<extra></extra>",
+        ))
+        _compact(er_fig, "Engagement Rate by League", "%")
+    if any(v > 0 for _, v in long_dur_data):
+        ldur_fig = go.Figure()
+        ldur_fig.add_trace(go.Bar(
+            x=[lg for lg, _ in long_dur_data],
+            y=[v for _, v in long_dur_data],
+            marker_color="#636EFA",
+            customdata=[f"{int(v)//60}:{int(v)%60:02d}" for _, v in long_dur_data],
+            hovertemplate="%{x}: %{customdata}<extra></extra>",
+        ))
+        _compact(ldur_fig, "Avg Duration by League — Long-form", "Seconds")
+    if any(v > 0 for _, v in short_dur_data):
+        sdur_fig = go.Figure()
+        sdur_fig.add_trace(go.Bar(
+            x=[lg for lg, _ in short_dur_data],
+            y=[v for _, v in short_dur_data],
+            marker_color="#00CC96",
+            hovertemplate="%{x}: %{y}s<extra></extra>",
+        ))
+        _compact(sdur_fig, "Avg Duration by League — Shorts", "Seconds")
+
+    if any([er_fig, ldur_fig, sdur_fig]):
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            if er_fig:
+                st.plotly_chart(er_fig, use_container_width=True)
+        with c2:
+            if ldur_fig:
+                st.plotly_chart(ldur_fig, use_container_width=True)
+        with c3:
+            if sdur_fig:
+                st.plotly_chart(sdur_fig, use_container_width=True)
 
 
 def _render_top_season_videos(channel_ids, channels_by_id, since, limit=20, header="Top Season Videos"):
