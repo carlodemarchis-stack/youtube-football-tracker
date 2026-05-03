@@ -495,6 +495,27 @@ elif club is None:
     else:
         clubs_only = [ch for ch in league_channels if ch.get("entity_type") not in ("League", "Player", "Federation", "OtherClub", "WomenClub")]
 
+    # League title — same convention as the single-club case (where
+    # render_club_header prints flag + name + ranks). For a league
+    # we don't have a "rank within peers" concept, so the suffix is
+    # just the channel-count breakdown (clubs + league channel).
+    if league:
+        _flag = _lg_flag(league)
+        _n_clubs = sum(1 for c in clubs_only if c.get("entity_type") != "League")
+        _n_lg = sum(1 for c in clubs_only if c.get("entity_type") == "League")
+        _suffix_bits = [f"{_n_clubs} clubs"]
+        if _n_lg:
+            _suffix_bits.append(f"{_n_lg} league channel")
+        _suffix = " · ".join(_suffix_bits)
+        st.markdown(
+            f"<h3 style='margin:0;display:flex;align-items:center;gap:10px'>"
+            f"<span style='font-size:1.2em'>{_flag}</span>"
+            f"<span>{league}"
+            f"<span style='color:#888;font-size:0.95rem;font-weight:400;margin-left:14px'>"
+            f"{_suffix}</span></span></h3>",
+            unsafe_allow_html=True,
+        )
+
     # Totals banner for the selection
     total_subs = sum(ch.get("subscriber_count", 0) for ch in clubs_only)
     total_views = sum(ch.get("total_views", 0) for ch in clubs_only)
