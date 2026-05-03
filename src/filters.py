@@ -121,18 +121,28 @@ def render_header_filter(channels: list[dict]) -> tuple[str | None, dict | None]
     has_league_channel = league_channel is not None
     clubs.sort(key=lambda c: c.get("subscriber_count", 0), reverse=True)
 
-    club_options = ["All Clubs"]
+    # Order:
+    #   1. "All Clubs + League" — default when a league is selected (matches
+    #      what people actually want — clubs AND the league channel together)
+    #   2. "All Clubs" — clubs only, no league channel
+    #   3. The league channel itself (single-entity)
+    #   4. Each club, by subscribers desc
+    club_options = []
     if has_league_channel:
         club_options.append("All Clubs + League")
+    club_options.append("All Clubs")
+    if has_league_channel:
         # The league channel itself as a selectable single-entity option.
         # Stored as the bare channel name; identified on read-back by
         # comparing to league_channel["name"] directly.
         club_options.append(league_channel["name"])
     club_options += [ch["name"] for ch in clubs]
 
-    # Ensure stored club is still valid for this league
+    # Ensure stored club is still valid for this league. Falls back to the
+    # first option (which is "All Clubs + League" when there's a league
+    # channel, otherwise "All Clubs").
     if st.session_state["_filter_club"] not in club_options:
-        st.session_state["_filter_club"] = "All Clubs"
+        st.session_state["_filter_club"] = club_options[0]
 
     league_flag = LEAGUE_FLAG.get(selected_league, "")
     league_channel_name = league_channel["name"] if has_league_channel else None
