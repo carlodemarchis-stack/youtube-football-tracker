@@ -121,39 +121,28 @@ def render_header_filter(channels: list[dict]) -> tuple[str | None, dict | None]
     has_league_channel = league_channel is not None
     clubs.sort(key=lambda c: c.get("subscriber_count", 0), reverse=True)
 
-    # Marker prefix for the league-channel option so it's visually distinct
-    # from clubs in the dropdown (and parseable on read-back).
-    LEAGUE_CHANNEL_PREFIX = "📺 "
-
     club_options = ["All Clubs"]
     if has_league_channel:
         club_options.append("All Clubs + League")
-        # The league channel itself as a selectable single-entity option —
-        # picking this filters the page to just the league channel's
-        # videos / stats, the same way picking a club does for that club.
-        club_options.append(LEAGUE_CHANNEL_PREFIX + league_channel["name"])
+        # The league channel itself as a selectable single-entity option.
+        # Stored as the bare channel name; identified on read-back by
+        # comparing to league_channel["name"] directly.
+        club_options.append(league_channel["name"])
     club_options += [ch["name"] for ch in clubs]
 
     # Ensure stored club is still valid for this league
     if st.session_state["_filter_club"] not in club_options:
         st.session_state["_filter_club"] = "All Clubs"
 
-    # Flag prefix for the dropdown — clubs and the league channel all
-    # belong to the same league, so they all get the same country flag
-    # (the dual-dot brand markers we use elsewhere are HTML and Streamlit
-    # selectbox can only render plain text). The "All …" rows stay
-    # unprefixed because they're scope toggles, not entity choices.
     league_flag = LEAGUE_FLAG.get(selected_league, "")
+    league_channel_name = league_channel["name"] if has_league_channel else None
 
     def _fmt_club(name: str) -> str:
-        if name in ("All Clubs", "All Clubs + League"):
-            return name
-        # League-channel option already carries the 📺 prefix; show the
-        # flag after it for visual consistency with the rest of the list.
-        if name.startswith(LEAGUE_CHANNEL_PREFIX):
-            stripped = name[len(LEAGUE_CHANNEL_PREFIX):]
-            return f"{LEAGUE_CHANNEL_PREFIX}{league_flag} {stripped}".strip()
-        return f"{league_flag} {name}".strip() if league_flag else name
+        # Only the league-channel option carries the country flag; clubs
+        # render as plain names. The "All ..." rows are scope toggles.
+        if has_league_channel and name == league_channel_name and league_flag:
+            return f"{league_flag} {name}"
+        return name
 
     with col2:
         selected_club = st.selectbox(
@@ -179,8 +168,7 @@ def render_header_filter(channels: list[dict]) -> tuple[str | None, dict | None]
     # League-channel single selection: strip the prefix and return the
     # league channel record as the "club" value (every page treats the
     # second tuple element as "the single channel I'm filtered to").
-    if (has_league_channel
-            and selected_club == LEAGUE_CHANNEL_PREFIX + league_channel["name"]):
+    if has_league_channel and selected_club == league_channel["name"]:
         return selected_league, league_channel
     club_dict = next((ch for ch in clubs if ch["name"] == selected_club), None)
     return selected_league, club_dict
