@@ -208,7 +208,8 @@ def _render_per_league_charts(sorted_leagues):
 def _render_top_season_videos(channel_ids, channels_by_id, since, limit=20, header="Top Season Videos"):
     """Top-N season videos table, fed by get_top_season_videos. Same
     look as the per-club Top Season Videos table at zoom 3 — channel
-    name on the meta line so the league/all-leagues version is
+    name on the meta line (with the standard dual-dot for clubs / flag
+    for league channels) so the league/all-leagues version is
     self-explanatory."""
     vids = db.get_top_season_videos(channel_ids=channel_ids, since=since, limit=limit)
     if not vids:
@@ -226,10 +227,16 @@ def _render_top_season_videos(channel_ids, channels_by_id, since, limit=20, head
     _COLOR = {"long": "#636EFA", "short": "#00CC96", "live": "#FFA15A"}
     _LABEL = {"long": "Long", "short": "Shorts", "live": "Live"}
 
+    # Channel marker (dual-dot for clubs, country flag for league
+    # channels) — same convention as every other table on the site.
+    color_map = get_global_color_map() or {}
+    dual_map = get_global_color_map_dual() or {}
+
     rows = ""
     for i, v in enumerate(vids, 1):
         ch = channels_by_id.get(v.get("channel_id")) or v.get("channels") or {}
         ch_name = ch.get("name", "?")
+        ch_dot = channel_badge(ch, color_map, dual_map, 12)
         yt_url = f"https://www.youtube.com/watch?v={v['youtube_video_id']}"
         thumb = v.get("thumbnail_url") or ""
         _f = _fmt_of_local(v)
@@ -241,9 +248,11 @@ def _render_top_season_videos(channel_ids, channels_by_id, since, limit=20, head
             <td style="padding:6px 12px;text-align:right;color:#888">{i}</td>
             <td style="padding:6px 12px"><img src="{thumb}" style="width:120px;height:68px;object-fit:cover;border-radius:4px"></td>
             <td style="padding:6px 12px">
-              <div style="font-size:12px;margin-bottom:2px">
-                <span style="color:#FAFAFA">{ch_name}</span> ·
-                <span style="color:{fmt_color}">{fmt_label}</span> ·
+              <div style="font-size:12px;margin-bottom:2px;display:flex;align-items:center;gap:6px">
+                {ch_dot}<span style="color:#FAFAFA">{ch_name}</span>
+                <span style="color:#666">·</span>
+                <span style="color:{fmt_color}">{fmt_label}</span>
+                <span style="color:#666">·</span>
                 <span style="color:#888">{pub}</span>
               </div>
               <a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none">{title}</a>
