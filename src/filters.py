@@ -375,7 +375,13 @@ def get_league_for_channel(ch: dict) -> str:
 
 
 def render_club_header(channel: dict, all_channels: list[dict]) -> None:
-    """Render a club's name with inline subscriber ranks (league + overall)."""
+    """Render a channel's name with the standard marker (dual-dot for
+    clubs, country flag for league channels) and inline subscriber
+    ranks. Works for both clubs and league channels — ranks are only
+    computed against the clubs cohort, so a league channel just gets
+    its flag + name with no rank suffix."""
+    from src.dot import channel_badge
+
     clubs = [c for c in all_channels if is_club(c)]
     clubs.sort(key=lambda c: c.get("subscriber_count", 0), reverse=True)
     overall_rank = next((i + 1 for i, c in enumerate(clubs) if c["id"] == channel["id"]), None)
@@ -403,7 +409,16 @@ def render_club_header(channel: dict, all_channels: list[dict]) -> None:
         f"<span style='color:#888;font-size:0.95rem;font-weight:400;margin-left:14px'>"
         f"{' · '.join(bits)}</span>" if bits else ""
     )
+
+    # Marker before the name: dual-dot for clubs, country flag for the
+    # league channel (channel_badge handles both via entity_type).
+    color_map = get_global_color_map() or {}
+    dual_map = get_global_color_map_dual() or {}
+    badge = channel_badge(channel, color_map, dual_map, 18)
+
     st.markdown(
-        f"<h3 style='margin:0'>{channel['name']}{rank_html}</h3>",
+        f"<h3 style='margin:0;display:flex;align-items:center;gap:10px'>"
+        f"<span style='display:inline-flex;align-items:center'>{badge}</span>"
+        f"<span>{channel['name']}{rank_html}</span></h3>",
         unsafe_allow_html=True,
     )
