@@ -138,6 +138,13 @@ def main() -> int:
                     db.refresh_top100_stats(channel_db_id, ch_season_since)
                 except Exception:
                     pass
+                # Lifetime per-format view aggregates — Supabase-only,
+                # no extra YouTube quota. Powers the Channels page Views
+                # split (Long / Shorts / Live) without per-page queries.
+                try:
+                    db.refresh_lifetime_format_views(channel_db_id)
+                except Exception as _e:
+                    log(f"  refresh_lifetime_format_views skipped: {_e}")
 
             ok += 1
             extra = f" (+{len(new_ids)} new)" if new_ids else ""

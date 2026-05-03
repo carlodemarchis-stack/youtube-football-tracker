@@ -456,6 +456,39 @@ class Database:
         ).eq("id", channel_db_id).execute()
         return total
 
+    def refresh_lifetime_format_views(self, channel_db_id: str) -> dict:
+        """Recompute lifetime per-format view aggregates and store
+        them on the channels row. Reads all videos for this channel
+        (no since-filter — these are lifetime totals), groups by
+        format, sums view_count per group. Updates 3 columns:
+        lifetime_long_views / lifetime_short_views / lifetime_live_views.
+
+        Idempotent: re-running gives the same numbers. No YouTube API
+        calls — Supabase-only. Used by daily_refresh.py and the
+        one-time backfill_lifetime_format_views.py script."""
+        # Page through all videos for this channel — supabase-py caps
+        # responses at 1000 rows, so use _fetch_all.
+        rows = _fetch_all(
+            self.client.table("videos")
+            .select("view_count, format, duration_seconds")
+            .eq("channel_id", channel_db_id)
+        )
+        sums = {"long": 0, "short": 0, "live": 0}
+        for r in rows:
+            f = (r.get("format") or "").lower()
+            if f not in ("long", "short", "live"):
+                # Fallback for legacy rows where format isn't set —
+                # use duration to bucket the same way pages do.
+                f = "long" if (r.get("duration_seconds") or 0) >= 60 else "short"
+            sums[f] += int(r.get("view_count") or 0)
+        update = {
+            "lifetime_long_views":  sums["long"],
+            "lifetime_short_views": sums["short"],
+            "lifetime_live_views":  sums["live"],
+        }
+        self.client.table("channels").update(update).eq("id", channel_db_id).execute()
+        return update
+
     def refresh_top100_stats(self, channel_db_id: str, since: str = "2025-08-01"):
         """Precompute top-100 stats and store on the channels row."""
         from datetime import datetime as _dt, timezone as _tz

@@ -285,6 +285,12 @@ if league is None and _scope == "Overall":
         ln = int(_ch.get("long_form_count") or 0)
         sn = int(_ch.get("shorts_count") or 0)
         vn = int(_ch.get("live_count") or 0)
+        # Lifetime per-format views — backfilled by daily_refresh.py
+        # via db.refresh_lifetime_format_views(). Fall back to 0 if
+        # the columns aren't populated for this row yet.
+        lv = int(_ch.get("lifetime_long_views") or 0)
+        sv = int(_ch.get("lifetime_short_views") or 0)
+        vv = int(_ch.get("lifetime_live_views") or 0)
         _ac_rows.append({
             "ch": _ch,
             "subs": subs,
@@ -292,9 +298,13 @@ if league is None and _scope == "Overall":
             "spy": _subs_per_year(subs, _ch.get("launched_at")),
             "total_views": tv,
             "views_per_sub": tv // max(subs, 1),
+            "long_views": lv, "short_views": sv, "live_views": vv,
             "videos": n,
             "long_videos": ln, "short_videos": sn, "live_videos": vn,
             "vpv": tv // max(n, 1),
+            "long_vpv":  lv // max(ln, 1),
+            "short_vpv": sv // max(sn, 1),
+            "live_vpv":  vv // max(vn, 1),
         })
     _ac_rows.sort(key=lambda r: -r["subs"])
 
@@ -313,12 +323,18 @@ if league is None and _scope == "Overall":
             <td style="padding:6px 12px;text-align:right" data-val="{_r['subs']}">{fmt_num(_r['subs'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{_r['spy']}">{fmt_num(_r['spy'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{_r['total_views']}">{_v(_r['total_views'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{_r['long_views']}">{_v(_r['long_views'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{_r['short_views']}">{_v(_r['short_views'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{_r['live_views']}">{_v(_r['live_views'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{_r['views_per_sub']}">{_v(_r['views_per_sub'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{_r['videos']}">{_v(_r['videos'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{_r['long_videos']}">{_v(_r['long_videos'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{_r['short_videos']}">{_v(_r['short_videos'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{_r['live_videos']}">{_v(_r['live_videos'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{_r['vpv']}">{_v(_r['vpv'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{_r['long_vpv']}">{_v(_r['long_vpv'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{_r['short_vpv']}">{_v(_r['short_vpv'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{_r['live_vpv']}">{_v(_r['live_vpv'])}</td>
         </tr>"""
     _all_tbl_h = len(_ac_rows) * 37 + 130
     components.html(f"""
@@ -340,9 +356,9 @@ if league is None and _scope == "Overall":
     <thead>
     <tr>
         <th colspan="5"></th>
-        <th colspan="2" style="text-align:center;border-bottom:2px solid #636EFA;color:#636EFA">Views</th>
+        <th colspan="5" style="text-align:center;border-bottom:2px solid #636EFA;color:#636EFA">Views</th>
         <th colspan="4" style="text-align:center;border-bottom:2px solid #00CC96;color:#00CC96">Videos</th>
-        <th colspan="1" style="text-align:center;border-bottom:2px solid #FFA15A;color:#FFA15A">Views/Video</th>
+        <th colspan="4" style="text-align:center;border-bottom:2px solid #FFA15A;color:#FFA15A">Views/Video</th>
     </tr>
     <tr style="border-bottom:2px solid #444">
         <th style="width:30px"></th>
@@ -350,13 +366,19 @@ if league is None and _scope == "Overall":
         <th data-col="2" data-type="num" style="text-align:center">Since</th>
         <th data-col="3" data-type="num" style="text-align:right" class="active">Subs ▼</th>
         <th data-col="4" data-type="num" style="text-align:right">Subs/Year</th>
-        <th data-col="5" data-type="num" style="text-align:right">Total</th>
-        <th data-col="6" data-type="num" style="text-align:right">Per Sub</th>
-        <th data-col="7" data-type="num" style="text-align:right">All</th>
-        <th data-col="8" data-type="num" style="text-align:right">Long</th>
-        <th data-col="9" data-type="num" style="text-align:right">Shorts</th>
-        <th data-col="10" data-type="num" style="text-align:right">Live</th>
-        <th data-col="11" data-type="num" style="text-align:right">All</th>
+        <th data-col="5" data-type="num" style="text-align:right">All</th>
+        <th data-col="6" data-type="num" style="text-align:right">Long</th>
+        <th data-col="7" data-type="num" style="text-align:right">Shorts</th>
+        <th data-col="8" data-type="num" style="text-align:right">Live</th>
+        <th data-col="9" data-type="num" style="text-align:right">Per Sub</th>
+        <th data-col="10" data-type="num" style="text-align:right">All</th>
+        <th data-col="11" data-type="num" style="text-align:right">Long</th>
+        <th data-col="12" data-type="num" style="text-align:right">Shorts</th>
+        <th data-col="13" data-type="num" style="text-align:right">Live</th>
+        <th data-col="14" data-type="num" style="text-align:right">All</th>
+        <th data-col="15" data-type="num" style="text-align:right">Long</th>
+        <th data-col="16" data-type="num" style="text-align:right">Shorts</th>
+        <th data-col="17" data-type="num" style="text-align:right">Live</th>
     </tr>
     </thead>
     <tbody>{_all_rows}</tbody>
