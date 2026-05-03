@@ -230,18 +230,20 @@ if league is None and _scope == "Overall":
     </div>
     """, height=len(sorted_leagues) * 37 + 130, scrolling=False)
 
-    # Two charts: season views by league, videos by league (stacked)
+    # Two charts: season views by league, videos by league (stacked Long/Shorts/Live)
     lg_names = [lg for lg, _ in sorted_leagues]
     fig_v = go.Figure()
-    fig_v.add_trace(go.Bar(name="Long", x=lg_names, y=[s["long_views"] for _, s in sorted_leagues], marker_color="#636EFA"))
+    fig_v.add_trace(go.Bar(name="Long",   x=lg_names, y=[s["long_views"]  for _, s in sorted_leagues], marker_color="#636EFA"))
     fig_v.add_trace(go.Bar(name="Shorts", x=lg_names, y=[s["short_views"] for _, s in sorted_leagues], marker_color="#00CC96"))
-    fig_v.update_layout(title="Season Views by League (Long vs Shorts)", barmode="stack",
+    fig_v.add_trace(go.Bar(name="Live",   x=lg_names, y=[s["live_views"]  for _, s in sorted_leagues], marker_color="#FFA15A"))
+    fig_v.update_layout(title="Season Views by League (Long / Shorts / Live)", barmode="stack",
                         xaxis_title="", yaxis_title="", margin=dict(t=40, b=20),
                         legend=dict(orientation="h", y=1.1, x=0.5, xanchor="center"))
     fig_n = go.Figure()
-    fig_n.add_trace(go.Bar(name="Long", x=lg_names, y=[s["long_v"] for _, s in sorted_leagues], marker_color="#636EFA"))
-    fig_n.add_trace(go.Bar(name="Shorts", x=lg_names, y=[s["short_v"] for _, s in sorted_leagues], marker_color="#00CC96"))
-    fig_n.update_layout(title="Season Videos by League (Long vs Shorts)", barmode="stack",
+    fig_n.add_trace(go.Bar(name="Long",   x=lg_names, y=[s["long_v"]   for _, s in sorted_leagues], marker_color="#636EFA"))
+    fig_n.add_trace(go.Bar(name="Shorts", x=lg_names, y=[s["short_v"]  for _, s in sorted_leagues], marker_color="#00CC96"))
+    fig_n.add_trace(go.Bar(name="Live",   x=lg_names, y=[s["live_v"]   for _, s in sorted_leagues], marker_color="#FFA15A"))
+    fig_n.update_layout(title="Season Videos by League (Long / Shorts / Live)", barmode="stack",
                         xaxis_title="", yaxis_title="", margin=dict(t=40, b=20),
                         legend=dict(orientation="h", y=1.1, x=0.5, xanchor="center"))
     c1, c2 = st.columns(2)
