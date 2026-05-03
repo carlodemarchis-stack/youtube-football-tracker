@@ -261,68 +261,107 @@ if league is None and _scope == "Overall":
                 cols[j].plotly_chart(fig, use_container_width=True)
 
 
-    # ── All Channels table (same as zoom-2) ──────────────────
+    # ── All Channels table — lifetime stats, same grouped-headers /
+    # scrollable / sortable look as Season's ch-season. Lifetime data
+    # only has per-format video COUNTS (Long/Shorts/Live) — there are
+    # no per-format breakdowns for views, duration or engagement at the
+    # channel level (those live in the video rows, not aggregated on the
+    # channel record), so the Views and Views/Video groups are single-
+    # column and Avg Duration / Engagement are omitted entirely.
     st.subheader("All Channels")
-    _all_clubs = [ch for ch in all_channels if ch.get("entity_type") not in ("League", "Player", "Federation", "OtherClub", "WomenClub")]
-    _all_df = compute_channel_comparison(_all_clubs)
+    _all_clubs = [ch for ch in all_channels if ch.get("entity_type") not in ("Player", "Federation", "OtherClub", "WomenClub")]
     _all_color_map = get_global_color_map()
     _all_dual = get_global_color_map_dual()
-    _all_df["views_per_sub"] = (_all_df["total_views"] / _all_df["subscriber_count"].replace(0, 1)).astype(int)
-    _all_df = _all_df.sort_values("subscriber_count", ascending=False).reset_index(drop=True)
+
+    def _v(val):
+        v = int(val or 0)
+        return fmt_num(v) if v else "-"
+
+    _ac_rows = []
+    for _ch in _all_clubs:
+        subs = int(_ch.get("subscriber_count") or 0)
+        tv = int(_ch.get("total_views") or 0)
+        n = int(_ch.get("video_count") or 0)
+        ln = int(_ch.get("long_form_count") or 0)
+        sn = int(_ch.get("shorts_count") or 0)
+        vn = int(_ch.get("live_count") or 0)
+        _ac_rows.append({
+            "ch": _ch,
+            "subs": subs,
+            "launched": (_ch.get("launched_at") or "")[:4],
+            "spy": _subs_per_year(subs, _ch.get("launched_at")),
+            "total_views": tv,
+            "views_per_sub": tv // max(subs, 1),
+            "videos": n,
+            "long_videos": ln, "short_videos": sn, "live_videos": vn,
+            "vpv": tv // max(n, 1),
+        })
+    _ac_rows.sort(key=lambda r: -r["subs"])
+
     _all_rows = ""
-    for _, _r in _all_df.iterrows():
-        _dot = channel_badge(_r.to_dict(), _all_color_map, _all_dual, 14)
-        _handle = _r.get("handle", "")
+    for _r in _ac_rows:
+        _ch = _r["ch"]
+        _dot = channel_badge(_ch, _all_color_map, _all_dual, 14)
+        _handle = _ch.get("handle", "") or ""
         _row_click = f'onclick="window.open(\'https://www.youtube.com/{_handle}\',\'_blank\',\'noopener\')" style="cursor:pointer"' if _handle else ''
-        _launched = (_r.get("launched_at") or "")[:4] or "-"
-        _launched_val = (_r.get("launched_at") or "9999")[:4]
-        _spy = _subs_per_year(_r['subscriber_count'], _r.get('launched_at'))
+        _launched = _r["launched"] or "-"
+        _launched_val = _r["launched"] or "9999"
         _all_rows += f"""<tr {_row_click}>
             <td style="padding:6px 12px">{_dot}</td>
-            <td style="padding:6px 12px" data-val="{_r['name']}">{_r['name']}</td>
+            <td style="padding:6px 12px" data-val="{_ch['name']}">{_ch['name']}</td>
             <td style="padding:6px 12px;text-align:center" data-val="{_launched_val}">{_launched}</td>
-            <td style="padding:6px 12px;text-align:right" data-val="{_r['subscriber_count']}">{fmt_num(_r['subscriber_count'])}</td>
-            <td style="padding:6px 12px;text-align:right" data-val="{_spy}">{fmt_num(_spy)}</td>
-            <td style="padding:6px 12px;text-align:right" data-val="{_r['total_views']}">{fmt_num(_r['total_views'])}</td>
-            <td style="padding:6px 12px;text-align:right" data-val="{_r['views_per_sub']}">{fmt_num(_r['views_per_sub'])}</td>
-            <td style="padding:6px 12px;text-align:right" data-val="{_r['video_count']}">{fmt_num(_r['video_count'])}</td>
-            <td style="padding:6px 12px;text-align:right" data-val="{_r.get('long_form_count', 0)}">{fmt_num(_r.get('long_form_count', 0))}</td>
-            <td style="padding:6px 12px;text-align:right" data-val="{_r.get('shorts_count', 0)}">{fmt_num(_r.get('shorts_count', 0))}</td>
-            <td style="padding:6px 12px;text-align:right" data-val="{_r.get('live_count', 0)}">{fmt_num(_r.get('live_count', 0))}</td>
-            <td style="padding:6px 12px;text-align:right" data-val="{_r['avg_views_per_video']}">{fmt_num(_r['avg_views_per_video'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{_r['subs']}">{fmt_num(_r['subs'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{_r['spy']}">{fmt_num(_r['spy'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{_r['total_views']}">{_v(_r['total_views'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{_r['views_per_sub']}">{_v(_r['views_per_sub'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{_r['videos']}">{_v(_r['videos'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{_r['long_videos']}">{_v(_r['long_videos'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{_r['short_videos']}">{_v(_r['short_videos'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{_r['live_videos']}">{_v(_r['live_videos'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{_r['vpv']}">{_v(_r['vpv'])}</td>
         </tr>"""
-    _all_tbl_h = len(_all_df) * 37 + 100
+    _all_tbl_h = len(_ac_rows) * 37 + 130
     components.html(f"""
     <style>
+        .ac-wrap {{ overflow-x:auto; width:100%; }}
         .ac-table {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
-                     font-family:"Source Sans Pro",sans-serif; background:transparent; }}
-        .ac-table th {{ padding:6px 12px; user-select:none; }}
+                     font-family:"Source Sans Pro",sans-serif; background:transparent;
+                     min-width:1100px; }}
+        .ac-table th {{ padding:6px 12px; user-select:none; white-space:nowrap; }}
         .ac-table th[data-col] {{ cursor:pointer; }}
         .ac-table th[data-col]:hover {{ color:#636EFA; }}
-        .ac-table td {{ padding:6px 12px; border-bottom:1px solid #262730; }}
+        .ac-table td {{ padding:6px 12px; border-bottom:1px solid #262730; white-space:nowrap; }}
         .ac-table tr:hover td {{ background:#1a1c24; }}
         .ac-table a {{ color:inherit; text-decoration:none; }}
         .ac-table .active {{ color:#636EFA; }}
     </style>
+    <div class="ac-wrap">
     <table class="ac-table">
     <thead>
+    <tr>
+        <th colspan="5"></th>
+        <th colspan="2" style="text-align:center;border-bottom:2px solid #636EFA;color:#636EFA">Views</th>
+        <th colspan="4" style="text-align:center;border-bottom:2px solid #00CC96;color:#00CC96">Videos</th>
+        <th colspan="1" style="text-align:center;border-bottom:2px solid #FFA15A;color:#FFA15A">Views/Video</th>
+    </tr>
     <tr style="border-bottom:2px solid #444">
         <th style="width:30px"></th>
         <th data-col="1" data-type="str" style="text-align:left">Channel</th>
         <th data-col="2" data-type="num" style="text-align:center">Since</th>
         <th data-col="3" data-type="num" style="text-align:right" class="active">Subs ▼</th>
         <th data-col="4" data-type="num" style="text-align:right">Subs/Year</th>
-        <th data-col="5" data-type="num" style="text-align:right">Total Views</th>
-        <th data-col="6" data-type="num" style="text-align:right">Views/Sub</th>
-        <th data-col="7" data-type="num" style="text-align:right">Videos</th>
+        <th data-col="5" data-type="num" style="text-align:right">Total</th>
+        <th data-col="6" data-type="num" style="text-align:right">Per Sub</th>
+        <th data-col="7" data-type="num" style="text-align:right">All</th>
         <th data-col="8" data-type="num" style="text-align:right">Long</th>
         <th data-col="9" data-type="num" style="text-align:right">Shorts</th>
         <th data-col="10" data-type="num" style="text-align:right">Live</th>
-        <th data-col="11" data-type="num" style="text-align:right">Views/Video</th>
+        <th data-col="11" data-type="num" style="text-align:right">All</th>
     </tr>
     </thead>
     <tbody>{_all_rows}</tbody>
     </table>
+    </div>
     <script>
     (function() {{
         const table = document.querySelector('.ac-table');
