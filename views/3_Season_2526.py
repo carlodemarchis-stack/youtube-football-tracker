@@ -189,6 +189,7 @@ if league is None and _scope == "Overall":
         live_vpv  = s["live_views"]  // max(s["live_v"], 1) if s.get("live_v") else 0
         long_dur  = s["long_dur_total"]  // max(s["long_v"], 1)
         short_dur = s["short_dur_total"] // max(s["short_v"], 1)
+        eng_rate  = ((s["likes"] + s["comments"]) / s["views"] * 100) if s["views"] else 0.0
         flag = LEAGUE_FLAG.get(lg, "")
         rows_html += f"""<tr>
             <td style="padding:6px 12px;text-align:center;font-size:16px">{flag}</td>
@@ -209,6 +210,7 @@ if league is None and _scope == "Overall":
             <td style="padding:6px 12px;text-align:right">{_dur(short_dur)}</td>
             <td style="padding:6px 12px;text-align:right">{_v(s['likes'])}</td>
             <td style="padding:6px 12px;text-align:right">{_v(s['comments'])}</td>
+            <td style="padding:6px 12px;text-align:right">{eng_rate:.2f}%</td>
         </tr>"""
 
     # Header layout mirrors the per-channel "ch-season" table below: same
@@ -233,7 +235,7 @@ if league is None and _scope == "Overall":
           <th colspan="4" style="text-align:center;border-bottom:2px solid #00CC96;color:#00CC96">Videos</th>
           <th colspan="4" style="text-align:center;border-bottom:2px solid #FFA15A;color:#FFA15A">Views/Video</th>
           <th colspan="2" style="text-align:center;border-bottom:2px solid #AB63FA;color:#AB63FA">Avg Duration</th>
-          <th colspan="2" style="text-align:center;border-bottom:2px solid #EF553B;color:#EF553B">Engagement</th>
+          <th colspan="3" style="text-align:center;border-bottom:2px solid #EF553B;color:#EF553B">Engagement</th>
         </tr>
         <tr style="border-bottom:2px solid #444">
           <th style="width:30px"></th>
@@ -254,6 +256,7 @@ if league is None and _scope == "Overall":
           <th style="text-align:right">Shorts</th>
           <th style="text-align:right">Likes</th>
           <th style="text-align:right">Comments</th>
+          <th style="text-align:right">Rate</th>
         </tr>
       </thead>
       <tbody>{rows_html}</tbody>
@@ -342,6 +345,7 @@ if league is None and _scope == "Overall":
         long_dur = row["long_dur_total"] // max(row["long_videos"], 1)
         short_dur = row["short_dur_total"] // max(row["short_videos"], 1)
         live_dur = row["live_dur_total"] // max(row["live_videos"], 1)
+        eng_rate = ((row["likes"] + row["comments"]) / row["all_views"] * 100) if row["all_views"] else 0.0
 
         ch_rows_html += f"""<tr {_row_click}>
             <td style="padding:6px 12px">{dot}</td>
@@ -362,6 +366,7 @@ if league is None and _scope == "Overall":
             <td style="padding:6px 12px;text-align:right" data-val="{short_dur}">{_dur(short_dur)}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{row['likes']}">{_v(row['likes'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{row['comments']}">{_v(row['comments'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{eng_rate}">{eng_rate:.2f}%</td>
         </tr>"""
 
     _ch_table_height = len(ch_rows) * 37 + 100
@@ -388,7 +393,7 @@ if league is None and _scope == "Overall":
         <th colspan="4" style="text-align:center;border-bottom:2px solid #00CC96;color:#00CC96">Videos</th>
         <th colspan="4" style="text-align:center;border-bottom:2px solid #FFA15A;color:#FFA15A">Views/Video</th>
         <th colspan="2" style="text-align:center;border-bottom:2px solid #AB63FA;color:#AB63FA">Avg Duration</th>
-        <th colspan="2" style="text-align:center;border-bottom:2px solid #EF553B;color:#EF553B">Engagement</th>
+        <th colspan="3" style="text-align:center;border-bottom:2px solid #EF553B;color:#EF553B">Engagement</th>
     </tr>
     <tr style="border-bottom:2px solid #444">
         <th style="width:30px"></th>
@@ -409,6 +414,7 @@ if league is None and _scope == "Overall":
         <th data-col="15" data-type="num" style="text-align:right">Shorts</th>
         <th data-col="16" data-type="num" style="text-align:right">Likes</th>
         <th data-col="17" data-type="num" style="text-align:right">Comments</th>
+        <th data-col="18" data-type="num" style="text-align:right">Rate</th>
     </tr>
     </thead>
     <tbody>{ch_rows_html}</tbody>
