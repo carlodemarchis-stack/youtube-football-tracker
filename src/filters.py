@@ -83,6 +83,13 @@ def render_header_filter(channels: list[dict]) -> tuple[str | None, dict | None]
             key="_widget_league",
             format_func=_fmt_league,
         )
+        # Detect a league change so we can reset the club selector to
+        # the new league's preferred default below. Without this, the
+        # previously-stored "All Clubs" sticks even when the new league
+        # would otherwise default to "All Clubs + League".
+        _league_changed = (
+            st.session_state.get("_filter_league") != selected_league
+        )
         st.session_state["_filter_league"] = selected_league
 
     if selected_league == "All Leagues":
@@ -148,10 +155,14 @@ def render_header_filter(channels: list[dict]) -> tuple[str | None, dict | None]
         club_options.append(league_channel["name"])
     club_options += [ch["name"] for ch in clubs]
 
-    # Ensure stored club is still valid for this league. Falls back to the
-    # first option (which is "All Clubs + League" when there's a league
-    # channel, otherwise "All Clubs").
-    if st.session_state["_filter_club"] not in club_options:
+    # Ensure stored club is still valid for this league. Falls back to
+    # the first option (which is "All Clubs + League" when there's a
+    # league channel, otherwise "All Clubs"). Also reset on league
+    # change so a sticky "All Clubs" from one league (or from the
+    # All-Leagues view, which forces "All Clubs") doesn't override the
+    # new league's preferred default.
+    if (st.session_state["_filter_club"] not in club_options
+            or _league_changed):
         st.session_state["_filter_club"] = club_options[0]
 
     league_flag = LEAGUE_FLAG.get(selected_league, "")
