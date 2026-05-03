@@ -474,14 +474,19 @@ if league is None and _scope == "Overall":
     st.subheader("All Channels — Season")
     color_map = get_global_color_map()
     dual_colors = get_global_color_map_dual()
-    include_league = get_include_league()
+    # On the All-Leagues "Overall" scope we always include league
+    # channels — Overall means everything visible on the page, and
+    # the leagues summary above already aggregates league-channel
+    # output into the league totals. Forcing the per-league toggle
+    # to True here also makes the Top Season Videos block (which
+    # passes include_league downstream) include league-channel
+    # videos consistently.
+    include_league = True
 
     ch_rows = []
     for ch in all_channels:
         if ch.get("entity_type") in ("Player", "Federation", "OtherClub", "WomenClub"):
             continue  # isolated entity types live on their own pages
-        if not include_league and ch.get("entity_type") == "League":
-            continue
         lv = int(ch.get("season_long_views") or 0)
         sv = int(ch.get("season_short_views") or 0)
         vv = int(ch.get("season_live_views") or 0)
