@@ -190,11 +190,13 @@ if league is None and _scope == "Overall":
         </tr>"""
     components.html(f"""
     <style>
+      .lg-wrap {{ overflow-x:auto; width:100%; }}
       table.lg {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
-                  font-family:"Source Sans Pro",sans-serif; }}
-      table.lg th {{ padding:6px 12px; border-bottom:2px solid #444; }}
-      table.lg td {{ border-bottom:1px solid #262730; }}
+                  font-family:"Source Sans Pro",sans-serif; min-width:1000px; }}
+      table.lg th {{ padding:6px 12px; border-bottom:2px solid #444; white-space:nowrap; }}
+      table.lg td {{ border-bottom:1px solid #262730; white-space:nowrap; }}
     </style>
+    <div class="lg-wrap">
     <table class="lg">
       <thead>
         <tr>
@@ -225,7 +227,8 @@ if league is None and _scope == "Overall":
       </thead>
       <tbody>{rows_html}</tbody>
     </table>
-    """, height=len(sorted_leagues) * 37 + 110, scrolling=False)
+    </div>
+    """, height=len(sorted_leagues) * 37 + 130, scrolling=False)
 
     # Two charts: season views by league, videos by league (stacked)
     lg_names = [lg for lg, _ in sorted_leagues]
@@ -331,16 +334,19 @@ if league is None and _scope == "Overall":
     _ch_table_height = len(ch_rows) * 37 + 100
     components.html(f"""
     <style>
+        .ch-wrap {{ overflow-x:auto; width:100%; }}
         .ch-season {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
-                      font-family:"Source Sans Pro",sans-serif; background:transparent; }}
-        .ch-season th {{ padding:6px 12px; user-select:none; }}
+                      font-family:"Source Sans Pro",sans-serif; background:transparent;
+                      min-width:1200px; }}
+        .ch-season th {{ padding:6px 12px; user-select:none; white-space:nowrap; }}
         .ch-season th[data-col] {{ cursor:pointer; }}
         .ch-season th[data-col]:hover {{ color:#636EFA; }}
-        .ch-season td {{ padding:6px 12px; border-bottom:1px solid #262730; }}
+        .ch-season td {{ padding:6px 12px; border-bottom:1px solid #262730; white-space:nowrap; }}
         .ch-season tr:hover td {{ background:#1a1c24; }}
         .ch-season a {{ color:inherit; text-decoration:none; }}
         .ch-season .active {{ color:#636EFA; }}
     </style>
+    <div class="ch-wrap">
     <table class="ch-season">
     <thead>
     <tr>
@@ -374,6 +380,7 @@ if league is None and _scope == "Overall":
     </thead>
     <tbody>{ch_rows_html}</tbody>
     </table>
+    </div>
     <script>
     (function() {{
         const table = document.querySelector('.ch-season');
@@ -602,16 +609,19 @@ if club is None:
     _table_height = len(df) * 37 + 100
     components.html(f"""
     <style>
+        .st-wrap {{ overflow-x:auto; width:100%; }}
         .st-table {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
-                     font-family:"Source Sans Pro",sans-serif; background:transparent; }}
-        .st-table th {{ padding:6px 12px; user-select:none; }}
+                     font-family:"Source Sans Pro",sans-serif; background:transparent;
+                     min-width:1200px; }}
+        .st-table th {{ padding:6px 12px; user-select:none; white-space:nowrap; }}
         .st-table th[data-col] {{ cursor:pointer; }}
         .st-table th[data-col]:hover {{ color:#636EFA; }}
-        .st-table td {{ padding:6px 12px; border-bottom:1px solid #262730; }}
+        .st-table td {{ padding:6px 12px; border-bottom:1px solid #262730; white-space:nowrap; }}
         .st-table tr:hover td {{ background:#1a1c24; }}
         .st-table a {{ color:inherit; text-decoration:none; }}
         .st-table .active {{ color:#636EFA; }}
     </style>
+    <div class="st-wrap">
     <table class="st-table">
     <thead>
     <tr>
@@ -643,6 +653,7 @@ if club is None:
     </thead>
     <tbody>{rows_html}</tbody>
     </table>
+    </div>
     <script>
     (function() {{
         const table = document.querySelector('.st-table');
