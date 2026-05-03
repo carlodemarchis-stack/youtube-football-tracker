@@ -67,6 +67,7 @@ if league is None and _scope == "Overall":
             "videos": 0, "views": 0, "long_v": 0, "short_v": 0, "long_views": 0, "short_views": 0,
             "likes": 0, "comments": 0, "long_likes": 0, "short_likes": 0, "long_comments": 0, "short_comments": 0,
             "live_v": 0, "live_views": 0, "live_likes": 0, "live_comments": 0,
+            "long_dur_total": 0, "short_dur_total": 0,
         })
         lv = int(ch.get("season_long_views") or 0)
         sv = int(ch.get("season_short_views") or 0)
@@ -86,6 +87,11 @@ if league is None and _scope == "Overall":
         s["long_comments"] += int(ch.get("season_long_comments") or 0)
         s["short_comments"] += int(ch.get("season_short_comments") or 0)
         s["live_comments"] += int(ch.get("season_live_comments") or 0)
+        # Total duration (in seconds) per format = avg-per-video * video-count;
+        # sum across channels then divide back out at render time = league-wide
+        # weighted average duration. Same approach as the per-channel rows.
+        s["long_dur_total"]  += int(ch.get("season_long_dur_avg")  or 0) * ln
+        s["short_dur_total"] += int(ch.get("season_short_dur_avg") or 0) * sn
 
     if not league_stats:
         st.info("No season data yet.")
@@ -163,50 +169,74 @@ if league is None and _scope == "Overall":
 
     st.subheader("Leagues — Season")
     sorted_leagues = sorted(league_stats.items(), key=lambda kv: kv[1]["views"], reverse=True)
+
+    def _v(v):
+        v = int(v)
+        return fmt_num(v) if v else "-"
+
+    def _dur(secs):
+        s = int(secs)
+        if not s:
+            return "-"
+        m, sec = divmod(s, 60)
+        return f"{m}:{sec:02d}"
+
     rows_html = ""
     for lg, s in sorted_leagues:
-        vpv = s["views"] // max(s["videos"], 1)
-        long_vpv = s["long_views"] // max(s["long_v"], 1)
+        vpv       = s["views"]       // max(s["videos"], 1)
+        long_vpv  = s["long_views"]  // max(s["long_v"], 1)
         short_vpv = s["short_views"] // max(s["short_v"], 1)
-        live_vpv = s["live_views"] // max(s["live_v"], 1) if s.get("live_v") else 0
-        er = ((s["likes"] + s["comments"]) / s["views"] * 100) if s["views"] else 0.0
+        live_vpv  = s["live_views"]  // max(s["live_v"], 1) if s.get("live_v") else 0
+        long_dur  = s["long_dur_total"]  // max(s["long_v"], 1)
+        short_dur = s["short_dur_total"] // max(s["short_v"], 1)
+        flag = LEAGUE_FLAG.get(lg, "")
         rows_html += f"""<tr>
-            <td style="padding:6px 12px">{LEAGUE_FLAG.get(lg, '')} {lg}</td>
-            <td style="padding:6px 12px;text-align:right">{fmt_num(s['views'])}</td>
-            <td style="padding:6px 12px;text-align:right">{fmt_num(s['long_views'])}</td>
-            <td style="padding:6px 12px;text-align:right">{fmt_num(s['short_views'])}</td>
-            <td style="padding:6px 12px;text-align:right">{fmt_num(s['live_views'])}</td>
-            <td style="padding:6px 12px;text-align:right">{fmt_num(s['videos'])}</td>
-            <td style="padding:6px 12px;text-align:right">{fmt_num(s['long_v'])}</td>
-            <td style="padding:6px 12px;text-align:right">{fmt_num(s['short_v'])}</td>
-            <td style="padding:6px 12px;text-align:right">{fmt_num(s['live_v'])}</td>
-            <td style="padding:6px 12px;text-align:right">{fmt_num(vpv)}</td>
-            <td style="padding:6px 12px;text-align:right">{fmt_num(long_vpv)}</td>
-            <td style="padding:6px 12px;text-align:right">{fmt_num(short_vpv)}</td>
-            <td style="padding:6px 12px;text-align:right">{fmt_num(live_vpv)}</td>
-            <td style="padding:6px 12px;text-align:right">{fmt_num(s['likes'])}</td>
-            <td style="padding:6px 12px;text-align:right">{fmt_num(s['comments'])}</td>
-            <td style="padding:6px 12px;text-align:right">{er:.2f}%</td>
+            <td style="padding:6px 12px;text-align:center;font-size:16px">{flag}</td>
+            <td style="padding:6px 12px;font-weight:600">{lg}</td>
+            <td style="padding:6px 12px;text-align:right">{_v(s['views'])}</td>
+            <td style="padding:6px 12px;text-align:right">{_v(s['long_views'])}</td>
+            <td style="padding:6px 12px;text-align:right">{_v(s['short_views'])}</td>
+            <td style="padding:6px 12px;text-align:right">{_v(s['live_views'])}</td>
+            <td style="padding:6px 12px;text-align:right">{_v(s['videos'])}</td>
+            <td style="padding:6px 12px;text-align:right">{_v(s['long_v'])}</td>
+            <td style="padding:6px 12px;text-align:right">{_v(s['short_v'])}</td>
+            <td style="padding:6px 12px;text-align:right">{_v(s['live_v'])}</td>
+            <td style="padding:6px 12px;text-align:right">{_v(vpv)}</td>
+            <td style="padding:6px 12px;text-align:right">{_v(long_vpv)}</td>
+            <td style="padding:6px 12px;text-align:right">{_v(short_vpv)}</td>
+            <td style="padding:6px 12px;text-align:right">{_v(live_vpv)}</td>
+            <td style="padding:6px 12px;text-align:right">{_dur(long_dur)}</td>
+            <td style="padding:6px 12px;text-align:right">{_dur(short_dur)}</td>
+            <td style="padding:6px 12px;text-align:right">{_v(s['likes'])}</td>
+            <td style="padding:6px 12px;text-align:right">{_v(s['comments'])}</td>
         </tr>"""
+
+    # Header layout mirrors the per-channel "ch-season" table below: same
+    # column groups, same group colors (Avg Duration purple, Engagement
+    # red — no Rate column, matches channels). Wrapped in overflow-x for
+    # the same horizontal-scroll behavior on narrow viewports.
     components.html(f"""
     <style>
       .lg-wrap {{ overflow-x:auto; width:100%; }}
       table.lg {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
-                  font-family:"Source Sans Pro",sans-serif; min-width:1000px; }}
-      table.lg th {{ padding:6px 12px; border-bottom:2px solid #444; white-space:nowrap; }}
+                  font-family:"Source Sans Pro",sans-serif; min-width:1200px; }}
+      table.lg th {{ padding:6px 12px; user-select:none; white-space:nowrap; }}
       table.lg td {{ border-bottom:1px solid #262730; white-space:nowrap; }}
+      table.lg tr:hover td {{ background:#1a1c24; }}
     </style>
     <div class="lg-wrap">
     <table class="lg">
       <thead>
         <tr>
-          <th colspan="1"></th>
-          <th colspan="4" style="text-align:center;color:#636EFA">Views</th>
-          <th colspan="4" style="text-align:center;color:#00CC96">Videos</th>
-          <th colspan="4" style="text-align:center;color:#FFA15A">Views/Video</th>
-          <th colspan="3" style="text-align:center;color:#AB63FA">Engagement</th>
+          <th colspan="2"></th>
+          <th colspan="4" style="text-align:center;border-bottom:2px solid #636EFA;color:#636EFA">Views</th>
+          <th colspan="4" style="text-align:center;border-bottom:2px solid #00CC96;color:#00CC96">Videos</th>
+          <th colspan="4" style="text-align:center;border-bottom:2px solid #FFA15A;color:#FFA15A">Views/Video</th>
+          <th colspan="2" style="text-align:center;border-bottom:2px solid #AB63FA;color:#AB63FA">Avg Duration</th>
+          <th colspan="2" style="text-align:center;border-bottom:2px solid #EF553B;color:#EF553B">Engagement</th>
         </tr>
-        <tr>
+        <tr style="border-bottom:2px solid #444">
+          <th style="width:30px"></th>
           <th style="text-align:left">League</th>
           <th style="text-align:right">All</th>
           <th style="text-align:right">Long</th>
@@ -220,9 +250,10 @@ if league is None and _scope == "Overall":
           <th style="text-align:right">Long</th>
           <th style="text-align:right">Shorts</th>
           <th style="text-align:right">Live</th>
+          <th style="text-align:right">Long</th>
+          <th style="text-align:right">Shorts</th>
           <th style="text-align:right">Likes</th>
           <th style="text-align:right">Comments</th>
-          <th style="text-align:right">Rate</th>
         </tr>
       </thead>
       <tbody>{rows_html}</tbody>
