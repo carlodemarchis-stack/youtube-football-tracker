@@ -42,6 +42,9 @@ g_league, g_club = get_global_filter()
 _rss_updated = db.get_last_fetch_time("hourly_rss")
 render_page_subtitle("Most recently published videos", updated_raw=_rss_updated)
 if g_club:
+    # Single-channel header — same look as Season / Channels
+    from src.filters import render_club_header
+    render_club_header(g_club, all_channels)
     ch_ids = [g_club["id"]]
 elif g_league:
     ch_ids = [c["id"] for c in all_channels if get_league_for_channel(c) == g_league]

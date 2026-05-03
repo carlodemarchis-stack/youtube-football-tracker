@@ -54,6 +54,9 @@ def _is_top5_league_channel(c: dict) -> bool:
 
 g_league, g_club = get_global_filter()
 if g_club:
+    # Single-channel header — same look as Season / Channels
+    from src.filters import render_club_header
+    render_club_header(g_club, all_channels)
     rows = [g_club]
 elif g_league:
     rows = [c for c in get_channels_for_filter(all_channels, g_league)

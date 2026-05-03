@@ -355,27 +355,22 @@ if ONE_CLUB:
             parts.append(f"#{orr}/{ot} overall")
         return f"<div style='color:#888;font-size:0.8rem;margin-top:-6px'>{' · '.join(parts)}</div>" if parts else ""
 
-    # Club banner — name links to the YouTube channel
+    # Single-channel header — same look as Season / Channels (dual-dot
+    # for clubs, country flag for league channels) plus league/overall
+    # rank, via the shared helper.
     cur_snap = chan_day.get(g_club["id"], {})
-    _c1, _c2 = dual.get(g_club["name"], (color_map.get(g_club["name"], "#636EFA"), "#FFFFFF"))
+    from src.filters import render_club_header
+    render_club_header(g_club, all_channels)
     _handle = g_club.get("handle", "") or ""
     _yt_url = f"https://www.youtube.com/{_handle}" if _handle else ""
-    _name_html = (
-        f'<a href="{_yt_url}" target="_blank" rel="noopener" '
-        f'style="color:#FAFAFA;text-decoration:none;'
-        f'border-bottom:1px dotted rgba(255,255,255,0.25)">{g_club["name"]}</a>'
-        if _yt_url else g_club["name"]
-    )
     st.markdown(
-        f"""<div style="display:flex;align-items:center;gap:12px;margin:12px 0 20px 0">
-          <div style="width:16px;height:16px;border-radius:50%;background:{_c1};
-                      box-shadow:4px 0 0 {_c2};border:1px solid rgba(255,255,255,0.3)"></div>
-          <div style="font-size:22px;font-weight:600;color:#FAFAFA">{_name_html}</div>
-          <div style="color:#888;font-size:14px">
-            {fmt_num(int(cur_snap.get('subscriber_count', 0) or 0))} subs ·
-            {fmt_num(int(cur_snap.get('total_views', 0) or 0))} total views
-          </div>
-        </div>""",
+        f"<div style='color:#888;font-size:14px;margin:4px 0 16px 28px'>"
+        f"{fmt_num(int(cur_snap.get('subscriber_count', 0) or 0))} subs · "
+        f"{fmt_num(int(cur_snap.get('total_views', 0) or 0))} total views"
+        + (f" · <a href='{_yt_url}' target='_blank' rel='noopener' "
+           f"style='color:#888;text-decoration:none;border-bottom:1px dotted #555'>"
+           f"open on YouTube</a>" if _yt_url else "")
+        + "</div>",
         unsafe_allow_html=True,
     )
     _fmt_combined = f"{_fmt_counts['long']} / {_fmt_counts['short']} / {_fmt_counts['live']}"
