@@ -36,12 +36,13 @@ def _sync_query_params(league: str, club: str):
 def render_header_filter(channels: list[dict]) -> tuple[str | None, dict | None]:
     """Render cascading league/club filter. Returns (league_name, channel_dict_or_None)."""
 
-    # Build league list from clubs only — leagues, players and federations
-    # have their own pages and would leak country codes (AF/AS/BR/EU/WW…)
-    # into the dropdown otherwise.
+    # Build league bucket: clubs + the league channel itself.
+    # Skip players / federations / women / other-clubs (they have their own
+    # pages and would leak country codes like AF/AS/BR/WW into the dropdown).
     leagues = {}
     for ch in channels:
-        if not is_club(ch):
+        is_league_ch = ch.get("entity_type") == "League"
+        if not is_club(ch) and not is_league_ch:
             continue
         country = ch.get("country", "")
         league = COUNTRY_TO_LEAGUE.get(country, country)
@@ -115,12 +116,22 @@ def render_header_filter(channels: list[dict]) -> tuple[str | None, dict | None]
     # Club dropdown
     league_channels = leagues.get(selected_league, [])
     clubs = [ch for ch in league_channels if is_club(ch)]
-    has_league_channel = any(ch.get("entity_type") == "League" for ch in league_channels)
+    league_channel = next((ch for ch in league_channels
+                           if ch.get("entity_type") == "League"), None)
+    has_league_channel = league_channel is not None
     clubs.sort(key=lambda c: c.get("subscriber_count", 0), reverse=True)
+
+    # Marker prefix for the league-channel option so it's visually distinct
+    # from clubs in the dropdown (and parseable on read-back).
+    LEAGUE_CHANNEL_PREFIX = "📺 "
 
     club_options = ["All Clubs"]
     if has_league_channel:
         club_options.append("All Clubs + League")
+        # The league channel itself as a selectable single-entity option —
+        # picking this filters the page to just the league channel's
+        # videos / stats, the same way picking a club does for that club.
+        club_options.append(LEAGUE_CHANNEL_PREFIX + league_channel["name"])
     club_options += [ch["name"] for ch in clubs]
 
     # Ensure stored club is still valid for this league
@@ -129,7 +140,7 @@ def render_header_filter(channels: list[dict]) -> tuple[str | None, dict | None]
 
     with col2:
         selected_club = st.selectbox(
-            "Club",
+            "Club / League channel",
             club_options,
             index=club_options.index(st.session_state["_filter_club"]),
             key="_widget_club",
@@ -147,6 +158,12 @@ def render_header_filter(channels: list[dict]) -> tuple[str | None, dict | None]
         return selected_league, None
 
     st.session_state["_filter_include_league"] = False
+    # League-channel single selection: strip the prefix and return the
+    # league channel record as the "club" value (every page treats the
+    # second tuple element as "the single channel I'm filtered to").
+    if (has_league_channel
+            and selected_club == LEAGUE_CHANNEL_PREFIX + league_channel["name"]):
+        return selected_league, league_channel
     club_dict = next((ch for ch in clubs if ch["name"] == selected_club), None)
     return selected_league, club_dict
 
