@@ -94,12 +94,22 @@ def render_header_filter(channels: list[dict]) -> tuple[str | None, dict | None]
             st.session_state["_filter_scope"] = st.query_params.get("scope", "Overall")
         if st.session_state["_filter_scope"] not in scope_options:
             st.session_state["_filter_scope"] = "Overall"
+        # Display label: "Overall" is internally the same value but the
+        # label "All clubs + Leagues" makes the parallel with the per-
+        # league "All Clubs + League" option explicit. URL/session state
+        # still uses "Overall" so existing bookmarks keep working.
+        _scope_label = {
+            "Overall": "All clubs + Leagues",
+            "Leagues only": "Leagues only",
+            "All clubs": "All clubs",
+        }
         with col2:
             selected_scope = st.selectbox(
                 "Scope",
                 scope_options,
                 index=scope_options.index(st.session_state["_filter_scope"]),
                 key="_widget_scope",
+                format_func=lambda v: _scope_label.get(v, v),
             )
             st.session_state["_filter_scope"] = selected_scope
         # Persist scope in URL
@@ -217,7 +227,7 @@ def get_filter_description() -> str:
         return "league channels only"
     if scope == "All clubs":
         return "all clubs across leagues"
-    return "all leagues"
+    return "all clubs + league channels"
 
 
 def render_page_subtitle(content: str, updated_raw: str | None = None,
