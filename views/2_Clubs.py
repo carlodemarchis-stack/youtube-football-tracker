@@ -113,6 +113,57 @@ if league is None and _scope == "Overall":
         _mcols[3].metric("Total Videos", fmt_num(tot["total_videos"]))
         _mcols[4].metric("Avg Views/Video", fmt_num(tot_avg_v))
 
+        # ── 3 pies: where the lifetime views / videos / per-video
+        # performance sit by format (Long / Shorts / Live). Only useful
+        # for fields we actually have at the channel level lifetime —
+        # subs aren't per-format and likes/comments aren't aggregated.
+        import plotly.graph_objects as go
+        _pie_chans = [c for c in all_channels
+                      if c.get("entity_type") not in ("Player", "Federation", "OtherClub", "WomenClub")]
+        _t_long_v  = sum(int(c.get("lifetime_long_views")  or 0) for c in _pie_chans)
+        _t_short_v = sum(int(c.get("lifetime_short_views") or 0) for c in _pie_chans)
+        _t_live_v  = sum(int(c.get("lifetime_live_views")  or 0) for c in _pie_chans)
+        _t_long_n  = sum(int(c.get("long_form_count")  or 0) for c in _pie_chans)
+        _t_short_n = sum(int(c.get("shorts_count")     or 0) for c in _pie_chans)
+        _t_live_n  = sum(int(c.get("live_count")       or 0) for c in _pie_chans)
+        _t_long_vpv  = _t_long_v  // max(_t_long_n,  1)
+        _t_short_vpv = _t_short_v // max(_t_short_n, 1)
+        _t_live_vpv  = _t_live_v  // max(_t_live_n,  1)
+        _has_live = (_t_live_v + _t_live_n) > 0
+        _pie_labels = ["Long", "Shorts", "Live"] if _has_live else ["Long", "Shorts"]
+        _pie_colors = ["#636EFA", "#00CC96", "#FFA15A"] if _has_live else ["#636EFA", "#00CC96"]
+
+        def _zv(l, s, v):
+            return [l, s, v] if _has_live else [l, s]
+
+        def _make_pie(values, hover_suffix, title):
+            fig = go.Figure(go.Pie(
+                labels=_pie_labels, values=values,
+                marker=dict(colors=_pie_colors), hole=0.45,
+                textinfo="percent+label", textposition="inside",
+                hovertemplate="%{label}: %{value:,.0f} " + hover_suffix + "<extra></extra>",
+            ))
+            fig.update_layout(
+                title=dict(text=title, x=0.5), showlegend=False, height=300,
+                margin=dict(t=40, b=20, l=20, r=20),
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#FAFAFA"),
+            )
+            return fig
+
+        _pcols = st.columns(3)
+        with _pcols[0]:
+            st.plotly_chart(_make_pie(_zv(_t_long_v, _t_short_v, _t_live_v),
+                                      "views", "Lifetime Views by Format"),
+                            use_container_width=True)
+        with _pcols[1]:
+            st.plotly_chart(_make_pie(_zv(_t_long_n, _t_short_n, _t_live_n),
+                                      "videos", "Videos by Format"),
+                            use_container_width=True)
+        with _pcols[2]:
+            st.plotly_chart(_make_pie(_zv(_t_long_vpv, _t_short_vpv, _t_live_vpv),
+                                      "views/video", "Avg Views/Video by Format"),
+                            use_container_width=True)
 
         rows_html = ""
         for lg_name, s in sorted_leagues:
