@@ -592,12 +592,15 @@ if club is None:
             <td style="padding:6px 12px;text-align:right" data-val="{row['all_views']}">{_v(row['all_views'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{row['long_views']}">{_v(row['long_views'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{row['short_views']}">{_v(row['short_views'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{row['live_views']}">{_v(row['live_views'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{row['all_videos']}">{_v(row['all_videos'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{row['long_videos']}">{_v(row['long_videos'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{row['short_videos']}">{_v(row['short_videos'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{row['live_videos']}">{_v(row['live_videos'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{row['all_vpv']}">{_v(row['all_vpv'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{row['long_vpv']}">{_v(row['long_vpv'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{row['short_vpv']}">{_v(row['short_vpv'])}</td>
+            <td style="padding:6px 12px;text-align:right" data-val="{row['live_vpv']}">{_v(row['live_vpv'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{row['long_dur']}">{_dur(row['long_dur'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{row['short_dur']}">{_dur(row['short_dur'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{row['likes']}">{_v(row['likes'])}</td>
@@ -626,9 +629,9 @@ if club is None:
     <thead>
     <tr>
         <th colspan="2"></th>
-        <th colspan="3" style="text-align:center;border-bottom:2px solid #636EFA;color:#636EFA">Views</th>
-        <th colspan="3" style="text-align:center;border-bottom:2px solid #00CC96;color:#00CC96">Videos</th>
-        <th colspan="3" style="text-align:center;border-bottom:2px solid #FFA15A;color:#FFA15A">Views/Video</th>
+        <th colspan="4" style="text-align:center;border-bottom:2px solid #636EFA;color:#636EFA">Views</th>
+        <th colspan="4" style="text-align:center;border-bottom:2px solid #00CC96;color:#00CC96">Videos</th>
+        <th colspan="4" style="text-align:center;border-bottom:2px solid #FFA15A;color:#FFA15A">Views/Video</th>
         <th colspan="2" style="text-align:center;border-bottom:2px solid #AB63FA;color:#AB63FA">Avg Duration</th>
         <th colspan="3" style="text-align:center;border-bottom:2px solid #EF553B;color:#EF553B">Engagement</th>
     </tr>
@@ -638,17 +641,20 @@ if club is None:
         <th data-col="2" data-type="num" style="text-align:right" class="active">All ▼</th>
         <th data-col="3" data-type="num" style="text-align:right">Long</th>
         <th data-col="4" data-type="num" style="text-align:right">Shorts</th>
-        <th data-col="5" data-type="num" style="text-align:right">All</th>
-        <th data-col="6" data-type="num" style="text-align:right">Long</th>
-        <th data-col="7" data-type="num" style="text-align:right">Shorts</th>
-        <th data-col="8" data-type="num" style="text-align:right">All</th>
-        <th data-col="9" data-type="num" style="text-align:right">Long</th>
-        <th data-col="10" data-type="num" style="text-align:right">Shorts</th>
+        <th data-col="5" data-type="num" style="text-align:right">Live</th>
+        <th data-col="6" data-type="num" style="text-align:right">All</th>
+        <th data-col="7" data-type="num" style="text-align:right">Long</th>
+        <th data-col="8" data-type="num" style="text-align:right">Shorts</th>
+        <th data-col="9" data-type="num" style="text-align:right">Live</th>
+        <th data-col="10" data-type="num" style="text-align:right">All</th>
         <th data-col="11" data-type="num" style="text-align:right">Long</th>
         <th data-col="12" data-type="num" style="text-align:right">Shorts</th>
-        <th data-col="13" data-type="num" style="text-align:right">Likes</th>
-        <th data-col="14" data-type="num" style="text-align:right">Comments</th>
-        <th data-col="15" data-type="num" style="text-align:right">Rate</th>
+        <th data-col="13" data-type="num" style="text-align:right">Live</th>
+        <th data-col="14" data-type="num" style="text-align:right">Long</th>
+        <th data-col="15" data-type="num" style="text-align:right">Shorts</th>
+        <th data-col="16" data-type="num" style="text-align:right">Likes</th>
+        <th data-col="17" data-type="num" style="text-align:right">Comments</th>
+        <th data-col="18" data-type="num" style="text-align:right">Rate</th>
     </tr>
     </thead>
     <tbody>{rows_html}</tbody>
