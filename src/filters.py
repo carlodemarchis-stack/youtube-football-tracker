@@ -99,9 +99,9 @@ def render_header_filter(channels: list[dict]) -> tuple[str | None, dict | None]
         # league "All Clubs + League" option explicit. URL/session state
         # still uses "Overall" so existing bookmarks keep working.
         _scope_label = {
-            "Overall": "All clubs + Leagues",
+            "Overall": "All Clubs + Leagues",
             "Leagues only": "Leagues only",
-            "All clubs": "All clubs",
+            "All clubs": "All Clubs",
         }
         with col2:
             selected_scope = st.selectbox(
