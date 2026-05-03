@@ -687,15 +687,19 @@ elif club is None:
         fig.update_layout(showlegend=False, xaxis_title="", yaxis_title="", margin=dict(t=40, b=20))
         return fig
 
-    # Stacked bar: Videos (Long vs Shorts)
+    # Stacked bar: Videos by channel — Long / Shorts / Live
     import plotly.graph_objects as go
+    _ix = df.set_index("name")
     fig_vids = go.Figure()
-    fig_vids.add_trace(go.Bar(name="Long", x=sorted_names, y=df.set_index("name").loc[sorted_names, "long_form_count"].fillna(0), marker_color="#636EFA"))
-    fig_vids.add_trace(go.Bar(name="Shorts", x=sorted_names, y=df.set_index("name").loc[sorted_names, "shorts_count"].fillna(0), marker_color="#00CC96"))
+    fig_vids.add_trace(go.Bar(name="Long",   x=sorted_names, y=_ix.loc[sorted_names, "long_form_count"].fillna(0), marker_color="#636EFA"))
+    fig_vids.add_trace(go.Bar(name="Shorts", x=sorted_names, y=_ix.loc[sorted_names, "shorts_count"].fillna(0),    marker_color="#00CC96"))
+    fig_vids.add_trace(go.Bar(name="Live",   x=sorted_names, y=_ix.loc[sorted_names, "live_count"].fillna(0),      marker_color="#FFA15A"))
     fig_vids.update_layout(
-        title="Total Videos Published (Long vs Shorts)", barmode="stack",
-        xaxis_title="", yaxis_title="", margin=dict(t=40, b=20),
-        legend=dict(orientation="h", y=1.1, x=0.5, xanchor="center"),
+        title="Total Videos Published (Long / Shorts / Live)", barmode="stack",
+        xaxis_title="", yaxis_title="",
+        margin=dict(t=50, b=70, l=10, r=10),
+        legend=dict(orientation="h", yanchor="top", y=-0.15,
+                    xanchor="center", x=0.5),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(color="#FAFAFA"),
     )
 
