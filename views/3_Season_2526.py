@@ -777,7 +777,7 @@ if league is None and _scope == "Overall":
                 y=alt.Y("videos:Q", title=None, axis=alt.Axis(format="~s")),
                 color=alt.Color("league:N",
                                 scale=alt.Scale(domain=league_order, range=league_palette),
-                                legend=alt.Legend(orientation="bottom", title="")),
+                                legend=alt.Legend(orientation="bottom")),
                 order=alt.Order("league:N"),
                 tooltip=[
                     alt.Tooltip("yearmonthdate(week):T", title="Week of"),
