@@ -786,13 +786,36 @@ if league is None and _scope == "Overall":
     cadence_df = _load_publish_cadence(SEASON_SINCE)
     if not cadence_df.empty:
         import altair as alt
+        import calendar
+        # Project the current (incomplete) month from elapsed days. Scales
+        # each league's partial count up by days_in_month / days_elapsed
+        # so the trajectory doesn't visually fall off a cliff just because
+        # the month isn't over yet.
+        plot_df = cadence_df.copy()
+        today = datetime.now().date()
+        cur_month_start = today.replace(day=1)
+        days_in_month = calendar.monthrange(today.year, today.month)[1]
+        days_elapsed = today.day  # incl. today; OK as upper bound
+        projection_note = ""
+        if days_elapsed < days_in_month:
+            mask = plot_df["month"] == cur_month_start
+            if mask.any():
+                factor = days_in_month / days_elapsed
+                plot_df.loc[mask, "videos"] = (
+                    plot_df.loc[mask, "videos"].astype(float) * factor
+                ).round().astype(int)
+                projection_note = (
+                    f" {today.strftime('%b %Y')} is projected from "
+                    f"{days_elapsed} of {days_in_month} days."
+                )
+
         st.subheader("📅 Publish cadence — videos per month")
-        st.caption(f"Videos published per month since {SEASON_SINCE}, by league.")
+        st.caption(f"Videos published per month since {SEASON_SINCE}, by league.{projection_note}")
         league_order = [lg for lg, _ in sorted_leagues]
         league_palette = [LEAGUE_COLOR.get(lg, "#888") for lg in league_order]
         domain = league_order
         rng = league_palette
-        base = alt.Chart(cadence_df).encode(
+        base = alt.Chart(plot_df).encode(
             x=alt.X("yearmonth(month):T", title=None,
                     axis=alt.Axis(format="%b %Y", labelAngle=-30)),
             y=alt.Y("videos:Q", title=None, axis=alt.Axis(format="~s")),
