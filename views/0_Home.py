@@ -327,11 +327,25 @@ try:
             # so the two tables share the same scope.
             from datetime import timezone as _tz, timedelta as _td2
             _start_iso = (datetime.now(_tz.utc) - _td2(days=7)).isoformat()
+            # Paginate — there are 2-3K videos published every 7 days
+            # across all tracked channels, well above Supabase's 1000-row
+            # default. Without this loop we'd return a partial slice and
+            # per-channel counts would silently undercount.
+            _vid_rows: list[dict] = []
+            _page = 1000
+            _offset = 0
             try:
-                _vid_rows = (_db.client.table("videos")
-                             .select("channel_id,format,duration_seconds,published_at")
-                             .gte("published_at", _start_iso)
-                             .execute().data or [])
+                while True:
+                    _batch = (_db.client.table("videos")
+                              .select("channel_id,format,duration_seconds,published_at")
+                              .gte("published_at", _start_iso)
+                              .order("published_at")
+                              .range(_offset, _offset + _page - 1)
+                              .execute().data or [])
+                    _vid_rows.extend(_batch)
+                    if len(_batch) < _page:
+                        break
+                    _offset += _page
             except Exception:
                 _vid_rows = []
 
