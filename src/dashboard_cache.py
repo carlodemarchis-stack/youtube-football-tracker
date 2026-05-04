@@ -552,6 +552,57 @@ def refresh_concentration(db, log=print, channels: list[dict] | None = None) -> 
                    "since": DURATION_SEASON_SINCE,
                    "as_of": _date.today().isoformat()})
             log(f"[dashboard_cache] concentration/{lg} WRITTEN ({len(stats)} clubs)")
+
+        # ── "all" scope: one row per league, treating ALL videos from
+        # every club (entity_type='Club') in that league as a single
+        # catalog. Same Pareto math, league-aggregate level.
+        league_views: dict[str, list[int]] = {}
+        for cid, views in per_ch.items():
+            meta = ch_meta[cid]
+            if meta["entity_type"] != "Club":
+                continue
+            league_views.setdefault(meta["league"], []).extend(views)
+        all_rows = []
+        for lg, views in league_views.items():
+            if not views:
+                continue
+            views_sorted = sorted(views, reverse=True)
+            n = len(views_sorted)
+            total = sum(views_sorted)
+            if total <= 0:
+                continue
+            cum = 0
+            n_to_80 = n
+            for i, v in enumerate(views_sorted, 1):
+                cum += v
+                if cum / total >= 0.80:
+                    n_to_80 = i
+                    break
+            pct_to_80 = (n_to_80 / n * 100.0) if n else 0.0
+            top1_pct = (views_sorted[0] / total * 100.0)
+            top10 = sum(views_sorted[:10])
+            top10_pct = (top10 / total * 100.0)
+            avg_v = total / n
+            mid = n // 2
+            median_v = (views_sorted[mid] if n % 2 == 1
+                        else (views_sorted[mid - 1] + views_sorted[mid]) / 2)
+            all_rows.append({
+                "league": lg,
+                "n_videos": n,
+                "total_views": total,
+                "n_to_80": n_to_80,
+                "pct_to_80": round(pct_to_80, 2),
+                "top1_pct": round(top1_pct, 2),
+                "top10_pct": round(top10_pct, 2),
+                "avg_views": int(avg_v),
+                "median_views": int(median_v),
+            })
+        all_rows.sort(key=lambda r: r["pct_to_80"])
+        write(db, "concentration", scope_all(),
+              {"rows": all_rows,
+               "since": DURATION_SEASON_SINCE,
+               "as_of": _date.today().isoformat()})
+        log(f"[dashboard_cache] concentration/all WRITTEN ({len(all_rows)} leagues)")
     except Exception as e:
         log(f"[dashboard_cache] concentration failed (non-fatal): {e}")
 

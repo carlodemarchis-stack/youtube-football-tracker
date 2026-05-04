@@ -835,6 +835,63 @@ if league is None and _scope == "Overall":
         )
         st.altair_chart(cadence_chart, use_container_width=True)
 
+    # ── Views concentration — one bar per league ───────────────────────
+    try:
+        from src import dashboard_cache as _dc_conc_all
+        _conc_all = _dc_conc_all.read(db, "concentration", _dc_conc_all.scope_all())
+        _conc_all_rows = (_conc_all or {}).get("payload", {}).get("rows", []) if _conc_all else []
+        if _conc_all_rows:
+            import plotly.graph_objects as _go_ca
+            st.subheader("📊 Views concentration — by league")
+            st.caption("How concentrated are views in each league's catalog (all clubs combined)? "
+                       "Bar = % of videos that account for 80% of total views. "
+                       "Lower = a few hits drive the league. Higher = views spread evenly. "
+                       "Hover for top-1 / top-10 share and median vs avg.")
+            _conc_all_rows = sorted(_conc_all_rows, key=lambda r: r["pct_to_80"])
+            _lg_names = [LEAGUE_FLAG.get(r["league"], "") + " " + r["league"]
+                         for r in _conc_all_rows]
+            _pcts = [r["pct_to_80"] for r in _conc_all_rows]
+            _customdata = [
+                [r["n_to_80"], r["n_videos"], r["top1_pct"], r["top10_pct"],
+                 _fmt(r["median_views"]), _fmt(r["avg_views"]),
+                 _fmt(r["total_views"])]
+                for r in _conc_all_rows
+            ]
+            _bar_colors_ca = [LEAGUE_COLOR_CHART.get(r["league"], "#888")
+                              for r in _conc_all_rows]
+            fig_ca = _go_ca.Figure()
+            fig_ca.add_trace(_go_ca.Bar(
+                x=_pcts, y=_lg_names, orientation="h",
+                marker_color=_bar_colors_ca,
+                customdata=_customdata,
+                hovertemplate=(
+                    "<b>%{y}</b><br>"
+                    "Top %{customdata[0]} of %{customdata[1]} videos = 80% of views<br>"
+                    "Top 1 video = %{customdata[2]:.0f}% · "
+                    "Top 10 = %{customdata[3]:.0f}%<br>"
+                    "Median: %{customdata[4]} · Avg: %{customdata[5]}<br>"
+                    "Total season views: %{customdata[6]}<extra></extra>"
+                ),
+            ))
+            fig_ca.add_vline(x=20, line_dash="dash", line_color="#888",
+                             annotation_text="20%", annotation_position="top",
+                             annotation_font_color="#888")
+            fig_ca.update_layout(
+                height=max(260, 36 * len(_lg_names) + 80),
+                xaxis=dict(title="% of videos to reach 80% of season views",
+                           range=[0, max(40, max(_pcts) * 1.2)],
+                           ticksuffix="%",
+                           showgrid=True, gridcolor="rgba(255,255,255,0.08)"),
+                yaxis=dict(title="", autorange="reversed"),
+                margin=dict(t=30, b=50, l=140),
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#FAFAFA"),
+                showlegend=False,
+            )
+            st.plotly_chart(fig_ca, use_container_width=True)
+    except Exception as _e:
+        st.caption(f"(concentration chart unavailable: {_e})")
+
     # ── All channels table — precomputed columns (zero video queries) ───
     st.subheader("All Channels — Season")
     color_map = get_global_color_map()
