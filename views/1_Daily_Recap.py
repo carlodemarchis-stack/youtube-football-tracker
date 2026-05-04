@@ -555,7 +555,10 @@ if len(_all_dates) >= 2:
                     title=None,
                     axis=alt.Axis(format="~s", minExtent=_Y_AXIS_GUTTER)),
             tooltip=["Date", alt.Tooltip("Δ Channel Views:Q", format=",")],
-        ).properties(height=_CHART_HEIGHT).interactive(bind_y=False)
+        ).properties(height=_CHART_HEIGHT)
+        # Removed .interactive() — was letting the user accidentally pan/zoom
+        # the x-axis, which truncated date labels and desynced this chart's
+        # range from the format-trend chart on the right.
         st.altair_chart(c1, use_container_width=True)
 
     with tc2:
@@ -594,7 +597,8 @@ if len(_all_dates) >= 2:
                 ),
                 order=alt.Order("Format:N", sort="ascending"),
                 tooltip=["Date", "Format", "New Videos"],
-            ).properties(height=_CHART_HEIGHT).interactive(bind_y=False)
+            ).properties(height=_CHART_HEIGHT)
+            # Match the views chart — no x-axis pan/zoom so the two stay aligned.
             st.altair_chart(c2, use_container_width=True)
         else:
             st.caption("No videos in this window.")
