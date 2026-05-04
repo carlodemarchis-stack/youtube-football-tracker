@@ -399,7 +399,7 @@ try:
                   .home-g td {{ border-bottom:1px solid #262730; }}
                 </style>
                 <table class="home-g"><thead><tr>
-                  <th>#</th><th></th><th>Club / League</th>
+                  <th>#</th><th></th><th>Channel</th>
                   <th style="text-align:right">Total Views</th>
                   <th style="text-align:right">Δ last 7 days</th>
                 </tr></thead><tbody>{rows}</tbody></table>
@@ -427,7 +427,7 @@ try:
                       .home-p td {{ border-bottom:1px solid #262730; }}
                     </style>
                     <table class="home-p"><thead><tr>
-                      <th>#</th><th></th><th>Club / League</th>
+                      <th>#</th><th></th><th>Channel</th>
                       <th style="text-align:center">Long / Shorts / Live</th>
                       <th style="text-align:right">Videos</th>
                     </tr></thead><tbody>{rows2}</tbody></table>
