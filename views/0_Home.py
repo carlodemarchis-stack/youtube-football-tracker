@@ -317,35 +317,103 @@ try:
 
         if _gainers:
             _gainers.sort(key=lambda g: g["d7_views"], reverse=True)
-            top5 = _gainers[:5]
+            top5_views = _gainers[:5]
             color_map = get_global_color_map()
             dual = get_global_color_map_dual()
-            st.subheader("🔥 Biggest gainers this week")
-            rows = ""
-            for i, g in enumerate(top5, 1):
-                dot = channel_badge(g.get("_ch") or {}, color_map, dual, 14)
-                col = "#00CC96" if g["d7_views"] > 0 else ("#EF553B" if g["d7_views"] < 0 else "#888")
-                sgn = "+" if g["d7_views"] >= 0 else ""
-                rows += f"""<tr>
-                    <td style="padding:6px 12px;color:#888">{i}</td>
-                    <td style="padding:6px 12px">{dot}</td>
-                    <td style="padding:6px 12px">{g['name']}</td>
-                    <td style="padding:6px 12px;text-align:right">{fmt_num(g['views'])}</td>
-                    <td style="padding:6px 12px;text-align:right;color:{col}">{sgn}{fmt_num(g['d7_views'])}</td>
-                </tr>"""
-            components.html(f"""
-            <style>
-              .home-g {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
-                         font-family:"Source Sans Pro",sans-serif; }}
-              .home-g th {{ padding:6px 12px; border-bottom:2px solid #444; text-align:left; }}
-              .home-g td {{ border-bottom:1px solid #262730; }}
-            </style>
-            <table class="home-g"><thead><tr>
-              <th>#</th><th></th><th>Club / League</th>
-              <th style="text-align:right">Total Views</th>
-              <th style="text-align:right">Δ Views 7d</th>
-            </tr></thead><tbody>{rows}</tbody></table>
-            """, height=len(top5) * 37 + 80, scrolling=False)
+
+            # ── Right-hand table data: most videos published in last 7d ──
+            # Query videos published in the last 7 days, group per channel,
+            # count per format. Restrict to top-5 leagues + League channels
+            # so the two tables share the same scope.
+            from datetime import timezone as _tz, timedelta as _td2
+            _start_iso = (datetime.now(_tz.utc) - _td2(days=7)).isoformat()
+            try:
+                _vid_rows = (_db.client.table("videos")
+                             .select("channel_id,format,duration_seconds,published_at")
+                             .gte("published_at", _start_iso)
+                             .execute().data or [])
+            except Exception:
+                _vid_rows = []
+
+            _pub_counts: dict[str, dict] = {}
+            for v in _vid_rows:
+                ch = _ch_by_id.get(v.get("channel_id"))
+                if not ch or ch.get("entity_type") not in ("Club", "League"):
+                    continue
+                _lg = COUNTRY_TO_LEAGUE.get((ch.get("country") or "").upper())
+                if _lg not in _TOP5:
+                    continue
+                f = (v.get("format") or "").lower()
+                if f not in ("long", "short", "live"):
+                    f = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
+                e = _pub_counts.setdefault(ch["id"], {
+                    "_ch": ch, "name": ch["name"],
+                    "long": 0, "short": 0, "live": 0, "count": 0,
+                })
+                e[f] += 1
+                e["count"] += 1
+            top5_pubs = sorted(_pub_counts.values(),
+                               key=lambda r: r["count"], reverse=True)[:5]
+
+            # ── Two side-by-side tables ─────────────────────────────
+            _gcol1, _gcol2 = st.columns(2)
+            with _gcol1:
+                st.subheader("👁️ Biggest view gains (7d)")
+                rows = ""
+                for i, g in enumerate(top5_views, 1):
+                    dot = channel_badge(g.get("_ch") or {}, color_map, dual, 14)
+                    col = "#00CC96" if g["d7_views"] > 0 else ("#EF553B" if g["d7_views"] < 0 else "#888")
+                    sgn = "+" if g["d7_views"] >= 0 else ""
+                    rows += f"""<tr>
+                        <td style="padding:6px 12px;color:#888">{i}</td>
+                        <td style="padding:6px 12px">{dot}</td>
+                        <td style="padding:6px 12px">{g['name']}</td>
+                        <td style="padding:6px 12px;text-align:right">{fmt_num(g['views'])}</td>
+                        <td style="padding:6px 12px;text-align:right;color:{col}">{sgn}{fmt_num(g['d7_views'])}</td>
+                    </tr>"""
+                components.html(f"""
+                <style>
+                  .home-g {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
+                             font-family:"Source Sans Pro",sans-serif; }}
+                  .home-g th {{ padding:6px 12px; border-bottom:2px solid #444; text-align:left; }}
+                  .home-g td {{ border-bottom:1px solid #262730; }}
+                </style>
+                <table class="home-g"><thead><tr>
+                  <th>#</th><th></th><th>Club / League</th>
+                  <th style="text-align:right">Total Views</th>
+                  <th style="text-align:right">Δ 7d</th>
+                </tr></thead><tbody>{rows}</tbody></table>
+                """, height=len(top5_views) * 37 + 80, scrolling=False)
+
+            with _gcol2:
+                st.subheader("🎬 Most videos published (7d)")
+                if top5_pubs:
+                    rows2 = ""
+                    for i, r in enumerate(top5_pubs, 1):
+                        dot = channel_badge(r.get("_ch") or {}, color_map, dual, 14)
+                        lsl = f'{r["long"]} / {r["short"]} / {r["live"]}'
+                        rows2 += f"""<tr>
+                            <td style="padding:6px 12px;color:#888">{i}</td>
+                            <td style="padding:6px 12px">{dot}</td>
+                            <td style="padding:6px 12px">{r['name']}</td>
+                            <td style="padding:6px 12px;text-align:center;color:#aaa">{lsl}</td>
+                            <td style="padding:6px 12px;text-align:right;font-weight:600">{r['count']}</td>
+                        </tr>"""
+                    components.html(f"""
+                    <style>
+                      .home-p {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
+                                 font-family:"Source Sans Pro",sans-serif; }}
+                      .home-p th {{ padding:6px 12px; border-bottom:2px solid #444; text-align:left; }}
+                      .home-p td {{ border-bottom:1px solid #262730; }}
+                    </style>
+                    <table class="home-p"><thead><tr>
+                      <th>#</th><th></th><th>Club / League</th>
+                      <th style="text-align:center">Long / Shorts / Live</th>
+                      <th style="text-align:right">Videos</th>
+                    </tr></thead><tbody>{rows2}</tbody></table>
+                    """, height=len(top5_pubs) * 37 + 80, scrolling=False)
+                else:
+                    st.caption("No videos published in the last 7 days.")
 except Exception:
     pass  # Snapshot data may not exist yet; degrade silently
 st.markdown(
