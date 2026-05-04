@@ -433,7 +433,11 @@ the second when it's **below**.
             "Most of the season catalog is Long videos. Traditional highlights, press "
             "conferences, longer programming. Often legacy operations slower to shift to Shorts."
         )
-    st.caption(f"Computed only when season catalog ≥ {_prof.MIN_SEASON_VIDEOS_FOR_SHARE} videos "
+    # getattr fallback in case Streamlit Cloud has a stale module cache
+    # mid-deploy — fall back to the older constant name (or its value).
+    _min_share = getattr(_prof, "MIN_SEASON_VIDEOS_FOR_SHARE",
+                         getattr(_prof, "MIN_SEASON_VIDEOS", 20))
+    st.caption(f"Computed only when season catalog ≥ {_min_share} videos "
                "(below that, single uploads swing the percentage too much).")
 
     st.markdown("---")
