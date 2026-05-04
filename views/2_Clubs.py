@@ -926,12 +926,16 @@ else:
         ))
         fig_views_trend.update_layout(
             title=dict(text="Total Views over time", x=0.5),
-            xaxis_title="", yaxis_title="",
-            margin=dict(t=40, b=20, l=10, r=10),
+            xaxis_title="",
+            margin=dict(t=40, b=20, l=60, r=10),
             height=320, showlegend=False,
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
             font=dict(color="#FAFAFA"),
-            yaxis=dict(range=[_ymin - _pad, _ymax + _pad], tickformat=",.2s"),
+            yaxis=dict(
+                title=dict(text="Cumulative views", font=dict(color="#aaa", size=12)),
+                range=[_ymin - _pad, _ymax + _pad],
+                tickformat=",.2s",
+            ),
         )
     else:
         fig_views_trend = None
