@@ -101,8 +101,9 @@ if not g_club and visible:
                 continue
             c, lens, z, label = spotlight[axis]
             badge = channel_badge(c, color_map, dual, 14)
-            lens_label = ("vs " + p["league"]["name"]) if lens == "league" else \
-                         f"vs {profiles[c['id']]['size']['bucket']} clubs"
+            cp = profiles[c["id"]]
+            lens_label = (f"vs {cp['league']['name']}") if lens == "league" else \
+                         f"vs {cp['size']['bucket']} clubs"
             cards += f"""
             <div style="flex:1 1 0;min-width:180px;background:#1a1c24;
                        border-left:3px solid #58A6FF;border-radius:6px;
