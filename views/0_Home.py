@@ -149,23 +149,6 @@ if st.session_state.get("_feed_mode"):
 # ── Normal Home page ─────────────────────────────────────────
 st.title("YouTube Football Tracker")
 
-# Pre-beta banner — kept lightweight (no header / no markdown
-# bullets) so it sits right under the title without competing for
-# attention. Surfaces the disclaimer + a fast feedback channel.
-st.markdown(
-    '<div style="background:#1a1c24;border-left:3px solid #FFA15A;'
-    'padding:10px 14px;margin:6px 0 18px 0;border-radius:4px;'
-    'font-size:13px;line-height:1.55;color:#FAFAFA">'
-    '<span style="color:#FFA15A;font-weight:600">🚧 Work in progress · pre-beta</span>'
-    ' &nbsp;—&nbsp; this is an early build that will keep evolving. '
-    'Bumps and rough edges are expected. '
-    '<a href="mailto:carlo@factory63.com?subject=YTFT%20feedback" '
-    'style="color:#58A6FF;text-decoration:none">Let me know</a> '
-    'if you find any issue.'
-    '</div>',
-    unsafe_allow_html=True,
-)
-
 # ── Leagues covered ─────────────────────────────────────────────
 try:
     _chs = st.session_state.get("_global_channels") or []
@@ -242,6 +225,23 @@ st.markdown(
     at <a href="https://www.buzzmyvideos.com/" target="_blank" style="{_link}"><b>BuzzMyVideos</b></a> — they pulled me deep into the mechanics of YouTube and the creators
     who live on it. This tracker applies that same lens to football.
     </div>""",
+    unsafe_allow_html=True,
+)
+
+# ── Pre-beta banner — sits right above the daily AI note so it
+# reads as part of the same "what's going on" block at the top of
+# the page. Lightweight: orange left-border, mailto link.
+st.markdown(
+    '<div style="background:#1a1c24;border-left:3px solid #FFA15A;'
+    'padding:10px 14px;margin:6px 0 12px 0;border-radius:4px;'
+    'font-size:13px;line-height:1.55;color:#FAFAFA">'
+    '<span style="color:#FFA15A;font-weight:600">🚧 Work in progress · pre-beta</span>'
+    ' &nbsp;—&nbsp; this is an early build that will keep evolving. '
+    'Bumps and rough edges are expected. '
+    '<a href="mailto:carlo@factory63.com?subject=YTFT%20feedback" '
+    'style="color:#58A6FF;text-decoration:none">Let me know</a> '
+    'if you find any issue.'
+    '</div>',
     unsafe_allow_html=True,
 )
 
