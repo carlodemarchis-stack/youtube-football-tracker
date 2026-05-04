@@ -602,6 +602,81 @@ if len(_all_dates) >= 2:
             st.altair_chart(c2, use_container_width=True)
         else:
             st.caption("No videos in this window.")
+
+    # ── Shorts duration distribution — All Leagues scope only ──
+    # Where do views actually concentrate within the 0-60s shorts band?
+    # Bucket every short (any time) into 6-second bins and sum view counts.
+    # Lightweight: ~25K shorts in the DB, paginated query, cached 1h.
+    if not ONE_CLUB and g_league is None:
+
+        @st.cache_data(ttl=3600, show_spinner=False)
+        def _load_shorts_duration_views() -> list[tuple[int, int]]:
+            """All shorts as (duration_seconds, view_count). Paginated."""
+            page = 1000
+            offset = 0
+            out: list[tuple[int, int]] = []
+            while True:
+                rows = (db.client.table("videos")
+                        .select("duration_seconds,view_count,format")
+                        .eq("format", "short")
+                        .range(offset, offset + page - 1)
+                        .execute().data or [])
+                for r in rows:
+                    d = int(r.get("duration_seconds") or 0)
+                    v = int(r.get("view_count") or 0)
+                    if 0 <= d <= 60:
+                        out.append((d, v))
+                if len(rows) < page:
+                    break
+                offset += page
+            return out
+
+        shorts = _load_shorts_duration_views()
+        if shorts:
+            # Buckets: 0-6, 7-12, 13-18, 19-24, 25-30, 31-36, 37-42, 43-48, 49-54, 55-60
+            BUCKETS = [(0, 6), (7, 12), (13, 18), (19, 24), (25, 30),
+                       (31, 36), (37, 42), (43, 48), (49, 54), (55, 60)]
+            agg: dict[str, dict[str, int]] = {}
+            for lo, hi in BUCKETS:
+                key = f"{lo}-{hi}s"
+                agg[key] = {"label": key, "lo": lo, "views": 0, "videos": 0}
+            for d, v in shorts:
+                for lo, hi in BUCKETS:
+                    if lo <= d <= hi:
+                        key = f"{lo}-{hi}s"
+                        agg[key]["views"] += v
+                        agg[key]["videos"] += 1
+                        break
+
+            bucket_df = pd.DataFrame([agg[f"{lo}-{hi}s"] for lo, hi in BUCKETS])
+
+            st.markdown(
+                '<div style="font-size:14px;color:rgba(250,250,250,0.6);'
+                'line-height:1.6;margin-top:8px">'
+                '⚡ Cumulative Shorts views by duration &nbsp;'
+                '<span style="font-size:0.8rem;color:#888">'
+                '(every short across all leagues, bucketed in 6-second bins)</span>'
+                '</div>',
+                unsafe_allow_html=True,
+            )
+            c3 = (alt.Chart(bucket_df)
+                  .mark_bar(color="#00CC96")
+                  .encode(
+                      x=alt.X("label:N",
+                              sort=[f"{lo}-{hi}s" for lo, hi in BUCKETS],
+                              title=None,
+                              axis=alt.Axis(labelAngle=0)),
+                      y=alt.Y("views:Q", title=None,
+                              axis=alt.Axis(format="~s",
+                                            minExtent=_Y_AXIS_GUTTER)),
+                      tooltip=[
+                          alt.Tooltip("label:N", title="Duration"),
+                          alt.Tooltip("views:Q", format=",", title="Total views"),
+                          alt.Tooltip("videos:Q", format=",", title="# videos"),
+                      ],
+                  )
+                  .properties(height=240))
+            st.altair_chart(c3, use_container_width=True)
 else:
     st.caption("Need at least 2 snapshot dates to show trends. Come back after the next cron run.")
 
