@@ -156,6 +156,7 @@ def main() -> int:
     # ── 3. Snapshot recent-window video stats (rolling 30 days) ──
     window_cutoff = (datetime.now(timezone.utc) - timedelta(days=SNAPSHOT_WINDOW_DAYS)).date().isoformat()
     log(f"Snapshotting videos published since {window_cutoff} ({SNAPSHOT_WINDOW_DAYS}d window)...")
+    snap_step_error: str | None = None
     try:
         season_rows = db.get_season_video_rows(window_cutoff)
         log(f"  {len(season_rows)} videos in window")
@@ -209,6 +210,10 @@ def main() -> int:
             except Exception as e:
                 log(f"  videos table freshness update skipped: {e}")
     except Exception as e:
+        # Capture the failure reason so it shows up in fetch_history /
+        # the final summary line, instead of silently passing as a
+        # successful "0 video snapshots" run.
+        snap_step_error = str(e)[:300]
         log(f"season snapshot step failed: {e}")
 
     # ── Rebuild dashboard cache (precomputed aggregates Daily Recap reads) ─
@@ -223,10 +228,26 @@ def main() -> int:
     elapsed = time.time() - start
     log(f"Done in {elapsed:.1f}s — channels_ok={ok} failed={len(failed)} new_videos={new_videos_total} video_snapshots={video_snapshots_written}")
 
+    # Surface the snapshot-step failure (if any) loudly: log it as a
+    # *partial* run so it stands out in fetch_history. Zero snapshots
+    # written when the step errored is the silent failure mode that
+    # made Bayern's "Most watched" empty on May 03 — don't let it look
+    # like a clean success ever again.
     try:
+        snap_zero_unexpected = (video_snapshots_written == 0 and not snap_step_error
+                                and ok > 0)
         if failed:
             err_summary = "; ".join(f"{n}: {e}" for n, e in failed[:10])
-            db.log_fetch(ok, new_videos_total, "daily_snapshot_partial", f"{len(failed)} failures: {err_summary}")
+            db.log_fetch(ok, new_videos_total, "daily_snapshot_partial",
+                         f"{len(failed)} failures: {err_summary}"
+                         + (f" | snap_step_error: {snap_step_error}" if snap_step_error else ""))
+        elif snap_step_error:
+            db.log_fetch(ok, new_videos_total, "daily_snapshot_partial",
+                         f"{ok} channels OK but snapshot step failed: {snap_step_error}"
+                         f" | wrote {video_snapshots_written} video snapshots in {elapsed:.1f}s")
+        elif snap_zero_unexpected:
+            db.log_fetch(ok, new_videos_total, "daily_snapshot_partial",
+                         f"{ok} channels OK but 0 video snapshots written (no error raised) in {elapsed:.1f}s")
         else:
             db.log_fetch(
                 ok, new_videos_total, "daily_snapshot",
