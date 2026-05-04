@@ -1114,8 +1114,15 @@ else:
         )
 
     if _top_v or _latest_v:
-        st.markdown(_video_row_html(_top_v, "🏆 Top Video (all-time)")
-                    + _video_row_html(_latest_v, "🆕 Latest Video"),
-                    unsafe_allow_html=True)
+        # Render via components.html (raw iframe) to bypass Streamlit's
+        # markdown post-processor — st.markdown was breaking the Top card
+        # into separate stacked boxes (one card per inner div).
+        _cards_html = _video_row_html(_top_v, "🏆 Top Video") + _video_row_html(_latest_v, "🆕 Latest Video")
+        components.html(
+            f'<div style="font-family:\'Source Sans Pro\',sans-serif;color:#FAFAFA;">'
+            f'{_cards_html}</div>',
+            height=300,
+            scrolling=False,
+        )
 
     st.caption("See **Top Videos** for the all-time top 100 and **Season 25/26** for current-season activity.")
