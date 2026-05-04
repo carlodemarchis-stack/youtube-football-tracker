@@ -672,8 +672,9 @@ if _show_per_league_summary:
             if vfmt not in ("long", "short", "live"):
                 vfmt = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
             lg_agg[lg][vfmt] = lg_agg[lg].get(vfmt, 0) + 1
-            # Track per-league, per-club counts (exclude the league channel and Players)
-            if ch.get("entity_type") not in ("League", "Player", "Federation", "OtherClub", "WomenClub"):
+            # Track per-league, per-channel counts (include league channels;
+            # exclude only tangential entity types — Players/Federations/etc.)
+            if ch.get("entity_type") not in ("Player", "Federation", "OtherClub", "WomenClub"):
                 lg_club_counts.setdefault(lg, {})[ch["id"]] = \
                     lg_club_counts.setdefault(lg, {}).get(ch["id"], 0) + 1
 
@@ -689,12 +690,11 @@ if _show_per_league_summary:
                 top_cid, top_n = max(clubs_in_lg.items(), key=lambda kv: kv[1])
                 top_ch = ch_by_id.get(top_cid) or {}
                 top_name = top_ch.get("name", "—")
-                _c1, _c2 = dual.get(top_name, (color_map.get(top_name, "#636EFA"), "#FFFFFF"))
+                # Standard decoration: dual-dot for clubs, flag for leagues.
+                top_dot = channel_badge(top_ch, color_map, dual, 14)
                 top_active = (
-                    f"<span style='display:inline-block;width:9px;height:9px;border-radius:50%;"
-                    f"background:{_c1};box-shadow:2px 0 0 {_c2};border:1px solid rgba(255,255,255,0.25);"
-                    f"margin-right:7px;vertical-align:middle'></span>"
-                    f"{top_name} <span style='color:#888;font-size:12px'>· {top_n}</span>"
+                    f"{top_dot}<span style='margin-left:7px;vertical-align:middle'>"
+                    f"{top_name} <span style='color:#888;font-size:12px'>· {top_n}</span></span>"
                 )
             else:
                 top_active = "<span style='color:#666'>—</span>"
@@ -720,7 +720,7 @@ if _show_per_league_summary:
           <th style="text-align:right">Videos</th>
           <th style="text-align:right">Long / Shorts / Live</th>
           <th style="text-align:right">Δ Views</th>
-          <th>🔥 Most active club</th>
+          <th>🔥 Most active channel</th>
         </tr></thead><tbody>{lg_rows}</tbody></table>
         """, height=len(lg_agg) * 42 + 60, scrolling=False)
 
