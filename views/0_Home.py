@@ -358,7 +358,7 @@ try:
             # ── Two side-by-side tables ─────────────────────────────
             _gcol1, _gcol2 = st.columns(2)
             with _gcol1:
-                st.subheader("👁️ Biggest view gains (7d)")
+                st.subheader("👁️ Biggest view gains (last 7 days)")
                 rows = ""
                 for i, g in enumerate(top5_views, 1):
                     dot = channel_badge(g.get("_ch") or {}, color_map, dual, 14)
@@ -381,12 +381,12 @@ try:
                 <table class="home-g"><thead><tr>
                   <th>#</th><th></th><th>Club / League</th>
                   <th style="text-align:right">Total Views</th>
-                  <th style="text-align:right">Δ 7d</th>
+                  <th style="text-align:right">Δ last 7 days</th>
                 </tr></thead><tbody>{rows}</tbody></table>
                 """, height=len(top5_views) * 37 + 80, scrolling=False)
 
             with _gcol2:
-                st.subheader("🎬 Most videos published (7d)")
+                st.subheader("🎬 Most videos published (last 7 days)")
                 if top5_pubs:
                     rows2 = ""
                     for i, r in enumerate(top5_pubs, 1):
