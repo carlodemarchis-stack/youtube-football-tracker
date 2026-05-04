@@ -735,6 +735,21 @@ if league is None and _scope == "Overall":
     @st.cache_data(ttl=3600, show_spinner=False)
     def _load_publish_cadence(since_iso: str) -> pd.DataFrame:
         from src.database import _fetch_all
+        # Restrict to Top-5 league channels + their clubs only. The
+        # "Others" entity types (Player/Federation/OtherClub/WomenClub)
+        # would otherwise sneak in because get_league_for_channel maps
+        # them by country (a UK-based Player would land in "Premier
+        # League"), and those buckets have inconsistent ongoing
+        # ingestion which produces an artificial Feb-onward cliff.
+        scoped_ids = {
+            c["id"] for c in all_channels
+            if c.get("entity_type") in ("Club", "League")
+            and get_league_for_channel(c)
+        }
+        if not scoped_ids:
+            return pd.DataFrame()
+        # Fetch all season rows then filter in-memory (large IN lists
+        # are fragile through PostgREST URL limits).
         rows = _fetch_all(
             db.client.table("videos")
             .select("channel_id,published_at")
@@ -742,7 +757,9 @@ if league is None and _scope == "Overall":
         )
         if not rows:
             return pd.DataFrame()
-        ch_lg = {c["id"]: get_league_for_channel(c) for c in all_channels}
+        rows = [r for r in rows if r.get("channel_id") in scoped_ids]
+        ch_lg = {c["id"]: get_league_for_channel(c) for c in all_channels
+                 if c["id"] in scoped_ids}
         recs = []
         for r in rows:
             lg = ch_lg.get(r.get("channel_id"))
