@@ -175,35 +175,117 @@ def yt_popup_js() -> str:
 
 def yt_overlay_html() -> str:
     """Return a components.html snippet that creates a YouTube overlay player
-    in the parent Streamlit page. Call once from app.py."""
+    in the parent Streamlit page. Call once from app.py.
+
+    Uses the YouTube IFrame Player API so we can detect error codes 101 / 150
+    (channel disabled embedding for this video) and gracefully fall back to
+    opening the video on youtube.com in a new tab. Without this fallback the
+    overlay would just show YouTube's "Video unavailable" placeholder forever.
+    """
     return """
 <script>
 (function(){
   var p = window.parent.document;
+  var w = window.parent;
   if (p.getElementById('yt-overlay')) return;
+
+  // ── Inject IFrame API loader once ──────────────────────────
+  if (!w.YT && !p.getElementById('yt-iframe-api')) {
+    var s = p.createElement('script');
+    s.id = 'yt-iframe-api';
+    s.src = 'https://www.youtube.com/iframe_api';
+    p.head.appendChild(s);
+  }
+
+  // ── Build overlay shell ────────────────────────────────────
   var ov = p.createElement('div');
   ov.id = 'yt-overlay';
   ov.style.cssText = 'display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;'+
     'background:rgba(0,0,0,0.88);z-index:100000;justify-content:center;align-items:center;cursor:pointer;';
   ov.innerHTML = '<div style="position:relative;width:80vw;max-width:960px;aspect-ratio:16/9;cursor:default">' +
-    '<iframe id="yt-player" style="width:100%;height:100%;border:none;border-radius:8px" ' +
-    'allowfullscreen allow="autoplay; encrypted-media"></iframe>' +
+    '<div id="yt-player-mount" style="width:100%;height:100%"></div>' +
+    '<div id="yt-fallback" style="display:none;position:absolute;top:0;left:0;width:100%;height:100%;'+
+       'background:#1a1c24;border-radius:8px;flex-direction:column;align-items:center;justify-content:center;'+
+       'color:#FAFAFA;font-family:\\'Source Sans Pro\\',sans-serif;text-align:center;padding:20px;box-sizing:border-box">' +
+       '<div style="font-size:18px;font-weight:600;margin-bottom:8px">This video can\\'t be embedded</div>' +
+       '<div style="font-size:13px;color:#aaa;margin-bottom:18px">The channel disabled in-page playback. Opening on YouTube…</div>' +
+       '<a id="yt-fallback-link" href="#" target="_blank" rel="noopener" style="background:#FF0000;color:#fff;padding:10px 20px;'+
+         'border-radius:6px;text-decoration:none;font-weight:600;font-size:14px">Watch on YouTube ↗</a>' +
+    '</div>' +
     '<button id="yt-close" style="position:absolute;top:-40px;right:0;background:none;border:none;' +
     'color:#fff;font-size:30px;cursor:pointer;padding:4px 10px">✕</button></div>';
   p.body.appendChild(ov);
+
+  var ytPlayer = null;
+  var currentVideoId = null;
+
+  function showFallback(id) {
+    var fb = p.getElementById('yt-fallback');
+    var lk = p.getElementById('yt-fallback-link');
+    var url = 'https://www.youtube.com/watch?v=' + id;
+    lk.href = url;
+    fb.style.display = 'flex';
+    // Auto-open in a new tab — user already expressed intent to watch.
+    try { w.open(url, '_blank', 'noopener'); } catch(e) {}
+  }
+
+  function hideFallback() {
+    var fb = p.getElementById('yt-fallback');
+    fb.style.display = 'none';
+  }
+
+  function ensurePlayer(callback) {
+    if (ytPlayer) { callback(); return; }
+    function tryInit() {
+      if (w.YT && w.YT.Player) {
+        ytPlayer = new w.YT.Player('yt-player-mount', {
+          width: '100%', height: '100%', videoId: '',
+          playerVars: { autoplay: 1, rel: 0, modestbranding: 1 },
+          events: {
+            onReady: function() { callback(); },
+            onError: function(ev) {
+              // 101 / 150 = embed disabled by the channel. 100 = video private/removed.
+              // 5 = HTML5 player error. In all of these the in-page player
+              // can't recover, so fall back to opening on youtube.com.
+              if ([100, 101, 150, 5].indexOf(ev.data) !== -1 && currentVideoId) {
+                showFallback(currentVideoId);
+              }
+            }
+          }
+        });
+      } else {
+        setTimeout(tryInit, 100);
+      }
+    }
+    tryInit();
+  }
+
+  function playVideo(id) {
+    if (!id) return;
+    currentVideoId = id;
+    hideFallback();
+    ov.style.display = 'flex';
+    ensurePlayer(function() {
+      try { ytPlayer.loadVideoById(id); } catch(e) { showFallback(id); }
+    });
+  }
+
   function closeOverlay() {
     ov.style.display = 'none';
-    p.getElementById('yt-player').src = '';
+    hideFallback();
+    try { if (ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo(); } catch(e) {}
   }
+
   ov.addEventListener('click', function(e) { if (e.target === ov) closeOverlay(); });
   p.getElementById('yt-close').addEventListener('click', closeOverlay);
   p.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeOverlay(); });
-  window.parent.addEventListener('message', function(e) {
+
+  w.addEventListener('message', function(e) {
     if (e.data && e.data.type === 'ytplay' && e.data.id) {
-      ov.style.display = 'flex';
-      p.getElementById('yt-player').src = 'https://www.youtube.com/embed/' + e.data.id + '?autoplay=1';
+      playVideo(e.data.id);
     }
   });
+
   // Intercept YouTube links in the parent page (st.markdown content)
   p.addEventListener('click', function(e) {
     var a = e.target.closest('a[href*="youtube.com/watch"]');
@@ -211,10 +293,7 @@ def yt_overlay_html() -> str:
     e.preventDefault(); e.stopPropagation();
     try {
       var id = new URL(a.href).searchParams.get('v');
-      if (id) {
-        ov.style.display = 'flex';
-        p.getElementById('yt-player').src = 'https://www.youtube.com/embed/' + id + '?autoplay=1';
-      }
+      if (id) playVideo(id);
     } catch(ex) {}
   }, true);
 })();
