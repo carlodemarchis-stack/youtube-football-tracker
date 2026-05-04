@@ -209,7 +209,7 @@ if league is None and _scope == "Overall":
             <th data-col="4" data-type="num" style="text-align:right">Avg Subs/Club</th>
             <th data-col="5" data-type="num" style="text-align:right">Subs League</th>
             <th data-col="6" data-type="num" style="text-align:right">Total Views</th>
-            <th data-col="7" data-type="num" style="text-align:right;width:60px">Views/<br>Sub</th>
+            <th data-col="7" data-type="num" style="text-align:right">Views/<br>Sub</th>
             <th data-col="8" data-type="num" style="text-align:right">Videos</th>
             <th data-col="9" data-type="num" style="text-align:right">Long</th>
             <th data-col="10" data-type="num" style="text-align:right">Shorts</th>
