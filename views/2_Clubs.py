@@ -1048,8 +1048,11 @@ else:
     # its most recently published video. Click the thumbnail to open
     # on YouTube. Cheap (1 row each from the videos table).
     try:
-        _top_v = db.get_top_videos(limit=1, channel_id=channel["id"])
-        _top_v = _top_v[0] if _top_v else None
+        # NB: db.get_top_videos is defined twice in database.py and the
+        # second def (no channel_id kwarg) shadows the first. Use
+        # get_videos_by_channel which is already ordered by view_count desc.
+        _top_rows = db.get_videos_by_channel(channel["id"])
+        _top_v = _top_rows[0] if _top_rows else None
     except Exception:
         _top_v = None
     try:
