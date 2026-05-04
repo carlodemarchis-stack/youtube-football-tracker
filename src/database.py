@@ -21,11 +21,23 @@ _PAGE_SIZE = 1000  # Supabase PGRST_MAX_ROWS default
 
 
 def _fetch_all(query_builder):
-    """Paginate through Supabase results to bypass the 1000-row server limit."""
+    """Paginate through Supabase results to bypass the 1000-row server limit.
+
+    IMPORTANT: forces a stable .order("id") to guarantee no duplicates and
+    no missed rows across pages. Without an ORDER BY, PostgreSQL is allowed
+    to return rows in different orders between paginated requests, which
+    silently produces duplicates of some rows and skips others — fatal
+    for any aggregation with > _PAGE_SIZE result rows.
+    """
     all_rows = []
     offset = 0
+    # All tables in this codebase use a UUID `id` PK, which is always
+    # present and unique — perfect stable sort key. Append rather than
+    # replace any existing order; PostgreSQL will treat (caller_order, id)
+    # as a stable composite.
+    ordered = query_builder.order("id", desc=False)
     while True:
-        resp = query_builder.range(offset, offset + _PAGE_SIZE - 1).execute()
+        resp = ordered.range(offset, offset + _PAGE_SIZE - 1).execute()
         rows = resp.data or []
         all_rows.extend(rows)
         if len(rows) < _PAGE_SIZE:
