@@ -127,9 +127,33 @@ def _render_per_league_charts(sorted_leagues):
                         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                         font=dict(color="#FAFAFA"))
 
-    c1, c2 = st.columns(2)
+    # Third chart on this row: Views per Video (stacked Long/Shorts/Live).
+    # Useful as a per-format efficiency comparison alongside the absolute
+    # views and video counts.
+    def _vpv(views, vids):
+        return (views / vids) if vids else 0.0
+    fig_vpv = go.Figure()
+    fig_vpv.add_trace(go.Bar(name="Long",   x=lg_names,
+                             y=[_vpv(s["long_views"],  s["long_v"])  for _, s in sorted_leagues],
+                             marker_color="#636EFA"))
+    fig_vpv.add_trace(go.Bar(name="Shorts", x=lg_names,
+                             y=[_vpv(s["short_views"], s["short_v"]) for _, s in sorted_leagues],
+                             marker_color="#00CC96"))
+    fig_vpv.add_trace(go.Bar(name="Live",   x=lg_names,
+                             y=[_vpv(s["live_views"],  s["live_v"])  for _, s in sorted_leagues],
+                             marker_color="#FFA15A"))
+    fig_vpv.update_layout(title="Season Views/Video by League (Long / Shorts / Live)", barmode="group",
+                          xaxis_title="", yaxis_title="",
+                          margin=dict(t=50, b=70, l=10, r=10),
+                          legend=dict(orientation="h", yanchor="top", y=-0.15,
+                                      xanchor="center", x=0.5),
+                          paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                          font=dict(color="#FAFAFA"))
+
+    c1, c2, c3 = st.columns(3)
     c1.plotly_chart(fig_v, use_container_width=True)
     c2.plotly_chart(fig_n, use_container_width=True)
+    c3.plotly_chart(fig_vpv, use_container_width=True)
 
     # Three secondary charts in one row: Engagement Rate, Avg Duration
     # (Long), Avg Duration (Shorts). Same set, all derived from the
