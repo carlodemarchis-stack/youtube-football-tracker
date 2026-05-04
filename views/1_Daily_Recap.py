@@ -754,7 +754,10 @@ _season_views = {c["id"]: int(c.get("season_views", 0) or 0) for c in all_channe
 
 _gainer_tbl_idx = 0
 
-def _gainer_table(metric: str, title: str, icon: str, positive_is_good: bool = True) -> str:
+def _gainer_table(metric: str, title: str, icon: str, positive_is_good: bool = True) -> tuple[str, int]:
+    """Returns (html, n_rows) so the caller can size the iframe correctly.
+    Up to 25 rows, but on quiet days far fewer — hardcoding height=900 left
+    big empty space below."""
     global _gainer_tbl_idx
     _gainer_tbl_idx += 1
     _tbl_id = f"gt{_gainer_tbl_idx}"
@@ -783,7 +786,7 @@ def _gainer_table(metric: str, title: str, icon: str, positive_is_good: bool = T
             g["season_views"] = sv
         gainers.append(g)
     if not gainers:
-        return ""
+        return "", 0
     gainers.sort(key=lambda g: g["delta"], reverse=positive_is_good)
     top = gainers[:25]
     rows_html = ""
@@ -853,14 +856,16 @@ def _gainer_table(metric: str, title: str, icon: str, positive_is_good: bool = T
       }});
     }})();
     </script>
-    """
+    """, len(top)
 
 
 if not ONE_CLUB:
     with col_l:
-        html = _gainer_table("total_views", "Biggest view gains", "👁️")
+        html, n_rows = _gainer_table("total_views", "Biggest view gains", "👁️")
         if html:
-            components.html(html, height=900)
+            # ~32px per row + ~80px for header / title / margins. Was hardcoded
+            # to 900 which left big empty tail on quiet days.
+            components.html(html, height=n_rows * 32 + 80)
         else:
             st.caption("No view deltas available for this day.")
     with col_r:
@@ -903,7 +908,7 @@ if not ONE_CLUB:
               <th style="padding:5px 10px;text-align:right">Videos</th>
             </tr></thead>
             <tbody>{pub_html}</tbody></table></div>
-            """, height=900)
+            """, height=len(pub_sorted[:25]) * 32 + 80)
         else:
             st.caption("No clubs published videos on this day.")
 

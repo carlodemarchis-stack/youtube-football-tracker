@@ -215,7 +215,7 @@ for i, p in enumerate(feds, 1):
         <td style="padding:6px 12px;text-align:center" data-val="{_status_sort}" title="{_status_label} · last upload {(_days if _days is not None else '—')}d ago">{_status_dot_s}</td>
     </tr>"""
 
-_tbl_h = max(len(feds), 1) * 42 + 55
+_tbl_h = max(len(feds), 1) * 32 + 50  # tightened: rows ~30px, single-row header ~50px
 components.html(f"""
 <style>
   .pl {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
@@ -379,7 +379,7 @@ for idx, (_, r) in enumerate(_activity_df.iterrows(), 1):
         <td style="padding:6px 12px;text-align:right" data-val="{r['Season views']}">{fmt_num(r['Season views'])}</td>
     </tr>"""
 
-_act_h = len(_activity_df) * 42 + 55
+_act_h = len(_activity_df) * 32 + 50  # tightened: rows ~30px, single-row header ~50px
 components.html(f"""
 <style>
   .pl2 {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;

@@ -566,7 +566,8 @@ if league is None and _scope == "Overall":
             <td style="padding:6px 12px;text-align:right" data-val="{eng_rate}">{eng_rate:.2f}%</td>
         </tr>"""
 
-    _ch_table_height = len(ch_rows) * 37 + 100
+    # Tightened: single-line rows ~30px, two-row sticky header ~60px.
+    _ch_table_height = len(ch_rows) * 32 + 70
     components.html(f"""
     <style>
         .ch-wrap {{ overflow-x:auto; width:100%; }}
@@ -853,7 +854,8 @@ if club is None:
         </tr>"""
 
     # ── Sortable table ──────────────────────────────────────────
-    _table_height = len(df) * 37 + 100
+    # Tightened: single-line rows ~30px, two-row sticky header ~60px.
+    _table_height = len(df) * 32 + 70
     components.html(f"""
     <style>
         .st-wrap {{ overflow-x:auto; width:100%; }}

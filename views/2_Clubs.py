@@ -187,7 +187,8 @@ if league is None and _scope == "Overall":
                 <td style="padding:6px 12px;text-align:right" data-val="{avg_v}">{fmt_num(avg_v)}</td>
             </tr>"""
 
-        _lg_table_height = len(sorted_leagues) * 37 + 100
+        # Tightened: single-line rows ~30px, two-row sticky header ~60px.
+        _lg_table_height = len(sorted_leagues) * 32 + 70
         components.html(f"""
         <style>
             .lg-table {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
@@ -617,7 +618,8 @@ elif club is None:
         </tr>"""
 
     # ── Sortable table via components.html (pure JS, no server round-trip) ──
-    _table_height = len(df) * 37 + 100
+    # Tightened: single-line rows ~30px, two-row sticky header ~60px.
+    _table_height = len(df) * 32 + 70
     components.html(f"""
     <style>
         .st-table {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;

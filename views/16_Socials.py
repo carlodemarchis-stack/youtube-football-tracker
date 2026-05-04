@@ -196,7 +196,7 @@ components.html(f"""
 <tbody>{rows_html}</tbody>
 </table>
 </div>
-""", height=len(rows) * 46 + 70, scrolling=False)
+""", height=len(rows) * 40 + 60, scrolling=False)  # tightened — was 46×n+70
 
 # ── Single-club: full account list ──────────────────────────────────
 # When viewing one club, surface every individual account (main +
@@ -473,7 +473,7 @@ for idx, (key, label, bg, fg) in enumerate(_FCOLS, start=4):
         f'font-size:10px;font-weight:600;line-height:18px">{label}</span></th>'
     )
 
-_lb_h = max(len(rows), 1) * 38 + 80
+_lb_h = max(len(rows), 1) * 32 + 60  # tightened — was 38×n+80
 components.html(f"""
 <style>
   .fl {{ width:100%; border-collapse:collapse; font-size:13px; color:#FAFAFA;

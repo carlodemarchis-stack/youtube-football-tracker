@@ -36,6 +36,14 @@ from datetime import datetime, timezone, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Local-run convenience: pick up SUPABASE_URL / KEY etc. from .env if
+# present. On Railway env vars are injected directly so this is a no-op.
+try:
+    from dotenv import load_dotenv  # type: ignore
+    load_dotenv()
+except Exception:
+    pass
+
 from src.database import Database
 from src.youtube_api import YouTubeClient
 

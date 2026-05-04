@@ -291,7 +291,7 @@ for i, p in enumerate(_filtered, 1):
     </tr>"""
 
 # Initial iframe height — JS below auto-resizes to real scrollHeight on load.
-_tbl_h = max(len(_filtered), 1) * 42 + 55
+_tbl_h = max(len(_filtered), 1) * 32 + 50  # tightened: rows ~30px, single-row header ~50px
 components.html(f"""
 <style>
   .pl {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
@@ -460,7 +460,7 @@ for idx, (_, r) in enumerate(_activity_df.iterrows(), 1):
         <td style="padding:6px 12px;text-align:right" data-val="{r['Season views']}">{fmt_num(r['Season views'])}</td>
     </tr>"""
 
-_act_h = len(_activity_df) * 42 + 55
+_act_h = len(_activity_df) * 32 + 50  # tightened: rows ~30px, single-row header ~50px
 components.html(f"""
 <style>
   .pl2 {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;

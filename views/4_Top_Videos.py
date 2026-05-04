@@ -244,7 +244,9 @@ if not club:
                 <td style="padding:6px 12px;text-align:right" data-val="{row.get('s1_dur_s', 0) or 0}">{ss.get('s1_dur', '-')}</td>
             </tr>"""
 
-        _table_height = len(ch_df) * 37 + 100
+        # Tightened heuristic: single-line rows ~30px + two-row sticky
+        # header ~60px (was 37×n + 100, overshooting by ~150px per page).
+        _table_height = len(ch_df) * 32 + 70
         components.html(f"""
         <style>
             .st-table {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
@@ -501,7 +503,11 @@ for i, r in enumerate(filtered.itertuples(index=False), 1):
         <td style="padding:6px 12px;white-space:nowrap">{dur_s}</td>
     </tr>"""
 
-_table_height = min(80 + 34 * len(filtered), 1200)
+# Two-line rows (channel meta + title) actually run ~50px each, header ~45px.
+# Old formula `80 + 34*n, cap 1200` undercounted per-row but capped too low,
+# so when filters narrowed results we got both inner-scroll AND empty tail.
+# New: 50px×n + 50 header, capped at viewport-friendly 1400.
+_table_height = min(50 + 50 * len(filtered), 1400)
 components.html(
     f"""
     <style>
@@ -516,7 +522,7 @@ components.html(
       .vidlist .arrow {{ font-size:11px; opacity:0.4; margin-left:2px; }}
       .vidlist th.sorted .arrow {{ opacity:1; }}
     </style>
-    <div style="max-height:1100px;overflow:auto">
+    <div style="max-height:1350px;overflow:auto">
     <table class="vidlist" id="vlTable"><thead><tr>
       <th style="text-align:right">#</th>
       <th>Video</th>
