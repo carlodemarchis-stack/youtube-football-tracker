@@ -310,7 +310,12 @@ if league is None and _scope == "Overall":
             fig_stack,
             make_league_bar(lg_df, "avg_views_per_video", "Views/Video by League"),
         ]
-        for i in range(0, len(charts), 2):
+        # First 4 (the subscriber-family charts) on one row so they read as
+        # a group; the rest stay 2-up.
+        row1 = st.columns(4)
+        for j, fig in enumerate(charts[:4]):
+            row1[j].plotly_chart(fig, use_container_width=True)
+        for i in range(4, len(charts), 2):
             cols = st.columns(2)
             for j, fig in enumerate(charts[i:i+2]):
                 cols[j].plotly_chart(fig, use_container_width=True)
