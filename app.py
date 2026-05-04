@@ -37,13 +37,19 @@ viewer_pages = [
     st.Page("views/2_Clubs.py", title="Channels"),
     st.Page("views/3_Season_2526.py", title="Season 25/26"),
     st.Page("views/4_Top_Videos.py", title="Top Videos"),
-    st.Page("views/4b_Outliers.py", title="Outliers"),
     st.Page("views/16_Socials.py", title="Other Social"),
     st.Page("views/13_Players.py", title="Players"),
     st.Page("views/14_Federations.py", title="Federations"),
     st.Page("views/15_Other_Clubs.py", title="Other Clubs"),
     st.Page("views/17_Women.py", title="Women"),
     # st.Page("views/12_Reddit.py", title="Reddit"),  # disabled — Reddit blocks cloud IPs
+]
+
+# Tier 1.5 — "The Lab": experimental / analytical pages, viewer-tier
+# (no invite needed). Carved out into its own sidebar family so users
+# know these are exploratory features, not core data.
+lab_pages = [
+    st.Page("views/4b_Outliers.py", title="Outliers"),
 ]
 
 # Tier 2 — premium (promote users via User Management)
@@ -70,6 +76,9 @@ admin_pages = [
 nav = {"": public_pages}
 if is_logged_in():
     nav[""] = public_pages + viewer_pages
+    # The Lab sits between viewer pages and Invite-only — analytical
+    # tools that don't yet earn a top-level slot.
+    nav["The Lab"] = lab_pages
 if is_premium():
     nav["Invite-only"] = premium_pages_unlocked
 elif is_logged_in():
