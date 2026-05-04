@@ -159,8 +159,7 @@ if live_now:
             {'<span class="ln-dur">' + _live_label + '</span>' if _live_label else ''}
           </div>
           <div class="ln-info">
-            <span class="ln-flag">{LEAGUE_FLAG.get(COUNTRY_TO_LEAGUE.get((ch.get("country") or "").strip(), ""), "")}</span>
-            {channel_badge(ch, color_map, dual, 10)}
+            {channel_badge(ch, color_map, dual, 12)}
             <span class="ln-club">{ch_name}</span>
             {('<span class="ln-views">' + fmt_num(views) + ' views</span>') if views else ''}
           </div>
@@ -218,8 +217,7 @@ if mosaic_view:
             {'<span class="card-dur">' + dur_s + '</span>' if dur_s else ''}
           </div>
           <div class="card-info">
-            <span class="card-flag">{flag}</span>
-            {channel_badge(ch, color_map, dual, 10)}
+            {channel_badge(ch, color_map, dual, 12)}
             <span class="card-club">{ch_name}</span>
           </div>
           <div class="card-title" title="{title}">{title}</div>
@@ -305,17 +303,18 @@ for v in latest:
             age_label = ""
 
     row_click = f'onclick="window.open(\'{url}\',\'_blank\',\'noopener\')"' if url else ''
-    _country = (ch.get("country") or "").strip()
-    _league = COUNTRY_TO_LEAGUE.get(_country, _country)
-    _flag = LEAGUE_FLAG.get(_league, "")
-    dot = f'<span class="dot" style="background:{c1};box-shadow:3px 0 0 {c2}"></span>'
+    # Standard channel_badge: flag for League channels, dual_dot for clubs.
+    # Was rendering both a flag AND a dot for every row, which doubled the
+    # marker on league channels and didn't match Daily Recap / Top Videos /
+    # Other Social conventions.
+    _badge = channel_badge(ch, color_map, dual, 14)
 
     rows_html += f"""<tr {row_click} style="cursor:pointer" data-views="{views}" data-likes="{likes}" data-comments="{comments}" data-dur="{dur}" data-age="{age_minutes}" data-ch="{ch_name}" data-fmt="{fmt_raw}" data-cat="{cat}">
         <td class="c-video">
           <div class="v-row">
             {thumb_html}
             <div class="v-info">
-              <div class="v-meta">{_flag} {dot}<span style="color:#AAA">{ch_name}</span> · <span style="color:{fmt_color}">{fmt_label}</span>{(' · <span style="color:#666">' + cat + '</span>') if cat and cat != 'Other' else ''}</div>
+              <div class="v-meta">{_badge} <span style="color:#AAA">{ch_name}</span> · <span style="color:{fmt_color}">{fmt_label}</span>{(' · <span style="color:#666">' + cat + '</span>') if cat and cat != 'Other' else ''}</div>
               <a href="{url}" target="_blank" rel="noopener" class="v-title">{title}</a>
             </div>
           </div>
