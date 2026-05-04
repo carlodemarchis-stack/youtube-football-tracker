@@ -262,32 +262,131 @@ else:
 
 
 # ──────────────────────────────────────────────────────────────
-# How this works (collapsible)
+# Tag glossary (collapsible)
 # ──────────────────────────────────────────────────────────────
-with st.expander("How this works"):
+with st.expander("📖 Tag glossary — what each label means"):
     st.markdown("""
-**Five structural ratios** are computed per channel:
+Each axis is a structural ratio. A tag fires when a channel sits
+≥1.5 *median-absolute-deviations* (log-scaled) from peer median, on
+either lens. The first tag fires when the ratio is **above** peers,
+the second when it's **below**.
+""")
 
-- **VPS** — Views per Subscriber (engagement)
-- **VPV** — Views per Video (per-upload yield)
-- **SPV** — Subs per Video (audience-to-output)
-- **SPY** — Subs per Year (growth velocity)
-- **VPY** — Videos per Year (cadence)
+    st.markdown("---")
+    st.markdown("### 1. VPS — Views per Subscriber  *(engagement)*")
+    st.caption("Total views ÷ subscriber count. How much each sub actually watches.")
+    g1, g2 = st.columns(2)
+    with g1:
+        st.markdown(
+            "**🌱 Small but loyal**  *(high)*  \n"
+            "Each sub watches a lot of content. Often smaller channels with a genuinely "
+            "engaged audience — people who subscribed and actually consume."
+        )
+    with g2:
+        st.markdown(
+            "**💧 Disengaged subs**  *(low)*  \n"
+            "Subs collected but the audience isn't watching much. Common for clubs whose "
+            "followers subbed for status / a viral moment and never converted to watch time."
+        )
 
-Each ratio is **log-transformed** before scoring (audience numbers span
-4 orders of magnitude in a single league — without log, every giant
-would always look extreme).
+    st.markdown("---")
+    st.markdown("### 2. VPV — Views per Video  *(per-upload yield)*")
+    st.caption("Total views ÷ video count. How much each video earns on average.")
+    g1, g2 = st.columns(2)
+    with g1:
+        st.markdown(
+            "**🚀 Punching above weight**  *(high)*  \n"
+            "Each video lands hard. Quality > quantity — fewer pieces, bigger views per piece."
+        )
+    with g2:
+        st.markdown(
+            "**📉 High volume, low yield**  *(low)*  \n"
+            "Posts a lot, gets little watched per piece. Volume strategy that isn't converting — "
+            "could be over-producing or posting low-priority content."
+        )
 
-**z-score** = how many median-absolute-deviations away from the peer
-median this club's log-ratio sits. Tags fire at |z| ≥ 1.5.
+    st.markdown("---")
+    st.markdown("### 3. SPV — Subs per Video  *(audience-to-output)*")
+    st.caption("Subscribers ÷ video count. Audience size relative to content shipped.")
+    g1, g2 = st.columns(2)
+    with g1:
+        st.markdown(
+            "**📺 Audience > output**  *(high)*  \n"
+            "Sub base much larger than content output suggests. Legacy giants (Real, Barça) "
+            "OR clubs that suddenly got popular (Como post-promotion, viral teams)."
+        )
+    with g2:
+        st.markdown(
+            "**💪 Output > audience**  *(low)*  \n"
+            "Posts way more than the audience size warrants. Production-heavy strategy "
+            "that hasn't (yet) translated to subs — ambitious investment in content."
+        )
+
+    st.markdown("---")
+    st.markdown("### 4. SPY — Subs per Year  *(growth velocity)*")
+    st.caption("Subscribers ÷ channel age in years. Audience acquisition rate over lifetime.")
+    g1, g2 = st.columns(2)
+    with g1:
+        st.markdown(
+            "**🚀 Fast-growing**  *(high)*  \n"
+            "Acquiring subs faster than peers. Either a young channel ramping up or an "
+            "older channel with recent acceleration. A 'rising story' tag."
+        )
+    with g2:
+        st.markdown(
+            "**🐢 Stagnant growth**  *(low)*  \n"
+            "Sub growth flatlined or never took off. Older channels with low yearly intake — "
+            "could indicate disinterest, language barriers, or limited reach."
+        )
+
+    st.markdown("---")
+    st.markdown("### 5. VPY — Videos per Year  *(cadence)*")
+    st.caption("Video count ÷ channel age in years. Sustained output rate.")
+    g1, g2 = st.columns(2)
+    with g1:
+        st.markdown(
+            "**📡 Steady producer**  *(high)*  \n"
+            "Posts a high volume year after year. Disciplined publishing operation, "
+            "usually backed by a dedicated content team."
+        )
+    with g2:
+        st.markdown(
+            "**🔇 Low cadence**  *(low)*  \n"
+            "Posts much less than peers. Could be understaffed, a curated-quality choice, "
+            "or a smaller club without a content operation."
+        )
+
+    st.markdown("---")
+    st.markdown("### Common patterns when tags combine")
+    st.markdown("""
+| Pattern | Tags | Story |
+|---|---|---|
+| **The Como** | 📺 + 🚀 + 💧 | Audience exploded (often post-promotion), content & engagement haven't caught up |
+| **The Sunderland** | 🌱 alone | Small but real community |
+| **The legacy giant** | 📺 + 🚀 + sometimes 💧 | Real / Barça / Bayern / Juve — big audience, fast cumulative growth, sometimes weak per-sub engagement |
+| **The volume laggard** | 📉 + 💪 (+ 🐢) | Posts a lot, doesn't get views, audience small |
+| **The quality club** | 🚀 + 🔇 | Few videos, each one lands |
+
+Two-lens agreement is the strongest signal — Como tagging in BOTH "vs Serie A"
+AND "vs Small clubs" means the pattern isn't a league quirk, it's genuinely
+unusual. Disagreement is interesting too: a club that's normal-for-its-size
+but weird-for-its-league is making a strategic choice that diverges from its market.
+""")
+
+    st.markdown("---")
+    st.markdown("### How the math works")
+    st.markdown("""
+Each ratio is **log-transformed** before scoring — audience numbers span 4
+orders of magnitude in a single league, so without log every giant would
+always look extreme.
+
+**z-score** = how many median-absolute-deviations away from the peer median
+this club's log-ratio sits. We use MAD (not stdev) so a few extreme clubs
+don't distort the spread for everyone else. Tags fire at **|z| ≥ 1.5**.
 
 **Two lenses** run in parallel:
-- **vs League peers** — the structural / cultural context
-- **vs Size cohort** — strategic context, fixes the "giants are always weird" issue
-
-A club with the same tag in both lenses (e.g. Como is both 📺 in Serie A
-*and* 📺 vs Small clubs) is a strong signal. Disagreement is interesting
-too — tells you the club is unusual in one frame but normal in another.
+- **vs League peers** — structural / cultural context (same competition)
+- **vs Size cohort** — strategic context (Tiny / Small / Mid / Giant by sub count)
 
 Profiles recompute live on every page load — all data sits on the
 `channels` table, microseconds of math.
