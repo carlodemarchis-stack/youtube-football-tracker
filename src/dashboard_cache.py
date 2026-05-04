@@ -245,6 +245,11 @@ def rebuild_all(db, log=print) -> None:
     # 6. duration_buckets — Season Shorts / Long distribution charts.
     refresh_duration_buckets(db, log=log)
 
+    # 7. publish_cadence — Season per-month video counts. Two payloads:
+    #    "all"      → per-league per-month (zoom-1 chart)
+    #    "league:X" → per-format (Long/Shorts/Live) per-month for league X
+    refresh_publish_cadence(db, log=log, channels=chans)
+
     log("[dashboard_cache] rebuild done")
 
 
@@ -338,6 +343,104 @@ def refresh_duration_buckets(db, log=print) -> None:
         log(f"[dashboard_cache] duration_buckets/long WRITTEN ({len(rows)} rows)")
     except Exception as e:
         log(f"[dashboard_cache] duration_buckets failed (non-fatal): {e}")
+
+
+def refresh_publish_cadence(db, log=print, channels: list[dict] | None = None) -> None:
+    """Pre-compute publish-cadence chart payloads (Season page).
+
+    Two scopes:
+      - "all"        → per-league per-month video counts (zoom-1 chart).
+                       Limited to Top-5 league channels + their clubs.
+      - "league:<L>" → per-format (Long / Shorts / Live) per-month video
+                       counts for clubs/league of league L (zoom-2 chart).
+
+    Single big paginated read of (channel_id, published_at, format,
+    duration_seconds), then in-memory aggregation. Cron-cheap.
+    """
+    from src.database import _fetch_all
+    from src.channels import COUNTRY_TO_LEAGUE
+    from datetime import date as _date
+
+    try:
+        chans = channels if channels is not None else db.get_all_channels()
+        # Build channel_id → league mapping. Only Top-5 leagues + their
+        # clubs / League channels are in scope; Players / Federations /
+        # OtherClubs / WomenClubs are excluded by entity_type.
+        ch_to_lg: dict[str, str] = {}
+        ch_format: dict[str, str] = {}  # for downstream optional uses
+        for c in chans:
+            if c.get("entity_type") not in ("Club", "League"):
+                continue
+            lg = COUNTRY_TO_LEAGUE.get((c.get("country") or "").upper())
+            if not lg:
+                continue
+            ch_to_lg[c["id"]] = lg
+        if not ch_to_lg:
+            log("[dashboard_cache] publish_cadence: no in-scope channels, skipping")
+            return
+
+        log(f"[dashboard_cache] computing publish_cadence ({len(ch_to_lg)} channels)")
+        rows = _fetch_all(
+            db.client.table("videos")
+            .select("channel_id,published_at,format,duration_seconds")
+            .gte("published_at", DURATION_SEASON_SINCE)
+        )
+
+        # all → {league: {YYYY-MM: count}}
+        league_month: dict[str, dict[str, int]] = {}
+        # per-league → {YYYY-MM: {format: count}}
+        league_fmt_month: dict[str, dict[str, dict[str, int]]] = {}
+
+        for r in rows:
+            cid = r.get("channel_id")
+            lg = ch_to_lg.get(cid)
+            if not lg:
+                continue
+            pa = r.get("published_at") or ""
+            if len(pa) < 7:
+                continue
+            month = pa[:7]
+            league_month.setdefault(lg, {})[month] = (
+                league_month.setdefault(lg, {}).get(month, 0) + 1
+            )
+            fmt = (r.get("format") or "").lower()
+            if fmt not in ("long", "short", "live"):
+                fmt = "long" if (r.get("duration_seconds") or 0) >= 60 else "short"
+            label = {"long": "Long", "short": "Shorts", "live": "Live"}[fmt]
+            league_fmt_month.setdefault(lg, {}) \
+                            .setdefault(month, {})[label] = (
+                league_fmt_month.setdefault(lg, {})
+                                .setdefault(month, {}).get(label, 0) + 1
+            )
+
+        # ── Write the "all" payload (zoom-1 chart) ──
+        all_rows = []
+        for lg, mc in league_month.items():
+            for month, n in mc.items():
+                all_rows.append({"month": month, "league": lg, "videos": n})
+        write(db, "publish_cadence", scope_all(),
+              {"rows": all_rows,
+               "since": DURATION_SEASON_SINCE,
+               "as_of": _date.today().isoformat()})
+        log(f"[dashboard_cache] publish_cadence/all WRITTEN "
+            f"({len(all_rows)} (month, league) pairs)")
+
+        # ── Write per-league payloads (zoom-2 chart) ──
+        for lg, fmt_map in league_fmt_month.items():
+            payload_rows = []
+            for month, fc in fmt_map.items():
+                for fmt_label, n in fc.items():
+                    payload_rows.append({"month": month,
+                                         "format": fmt_label,
+                                         "videos": n})
+            write(db, "publish_cadence", scope_league(lg),
+                  {"rows": payload_rows,
+                   "since": DURATION_SEASON_SINCE,
+                   "as_of": _date.today().isoformat()})
+            log(f"[dashboard_cache] publish_cadence/{lg} WRITTEN "
+                f"({len(payload_rows)} (month, format) pairs)")
+    except Exception as e:
+        log(f"[dashboard_cache] publish_cadence failed (non-fatal): {e}")
 
 
 def refresh_profile_sentences(db, log=print, channels: list[dict] | None = None) -> None:

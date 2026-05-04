@@ -732,19 +732,25 @@ if league is None and _scope == "Overall":
     # Quick "is anyone slowing down?" view. One bar per ISO week from
     # SEASON_SINCE → today, segments coloured by league. Live-paginated
     # query — small payload (channel_id + published_at only).
-    # Bump _cache_v whenever the query semantics change so a stale cached
-    # payload from before the change is abandoned (cleaner than asking
-    # operators to restart Streamlit). Currently bumped after fixing
-    # _fetch_all pagination so the cliff-shaped result is gone.
+    # Read from dashboard_cache (refreshed nightly + on hourly_rss new
+    # videos via dashboard_cache.refresh_publish_cadence). Live fallback
+    # only runs if the cache row is missing — cron path is the norm.
     @st.cache_data(ttl=1800, show_spinner=False)
-    def _load_publish_cadence(since_iso: str, _cache_v: int = 2) -> pd.DataFrame:
+    def _load_publish_cadence(since_iso: str, _cache_v: int = 3) -> pd.DataFrame:
+        from src import dashboard_cache as _dc
+        try:
+            row = _dc.read(db, "publish_cadence", "all")
+            cached_rows = (row or {}).get("payload", {}).get("rows")
+            if cached_rows:
+                df = pd.DataFrame(cached_rows)
+                # month is stored as 'YYYY-MM' string — convert to date
+                df["month"] = pd.to_datetime(df["month"] + "-01").dt.date
+                return df[["month", "league", "videos"]]
+        except Exception:
+            pass
+
+        # ── Live fallback (cold cache / first deploy) ──
         from src.database import _fetch_all
-        # Restrict to Top-5 league channels + their clubs only. The
-        # "Others" entity types (Player/Federation/OtherClub/WomenClub)
-        # would otherwise sneak in because get_league_for_channel maps
-        # them by country (a UK-based Player would land in "Premier
-        # League"), and those buckets have inconsistent ongoing
-        # ingestion which produces an artificial Feb-onward cliff.
         scoped_ids = {
             c["id"] for c in all_channels
             if c.get("entity_type") in ("Club", "League")
@@ -752,8 +758,6 @@ if league is None and _scope == "Overall":
         }
         if not scoped_ids:
             return pd.DataFrame()
-        # Fetch all season rows then filter in-memory (large IN lists
-        # are fragile through PostgREST URL limits).
         rows = _fetch_all(
             db.client.table("videos")
             .select("channel_id,published_at")
@@ -774,9 +778,7 @@ if league is None and _scope == "Overall":
                 d = datetime.fromisoformat(pa.replace("Z", "+00:00")).date()
             except Exception:
                 continue
-            # First day of the month
-            month_start = d.replace(day=1)
-            recs.append({"month": month_start, "league": lg})
+            recs.append({"month": d.replace(day=1), "league": lg})
         if not recs:
             return pd.DataFrame()
         df = pd.DataFrame(recs)
@@ -1438,8 +1440,21 @@ if club is None:
             scoped_ids = [c["id"] for c in clubs_only]
 
             @st.cache_data(ttl=1800, show_spinner=False)
-            def _load_league_format_cadence(since_iso: str, ids_key: tuple,
-                                            _cache_v: int = 1):
+            def _load_league_format_cadence(since_iso: str, league_name: str,
+                                            ids_key: tuple, _cache_v: int = 2):
+                from src import dashboard_cache as _dc
+                # Read from dashboard_cache first
+                try:
+                    row = _dc.read(db, "publish_cadence", _dc.scope_league(league_name))
+                    cached_rows = (row or {}).get("payload", {}).get("rows")
+                    if cached_rows:
+                        df = pd.DataFrame(cached_rows)
+                        df["month"] = pd.to_datetime(df["month"] + "-01").dt.date
+                        return df[["month", "format", "videos"]]
+                except Exception:
+                    pass
+
+                # ── Live fallback ──
                 rows = _fa(
                     db.client.table("videos")
                     .select("channel_id,published_at,format,duration_seconds")
@@ -1460,7 +1475,6 @@ if club is None:
                         continue
                     fmt = (r.get("format") or "").lower()
                     if fmt not in ("long", "short", "live"):
-                        # Fallback: classify by duration if format missing
                         fmt = "long" if (r.get("duration_seconds") or 0) >= 60 else "short"
                     label = {"long": "Long", "short": "Shorts", "live": "Live"}[fmt]
                     recs.append({"month": d.replace(day=1), "format": label})
@@ -1470,7 +1484,7 @@ if club is None:
                 return (df.groupby(["month", "format"])
                           .size().reset_index(name="videos"))
 
-            fmt_df = _load_league_format_cadence(SEASON_SINCE,
+            fmt_df = _load_league_format_cadence(SEASON_SINCE, league,
                                                  tuple(sorted(scoped_ids)))
             if not fmt_df.empty:
                 # Project current incomplete month
