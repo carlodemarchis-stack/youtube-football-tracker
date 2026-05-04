@@ -1426,6 +1426,94 @@ if club is None:
         if _sl:
             _render_per_league_charts(_sl)
 
+    # ── Per-club publish cadence — only for single-league view ─────────
+    # Same chart as zoom 1's per-league cadence, but lines are per club
+    # so you can see who's pumping content vs winding down. Capped to
+    # top-N by season videos to keep the legend legible.
+    if league is not None:
+        try:
+            import altair as alt
+            import calendar
+            from src.database import _fetch_all as _fa
+            scoped_ids = [c["id"] for c in clubs_only]
+            id_to_name = {c["id"]: c.get("name", "?") for c in clubs_only}
+
+            @st.cache_data(ttl=1800, show_spinner=False)
+            def _load_league_cadence(since_iso: str, ids_key: tuple, _cache_v: int = 1):
+                rows = _fa(
+                    db.client.table("videos")
+                    .select("channel_id,published_at")
+                    .gte("published_at", since_iso)
+                )
+                ids_set = set(ids_key)
+                rows = [r for r in rows if r.get("channel_id") in ids_set]
+                if not rows:
+                    return pd.DataFrame()
+                recs = []
+                for r in rows:
+                    pa = r.get("published_at") or ""
+                    if not pa:
+                        continue
+                    try:
+                        d = datetime.fromisoformat(pa.replace("Z", "+00:00")).date()
+                    except Exception:
+                        continue
+                    recs.append({"month": d.replace(day=1),
+                                 "channel_id": r["channel_id"]})
+                if not recs:
+                    return pd.DataFrame()
+                df = pd.DataFrame(recs)
+                return (df.groupby(["month", "channel_id"])
+                          .size().reset_index(name="videos"))
+
+            club_df = _load_league_cadence(SEASON_SINCE, tuple(sorted(scoped_ids)))
+            if not club_df.empty:
+                club_df["club"] = club_df["channel_id"].map(id_to_name)
+                # Top N clubs by total to keep the legend readable
+                _N = 12
+                totals = club_df.groupby("club")["videos"].sum().sort_values(ascending=False)
+                top_names = totals.head(_N).index.tolist()
+                plot_df = club_df[club_df["club"].isin(top_names)].copy()
+
+                # Project current incomplete month, same logic as overall chart
+                today_d = datetime.now().date()
+                cur_start = today_d.replace(day=1)
+                dim = calendar.monthrange(today_d.year, today_d.month)[1]
+                de = today_d.day
+                projection_note = ""
+                if de < dim:
+                    mask = plot_df["month"] == cur_start
+                    if mask.any():
+                        f = dim / de
+                        plot_df.loc[mask, "videos"] = (
+                            plot_df.loc[mask, "videos"].astype(float) * f
+                        ).round().astype(int)
+                        projection_note = (f" {today_d.strftime('%b %Y')} "
+                                           f"projected from {de} of {dim} days.")
+
+                st.subheader(f"📅 Publish cadence — {league}, top {_N} clubs")
+                st.caption(f"Videos per month per club since {SEASON_SINCE}.{projection_note}")
+                club_palette = [color_map.get(n, "#888") for n in top_names]
+                club_chart = (
+                    alt.Chart(plot_df).mark_line(point=True, strokeWidth=2).encode(
+                        x=alt.X("yearmonth(month):T", title=None,
+                                axis=alt.Axis(format="%b %Y", labelAngle=-30)),
+                        y=alt.Y("videos:Q", title=None,
+                                axis=alt.Axis(labelExpr="replace(format(datum.value, \"~s\"), \"G\", \"B\")")),
+                        color=alt.Color("club:N",
+                                        scale=alt.Scale(domain=top_names,
+                                                        range=club_palette)),
+                        tooltip=[
+                            alt.Tooltip("yearmonth(month):T", title="Month"),
+                            alt.Tooltip("club:N", title="Club"),
+                            alt.Tooltip("videos:Q", format=",", title="Videos"),
+                        ],
+                    ).properties(height=320)
+                )
+                st.altair_chart(club_chart, use_container_width=True)
+        except Exception as _e:
+            st.caption(f"(per-club cadence unavailable: {_e})")
+
     # ── Top season videos for this scope (whole filter or one league) ──
     _scope_ids = [c["id"] for c in clubs_only]
     _ch_by_id = {c["id"]: c for c in all_channels}
