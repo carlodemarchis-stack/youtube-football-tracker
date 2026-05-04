@@ -1530,6 +1530,71 @@ if club is None:
         except Exception as _e:
             st.caption(f"(cadence chart unavailable: {_e})")
 
+    # ── Views concentration per club (one league only) ────────────────
+    if league:
+        try:
+            from src import dashboard_cache as _dc_conc
+            _conc = _dc_conc.read(db, "concentration", _dc_conc.scope_league(league))
+            _conc_rows = (_conc or {}).get("payload", {}).get("rows", []) if _conc else []
+            # Filter to Club entity_type for the comparison chart and skip
+            # clubs with too few videos to be meaningful.
+            _conc_rows = [r for r in _conc_rows
+                          if r.get("entity_type") == "Club" and r.get("n_videos", 0) >= 5]
+            if _conc_rows:
+                import plotly.graph_objects as _go_c
+                st.subheader(f"📊 Views concentration — {league}")
+                st.caption("How concentrated are season views in each club's catalog? "
+                           "Bar = % of videos that account for 80% of total views. "
+                           "Lower = a few hits drive the channel (long tail). "
+                           "Higher = views spread evenly across uploads. "
+                           "Hover for top-1 / top-10 share and median vs avg.")
+                # Sort: most concentrated (smallest pct_to_80) at the top
+                _conc_rows = sorted(_conc_rows, key=lambda r: r["pct_to_80"])
+                _names = [r["name"] for r in _conc_rows]
+                _pcts = [r["pct_to_80"] for r in _conc_rows]
+                _customdata = [
+                    [r["n_to_80"], r["n_videos"], r["top1_pct"], r["top10_pct"],
+                     _fmt(r["median_views"]), _fmt(r["avg_views"]),
+                     _fmt(r["total_views"])]
+                    for r in _conc_rows
+                ]
+                # Bar color from per-channel primary
+                _color_map_local = get_global_color_map() or {}
+                _bar_colors_c = [_color_map_local.get(n, "#888") for n in _names]
+                fig_c = _go_c.Figure()
+                fig_c.add_trace(_go_c.Bar(
+                    x=_pcts, y=_names, orientation="h",
+                    marker_color=_bar_colors_c,
+                    customdata=_customdata,
+                    hovertemplate=(
+                        "<b>%{y}</b><br>"
+                        "Top %{customdata[0]} of %{customdata[1]} videos = 80% of views<br>"
+                        "Top 1 video = %{customdata[2]:.0f}% · "
+                        "Top 10 = %{customdata[3]:.0f}%<br>"
+                        "Median: %{customdata[4]} · Avg: %{customdata[5]}<br>"
+                        "Total season views: %{customdata[6]}<extra></extra>"
+                    ),
+                ))
+                # 20% reference line: classic Pareto threshold
+                fig_c.add_vline(x=20, line_dash="dash", line_color="#888",
+                                annotation_text="20%", annotation_position="top",
+                                annotation_font_color="#888")
+                fig_c.update_layout(
+                    height=max(300, 28 * len(_names) + 80),
+                    xaxis=dict(title="% of videos to reach 80% of season views",
+                               range=[0, max(60, max(_pcts) * 1.15)],
+                               ticksuffix="%",
+                               showgrid=True, gridcolor="rgba(255,255,255,0.08)"),
+                    yaxis=dict(title="", autorange="reversed"),
+                    margin=dict(t=30, b=50, l=160),
+                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                    font=dict(color="#FAFAFA"),
+                    showlegend=False,
+                )
+                st.plotly_chart(fig_c, use_container_width=True)
+        except Exception as _e:
+            st.caption(f"(concentration chart unavailable: {_e})")
+
     # ── Top season videos for this scope (whole filter or one league) ──
     _scope_ids = [c["id"] for c in clubs_only]
     _ch_by_id = {c["id"]: c for c in all_channels}

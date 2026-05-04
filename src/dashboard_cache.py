@@ -250,6 +250,10 @@ def rebuild_all(db, log=print) -> None:
     #    "league:X" → per-format (Long/Shorts/Live) per-month for league X
     refresh_publish_cadence(db, log=log, channels=chans)
 
+    # 8. concentration — per-club Pareto stats (% of videos = 80% of views,
+    #    top-1, top-10 share, median, mean). One payload per league.
+    refresh_concentration(db, log=log, channels=chans)
+
     log("[dashboard_cache] rebuild done")
 
 
@@ -445,6 +449,111 @@ def refresh_publish_cadence(db, log=print, channels: list[dict] | None = None) -
                 f"({len(payload_rows)} (month, format) pairs)")
     except Exception as e:
         log(f"[dashboard_cache] publish_cadence failed (non-fatal): {e}")
+
+
+def refresh_concentration(db, log=print, channels: list[dict] | None = None) -> None:
+    """Pre-compute per-club views-concentration (Pareto) stats per league.
+
+    For each Top-5 league, compute for every Club channel:
+      - n_videos, total_views
+      - n_to_80, pct_to_80   → smallest k s.t. cumulative views ≥ 80%
+      - top1_pct, top10_pct  → share of total views from the top 1 / 10 vids
+      - median_views, avg_views
+
+    Lower pct_to_80 = more hit-driven (long tail). Used by Season-page zoom-2
+    to compare "density" across clubs in a league.
+    """
+    from src.database import _fetch_all
+    from src.channels import COUNTRY_TO_LEAGUE
+    from datetime import date as _date
+
+    try:
+        chans = channels if channels is not None else db.get_all_channels()
+        # Map channel_id → (league, name, entity_type). Only Club rows go
+        # into the bar chart, but League rows are kept for completeness.
+        ch_meta: dict[str, dict] = {}
+        for c in chans:
+            if c.get("entity_type") not in ("Club", "League"):
+                continue
+            lg = COUNTRY_TO_LEAGUE.get((c.get("country") or "").upper())
+            if not lg:
+                continue
+            ch_meta[c["id"]] = {
+                "league": lg, "name": c["name"],
+                "entity_type": c.get("entity_type"),
+                "handle": c.get("handle", ""),
+            }
+        if not ch_meta:
+            log("[dashboard_cache] concentration: no in-scope channels, skipping")
+            return
+
+        log(f"[dashboard_cache] computing concentration ({len(ch_meta)} channels)")
+        rows = _fetch_all(
+            db.client.table("videos")
+            .select("channel_id,view_count")
+            .gte("published_at", DURATION_SEASON_SINCE)
+        )
+
+        # channel_id → list[view_count]
+        per_ch: dict[str, list[int]] = {}
+        for r in rows:
+            cid = r.get("channel_id")
+            if cid not in ch_meta:
+                continue
+            per_ch.setdefault(cid, []).append(int(r.get("view_count") or 0))
+
+        # league → list of per-club stat dicts
+        per_league: dict[str, list[dict]] = {}
+        for cid, views in per_ch.items():
+            if not views:
+                continue
+            meta = ch_meta[cid]
+            views_sorted = sorted(views, reverse=True)
+            n = len(views_sorted)
+            total = sum(views_sorted)
+            if total <= 0:
+                continue
+            # cumulative share
+            cum = 0
+            n_to_80 = n
+            for i, v in enumerate(views_sorted, 1):
+                cum += v
+                if cum / total >= 0.80:
+                    n_to_80 = i
+                    break
+            pct_to_80 = (n_to_80 / n * 100.0) if n else 0.0
+            top1_pct = (views_sorted[0] / total * 100.0) if n >= 1 else 0.0
+            top10 = sum(views_sorted[:10])
+            top10_pct = (top10 / total * 100.0)
+            avg_v = total / n
+            mid = n // 2
+            median_v = (views_sorted[mid] if n % 2 == 1
+                        else (views_sorted[mid - 1] + views_sorted[mid]) / 2)
+            stat = {
+                "channel_id": cid,
+                "name": meta["name"],
+                "handle": meta["handle"],
+                "entity_type": meta["entity_type"],
+                "n_videos": n,
+                "total_views": total,
+                "n_to_80": n_to_80,
+                "pct_to_80": round(pct_to_80, 2),
+                "top1_pct": round(top1_pct, 2),
+                "top10_pct": round(top10_pct, 2),
+                "avg_views": int(avg_v),
+                "median_views": int(median_v),
+            }
+            per_league.setdefault(meta["league"], []).append(stat)
+
+        for lg, stats in per_league.items():
+            stats.sort(key=lambda s: s["pct_to_80"])  # most concentrated first
+            write(db, "concentration", scope_league(lg),
+                  {"rows": stats,
+                   "since": DURATION_SEASON_SINCE,
+                   "as_of": _date.today().isoformat()})
+            log(f"[dashboard_cache] concentration/{lg} WRITTEN ({len(stats)} clubs)")
+    except Exception as e:
+        log(f"[dashboard_cache] concentration failed (non-fatal): {e}")
 
 
 def refresh_profile_sentences(db, log=print, channels: list[dict] | None = None) -> None:
