@@ -428,11 +428,16 @@ def _dot(name: str) -> str:
         f'position:absolute;top:2px;left:2px"></span></span>'
     )
 
-# Name → flag lookup
+# Name → flag lookup, plus a name → channel-dict map so we can render the
+# standard channel_badge marker (flag for League channels, dual_dot for clubs)
+# instead of the previous flag+dot combo that produced a doubled glyph on
+# league rows.
 _ch_flag = {}
+_ch_by_name = {}
 for _c in all_channels:
     _lg = COUNTRY_TO_LEAGUE.get((_c.get("country") or "").strip(), "")
     _ch_flag[_c["name"]] = LEAGUE_FLAG.get(_lg, "")
+    _ch_by_name[_c["name"]] = _c
 
 _rows_html = ""
 for i, r in enumerate(filtered.itertuples(index=False), 1):
@@ -473,9 +478,12 @@ for i, r in enumerate(filtered.itertuples(index=False), 1):
     fmt_cell = f'<span style="color:{fmt_color}">{fmt_label}</span>'
     row_url = f"https://www.youtube.com/watch?v={yt_id}" if yt_id else ""
     row_attrs = f'onclick="window.open(\'{row_url}\',\'_blank\',\'noopener\')" style="cursor:pointer"' if row_url else ''
-    _flag = _ch_flag.get(ch, "")
+    # channel_badge: flag for League channels, dual_dot for clubs. Replaces
+    # the older `{flag} {dot}` combo which on league rows rendered both a
+    # flag AND a dot — the doubled-marker bug.
+    _badge = channel_badge(_ch_by_name.get(ch, {"name": ch}), color_map_tbl, dual_colors, 12)
     _cat_span = f' · <span style="color:#666">{cat}</span>' if cat and cat != "Other" else ""
-    _meta = f'{_flag} {_dot(ch)} <span style="color:#AAA">{ch}</span> · {fmt_cell}{_cat_span}'
+    _meta = f'{_badge} <span style="color:#AAA">{ch}</span> · {fmt_cell}{_cat_span}'
     _views = int(getattr(r, 'view_count', 0) or 0)
     _likes = int(getattr(r, 'like_count', 0) or 0)
     _comments = int(getattr(r, 'comment_count', 0) or 0)
