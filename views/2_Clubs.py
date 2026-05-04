@@ -934,7 +934,11 @@ else:
             yaxis=dict(
                 title=dict(text="Cumulative views", font=dict(color="#aaa", size=12)),
                 range=[_ymin - _pad, _ymax + _pad],
-                tickformat=",.2s",
+                # 4 sig figs so the SI-suffixed labels can distinguish
+                # between e.g. 3.182G and 3.205G — `.2s` rounded
+                # everything to "3.2G" when the spread is small vs the
+                # absolute number.
+                tickformat=".4s",
             ),
         )
     else:
