@@ -242,7 +242,102 @@ def rebuild_all(db, log=print) -> None:
     # 5. profile_sentences — one AI line per flagged club (Outliers page).
     refresh_profile_sentences(db, log=log, channels=chans)
 
+    # 6. duration_buckets — Season Shorts / Long distribution charts.
+    refresh_duration_buckets(db, log=log)
+
     log("[dashboard_cache] rebuild done")
+
+
+# Bucket definitions used by Season-page duration distribution charts.
+# Kept here so cron + page render share a single source of truth.
+DURATION_BUCKETS_SHORTS = [
+    (0, 6), (7, 12), (13, 18), (19, 24), (25, 30),
+    (31, 36), (37, 42), (43, 48), (49, 54), (55, 60),
+]
+DURATION_BUCKETS_LONG = [
+    (60,    180,    "1-3m"),
+    (181,   300,    "3-5m"),
+    (301,   600,    "5-10m"),
+    (601,   900,    "10-15m"),
+    (901,   1800,   "15-30m"),
+    (1801,  3600,   "30-60m"),
+    (3601,  5400,   "60-90m"),
+    (5401,  86400,  "90m+"),
+]
+DURATION_SEASON_SINCE = "2025-08-01"
+
+
+def refresh_duration_buckets(db, log=print) -> None:
+    """Pre-compute Season Shorts / Long duration-distribution buckets.
+
+    Same data the Season page used to load live on every cold cache —
+    ~25K shorts + ~15K longs paginated. Now computed once a night,
+    written to dashboard_cache, read instantly by the page.
+    """
+    from src.database import _fetch_all
+
+    try:
+        # ── Shorts ────────────────────────────────────────────
+        log(f"[dashboard_cache] computing duration_buckets/shorts")
+        agg_s = {f"{lo}-{hi}s": {"label": f"{lo}-{hi}s", "lo": lo,
+                                 "views": 0, "videos": 0}
+                 for lo, hi in DURATION_BUCKETS_SHORTS}
+        rows = _fetch_all(
+            db.client.table("videos")
+            .select("duration_seconds,view_count")
+            .eq("format", "short")
+            .gte("published_at", DURATION_SEASON_SINCE)
+        )
+        for r in rows:
+            d = int(r.get("duration_seconds") or 0)
+            v = int(r.get("view_count") or 0)
+            if not (0 <= d <= 60):
+                continue
+            for lo, hi in DURATION_BUCKETS_SHORTS:
+                if lo <= d <= hi:
+                    key = f"{lo}-{hi}s"
+                    agg_s[key]["views"] += v
+                    agg_s[key]["videos"] += 1
+                    break
+        shorts_out = []
+        for lo, hi in DURATION_BUCKETS_SHORTS:
+            b = agg_s[f"{lo}-{hi}s"]
+            b["avg_views"] = (b["views"] // b["videos"]) if b["videos"] else 0
+            shorts_out.append(b)
+        write(db, "duration_buckets", "shorts",
+              {"buckets": shorts_out, "since": DURATION_SEASON_SINCE})
+        log(f"[dashboard_cache] duration_buckets/shorts WRITTEN ({len(rows)} rows)")
+
+        # ── Long ──────────────────────────────────────────────
+        log(f"[dashboard_cache] computing duration_buckets/long")
+        agg_l = {label: {"label": label, "lo": lo, "views": 0, "videos": 0}
+                 for lo, _, label in DURATION_BUCKETS_LONG}
+        rows = _fetch_all(
+            db.client.table("videos")
+            .select("duration_seconds,view_count")
+            .eq("format", "long")
+            .gte("published_at", DURATION_SEASON_SINCE)
+        )
+        for r in rows:
+            d = int(r.get("duration_seconds") or 0)
+            v = int(r.get("view_count") or 0)
+            if d < 60:
+                continue
+            for lo, hi, label in DURATION_BUCKETS_LONG:
+                if lo <= d <= hi:
+                    agg_l[label]["views"] += v
+                    agg_l[label]["videos"] += 1
+                    break
+        long_out = []
+        for _, _, label in DURATION_BUCKETS_LONG:
+            b = agg_l[label]
+            b["avg_views"] = (b["views"] // b["videos"]) if b["videos"] else 0
+            long_out.append(b)
+        write(db, "duration_buckets", "long",
+              {"buckets": long_out, "since": DURATION_SEASON_SINCE})
+        log(f"[dashboard_cache] duration_buckets/long WRITTEN ({len(rows)} rows)")
+    except Exception as e:
+        log(f"[dashboard_cache] duration_buckets failed (non-fatal): {e}")
 
 
 def refresh_profile_sentences(db, log=print, channels: list[dict] | None = None) -> None:

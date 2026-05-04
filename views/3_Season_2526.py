@@ -481,38 +481,45 @@ if league is None and _scope == "Overall":
     # the 0-60s shorts band for SEASON videos? Bucket every season short
     # into 6-second bins and show three side-by-side charts:
     #   ⚡ cumulative views, 🎬 # shorts, 📈 avg views per short.
+    #
+    # Cron-cached (dashboard_cache.duration_buckets/shorts) — rebuild_all
+    # writes a tiny JSON payload nightly. Page reads it instantly. Cold
+    # fallback runs the live paginated query (only fires before the first
+    # nightly run; should never run in production).
     @st.cache_data(ttl=3600, show_spinner=False)
     def _load_season_shorts_buckets(since_iso: str) -> list[dict]:
-        """Paginated query: season shorts grouped into 6-second buckets."""
+        from src import dashboard_cache as _dc
+        try:
+            row = _dc.read(db, "duration_buckets", "shorts")
+            cached = (row or {}).get("payload", {}).get("buckets")
+            if cached:
+                return cached
+        except Exception:
+            pass
+        # Live fallback — paginated query
+        from src.database import _fetch_all
         BUCKETS = [(0, 6), (7, 12), (13, 18), (19, 24), (25, 30),
                    (31, 36), (37, 42), (43, 48), (49, 54), (55, 60)]
         agg = {f"{lo}-{hi}s": {"label": f"{lo}-{hi}s", "lo": lo,
                                "views": 0, "videos": 0}
                for lo, hi in BUCKETS}
-        page = 1000
-        offset = 0
-        while True:
-            rows = (db.client.table("videos")
-                    .select("duration_seconds,view_count")
-                    .eq("format", "short")
-                    .gte("published_at", since_iso)
-                    .range(offset, offset + page - 1)
-                    .execute().data or [])
-            for r in rows:
-                d = int(r.get("duration_seconds") or 0)
-                v = int(r.get("view_count") or 0)
-                if not (0 <= d <= 60):
-                    continue
-                for lo, hi in BUCKETS:
-                    if lo <= d <= hi:
-                        key = f"{lo}-{hi}s"
-                        agg[key]["views"] += v
-                        agg[key]["videos"] += 1
-                        break
-            if len(rows) < page:
-                break
-            offset += page
-        # Compute avg views/video per bucket (efficiency signal).
+        rows = _fetch_all(
+            db.client.table("videos")
+            .select("duration_seconds,view_count")
+            .eq("format", "short")
+            .gte("published_at", since_iso)
+        )
+        for r in rows:
+            d = int(r.get("duration_seconds") or 0)
+            v = int(r.get("view_count") or 0)
+            if not (0 <= d <= 60):
+                continue
+            for lo, hi in BUCKETS:
+                if lo <= d <= hi:
+                    key = f"{lo}-{hi}s"
+                    agg[key]["views"] += v
+                    agg[key]["videos"] += 1
+                    break
         out = []
         for lo, hi in BUCKETS:
             b = agg[f"{lo}-{hi}s"]
@@ -586,11 +593,21 @@ if league is None and _scope == "Overall":
     # Long videos span seconds to hours; use content-aware buckets that
     # match common YouTube formats (highlights, press conferences, full
     # matches) rather than uniform width.
+    # Cron-cached (dashboard_cache.duration_buckets/long) — same pattern
+    # as the shorts buckets. Live fallback only fires before the first
+    # nightly run.
     @st.cache_data(ttl=3600, show_spinner=False)
     def _load_season_long_buckets(since_iso: str) -> list[dict]:
-        """Paginated query: season longs grouped into named duration buckets."""
-        # (lo_seconds_inclusive, hi_seconds_inclusive, label) — last bucket
-        # uses a very high upper bound to capture full match replays / docs.
+        from src import dashboard_cache as _dc
+        try:
+            row = _dc.read(db, "duration_buckets", "long")
+            cached = (row or {}).get("payload", {}).get("buckets")
+            if cached:
+                return cached
+        except Exception:
+            pass
+        # Live fallback — paginated query
+        from src.database import _fetch_all
         BUCKETS = [
             (60,    180,    "1-3m"),
             (181,   300,    "3-5m"),
@@ -603,28 +620,22 @@ if league is None and _scope == "Overall":
         ]
         agg = {label: {"label": label, "lo": lo, "views": 0, "videos": 0}
                for lo, _, label in BUCKETS}
-        page = 1000
-        offset = 0
-        while True:
-            rows = (db.client.table("videos")
-                    .select("duration_seconds,view_count")
-                    .eq("format", "long")
-                    .gte("published_at", since_iso)
-                    .range(offset, offset + page - 1)
-                    .execute().data or [])
-            for r in rows:
-                d = int(r.get("duration_seconds") or 0)
-                v = int(r.get("view_count") or 0)
-                if d < 60:
-                    continue  # belongs to shorts band, ignore
-                for lo, hi, label in BUCKETS:
-                    if lo <= d <= hi:
-                        agg[label]["views"] += v
-                        agg[label]["videos"] += 1
-                        break
-            if len(rows) < page:
-                break
-            offset += page
+        rows = _fetch_all(
+            db.client.table("videos")
+            .select("duration_seconds,view_count")
+            .eq("format", "long")
+            .gte("published_at", since_iso)
+        )
+        for r in rows:
+            d = int(r.get("duration_seconds") or 0)
+            v = int(r.get("view_count") or 0)
+            if d < 60:
+                continue
+            for lo, hi, label in BUCKETS:
+                if lo <= d <= hi:
+                    agg[label]["views"] += v
+                    agg[label]["videos"] += 1
+                    break
         out = []
         for _, _, label in BUCKETS:
             b = agg[label]
