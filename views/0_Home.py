@@ -338,7 +338,12 @@ try:
             _pub_counts: dict[str, dict] = {}
             for v in _vid_rows:
                 ch = _ch_by_id.get(v.get("channel_id"))
-                if not ch or ch.get("entity_type") not in ("Club", "League"):
+                # Exclude league channels here — they aggregate the whole
+                # league's catalog and would always sit on top of a raw
+                # video-count leaderboard, drowning out individual clubs.
+                # League-channel activity is still visible in the view-gains
+                # table on the left.
+                if not ch or ch.get("entity_type") != "Club":
                     continue
                 _lg = COUNTRY_TO_LEAGUE.get((ch.get("country") or "").upper())
                 if _lg not in _TOP5:
@@ -386,7 +391,7 @@ try:
                 """, height=len(top5_views) * 37 + 80, scrolling=False)
 
             with _gcol2:
-                st.subheader("🎬 Most videos published (last 7 days)")
+                st.subheader("🎬 Most active clubs (last 7 days)")
                 if top5_pubs:
                     rows2 = ""
                     for i, r in enumerate(top5_pubs, 1):
