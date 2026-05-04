@@ -283,7 +283,9 @@ if league is None and _scope == "Overall":
             fig = px.bar(sorted_data, x="League", y=y_col, color="League", title=title,
                          category_orders={"League": sorted_data["League"].tolist()},
                          color_discrete_map=_LEAGUE_COLORS)
-            fig.update_layout(showlegend=False, xaxis_title="", yaxis_title="", margin=dict(t=40, b=20))
+            fig.update_layout(showlegend=False, xaxis_title="", yaxis_title="",
+                              xaxis=dict(tickangle=-30),
+                              margin=dict(t=40, b=20))
             return fig
 
         # Stacked: Videos by league — Long / Shorts / Live. Legend on top
@@ -304,7 +306,7 @@ if league is None and _scope == "Overall":
                   "<span style='color:#FFA15A'>■</span> Live",
             barmode="stack",
             xaxis_title="", yaxis_title="",
-            xaxis=dict(tickangle=-45),
+            xaxis=dict(tickangle=-30),
             showlegend=False,
             margin=dict(t=40, b=20, l=10, r=10),
         )
