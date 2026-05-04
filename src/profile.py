@@ -229,21 +229,36 @@ You write one-sentence channel profiles for a YouTube football analytics site.
 
 You will be given: a club name, its league, its size bucket, six structural
 ratios (Views/Sub, Views/Video, Subs/Video, Subs/Year, Videos/Year, Shorts share),
-and a set of "tags" that fired because the club is unusually far from its
-league peers and/or its size cohort on a given axis.
+the club's strongest z-score and which axis it fired on, and a list of
+"tags" that triggered.
 
-Write ONE sentence (max 25 words, no padding) describing what kind of channel
-this looks like. Use the tags as scaffolding but read like a human, not like
-a label list. Don't restate the numbers. Don't apologize. Don't hedge with
-"might" or "appears to". Be direct.
+CRITICAL — make every sentence unique
+- Pick the ONE most striking dimension and write about THAT, not a summary
+  of all tags. The strongest_z field tells you which to anchor on.
+- Anchor the sentence in a specific NUMBER from the data (the actual ratio
+  value, the percentage, the year, the absolute count) — never abstract
+  hand-waving like "audience outpacing content" or "engagement curve".
+- VARY the structure. Don't always start with the club name. Don't end every
+  sentence with a noun phrase. Do not use the words "outpacing", "lags",
+  "engagement curve", "shorts momentum", or "shouting into the void".
+- Mention the league or size bucket only when it sharpens the contrast
+  (e.g. "for a Tiny club", "compared to Serie A peers"). Don't tack on
+  context that doesn't add anything.
 
-Examples of the voice:
-- "Como built a Serie A audience faster than their content output, with subs
-  watching little — a recent surge waiting for matching activity."
-- "Real Madrid: every video lands hard and the audience keeps growing,
-  classic flagship-club output at scale."
-- "Newcastle posts rarely but each upload performs — quality-over-volume
-  signature."
+Tone
+- Smart, dry, observational. Like a sports-section feature writer who
+  reads the upload feed all day.
+- 25 words max. Aim for 18.
+
+Examples of the voice (different shapes):
+- "Como's 419K subs on a 4-year-old channel is unusual — they ride
+  promotion-era momentum the content output hasn't caught up with."
+- "Newcastle posts roughly 130 videos a year, well below the Premier
+  League norm, but each one clears 160K views on average."
+- "Real Madrid's per-video yield sits at 470K views — three times the
+  La Liga median, classic flagship economics."
+- "Every Real Sociedad upload fights for daylight: 13K videos in the
+  feed, but vps barely cracks 80."
 
 If the club has no tags, return an empty string."""
 
@@ -268,11 +283,26 @@ def generate_profile_sentence(channel: dict, profile: dict, log=print) -> str | 
 
     import json, time
     r = profile["ratios"]
+    a = _age_years(channel)
+
+    # Find the strongest single z-score across both lenses — that's
+    # the angle the model should anchor the sentence on.
+    strongest = None
+    for lens_name in ("league", "size"):
+        for axis, z, label in profile[lens_name]["tags"]:
+            if strongest is None or abs(z) > abs(strongest["z"]):
+                strongest = {"axis": axis, "axis_label": AXIS_LABEL[axis],
+                             "tag": label, "z": round(z, 2),
+                             "lens": lens_name}
+
     payload = {
         "name": channel.get("name", "?"),
         "league": profile["league"]["name"],
         "size_bucket": profile["size"]["bucket"],
         "subscriber_count": int(channel.get("subscriber_count") or 0),
+        "video_count": int(channel.get("video_count") or 0),
+        "total_views": int(channel.get("total_views") or 0),
+        "channel_age_years": round(a, 1) if a else None,
         "ratios": {
             "views_per_sub": round(r.get("vps") or 0, 1),
             "views_per_video": int(r.get("vpv") or 0),
@@ -282,6 +312,7 @@ def generate_profile_sentence(channel: dict, profile: dict, log=print) -> str | 
             "shorts_share_pct": round((r.get("shorts_share") or 0) * 100, 1)
                                 if r.get("shorts_share") is not None else None,
         },
+        "strongest_z": strongest,
         "tags_vs_league": [t[2] for t in profile["league"]["tags"]],
         "tags_vs_size_cohort": [t[2] for t in profile["size"]["tags"]],
     }
@@ -292,7 +323,7 @@ def generate_profile_sentence(channel: dict, profile: dict, log=print) -> str | 
             resp = client.messages.create(
                 model="claude-haiku-4-5",
                 max_tokens=120,
-                temperature=0.5,
+                temperature=0.75,  # higher than other AI notes — we want variety across 60+ clubs
                 system=PROFILE_SENTENCE_PROMPT,
                 messages=[{"role": "user",
                            "content": json.dumps(payload, ensure_ascii=False)}],
