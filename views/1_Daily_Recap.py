@@ -650,33 +650,53 @@ if len(_all_dates) >= 2:
 
             bucket_df = pd.DataFrame([agg[f"{lo}-{hi}s"] for lo, hi in BUCKETS])
 
-            st.markdown(
-                '<div style="font-size:14px;color:rgba(250,250,250,0.6);'
-                'line-height:1.6;margin-top:8px">'
-                '⚡ Cumulative Shorts views by duration &nbsp;'
-                '<span style="font-size:0.8rem;color:#888">'
-                '(every short across all leagues, bucketed in 6-second bins)</span>'
-                '</div>',
-                unsafe_allow_html=True,
-            )
-            c3 = (alt.Chart(bucket_df)
-                  .mark_bar(color="#00CC96")
-                  .encode(
-                      x=alt.X("label:N",
-                              sort=[f"{lo}-{hi}s" for lo, hi in BUCKETS],
-                              title=None,
-                              axis=alt.Axis(labelAngle=0)),
-                      y=alt.Y("views:Q", title=None,
-                              axis=alt.Axis(format="~s",
-                                            minExtent=_Y_AXIS_GUTTER)),
-                      tooltip=[
-                          alt.Tooltip("label:N", title="Duration"),
-                          alt.Tooltip("views:Q", format=",", title="Total views"),
-                          alt.Tooltip("videos:Q", format=",", title="# videos"),
-                      ],
-                  )
-                  .properties(height=240))
-            st.altair_chart(c3, use_container_width=True)
+            _bucket_sort = [f"{lo}-{hi}s" for lo, hi in BUCKETS]
+            _hover_cols = [
+                alt.Tooltip("label:N", title="Duration"),
+                alt.Tooltip("views:Q", format=",", title="Total views"),
+                alt.Tooltip("videos:Q", format=",", title="# videos"),
+            ]
+            bcol1, bcol2 = st.columns(2)
+            with bcol1:
+                st.markdown(
+                    '<div style="font-size:14px;color:rgba(250,250,250,0.6);'
+                    'line-height:1.6;margin-top:8px">'
+                    '⚡ Cumulative Shorts views by duration &nbsp;'
+                    '<span style="font-size:0.8rem;color:#888">'
+                    '(6-second buckets)</span></div>',
+                    unsafe_allow_html=True,
+                )
+                c3v = (alt.Chart(bucket_df)
+                       .mark_bar(color="#00CC96")
+                       .encode(
+                           x=alt.X("label:N", sort=_bucket_sort, title=None,
+                                   axis=alt.Axis(labelAngle=0)),
+                           y=alt.Y("views:Q", title=None,
+                                   axis=alt.Axis(format="~s",
+                                                 minExtent=_Y_AXIS_GUTTER)),
+                           tooltip=_hover_cols,
+                       ).properties(height=240))
+                st.altair_chart(c3v, use_container_width=True)
+            with bcol2:
+                st.markdown(
+                    '<div style="font-size:14px;color:rgba(250,250,250,0.6);'
+                    'line-height:1.6;margin-top:8px">'
+                    '🎬 Number of Shorts by duration &nbsp;'
+                    '<span style="font-size:0.8rem;color:#888">'
+                    '(6-second buckets)</span></div>',
+                    unsafe_allow_html=True,
+                )
+                c3n = (alt.Chart(bucket_df)
+                       .mark_bar(color="#636EFA")
+                       .encode(
+                           x=alt.X("label:N", sort=_bucket_sort, title=None,
+                                   axis=alt.Axis(labelAngle=0)),
+                           y=alt.Y("videos:Q", title=None,
+                                   axis=alt.Axis(format="~s",
+                                                 minExtent=_Y_AXIS_GUTTER)),
+                           tooltip=_hover_cols,
+                       ).properties(height=240))
+                st.altair_chart(c3n, use_container_width=True)
 else:
     st.caption("Need at least 2 snapshot dates to show trends. Come back after the next cron run.")
 
