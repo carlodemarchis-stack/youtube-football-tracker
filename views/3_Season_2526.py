@@ -675,6 +675,89 @@ if league is None and _scope == "Overall":
     _render_top_season_videos(_all_ids, _ch_by_id, SEASON_SINCE, limit=20,
                               header="Top Season Videos — All Leagues")
 
+    # ── Shorts duration distribution — All Leagues / Overall scope only ──
+    # Where do views and supply concentrate within the 0-60s shorts band
+    # for SEASON videos? Bucket every season short into 6-second bins and
+    # show cumulative views (left) + video count (right) side-by-side.
+    @st.cache_data(ttl=3600, show_spinner=False)
+    def _load_season_shorts_buckets(since_iso: str) -> list[dict]:
+        """Paginated query: season shorts grouped into 6-second buckets."""
+        BUCKETS = [(0, 6), (7, 12), (13, 18), (19, 24), (25, 30),
+                   (31, 36), (37, 42), (43, 48), (49, 54), (55, 60)]
+        agg = {f"{lo}-{hi}s": {"label": f"{lo}-{hi}s", "lo": lo,
+                               "views": 0, "videos": 0}
+               for lo, hi in BUCKETS}
+        page = 1000
+        offset = 0
+        while True:
+            rows = (db.client.table("videos")
+                    .select("duration_seconds,view_count")
+                    .eq("format", "short")
+                    .gte("published_at", since_iso)
+                    .range(offset, offset + page - 1)
+                    .execute().data or [])
+            for r in rows:
+                d = int(r.get("duration_seconds") or 0)
+                v = int(r.get("view_count") or 0)
+                if not (0 <= d <= 60):
+                    continue
+                for lo, hi in BUCKETS:
+                    if lo <= d <= hi:
+                        key = f"{lo}-{hi}s"
+                        agg[key]["views"] += v
+                        agg[key]["videos"] += 1
+                        break
+            if len(rows) < page:
+                break
+            offset += page
+        return [agg[f"{lo}-{hi}s"] for lo, hi in BUCKETS]
+
+    _season_buckets = _load_season_shorts_buckets(SEASON_SINCE)
+    if any(b["videos"] > 0 for b in _season_buckets):
+        import altair as alt
+        bucket_df = pd.DataFrame(_season_buckets)
+        st.markdown("---")
+        st.subheader("⚡ Season Shorts — duration distribution")
+        st.caption(f"Every season short ({SEASON_SINCE} →) bucketed in 6-second bins.")
+
+        _bucket_sort = list(bucket_df["label"])
+        _hover = [
+            alt.Tooltip("label:N", title="Duration"),
+            alt.Tooltip("views:Q", format=",", title="Total views"),
+            alt.Tooltip("videos:Q", format=",", title="# videos"),
+        ]
+        bcol1, bcol2 = st.columns(2)
+        with bcol1:
+            st.markdown(
+                '<div style="font-size:14px;color:rgba(250,250,250,0.6);'
+                'line-height:1.6">⚡ Cumulative views by duration</div>',
+                unsafe_allow_html=True,
+            )
+            cv = (alt.Chart(bucket_df).mark_bar(color="#00CC96")
+                  .encode(
+                      x=alt.X("label:N", sort=_bucket_sort, title=None,
+                              axis=alt.Axis(labelAngle=0)),
+                      y=alt.Y("views:Q", title=None,
+                              axis=alt.Axis(format="~s", minExtent=60)),
+                      tooltip=_hover,
+                  ).properties(height=240))
+            st.altair_chart(cv, use_container_width=True)
+        with bcol2:
+            st.markdown(
+                '<div style="font-size:14px;color:rgba(250,250,250,0.6);'
+                'line-height:1.6">🎬 Number of shorts by duration</div>',
+                unsafe_allow_html=True,
+            )
+            cn = (alt.Chart(bucket_df).mark_bar(color="#636EFA")
+                  .encode(
+                      x=alt.X("label:N", sort=_bucket_sort, title=None,
+                              axis=alt.Axis(labelAngle=0)),
+                      y=alt.Y("videos:Q", title=None,
+                              axis=alt.Axis(format="~s", minExtent=60)),
+                      tooltip=_hover,
+                  ).properties(height=240))
+            st.altair_chart(cn, use_container_width=True)
+
     st.stop()
 
 
