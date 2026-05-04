@@ -732,8 +732,12 @@ if league is None and _scope == "Overall":
     # Quick "is anyone slowing down?" view. One bar per ISO week from
     # SEASON_SINCE → today, segments coloured by league. Live-paginated
     # query — small payload (channel_id + published_at only).
-    @st.cache_data(ttl=3600, show_spinner=False)
-    def _load_publish_cadence(since_iso: str) -> pd.DataFrame:
+    # Bump _cache_v whenever the query semantics change so a stale cached
+    # payload from before the change is abandoned (cleaner than asking
+    # operators to restart Streamlit). Currently bumped after fixing
+    # _fetch_all pagination so the cliff-shaped result is gone.
+    @st.cache_data(ttl=1800, show_spinner=False)
+    def _load_publish_cadence(since_iso: str, _cache_v: int = 2) -> pd.DataFrame:
         from src.database import _fetch_all
         # Restrict to Top-5 league channels + their clubs only. The
         # "Others" entity types (Player/Federation/OtherClub/WomenClub)
