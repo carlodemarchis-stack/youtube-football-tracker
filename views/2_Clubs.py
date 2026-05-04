@@ -307,7 +307,6 @@ if league is None and _scope == "Overall":
             make_league_bar(lg_df, "league_subs", "Subs — League Channel by League"),
             make_league_bar(lg_df, "total_views", "Total Views by League"),
             make_league_bar(lg_df, "views_per_sub", "Views/Sub by League"),
-            make_league_bar(lg_df, "total_videos", "Videos by League"),
             fig_stack,
             make_league_bar(lg_df, "avg_views_per_video", "Views/Video by League"),
         ]
