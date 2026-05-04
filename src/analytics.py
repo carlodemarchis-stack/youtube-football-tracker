@@ -278,6 +278,19 @@ def yt_overlay_html() -> str:
   p.getElementById('yt-close').addEventListener('click', closeOverlay);
   p.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeOverlay(); });
 
+  // Fallback "Watch on YouTube" link: open in a new tab and stop the click
+  // from bubbling to the page-wide YouTube-link interceptor (which would
+  // just re-open the overlay and loop forever on embed-disabled videos).
+  p.getElementById('yt-fallback-link').addEventListener('click', function(e) {
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    if (currentVideoId) {
+      w.open('https://www.youtube.com/watch?v=' + currentVideoId, '_blank', 'noopener');
+    }
+    e.preventDefault();
+    closeOverlay();
+  }, true);
+
   w.addEventListener('message', function(e) {
     if (e.data && e.data.type === 'ytplay' && e.data.id) {
       playVideo(e.data.id);
