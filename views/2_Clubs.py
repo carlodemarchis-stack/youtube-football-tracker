@@ -1043,4 +1043,76 @@ else:
         gcols[4].metric("Views Δ 30d", _sgn(v30))
         gcols[5].metric(f"Views {_since_label}", _sgn(vssn))
 
+    # ── Top + Latest video rows ─────────────────────────────────
+    # Two compact rows: the channel's all-time #1 video by views and
+    # its most recently published video. Click the thumbnail to open
+    # on YouTube. Cheap (1 row each from the videos table).
+    try:
+        _top_v = db.get_top_videos(limit=1, channel_id=channel["id"])
+        _top_v = _top_v[0] if _top_v else None
+    except Exception:
+        _top_v = None
+    try:
+        _latest_v = db.get_recent_videos(limit=1, channel_ids=[channel["id"]])
+        _latest_v = _latest_v[0] if _latest_v else None
+    except Exception:
+        _latest_v = None
+
+    def _video_row_html(v: dict, label: str) -> str:
+        if not v:
+            return ""
+        yt_id = v.get("youtube_video_id", "") or ""
+        url = f"https://www.youtube.com/watch?v={yt_id}" if yt_id else "#"
+        title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+        thumb = v.get("thumbnail_url") or ""
+        views = int(v.get("view_count") or 0)
+        likes = int(v.get("like_count") or 0)
+        comments = int(v.get("comment_count") or 0)
+        dur = int(v.get("duration_seconds") or 0)
+        dur_s = f"{dur // 60}:{dur % 60:02d}" if dur else ""
+        fmt = (v.get("format") or "").lower()
+        fmt_color = {"long": "#636EFA", "short": "#00CC96", "live": "#FFA15A"}.get(fmt, "#888")
+        fmt_badge = (f'<span style="background:{fmt_color};color:#fff;font-size:10px;'
+                     f'font-weight:700;padding:2px 7px;border-radius:3px;letter-spacing:0.5px;'
+                     f'margin-right:6px">{fmt.upper()}</span>') if fmt else ""
+        pub = v.get("effective_date") or v.get("published_at") or ""
+        try:
+            pub_str = datetime.fromisoformat(str(pub).replace("Z", "+00:00")).strftime("%b %d, %Y")
+        except Exception:
+            pub_str = str(pub)[:10]
+        return f"""
+        <a href="{url}" target="_blank" rel="noopener" style="display:flex;gap:14px;
+            text-decoration:none;color:#FAFAFA;background:#1a1c24;border-radius:8px;
+            padding:10px;margin-bottom:10px;border:1px solid #2a2d36;
+            transition:background 0.15s;">
+          <div style="position:relative;flex-shrink:0;width:200px;aspect-ratio:16/9;
+                       border-radius:6px;overflow:hidden;background:#000;">
+            <img src="{thumb}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">
+            {('<span style="position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.85);'
+              'color:#fff;font-size:11px;padding:1px 5px;border-radius:3px;">' + dur_s + '</span>') if dur_s else ''}
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;justify-content:space-between;min-width:0;">
+            <div>
+              <div style="color:#888;font-size:11px;font-weight:600;letter-spacing:0.5px;
+                          text-transform:uppercase;margin-bottom:4px">{label}</div>
+              <div style="font-size:14px;line-height:1.35;font-weight:600;
+                          display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+                          overflow:hidden;" title="{title}">{title}</div>
+            </div>
+            <div style="font-size:12px;color:#aaa;display:flex;gap:14px;align-items:center;flex-wrap:wrap;">
+              {fmt_badge}
+              <span>{pub_str}</span>
+              <span>👁 {fmt_num(views)}</span>
+              <span>👍 {fmt_num(likes)}</span>
+              <span>💬 {fmt_num(comments)}</span>
+            </div>
+          </div>
+        </a>
+        """
+
+    if _top_v or _latest_v:
+        st.markdown(_video_row_html(_top_v, "🏆 Top Video (all-time)")
+                    + _video_row_html(_latest_v, "🆕 Latest Video"),
+                    unsafe_allow_html=True)
+
     st.caption("See **Top Videos** for the all-time top 100 and **Season 25/26** for current-season activity.")
