@@ -1022,12 +1022,25 @@ else:
         v30 = _gdelta(_snaps, "total_views", 30)
         vssn = _gdelta_since(_snaps, "total_views", get_season_since(channel))
 
+        # Label the "since" deltas with the actual oldest snapshot date,
+        # not the season-start date. Our snapshot history starts the day
+        # this project was set up — for clubs added later than the season
+        # start (most of them) saying "since season" is misleading because
+        # the data simply doesn't go that far back.
+        from datetime import datetime as _dt
+        try:
+            _oldest = _snaps[0].get("captured_date") or ""
+            _oldest_d = _dt.fromisoformat(str(_oldest)[:10]).strftime("%b %d, %Y")
+            _since_label = f"since {_oldest_d}"
+        except Exception:
+            _since_label = "all-time"
+
         gcols = st.columns(6)
         gcols[0].metric("Subs Δ 7d", _sgn(d7))
         gcols[1].metric("Subs Δ 30d", _sgn(d30))
-        gcols[2].metric("Subs since season", _sgn(dssn))
+        gcols[2].metric(f"Subs {_since_label}", _sgn(dssn))
         gcols[3].metric("Views Δ 7d", _sgn(v7))
         gcols[4].metric("Views Δ 30d", _sgn(v30))
-        gcols[5].metric("Views since season", _sgn(vssn))
+        gcols[5].metric(f"Views {_since_label}", _sgn(vssn))
 
     st.caption("See **Top Videos** for the all-time top 100 and **Season 25/26** for current-season activity.")
