@@ -439,9 +439,9 @@ if league is None and _scope == "Overall":
         <tr>
           <th colspan="2"></th>
           <th colspan="4" style="text-align:center;border-bottom:2px solid #58A6FF;color:#58A6FF">Views</th>
-          <th colspan="4" style="text-align:center;border-bottom:2px solid #FFB347;color:#FFB347">Videos</th>
+          <th colspan="4" style="text-align:center;border-bottom:2px solid #FFCA3A;color:#FFCA3A">Videos</th>
           <th colspan="4" style="text-align:center;border-bottom:2px solid #AB63FA;color:#AB63FA">Views/Video</th>
-          <th colspan="2" style="text-align:center;border-bottom:2px solid #AB63FA;color:#AB63FA">Avg Duration</th>
+          <th colspan="2" style="text-align:center;border-bottom:2px solid #FF6B9D;color:#FF6B9D">Avg Duration</th>
           <th colspan="3" style="text-align:center;border-bottom:2px solid #EF553B;color:#EF553B">Engagement</th>
         </tr>
         <tr style="border-bottom:2px solid #444">
@@ -557,7 +557,7 @@ if league is None and _scope == "Overall":
                 'line-height:1.6">🎬 Number of shorts</div>',
                 unsafe_allow_html=True,
             )
-            cn = (alt.Chart(bucket_df).mark_bar(color="#FFB347")  # Videos = peach (metric palette)
+            cn = (alt.Chart(bucket_df).mark_bar(color="#FFCA3A")  # Videos = yellow (metric palette)
                   .encode(
                       x=alt.X("label:N", sort=_bucket_sort, title=None,
                               axis=alt.Axis(labelAngle=-30, labelOverlap=False, labelLimit=200, labelPadding=4)),
@@ -668,7 +668,7 @@ if league is None and _scope == "Overall":
                 'line-height:1.6">🎬 Number of long videos</div>',
                 unsafe_allow_html=True,
             )
-            ln = (alt.Chart(long_df).mark_bar(color="#FFB347")  # Videos = peach (metric palette)
+            ln = (alt.Chart(long_df).mark_bar(color="#FFCA3A")  # Videos = yellow (metric palette)
                   .encode(
                       x=alt.X("label:N", sort=_long_sort, title=None,
                               axis=alt.Axis(labelAngle=-30, labelOverlap=False, labelLimit=200, labelPadding=4)),
@@ -805,9 +805,9 @@ if league is None and _scope == "Overall":
     <tr>
         <th colspan="2"></th>
         <th colspan="4" style="text-align:center;border-bottom:2px solid #58A6FF;color:#58A6FF">Views</th>
-        <th colspan="4" style="text-align:center;border-bottom:2px solid #FFB347;color:#FFB347">Videos</th>
+        <th colspan="4" style="text-align:center;border-bottom:2px solid #FFCA3A;color:#FFCA3A">Videos</th>
         <th colspan="4" style="text-align:center;border-bottom:2px solid #AB63FA;color:#AB63FA">Views/Video</th>
-        <th colspan="2" style="text-align:center;border-bottom:2px solid #AB63FA;color:#AB63FA">Avg Duration</th>
+        <th colspan="2" style="text-align:center;border-bottom:2px solid #FF6B9D;color:#FF6B9D">Avg Duration</th>
         <th colspan="3" style="text-align:center;border-bottom:2px solid #EF553B;color:#EF553B">Engagement</th>
     </tr>
     <tr style="border-bottom:2px solid #444">
@@ -1093,9 +1093,9 @@ if club is None:
     <tr>
         <th colspan="2"></th>
         <th colspan="4" style="text-align:center;border-bottom:2px solid #58A6FF;color:#58A6FF">Views</th>
-        <th colspan="4" style="text-align:center;border-bottom:2px solid #FFB347;color:#FFB347">Videos</th>
+        <th colspan="4" style="text-align:center;border-bottom:2px solid #FFCA3A;color:#FFCA3A">Videos</th>
         <th colspan="4" style="text-align:center;border-bottom:2px solid #AB63FA;color:#AB63FA">Views/Video</th>
-        <th colspan="2" style="text-align:center;border-bottom:2px solid #AB63FA;color:#AB63FA">Avg Duration</th>
+        <th colspan="2" style="text-align:center;border-bottom:2px solid #FF6B9D;color:#FF6B9D">Avg Duration</th>
         <th colspan="3" style="text-align:center;border-bottom:2px solid #EF553B;color:#EF553B">Engagement</th>
     </tr>
     <tr style="border-bottom:2px solid #444">

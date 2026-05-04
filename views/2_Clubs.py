@@ -413,7 +413,7 @@ if league is None and _scope == "Overall":
     <tr>
         <th colspan="5"></th>
         <th colspan="5" style="text-align:center;border-bottom:2px solid #58A6FF;color:#58A6FF">Views</th>
-        <th colspan="4" style="text-align:center;border-bottom:2px solid #FFB347;color:#FFB347">Videos</th>
+        <th colspan="4" style="text-align:center;border-bottom:2px solid #FFCA3A;color:#FFCA3A">Videos</th>
         <th colspan="4" style="text-align:center;border-bottom:2px solid #AB63FA;color:#AB63FA">Views/Video</th>
     </tr>
     <tr style="border-bottom:2px solid #444">
