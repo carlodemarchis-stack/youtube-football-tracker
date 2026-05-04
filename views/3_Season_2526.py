@@ -753,33 +753,32 @@ if league is None and _scope == "Overall":
                 d = datetime.fromisoformat(pa.replace("Z", "+00:00")).date()
             except Exception:
                 continue
-            # ISO week → Monday of that week
-            iso_year, iso_week, _ = d.isocalendar()
-            monday = datetime.fromisocalendar(iso_year, iso_week, 1).date()
-            recs.append({"week": monday, "league": lg})
+            # First day of the month
+            month_start = d.replace(day=1)
+            recs.append({"month": month_start, "league": lg})
         if not recs:
             return pd.DataFrame()
         df = pd.DataFrame(recs)
-        return (df.groupby(["week", "league"])
+        return (df.groupby(["month", "league"])
                   .size().reset_index(name="videos"))
 
     cadence_df = _load_publish_cadence(SEASON_SINCE)
     if not cadence_df.empty:
         import altair as alt
-        st.subheader("📅 Publish cadence — videos per week")
-        st.caption(f"Videos published per ISO week since {SEASON_SINCE}, stacked by league.")
+        st.subheader("📅 Publish cadence — videos per month")
+        st.caption(f"Videos published per month since {SEASON_SINCE}, stacked by league.")
         league_order = [lg for lg, _ in sorted_leagues]
         league_palette = [LEAGUE_COLOR.get(lg, "#888") for lg in league_order]
         cadence_chart = (
             alt.Chart(cadence_df).mark_bar().encode(
-                x=alt.X("yearmonthdate(week):T", title=None,
-                        axis=alt.Axis(format="%b %d", labelAngle=-30)),
+                x=alt.X("yearmonth(month):T", title=None,
+                        axis=alt.Axis(format="%b %Y", labelAngle=-30)),
                 y=alt.Y("videos:Q", title=None, axis=alt.Axis(format="~s")),
                 color=alt.Color("league:N",
                                 scale=alt.Scale(domain=league_order, range=league_palette)),
                 order=alt.Order("league:N"),
                 tooltip=[
-                    alt.Tooltip("yearmonthdate(week):T", title="Week of"),
+                    alt.Tooltip("yearmonth(month):T", title="Month"),
                     alt.Tooltip("league:N", title="League"),
                     alt.Tooltip("videos:Q", format=",", title="Videos"),
                 ],
