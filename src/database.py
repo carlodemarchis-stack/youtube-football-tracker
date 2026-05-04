@@ -88,16 +88,18 @@ class Database:
             print(f"snapshot_channel skipped: {e}")
 
     # ── Video snapshots ──────────────────────────────────────
-    def snapshot_videos_batch(self, rows: list[dict]) -> int:
+    def snapshot_videos_batch(self, rows: list[dict], captured_date: str | None = None) -> int:
         """Bulk upsert rows into video_snapshots.
         rows: list of dicts with keys video_id, view_count, like_count, comment_count.
+        captured_date: override date (YYYY-MM-DD). Defaults to today UTC. Used by
+        the recovery script when backdating snapshots after a missed run.
         Returns number of rows upserted. Fails silently if table missing."""
         if not rows:
             return 0
-        today = datetime.now(timezone.utc).date().isoformat()
+        date_str = captured_date or datetime.now(timezone.utc).date().isoformat()
         payload = [{
             "video_id": r["video_id"],
-            "captured_date": today,
+            "captured_date": date_str,
             "view_count": int(r.get("view_count", 0) or 0),
             "like_count": int(r.get("like_count", 0) or 0),
             "comment_count": int(r.get("comment_count", 0) or 0),

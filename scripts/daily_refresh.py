@@ -45,16 +45,24 @@ def log(msg: str) -> None:
 
 
 def main() -> int:
-    # Prefer dedicated heavy-quota key if set, else fall back to regular key.
-    # Lets us route this big job to a separate Google Cloud project / account.
-    yt_key = (os.environ.get("YOUTUBE_API_KEY_HEAVY", "")
+    # Prefer the daily-dedicated key (separate GCP project, isolated 10K
+    # quota), then fall back to HEAVY (shared with weekly + hourly), then
+    # to the regular key. Three-tier fallback so we can roll out the new
+    # key on Railway without breaking anything.
+    yt_key = (os.environ.get("YOUTUBE_API_KEY_DAILY", "")
+              or os.environ.get("YOUTUBE_API_KEY_HEAVY", "")
               or os.environ.get("YOUTUBE_API_KEY", ""))
-    yt_key_source = "YOUTUBE_API_KEY_HEAVY" if os.environ.get("YOUTUBE_API_KEY_HEAVY") else "YOUTUBE_API_KEY"
+    if os.environ.get("YOUTUBE_API_KEY_DAILY"):
+        yt_key_source = "YOUTUBE_API_KEY_DAILY"
+    elif os.environ.get("YOUTUBE_API_KEY_HEAVY"):
+        yt_key_source = "YOUTUBE_API_KEY_HEAVY"
+    else:
+        yt_key_source = "YOUTUBE_API_KEY"
     sb_url = os.environ.get("SUPABASE_URL", "")
     sb_key = os.environ.get("SUPABASE_KEY", "")
 
     if not (yt_key and sb_url and sb_key):
-        log("FATAL: missing YOUTUBE_API_KEY (or YOUTUBE_API_KEY_HEAVY) / SUPABASE_URL / SUPABASE_KEY")
+        log("FATAL: missing YOUTUBE_API_KEY (or YOUTUBE_API_KEY_DAILY / _HEAVY) / SUPABASE_URL / SUPABASE_KEY")
         return 2
 
     sb_url = sb_url.strip().strip('"').strip("'")
