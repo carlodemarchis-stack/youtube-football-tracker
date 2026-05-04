@@ -382,14 +382,14 @@ def refresh_publish_cadence(db, log=print, channels: list[dict] | None = None) -
         log(f"[dashboard_cache] computing publish_cadence ({len(ch_to_lg)} channels)")
         rows = _fetch_all(
             db.client.table("videos")
-            .select("channel_id,published_at,format,duration_seconds")
+            .select("channel_id,published_at,format,duration_seconds,view_count")
             .gte("published_at", DURATION_SEASON_SINCE)
         )
 
-        # all → {league: {YYYY-MM: count}}
-        league_month: dict[str, dict[str, int]] = {}
-        # per-league → {YYYY-MM: {format: count}}
-        league_fmt_month: dict[str, dict[str, dict[str, int]]] = {}
+        # all → {league: {YYYY-MM: {videos, views}}}
+        league_month: dict[str, dict[str, dict[str, int]]] = {}
+        # per-league → {YYYY-MM: {format: {videos, views}}}
+        league_fmt_month: dict[str, dict[str, dict[str, dict[str, int]]]] = {}
 
         for r in rows:
             cid = r.get("channel_id")
@@ -400,24 +400,28 @@ def refresh_publish_cadence(db, log=print, channels: list[dict] | None = None) -
             if len(pa) < 7:
                 continue
             month = pa[:7]
-            league_month.setdefault(lg, {})[month] = (
-                league_month.setdefault(lg, {}).get(month, 0) + 1
+            v = int(r.get("view_count") or 0)
+            bucket = league_month.setdefault(lg, {}).setdefault(
+                month, {"videos": 0, "views": 0}
             )
+            bucket["videos"] += 1
+            bucket["views"] += v
             fmt = (r.get("format") or "").lower()
             if fmt not in ("long", "short", "live"):
                 fmt = "long" if (r.get("duration_seconds") or 0) >= 60 else "short"
             label = {"long": "Long", "short": "Shorts", "live": "Live"}[fmt]
-            league_fmt_month.setdefault(lg, {}) \
-                            .setdefault(month, {})[label] = (
-                league_fmt_month.setdefault(lg, {})
-                                .setdefault(month, {}).get(label, 0) + 1
-            )
+            fbucket = league_fmt_month.setdefault(lg, {}) \
+                                      .setdefault(month, {}) \
+                                      .setdefault(label, {"videos": 0, "views": 0})
+            fbucket["videos"] += 1
+            fbucket["views"] += v
 
-        # ── Write the "all" payload (zoom-1 chart) ──
+        # ── Write the "all" payload (zoom-1 charts) ──
         all_rows = []
         for lg, mc in league_month.items():
-            for month, n in mc.items():
-                all_rows.append({"month": month, "league": lg, "videos": n})
+            for month, b in mc.items():
+                all_rows.append({"month": month, "league": lg,
+                                 "videos": b["videos"], "views": b["views"]})
         write(db, "publish_cadence", scope_all(),
               {"rows": all_rows,
                "since": DURATION_SEASON_SINCE,
@@ -425,14 +429,14 @@ def refresh_publish_cadence(db, log=print, channels: list[dict] | None = None) -
         log(f"[dashboard_cache] publish_cadence/all WRITTEN "
             f"({len(all_rows)} (month, league) pairs)")
 
-        # ── Write per-league payloads (zoom-2 chart) ──
+        # ── Write per-league payloads (zoom-2 charts) ──
         for lg, fmt_map in league_fmt_month.items():
             payload_rows = []
             for month, fc in fmt_map.items():
-                for fmt_label, n in fc.items():
-                    payload_rows.append({"month": month,
-                                         "format": fmt_label,
-                                         "videos": n})
+                for fmt_label, b in fc.items():
+                    payload_rows.append({"month": month, "format": fmt_label,
+                                         "videos": b["videos"],
+                                         "views": b["views"]})
             write(db, "publish_cadence", scope_league(lg),
                   {"rows": payload_rows,
                    "since": DURATION_SEASON_SINCE,

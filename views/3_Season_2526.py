@@ -1776,6 +1776,77 @@ else:
                                  font=dict(color="#FAFAFA"))
         st.plotly_chart(fig_mviews, use_container_width=True)
 
+    # ── Views distribution (Pareto) ────────────────────────────
+    st.subheader("Views distribution")
+    st.caption("Are season views balanced across videos, or driven by a few hits? "
+               "Bars = views per video (sorted high→low). Line = cumulative share of total views.")
+
+    df_par = df_vids.sort_values("view_count", ascending=False).reset_index(drop=True)
+    df_par["rank"] = df_par.index + 1
+    _total_views = float(df_par["view_count"].sum()) or 1.0
+    df_par["cum_pct"] = df_par["view_count"].cumsum() / _total_views * 100.0
+    df_par["fmt_label"] = df_par["fmt"].map({"long": "Long", "short": "Shorts", "live": "Live"})
+    _bar_colors = df_par["fmt"].map({"long": LONG_COLOR, "short": SHORT_COLOR, "live": LIVE_COLOR}).tolist()
+
+    # Callout chips: top-N concentration
+    n_total = len(df_par)
+    def _share(n: int) -> float:
+        if n <= 0 or n_total == 0:
+            return 0.0
+        return float(df_par["view_count"].head(n).sum()) / _total_views * 100.0
+    top1_pct = _share(1)
+    top10_pct = _share(min(10, n_total))
+    top20pct_n = max(1, int(round(n_total * 0.2)))
+    top20pct_pct = _share(top20pct_n)
+    median_v = float(df_par["view_count"].median()) if n_total else 0.0
+    avg_v = float(df_par["view_count"].mean()) if n_total else 0.0
+    # Videos to reach 80% of views
+    n_to_80 = int((df_par["cum_pct"] < 80.0).sum()) + 1 if n_total else 0
+    n_to_80 = min(n_to_80, n_total)
+    pct_videos_to_80 = (n_to_80 / n_total * 100.0) if n_total else 0.0
+
+    cc1, cc2, cc3, cc4 = st.columns(4)
+    cc1.metric("Top video", f"{top1_pct:.0f}% of views")
+    cc2.metric("Top 10 videos", f"{top10_pct:.0f}% of views")
+    cc3.metric(f"Top 20% ({top20pct_n} videos)", f"{top20pct_pct:.0f}% of views")
+    cc4.metric("Median vs Avg", f"{_fmt(int(median_v))} / {_fmt(int(avg_v))}",
+               help="If median ≪ average, distribution is hit-driven (long tail).")
+
+    fig_par = go.Figure()
+    fig_par.add_trace(go.Bar(
+        x=df_par["rank"], y=df_par["view_count"],
+        marker_color=_bar_colors,
+        name="Views",
+        customdata=df_par[["title", "fmt_label"]].values,
+        hovertemplate="#%{x} · %{customdata[1]}<br>%{customdata[0]}<br>Views: %{y:,}<extra></extra>",
+    ))
+    fig_par.add_trace(go.Scatter(
+        x=df_par["rank"], y=df_par["cum_pct"],
+        mode="lines", name="Cumulative %",
+        line=dict(color="#FAFAFA", width=2),
+        yaxis="y2",
+        hovertemplate="Top %{x} videos = %{y:.1f}% of views<extra></extra>",
+    ))
+    # 80% reference line
+    fig_par.add_hline(y=80, line_dash="dash", line_color="#888",
+                      yref="y2", annotation_text="80%", annotation_position="top left",
+                      annotation_font_color="#888")
+    fig_par.update_layout(
+        title=(f"Top {n_to_80} videos ({pct_videos_to_80:.0f}% of catalog) account for 80% of season views"
+               if n_total else "Views distribution"),
+        barmode="overlay",
+        xaxis=dict(title="Video rank (sorted by views)", showgrid=False),
+        yaxis=dict(title="Views per video", showgrid=True, gridcolor="rgba(255,255,255,0.08)"),
+        yaxis2=dict(title="Cumulative % of views", overlaying="y", side="right",
+                    range=[0, 105], ticksuffix="%", showgrid=False),
+        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+        margin=dict(t=50, b=70),
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#FAFAFA"),
+        hovermode="x unified",
+    )
+    st.plotly_chart(fig_par, use_container_width=True)
+
     # ── Category breakdown ────────────────────────────────────
     from collections import Counter
     cat_count = Counter(v.get("category") or "Other" for v in vids)
