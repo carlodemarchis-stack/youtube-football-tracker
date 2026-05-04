@@ -286,8 +286,9 @@ if league is None and _scope == "Overall":
             fig.update_layout(showlegend=False, xaxis_title="", yaxis_title="", margin=dict(t=40, b=20))
             return fig
 
-        # Stacked: Videos by league — Long / Shorts / Live (legend below
-        # to match the Season chart layout and avoid the title overlap).
+        # Stacked: Videos by league — Long / Shorts / Live. Legend on top
+        # (between title and plot) so it doesn't get cramped under the
+        # x-axis tick labels in the 4-up layout.
         import plotly.graph_objects as go
         stacked_order = lg_df.sort_values("total_videos", ascending=False)
         fig_stack = go.Figure()
@@ -296,8 +297,8 @@ if league is None and _scope == "Overall":
         fig_stack.add_trace(go.Bar(name="Live",   x=stacked_order["League"], y=stacked_order["live"],   marker_color="#FFA15A"))
         fig_stack.update_layout(title="Videos by League (Long / Shorts / Live)", barmode="stack",
                                 xaxis_title="", yaxis_title="",
-                                margin=dict(t=50, b=70, l=10, r=10),
-                                legend=dict(orientation="h", yanchor="top", y=-0.15,
+                                margin=dict(t=80, b=20, l=10, r=10),
+                                legend=dict(orientation="h", yanchor="bottom", y=1.02,
                                             xanchor="center", x=0.5))
 
         charts = [
