@@ -250,13 +250,42 @@ for s in chan_snaps:
 # fetches + a batched video→channel lookup).
 _prev_snap_date = max(prev_date_by_cid.values(), default=None) if prev_date_by_cid else None
 _fc_tuple = tuple(sorted(filter_cids)) if filter_cids is not None else None
-vid_snaps_day = _load_video_snapshots_cached(day_iso, _fc_tuple)
-vid_snaps_prev = _load_video_snapshots_cached(_prev_snap_date, _fc_tuple) if _prev_snap_date else []
+# LAZY: vid_snaps_day / vid_snaps_prev are only used as a fallback for the
+# Most Watched Videos panel when the pre-computed video_daily_deltas table
+# is empty (essentially never in normal operation). Loading them eagerly
+# at All-Leagues scope was pulling 30K+ rows × 2 days over the wire on
+# every pageload — the slowest single operation in this file. Defer until
+# the fallback branch actually fires.
+vid_snaps_day: list[dict] = []
+vid_snaps_prev: list[dict] = []
+vmap_day: dict = {}
+vmap_prev: dict = {}
 
-vmap_day = {s["video_id"]: s for s in vid_snaps_day}
-vmap_prev = {s["video_id"]: s for s in vid_snaps_prev}
+def _ensure_video_snaps_loaded():
+    """Pull the per-video snapshot pair on demand. Idempotent."""
+    global vid_snaps_day, vid_snaps_prev, vmap_day, vmap_prev
+    if vmap_day or vmap_prev:
+        return
+    vid_snaps_day = _load_video_snapshots_cached(day_iso, _fc_tuple)
+    vid_snaps_prev = _load_video_snapshots_cached(_prev_snap_date, _fc_tuple) if _prev_snap_date else []
+    vmap_day = {s["video_id"]: s for s in vid_snaps_day}
+    vmap_prev = {s["video_id"]: s for s in vid_snaps_prev}
 
-_no_snaps = (not chan_day and not vid_snaps_day)
+# "Do we have any data?" — use the cheap channel-snapshots check + a
+# count of pre-computed deltas (single indexed query) instead of pulling
+# 30K rows just to test "len > 0".
+@st.cache_data(ttl=3600, show_spinner=False)
+def _has_any_video_snapshots(captured_date: str) -> bool:
+    try:
+        r = (db.client.table("video_snapshots")
+             .select("*", count="exact", head=True)
+             .eq("captured_date", captured_date)
+             .execute())
+        return (r.count or 0) > 0
+    except Exception:
+        return False
+
+_no_snaps = (not chan_day and not _has_any_video_snapshots(day_iso))
 if _no_snaps:
     st.info(
         f"No snapshot data captured for **{day_iso}** yet. "
@@ -934,7 +963,10 @@ if _top_deltas:
         if int(r.get("view_delta") or 0) > 0
     ]
 else:
-    # Fallback: diff in-memory (pre-backfill behaviour)
+    # Fallback: diff in-memory (pre-backfill behaviour). Loads the
+    # heavy 30K+ snapshot pair on demand — never runs in normal
+    # operation since video_daily_deltas is computed nightly.
+    _ensure_video_snaps_loaded()
     trending = []
     for vid_dbid, snap in vmap_day.items():
         prev = vmap_prev.get(vid_dbid)
