@@ -304,7 +304,6 @@ if league is None and _scope == "Overall":
                   "<span style='color:#FFA15A'>■</span> Live",
             barmode="stack",
             xaxis_title="", yaxis_title="",
-            xaxis=dict(tickangle=-45),
             showlegend=False,
             margin=dict(t=40, b=20, l=10, r=10),
         )
