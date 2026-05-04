@@ -274,6 +274,11 @@ def _render_top_season_videos(channel_ids, channels_by_id, since, limit=20, head
         fmt_color = _COLOR[_f]
         pub = (v.get("published_at") or "")[:10]
         title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;")
+        _cat = (v.get("category") or "").replace("<", "&lt;")
+        # Hide "Other" / empty categories — same convention as zoom-3.
+        _cat_html = (f'<span style="color:#666">·</span>'
+                     f'<span style="color:#888">{_cat}</span>'
+                     if _cat and _cat != "Other" else "")
         rows += f"""<tr onclick="window.open('{yt_url}','_blank','noopener')" style="cursor:pointer">
             <td style="padding:6px 12px;text-align:right;color:#888">{i}</td>
             <td style="padding:6px 12px"><img src="{thumb}" style="width:120px;height:68px;object-fit:cover;border-radius:4px"></td>
@@ -282,6 +287,7 @@ def _render_top_season_videos(channel_ids, channels_by_id, since, limit=20, head
                 {ch_dot}<span style="color:#FAFAFA">{ch_name}</span>
                 <span style="color:#666">·</span>
                 <span style="color:{fmt_color}">{fmt_label}</span>
+                {_cat_html}
                 <span style="color:#666">·</span>
                 <span style="color:#888">{pub}</span>
               </div>
