@@ -172,7 +172,7 @@ if league is None and _scope == "Overall":
             avg_club_subs = s['clubs_subs'] // max(s['clubs'], 1)
             channels_val = s['clubs'] + s['leagues']
             rows_html += f"""<tr>
-                <td style="padding:6px 12px" data-val="{lg_name}">{_lg_flag(lg_name)} {lg_name}</td>
+                <td style="padding:6px 12px;white-space:nowrap" data-val="{lg_name}">{_lg_flag(lg_name)} {lg_name}</td>
                 <td style="padding:6px 12px;text-align:right" data-val="{channels_val}">{s['clubs']}+{s['leagues']}</td>
                 <td style="padding:6px 12px;text-align:right" data-val="{s['total_subs']}">{fmt_num(s['total_subs'])}</td>
                 <td style="padding:6px 12px;text-align:right" data-val="{s['clubs_subs']}">{fmt_num(s['clubs_subs'])}</td>
@@ -202,9 +202,9 @@ if league is None and _scope == "Overall":
         <table class="lg-table">
         <thead>
         <tr style="border-bottom:2px solid #444">
-            <th style="text-align:left">League</th>
+            <th style="text-align:left;white-space:nowrap">League</th>
             <th style="text-align:right">Channels</th>
-            <th data-col="2" data-type="num" style="text-align:right" class="active">Subscribers ▼</th>
+            <th data-col="2" data-type="num" style="text-align:right" class="active">Subs ▼</th>
             <th data-col="3" data-type="num" style="text-align:right">Subs Clubs</th>
             <th data-col="4" data-type="num" style="text-align:right">Avg Subs/Club</th>
             <th data-col="5" data-type="num" style="text-align:right">Subs League</th>
