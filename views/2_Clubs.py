@@ -1083,35 +1083,35 @@ else:
             pub_str = datetime.fromisoformat(str(pub).replace("Z", "+00:00")).strftime("%b %d, %Y")
         except Exception:
             pub_str = str(pub)[:10]
-        return f"""
-        <a href="{url}" target="_blank" rel="noopener" style="display:flex;gap:14px;
-            text-decoration:none;color:#FAFAFA;background:#1a1c24;border-radius:8px;
-            padding:10px;margin-bottom:10px;border:1px solid #2a2d36;
-            transition:background 0.15s;">
-          <div style="position:relative;flex-shrink:0;width:200px;aspect-ratio:16/9;
-                       border-radius:6px;overflow:hidden;background:#000;">
-            <img src="{thumb}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">
-            {('<span style="position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.85);'
-              'color:#fff;font-size:11px;padding:1px 5px;border-radius:3px;">' + dur_s + '</span>') if dur_s else ''}
-          </div>
-          <div style="flex:1;display:flex;flex-direction:column;justify-content:space-between;min-width:0;">
-            <div>
-              <div style="color:#888;font-size:11px;font-weight:600;letter-spacing:0.5px;
-                          text-transform:uppercase;margin-bottom:4px">{label}</div>
-              <div style="font-size:14px;line-height:1.35;font-weight:600;
-                          display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
-                          overflow:hidden;" title="{title}">{title}</div>
-            </div>
-            <div style="font-size:12px;color:#aaa;display:flex;gap:14px;align-items:center;flex-wrap:wrap;">
-              {fmt_badge}
-              <span>{pub_str}</span>
-              <span>👁 {fmt_num(views)}</span>
-              <span>👍 {fmt_num(likes)}</span>
-              <span>💬 {fmt_num(comments)}</span>
-            </div>
-          </div>
-        </a>
-        """
+        _dur_html = (f'<span style="position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.85);'
+                     f'color:#fff;font-size:11px;padding:1px 5px;border-radius:3px;">{dur_s}</span>') if dur_s else ''
+        # Single-line HTML — Streamlit's markdown parser treats any line
+        # indented 4+ spaces as a code block, which would render an empty
+        # <pre> bar above the card. Keep it on one logical line.
+        return (
+            f'<a href="{url}" target="_blank" rel="noopener" style="display:flex;gap:14px;'
+            f'text-decoration:none;color:#FAFAFA;background:#1a1c24;border-radius:8px;'
+            f'padding:10px;margin-bottom:10px;border:1px solid #2a2d36;transition:background 0.15s;">'
+            f'<div style="position:relative;flex-shrink:0;width:200px;aspect-ratio:16/9;'
+            f'border-radius:6px;overflow:hidden;background:#000;">'
+            f'<img src="{thumb}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">'
+            f'{_dur_html}</div>'
+            f'<div style="flex:1;display:flex;flex-direction:column;justify-content:space-between;min-width:0;">'
+            f'<div>'
+            f'<div style="color:#888;font-size:11px;font-weight:600;letter-spacing:0.5px;'
+            f'text-transform:uppercase;margin-bottom:4px">{label}</div>'
+            f'<div style="font-size:14px;line-height:1.35;font-weight:600;'
+            f'display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;'
+            f'overflow:hidden;" title="{title}">{title}</div>'
+            f'</div>'
+            f'<div style="font-size:12px;color:#aaa;display:flex;gap:14px;align-items:center;flex-wrap:wrap;">'
+            f'{fmt_badge}'
+            f'<span>{pub_str}</span>'
+            f'<span>👁 {fmt_num(views)}</span>'
+            f'<span>👍 {fmt_num(likes)}</span>'
+            f'<span>💬 {fmt_num(comments)}</span>'
+            f'</div></div></a>'
+        )
 
     if _top_v or _latest_v:
         st.markdown(_video_row_html(_top_v, "🏆 Top Video (all-time)")
