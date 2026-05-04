@@ -31,7 +31,7 @@ from src import profile as _prof
 load_dotenv()
 require_login()
 
-st.title("🎯 All flagged channels")
+st.title("🎯 Outliers")
 render_page_subtitle(
     "Clubs whose profile sits unusually far from their peers.",
     caveat=("Two lenses: against league peers, and against similar-sized "
@@ -201,7 +201,7 @@ if g_club:
 # ──────────────────────────────────────────────────────────────
 # All flagged channels table
 # ──────────────────────────────────────────────────────────────
-st.subheader("Full list")
+st.subheader("All flagged channels")
 st.caption(f"{len(visible)} clubs in scope · sorted by total tag count")
 
 # Filter to clubs with at least one tag
