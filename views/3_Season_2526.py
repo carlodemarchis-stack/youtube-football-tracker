@@ -545,7 +545,7 @@ if league is None and _scope == "Overall":
             cv = (alt.Chart(bucket_df).mark_bar(color="#00CC96")
                   .encode(
                       x=alt.X("label:N", sort=_bucket_sort, title=None,
-                              axis=alt.Axis(labelAngle=0, labelOverlap=False, labelLimit=200)),
+                              axis=alt.Axis(labelAngle=-30, labelOverlap=False, labelLimit=200, labelPadding=4)),
                       y=alt.Y("views:Q", title=None,
                               axis=alt.Axis(format="~s", minExtent=50)),
                       tooltip=_hover,
@@ -560,7 +560,7 @@ if league is None and _scope == "Overall":
             cn = (alt.Chart(bucket_df).mark_bar(color="#636EFA")
                   .encode(
                       x=alt.X("label:N", sort=_bucket_sort, title=None,
-                              axis=alt.Axis(labelAngle=0, labelOverlap=False, labelLimit=200)),
+                              axis=alt.Axis(labelAngle=-30, labelOverlap=False, labelLimit=200, labelPadding=4)),
                       y=alt.Y("videos:Q", title=None,
                               axis=alt.Axis(format="~s", minExtent=50)),
                       tooltip=_hover,
@@ -575,7 +575,7 @@ if league is None and _scope == "Overall":
             ca = (alt.Chart(bucket_df).mark_bar(color="#FFA15A")
                   .encode(
                       x=alt.X("label:N", sort=_bucket_sort, title=None,
-                              axis=alt.Axis(labelAngle=0, labelOverlap=False, labelLimit=200)),
+                              axis=alt.Axis(labelAngle=-30, labelOverlap=False, labelLimit=200, labelPadding=4)),
                       y=alt.Y("avg_views:Q", title=None,
                               axis=alt.Axis(format="~s", minExtent=50)),
                       tooltip=_hover,
