@@ -299,7 +299,7 @@ if league is None and _scope == "Overall":
         # box. Long/Shorts/Live colors are encoded in the title via the same
         # palette swatches used elsewhere in the app.
         fig_stack.update_layout(
-            title="Videos by League — <span style='color:#636EFA'>■</span> Long  "
+            title="<span style='color:#636EFA'>■</span> Long  "
                   "<span style='color:#00CC96'>■</span> Shorts  "
                   "<span style='color:#FFA15A'>■</span> Live",
             barmode="stack",
