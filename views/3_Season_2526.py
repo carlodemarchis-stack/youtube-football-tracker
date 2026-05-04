@@ -542,7 +542,7 @@ if league is None and _scope == "Overall":
                 'line-height:1.6">⚡ Cumulative views</div>',
                 unsafe_allow_html=True,
             )
-            cv = (alt.Chart(bucket_df).mark_bar(color="#00CC96")
+            cv = (alt.Chart(bucket_df).mark_bar(color="#636EFA")  # Views = blue (matches table header)
                   .encode(
                       x=alt.X("label:N", sort=_bucket_sort, title=None,
                               axis=alt.Axis(labelAngle=-30, labelOverlap=False, labelLimit=200, labelPadding=4)),
@@ -557,7 +557,7 @@ if league is None and _scope == "Overall":
                 'line-height:1.6">🎬 Number of shorts</div>',
                 unsafe_allow_html=True,
             )
-            cn = (alt.Chart(bucket_df).mark_bar(color="#636EFA")
+            cn = (alt.Chart(bucket_df).mark_bar(color="#00CC96")  # Videos = green (matches table header)
                   .encode(
                       x=alt.X("label:N", sort=_bucket_sort, title=None,
                               axis=alt.Axis(labelAngle=-30, labelOverlap=False, labelLimit=200, labelPadding=4)),
@@ -653,7 +653,7 @@ if league is None and _scope == "Overall":
                 'line-height:1.6">⚡ Cumulative views</div>',
                 unsafe_allow_html=True,
             )
-            lv = (alt.Chart(long_df).mark_bar(color="#00CC96")
+            lv = (alt.Chart(long_df).mark_bar(color="#636EFA")  # Views = blue
                   .encode(
                       x=alt.X("label:N", sort=_long_sort, title=None,
                               axis=alt.Axis(labelAngle=-30, labelOverlap=False, labelLimit=200, labelPadding=4)),
@@ -668,7 +668,7 @@ if league is None and _scope == "Overall":
                 'line-height:1.6">🎬 Number of long videos</div>',
                 unsafe_allow_html=True,
             )
-            ln = (alt.Chart(long_df).mark_bar(color="#636EFA")
+            ln = (alt.Chart(long_df).mark_bar(color="#00CC96")  # Videos = green
                   .encode(
                       x=alt.X("label:N", sort=_long_sort, title=None,
                               axis=alt.Axis(labelAngle=-30, labelOverlap=False, labelLimit=200, labelPadding=4)),
