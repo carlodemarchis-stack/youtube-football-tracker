@@ -1,5 +1,9 @@
 streamlit>=1.42.0
-Authlib>=1.3.2
+# Authlib >=1.6 changed how OAuth state is stored in the session, which is
+# incompatible with Streamlit's OIDC handler in 1.57 and earlier — it surfaces
+# as MismatchingStateError on /oauth2callback after a Cloud reboot resolves
+# the latest Authlib. Pin to the last known-working line.
+Authlib>=1.3.2,<1.6.0
 google-api-python-client>=2.100.0
 supabase>=2.0.0
 plotly>=5.18.0
