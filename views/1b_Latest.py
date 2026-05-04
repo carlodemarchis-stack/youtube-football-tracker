@@ -41,6 +41,34 @@ dual = get_global_color_map_dual()
 g_league, g_club = get_global_filter()
 _rss_updated = db.get_last_fetch_time("hourly_rss")
 render_page_subtitle("Most recently published videos", updated_raw=_rss_updated)
+
+
+# ── AI vibe note (right after subtitle) ──────────────────────
+# Compute scope key for caching: "all" / "league:Serie A" / "club:<id>".
+# The note is a 1-2 paragraph summary of what the recent feed feels
+# like; we cache for 1h so we don't pay an LLM call per pageview.
+def _vibe_scope_key(g_league_, g_club_) -> str:
+    if g_club_:
+        return f"club:{g_club_['id']}"
+    if g_league_:
+        return f"league:{g_league_}"
+    return "all"
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def _load_latest_vibe(scope_key: str, channel_ids_tuple: tuple) -> str | None:
+    """Cached vibe note. scope_key only matters for the cache key —
+    the actual generator reads `videos` we pass in."""
+    from src.ai_note import generate_latest_vibe
+    if not channel_ids_tuple:
+        return None
+    vids = db.get_recent_videos(limit=30, channel_ids=list(channel_ids_tuple))
+    if not vids:
+        return None
+    ch_by_id_local = {c["id"]: c for c in all_channels}
+    return generate_latest_vibe(vids, channels_by_id=ch_by_id_local)
+
+
 if g_club:
     # Single-channel header — same look as Season / Channels
     from src.filters import render_club_header
@@ -53,6 +81,22 @@ else:
     # already filtered out of `all_channels` above. Without this, the
     # SQL query returns all videos including those isolated entity types.
     ch_ids = [c["id"] for c in all_channels]
+
+# Render the vibe note now that ch_ids is known. Cached 1h via the
+# scope key so changing the global filter recomputes; the same scope
+# stays warm. Failures (no Anthropic key, API hiccup) silently no-op.
+_vibe_note = _load_latest_vibe(_vibe_scope_key(g_league, g_club), tuple(ch_ids))
+if _vibe_note:
+    _vibe_html = _vibe_note.replace("\n", "<br>")
+    st.markdown(
+        f'<div style="background:#1a1c24;border-left:3px solid #58A6FF;'
+        f'padding:12px 16px;margin:8px 0 18px 0;border-radius:4px;'
+        f'font-size:14px;line-height:1.6;color:#FAFAFA">'
+        f'<span style="color:#888;font-size:11px;font-weight:600;'
+        f'letter-spacing:0.5px;text-transform:uppercase">🤖 Vibe check</span>'
+        f'<div style="margin-top:6px">{_vibe_html}</div></div>',
+        unsafe_allow_html=True,
+    )
 
 # ── Format filter ────────────────────────────────────────────
 _fc1, _fc2, _fc3 = st.columns([4, 1, 1])

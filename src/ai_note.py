@@ -553,6 +553,170 @@ def generate_daily_note(payload: dict,
     return note
 
 
+LATEST_VIBE_PROMPT = """\
+You are the in-house commentator for "YouTube Football Tracker", an
+analytics dashboard watching the YouTube output of the top-5 European
+men's football leagues plus the 5 league channels themselves.
+
+Your job: write a SHORT 1-2 paragraph "vibe check" on the most-recent
+videos right now. Not yesterday's recap — what is the ecosystem
+*currently* posting and why does that feel like the way it does.
+
+Voice
+- Smart, dry, observational. Sports-section feature writer who reads
+  the upload feed all day. Never bombastic, never fawning.
+- One small aside is fine. No emojis except a single optional one.
+
+Hard constraints (will be checked)
+- Never invent match results, scores, standings, or transfer news. If
+  a score isn't already in a video title we hand you, you don't know it.
+- Never name a player who isn't in the data.
+- Don't generalize from one channel to a league.
+- If the recent feed is genuinely thin, say so plainly.
+
+What you'll get
+- A JSON blob with the last ~30 most-recent videos (channel, title,
+  format, age, view count) and a quick aggregate (counts by format,
+  counts by league, time span covered).
+
+What to lean on
+- Format mix: is the feed Shorts-heavy right now, Long-heavy, Live
+  showing up post-matchday, etc.
+- Volume / cadence: are clubs posting fast or slow.
+- Theme drift if obvious from titles (highlights, press conferences,
+  transfer announcements). Don't force it.
+
+Output format
+- Exactly 3-5 short sentences total, ~60-80 words.
+- Put each sentence on its own line (single newline between them).
+- Plain text. No markdown, no JSON, no list bullets."""
+
+
+def compose_latest_payload(videos: list[dict],
+                            channels_by_id: dict | None = None) -> dict:
+    """Build a small structured payload for the latest-vibe note.
+
+    videos: rows from db.get_recent_videos (already filtered to the
+    visible scope by the caller — All Leagues / one league / one club).
+    channels_by_id: id → channel dict so we can attach channel name +
+    league. Optional; if missing we fall back to embedded channel_name.
+    """
+    from src.channels import COUNTRY_TO_LEAGUE
+    if not videos:
+        return {"items": [], "totals": {"videos": 0}}
+
+    items = []
+    fmt_counts = {"long": 0, "short": 0, "live": 0}
+    league_counts: dict[str, int] = {}
+    now_utc = datetime.now(timezone.utc)
+    oldest = newest = None
+    for v in videos[:30]:
+        ch = (channels_by_id or {}).get(v.get("channel_id")) or {}
+        ch_name = v.get("channel_name") or ch.get("name") or "?"
+        country = (ch.get("country") or "").strip()
+        league = COUNTRY_TO_LEAGUE.get(country, "")
+        fmt = (v.get("format") or "").lower()
+        if fmt not in ("long", "short", "live"):
+            fmt = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
+        fmt_counts[fmt] += 1
+        if league:
+            league_counts[league] = league_counts.get(league, 0) + 1
+        # Effective publish time (live uses actual_start_time)
+        pub_iso = v.get("effective_date") or v.get("published_at") or ""
+        age_hours = None
+        if pub_iso:
+            try:
+                pub_dt = datetime.fromisoformat(pub_iso.replace("Z", "+00:00"))
+                age_hours = round((now_utc - pub_dt).total_seconds() / 3600, 1)
+                if oldest is None or pub_dt < oldest:
+                    oldest = pub_dt
+                if newest is None or pub_dt > newest:
+                    newest = pub_dt
+            except Exception:
+                pass
+        items.append({
+            "channel": ch_name,
+            "league": league,
+            "title": (v.get("title") or "").strip()[:160],
+            "format": fmt,
+            "view_count": int(v.get("view_count") or 0),
+            "age_hours": age_hours,
+            "category": v.get("category") or "",
+        })
+
+    span_hours = None
+    if oldest and newest:
+        span_hours = round((newest - oldest).total_seconds() / 3600, 1)
+
+    return {
+        "items": items,
+        "totals": {
+            "videos": len(items),
+            "by_format": fmt_counts,
+            "by_league": league_counts,
+            "span_hours": span_hours,
+        },
+    }
+
+
+def generate_latest_vibe(videos: list[dict],
+                         channels_by_id: dict | None = None,
+                         log=print) -> str | None:
+    """Call Claude for a short vibe note on the latest videos. Returns
+    plain text (one sentence per line) or None on failure / empty input."""
+    if not videos:
+        return None
+
+    api_key = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
+    if not api_key:
+        log("[latest_vibe] ANTHROPIC_API_KEY missing — skipping")
+        return None
+
+    try:
+        import anthropic
+    except ImportError:
+        log("[latest_vibe] anthropic package not installed — skipping")
+        return None
+
+    payload = compose_latest_payload(videos, channels_by_id=channels_by_id)
+    user_message = json.dumps(payload, indent=2, ensure_ascii=False)
+
+    client = anthropic.Anthropic(api_key=api_key)
+    for attempt in range(3):
+        try:
+            resp = client.messages.create(
+                model="claude-haiku-4-5",
+                max_tokens=220,
+                temperature=0.6,
+                system=LATEST_VIBE_PROMPT,
+                messages=[{"role": "user", "content": user_message}],
+            )
+            break
+        except anthropic.APIStatusError as e:
+            if getattr(e, "status_code", None) in (429, 529) and attempt < 2:
+                time.sleep(2 ** attempt)
+                continue
+            log(f"[latest_vibe] Claude API error: {e}")
+            return None
+        except Exception as e:
+            log(f"[latest_vibe] error: {e}")
+            return None
+    else:
+        return None
+
+    note = "".join(b.text for b in resp.content if hasattr(b, "text")).strip()
+    if not note:
+        return None
+
+    # Anti-BS: reject if model invented a score not in titles.
+    titles = [it.get("title", "") for it in payload.get("items", [])]
+    if _looks_like_invented_score(note, titles):
+        log("[latest_vibe] rejected — note contains a score not in source titles")
+        return None
+
+    return _one_sentence_per_line(note)
+
+
 def _one_sentence_per_line(text: str) -> str:
     """Reformat so each sentence sits on its own line.
 
