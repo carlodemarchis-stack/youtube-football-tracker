@@ -1025,6 +1025,8 @@ if new_video_rows and not ONE_CLUB:
             fmt = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
         fmt_color = {"long": "#636EFA", "short": "#00CC96", "live": "#FFA15A"}.get(fmt, "#AAAAAA")
         fmt_label = {"long": "Long", "short": "Shorts", "live": "Live"}.get(fmt, fmt.title())
+        cat = v.get("category") or ""
+        cat_span = f' · <span style="color:#666">{cat}</span>' if cat and cat != "Other" else ""
         views = int(v.get("view_count") or 0)
         likes = int(v.get("like_count") or 0)
         comments = int(v.get("comment_count") or 0)
@@ -1033,7 +1035,7 @@ if new_video_rows and not ONE_CLUB:
             <td style="padding:6px 12px"><a href="{yt_url}" target="_blank"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px"></a></td>
             <td style="padding:6px 12px">
                 <div style="color:#AAA;font-size:12px;margin-bottom:2px;display:flex;align-items:center;gap:6px">
-                  {ch_dot}<span>{ch.get('name', '?')} · <span style="color:{fmt_color}">{fmt_label}</span></span>
+                  {ch_dot}<span>{ch.get('name', '?')} · <span style="color:{fmt_color}">{fmt_label}</span>{cat_span}</span>
                 </div>
                 <a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none">{title}</a>
             </td>
