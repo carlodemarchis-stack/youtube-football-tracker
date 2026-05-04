@@ -1804,8 +1804,11 @@ else:
         fmt_color = {"long": LONG_COLOR, "short": SHORT_COLOR, "live": LIVE_COLOR}[_f]
         pub = (v.get("published_at") or "")[:10]
         title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;")
-        _cat = (v.get("category") or "").replace("<", "&lt;")
-        _cat_span = f' · <span style="color:#666">{_cat}</span>' if _cat and _cat != "Other" else ""
+        _cat = (v.get("category") or "Other").replace("<", "&lt;")
+        # Always show the category for consistent row layout — including
+        # "Other" so every row has the same shape (Format · Duration ·
+        # Category · Date) instead of some rows skipping the tag.
+        _cat_span = f' · <span style="color:#666">{_cat}</span>'
         _meta = f'<span style="color:{fmt_color}">{fmt_label}</span> · {_dur(v.get("duration_seconds", 0))}{_cat_span} · <span style="color:#888">{pub}</span>'
         top_rows += f"""<tr onclick="window.open('{yt_url}','_blank','noopener')" style="cursor:pointer">
             <td style="padding:6px 12px;text-align:right;color:#888">{i}</td>
