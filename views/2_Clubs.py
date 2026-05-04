@@ -908,15 +908,20 @@ else:
         _snap_df["captured_date"] = pd.to_datetime(_snap_df["captured_date"])
         _snap_df = _snap_df.sort_values("captured_date")
 
-        # 1) Total views over time — line chart
+        # 1) Total views over time — line chart with auto-zoomed y-axis.
+        # Pad the visible range by ±2% of the absolute spread so the
+        # line doesn't sit flush against the chart edges, and so the
+        # actual day-to-day variation is readable (a chart pinned to
+        # zero hides the trend when the absolute number is huge).
+        _y = _snap_df["total_views"]
+        _ymin, _ymax = int(_y.min()), int(_y.max())
+        _spread = max(_ymax - _ymin, 1)
+        _pad = max(int(_spread * 0.05), 1)
         fig_views_trend = go.Figure()
         fig_views_trend.add_trace(go.Scatter(
-            x=_snap_df["captured_date"],
-            y=_snap_df["total_views"],
+            x=_snap_df["captured_date"], y=_y,
             mode="lines",
             line=dict(color=CLUB_C1, width=2),
-            fill="tozeroy",
-            fillcolor=f"rgba({int(CLUB_C1[1:3],16)},{int(CLUB_C1[3:5],16)},{int(CLUB_C1[5:7],16)},0.15)",
             hovertemplate="%{x|%b %d, %Y}<br>%{y:,.0f} views<extra></extra>",
         ))
         fig_views_trend.update_layout(
@@ -926,16 +931,19 @@ else:
             height=320, showlegend=False,
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
             font=dict(color="#FAFAFA"),
+            yaxis=dict(range=[_ymin - _pad, _ymax + _pad], tickformat=",.2s"),
         )
     else:
         fig_views_trend = None
 
-    # 2) Videos published per month — stacked Long / Shorts / Live
-    # Aggregates this channel's full lifetime video catalog by month
-    # and format. Single Supabase call (LIMIT-less, but per-channel
-    # video counts top out at ~30K which Supabase pages through fine).
+    # 2) Videos published per month — stacked Long / Shorts / Live.
+    # Restricted to the current season (since 2025-08-01) so the chart
+    # focuses on the active period and isn't dominated by years of
+    # legacy uploads. Aggregates this channel's video catalog by month
+    # and format.
+    _PUB_SINCE = "2025-08-01"
     with st.spinner("Aggregating monthly publishing history…"):
-        _vids = db.get_videos_by_channel(channel["id"])
+        _vids = db.get_season_videos_by_channel(channel["id"], since=_PUB_SINCE)
     fig_pub_trend = None
     if _vids:
         import pandas as pd
@@ -964,7 +972,7 @@ else:
             if _by["live"].sum() > 0:
                 fig_pub_trend.add_trace(go.Bar(name="Live", x=_by.index, y=_by["live"], marker_color="#FFA15A"))
             fig_pub_trend.update_layout(
-                title=dict(text="Videos Published per Month (lifetime)", x=0.5),
+                title=dict(text=f"Videos Published per Month (since {_PUB_SINCE})", x=0.5),
                 barmode="stack",
                 xaxis_title="", yaxis_title="",
                 margin=dict(t=40, b=70, l=10, r=10),
