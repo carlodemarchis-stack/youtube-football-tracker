@@ -235,4 +235,40 @@ def rebuild_all(db, log=print) -> None:
     except Exception as e:
         log(f"[dashboard_cache] daily_note failed (non-fatal): {e}")
 
+    # 4. latest_vibe — share the same lightweight helper used by hourly_rss,
+    # so the rebuild path stays a single source of truth.
+    refresh_latest_vibe(db, log=log, channels=chans)
+
     log("[dashboard_cache] rebuild done")
+
+
+def refresh_latest_vibe(db, log=print, channels: list[dict] | None = None) -> None:
+    """Generate the All-Leagues 'latest vibe' note and persist to
+    dashboard_cache. Lightweight: one Anthropic call.
+
+    Called both by rebuild_all (daily) and hourly_rss (every hour) so
+    the vibe stays fresh as new videos land. Per-league / per-club
+    versions are intentionally NOT generated — at ~100 channels the
+    LLM cost would balloon and the All-Leagues read is what users
+    typically open the page on."""
+    try:
+        from src import ai_note as _an2
+        chans = channels if channels is not None else db.get_all_channels()
+        chans = [c for c in chans
+                 if c.get("entity_type") not in ("Player", "Federation",
+                                                  "OtherClub", "WomenClub")]
+        all_ch_ids = [c["id"] for c in chans]
+        log(f"[dashboard_cache] computing latest_vibe / all "
+            f"({len(all_ch_ids)} channels)")
+        recent = db.get_recent_videos(limit=30, channel_ids=all_ch_ids)
+        chans_by_id = {c["id"]: c for c in chans}
+        vibe = _an2.generate_latest_vibe(recent, channels_by_id=chans_by_id, log=log)
+        if vibe:
+            vibe_html = vibe.replace("\n", "<br>")
+            write(db, "latest_vibe", scope_all(),
+                  {"text": vibe, "html": vibe_html, "n_videos": len(recent)})
+            log(f"[dashboard_cache] latest_vibe WRITTEN ({len(vibe)} chars)")
+        else:
+            log(f"[dashboard_cache] latest_vibe skipped — generator returned empty")
+    except Exception as e:
+        log(f"[dashboard_cache] latest_vibe failed (non-fatal): {e}")

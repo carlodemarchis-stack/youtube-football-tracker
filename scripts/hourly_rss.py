@@ -172,6 +172,14 @@ def main() -> int:
     elapsed = time.time() - start
     log(f"Done in {elapsed:.1f}s — {total_inserted} new videos inserted")
 
+    # Refresh the AI vibe note now that any newly-discovered videos
+    # are in the DB. Cheap (one Anthropic call), All-Leagues scope only.
+    try:
+        from src.dashboard_cache import refresh_latest_vibe
+        refresh_latest_vibe(db, log=log)
+    except Exception as e:
+        log(f"latest_vibe refresh failed (non-fatal): {e}")
+
     # Log to fetch_log
     try:
         db.log_fetch(
