@@ -131,8 +131,9 @@ if SUPABASE_URL and SUPABASE_KEY:
             st.session_state["_global_league"] = league
             st.session_state["_global_club"] = club
 
-if _show_filter:
-    st.markdown("---")
+# Removed the horizontal divider that used to sit between the global
+# filter and the page title — the filter row already reads as its
+# own band, the divider just added visual noise.
 
 # ── YouTube overlay player (one per session) ─────────────────
 import streamlit.components.v1 as _components
