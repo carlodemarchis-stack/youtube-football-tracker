@@ -787,23 +787,32 @@ if league is None and _scope == "Overall":
     if not cadence_df.empty:
         import altair as alt
         st.subheader("📅 Publish cadence — videos per month")
-        st.caption(f"Videos published per month since {SEASON_SINCE}, stacked by league.")
+        st.caption(f"Videos published per month since {SEASON_SINCE}, by league + total.")
         league_order = [lg for lg, _ in sorted_leagues]
         league_palette = [LEAGUE_COLOR.get(lg, "#888") for lg in league_order]
+        # Add a 'Total' synthetic series so we can render it as another
+        # line in the same chart. White = always on top, easy to read
+        # against the league colors.
+        total_df = (cadence_df.groupby("month", as_index=False)["videos"].sum())
+        total_df["league"] = "Total"
+        plot_df = pd.concat([cadence_df, total_df], ignore_index=True)
+        domain = league_order + ["Total"]
+        rng = league_palette + ["#FFFFFF"]
+        base = alt.Chart(plot_df).encode(
+            x=alt.X("yearmonth(month):T", title=None,
+                    axis=alt.Axis(format="%b %Y", labelAngle=-30)),
+            y=alt.Y("videos:Q", title=None, axis=alt.Axis(format="~s")),
+            color=alt.Color("league:N",
+                            scale=alt.Scale(domain=domain, range=rng)),
+            tooltip=[
+                alt.Tooltip("yearmonth(month):T", title="Month"),
+                alt.Tooltip("league:N", title="League"),
+                alt.Tooltip("videos:Q", format=",", title="Videos"),
+            ],
+        )
         cadence_chart = (
-            alt.Chart(cadence_df).mark_bar().encode(
-                x=alt.X("yearmonth(month):T", title=None,
-                        axis=alt.Axis(format="%b %Y", labelAngle=-30)),
-                y=alt.Y("videos:Q", title=None, axis=alt.Axis(format="~s")),
-                color=alt.Color("league:N",
-                                scale=alt.Scale(domain=league_order, range=league_palette)),
-                order=alt.Order("league:N"),
-                tooltip=[
-                    alt.Tooltip("yearmonth(month):T", title="Month"),
-                    alt.Tooltip("league:N", title="League"),
-                    alt.Tooltip("videos:Q", format=",", title="Videos"),
-                ],
-            ).properties(height=260)
+            base.mark_line(point=True, strokeWidth=2)
+            .properties(height=300)
         )
         st.altair_chart(cadence_chart, use_container_width=True)
 
