@@ -20,20 +20,32 @@ from src.channels import COUNTRY_TO_LEAGUE
 # Tag vocabulary — each axis has a positive (z>0) and a negative (z<0) tag.
 # Keep the wording short and human; these render as small chips.
 TAG_VOCAB = {
-    "vps": ("🌱 Small but loyal",       "💧 Disengaged subs"),
-    "vpv": ("🚀 Punching above weight", "📉 High volume, low yield"),
-    "spv": ("📺 Audience > output",     "💪 Output > audience"),
-    "spy": ("🚀 Fast-growing",          "🐢 Stagnant growth"),
-    "vpy": ("📡 Steady producer",       "🔇 Low cadence"),
+    "vps":          ("🌱 Small but loyal",       "💧 Disengaged subs"),
+    "vpv":          ("🚀 Punching above weight", "📉 High volume, low yield"),
+    "spv":          ("📺 Audience > output",     "💪 Output > audience"),
+    "spy":          ("🚀 Fast-growing",          "🐢 Stagnant growth"),
+    "vpy":          ("📡 Steady producer",       "🔇 Low cadence"),
+    "shorts_share": ("⚡ Shorts-first",           "🎬 Long-form focused"),
 }
 
 AXIS_LABEL = {
-    "vps": "Views / Subscriber",
-    "vpv": "Views / Video",
-    "spv": "Subs / Video",
-    "spy": "Subs / Year",
-    "vpy": "Videos / Year",
+    "vps":          "Views / Subscriber",
+    "vpv":          "Views / Video",
+    "spv":          "Subs / Video",
+    "spy":          "Subs / Year",
+    "vpy":          "Videos / Year",
+    "shorts_share": "Format mix",
 }
+
+# Ratio axes use log10 (power-law tails); shorts_share is already a
+# proportion (0–1) and is scored on its raw value.
+LOG_AXES    = {"vps", "vpv", "spv", "spy", "vpy"}
+LINEAR_AXES = {"shorts_share"}
+ALL_AXES    = (*LOG_AXES, *LINEAR_AXES)
+
+# Minimum season video count before we trust shorts_share. Below this,
+# adding/removing a single Short swings the percentage 5%+.
+MIN_SEASON_VIDEOS = 20
 
 # Size buckets (log-spaced). Used for the size-cohort lens.
 SIZE_BUCKETS = [
@@ -64,18 +76,28 @@ def _age_years(channel: dict, now: datetime | None = None) -> float | None:
 
 
 def compute_ratios(channel: dict, now: datetime | None = None) -> dict:
-    """Five structural ratios for one channel. Values are None when not
-    computable (missing launched_at for spy / vpy)."""
+    """Six structural ratios for one channel. Values are None when not
+    computable (missing launched_at for spy / vpy; tiny season catalog
+    for shorts_share)."""
     s = int(channel.get("subscriber_count") or 0)
     v = int(channel.get("video_count") or 0)
     t = int(channel.get("total_views") or 0)
     a = _age_years(channel, now)
+
+    # Format mix from the season_*_videos columns.
+    s_long  = int(channel.get("season_long_videos") or 0)
+    s_short = int(channel.get("season_short_videos") or 0)
+    s_live  = int(channel.get("season_live_videos") or 0)
+    s_total = s_long + s_short + s_live
+    shorts_share = (s_short / s_total) if s_total >= MIN_SEASON_VIDEOS else None
+
     return {
         "vps": t / max(s, 1),
         "vpv": t / max(v, 1),
         "spv": s / max(v, 1),
         "spy": (s / a) if a else None,
         "vpy": (v / a) if a else None,
+        "shorts_share": shorts_share,
     }
 
 
@@ -103,15 +125,25 @@ def size_bucket(channel: dict) -> str:
     return "Tiny"
 
 
+def _transform(axis: str, value):
+    """Per-axis pre-scoring transform. Log10 for ratio axes, identity
+    for proportion axes (shorts_share is already 0-1)."""
+    if value is None:
+        return None
+    if axis in LOG_AXES:
+        return _log10_safe(value)
+    return value  # already in a comparable scale
+
+
 def build_peer_reference(peer_channels: list[dict]) -> dict:
-    """Given a peer set, compute (median, MAD) for log10 of each ratio.
-    Skips axes where < 3 peers have a valid value (too noisy)."""
+    """Given a peer set, compute (median, MAD) for each axis after the
+    appropriate transform. Skips axes where < 3 peers have a valid value."""
     if len(peer_channels) < 3:
         return {}
     rs = [compute_ratios(c) for c in peer_channels]
     ref = {}
-    for axis in ("vps", "vpv", "spv", "spy", "vpy"):
-        vs = [_log10_safe(r[axis]) for r in rs]
+    for axis in ALL_AXES:
+        vs = [_transform(axis, r[axis]) for r in rs]
         vs = [v for v in vs if v is not None]
         if len(vs) < 3:
             continue
@@ -120,11 +152,11 @@ def build_peer_reference(peer_channels: list[dict]) -> dict:
 
 
 def z_scores(channel: dict, ref: dict) -> dict[str, float]:
-    """z-score per axis using log-transform + MAD scaling."""
+    """z-score per axis using the matching transform + MAD scaling."""
     r = compute_ratios(channel)
     out = {}
     for axis, (med, m) in ref.items():
-        x = _log10_safe(r[axis])
+        x = _transform(axis, r[axis])
         if x is None:
             continue
         out[axis] = (x - med) / (1.4826 * m) if m else 0.0

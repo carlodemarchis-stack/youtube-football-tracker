@@ -96,7 +96,7 @@ if not g_club and visible:
     if spotlight:
         # Render as 5 small cards in a row (one per axis we have a hit for).
         cards = ""
-        for axis in ("vps", "vpv", "spv", "spy", "vpy"):
+        for axis in ("vps", "vpv", "spv", "spy", "vpy", "shorts_share"):
             if axis not in spotlight:
                 continue
             c, lens, z, label = spotlight[axis]
@@ -182,11 +182,14 @@ if g_club:
     st.markdown("---")
     st.subheader("Ratios")
     r = p["ratios"]
-    rcols = st.columns(5)
-    for i, axis in enumerate(("vps", "vpv", "spv", "spy", "vpy")):
+    rcols = st.columns(6)
+    for i, axis in enumerate(("vps", "vpv", "spv", "spy", "vpy", "shorts_share")):
         val = r.get(axis)
         if val is None:
             label = "—"
+        elif axis == "shorts_share":
+            # Proportion → render as percentage
+            label = f"{val * 100:.0f}% Shorts"
         elif val >= 1000:
             label = fmt_num(int(val))
         else:
@@ -360,6 +363,25 @@ the second when it's **below**.
             "Posts much less than peers. Could be understaffed, a curated-quality choice, "
             "or a smaller club without a content operation."
         )
+
+    st.markdown("---")
+    st.markdown("### 6. SHARE — Format mix  *(strategic choice)*")
+    st.caption("Season Shorts ÷ total season videos. The TikTok-vs-traditional decision.")
+    g1, g2 = st.columns(2)
+    with g1:
+        st.markdown(
+            "**⚡ Shorts-first**  *(high)*  \n"
+            "60%+ of season uploads are Shorts. Mobile-first / vertical-clip strategy. "
+            "Often newer or strategy-shifted clubs."
+        )
+    with g2:
+        st.markdown(
+            "**🎬 Long-form focused**  *(low)*  \n"
+            "Most of the season catalog is Long videos. Traditional highlights, press "
+            "conferences, longer programming. Often legacy operations slower to shift to Shorts."
+        )
+    st.caption(f"Computed only when season catalog ≥ {_prof.MIN_SEASON_VIDEOS} videos "
+               "(below that, single uploads swing the percentage too much).")
 
     st.markdown("---")
     st.markdown("### Common patterns when tags combine")
