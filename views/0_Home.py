@@ -166,6 +166,20 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# ── Intro / "why this exists" ────────────────────────────────
+st.markdown(
+    """
+A window into how football clubs use YouTube — built for club social
+teams looking to benchmark and learn from peers, and for curious fans
+who want to see what their team (and everyone else) is actually doing.
+
+The idea came from working with Paola Marinone and Bengu Atamer at
+BuzzMyVideos — they pulled me deep into the mechanics of YouTube and
+the creators who live on it. This tracker applies that same lens to
+football.
+"""
+)
+
 # ── Leagues covered ─────────────────────────────────────────────
 try:
     _chs = st.session_state.get("_global_channels") or []
