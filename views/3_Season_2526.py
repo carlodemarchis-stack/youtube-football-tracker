@@ -582,6 +582,117 @@ if league is None and _scope == "Overall":
                   ).properties(height=240))
             st.altair_chart(ca, use_container_width=True)
 
+    # ── Long videos duration distribution — same idea, named buckets ──
+    # Long videos span seconds to hours; use content-aware buckets that
+    # match common YouTube formats (highlights, press conferences, full
+    # matches) rather than uniform width.
+    @st.cache_data(ttl=3600, show_spinner=False)
+    def _load_season_long_buckets(since_iso: str) -> list[dict]:
+        """Paginated query: season longs grouped into named duration buckets."""
+        # (lo_seconds_inclusive, hi_seconds_inclusive, label) — last bucket
+        # uses a very high upper bound to capture full match replays / docs.
+        BUCKETS = [
+            (60,    180,    "1-3m"),
+            (181,   300,    "3-5m"),
+            (301,   600,    "5-10m"),
+            (601,   900,    "10-15m"),
+            (901,   1800,   "15-30m"),
+            (1801,  3600,   "30-60m"),
+            (3601,  5400,   "60-90m"),
+            (5401,  86400,  "90m+"),
+        ]
+        agg = {label: {"label": label, "lo": lo, "views": 0, "videos": 0}
+               for lo, _, label in BUCKETS}
+        page = 1000
+        offset = 0
+        while True:
+            rows = (db.client.table("videos")
+                    .select("duration_seconds,view_count")
+                    .eq("format", "long")
+                    .gte("published_at", since_iso)
+                    .range(offset, offset + page - 1)
+                    .execute().data or [])
+            for r in rows:
+                d = int(r.get("duration_seconds") or 0)
+                v = int(r.get("view_count") or 0)
+                if d < 60:
+                    continue  # belongs to shorts band, ignore
+                for lo, hi, label in BUCKETS:
+                    if lo <= d <= hi:
+                        agg[label]["views"] += v
+                        agg[label]["videos"] += 1
+                        break
+            if len(rows) < page:
+                break
+            offset += page
+        out = []
+        for _, _, label in BUCKETS:
+            b = agg[label]
+            b["avg_views"] = (b["views"] // b["videos"]) if b["videos"] else 0
+            out.append(b)
+        return out
+
+    _long_buckets = _load_season_long_buckets(SEASON_SINCE)
+    if any(b["videos"] > 0 for b in _long_buckets):
+        long_df = pd.DataFrame(_long_buckets)
+        st.subheader("🎞️ Season Long videos — duration distribution")
+        st.caption(f"Every season long ({SEASON_SINCE} →) bucketed by content-shape "
+                   "(1-3m clips up to 90m+ full matches). Hover for exact totals.")
+
+        _long_sort = list(long_df["label"])
+        _long_hover = [
+            alt.Tooltip("label:N", title="Duration"),
+            alt.Tooltip("views:Q", format=",", title="Total views"),
+            alt.Tooltip("videos:Q", format=",", title="# videos"),
+            alt.Tooltip("avg_views:Q", format=",", title="Avg views/video"),
+        ]
+        lcol1, lcol2, lcol3 = st.columns(3)
+        with lcol1:
+            st.markdown(
+                '<div style="font-size:14px;color:rgba(250,250,250,0.6);'
+                'line-height:1.6">⚡ Cumulative views</div>',
+                unsafe_allow_html=True,
+            )
+            lv = (alt.Chart(long_df).mark_bar(color="#00CC96")
+                  .encode(
+                      x=alt.X("label:N", sort=_long_sort, title=None,
+                              axis=alt.Axis(labelAngle=-30, labelOverlap=False, labelLimit=200, labelPadding=4)),
+                      y=alt.Y("views:Q", title=None,
+                              axis=alt.Axis(format="~s", minExtent=50)),
+                      tooltip=_long_hover,
+                  ).properties(height=240))
+            st.altair_chart(lv, use_container_width=True)
+        with lcol2:
+            st.markdown(
+                '<div style="font-size:14px;color:rgba(250,250,250,0.6);'
+                'line-height:1.6">🎬 Number of long videos</div>',
+                unsafe_allow_html=True,
+            )
+            ln = (alt.Chart(long_df).mark_bar(color="#636EFA")
+                  .encode(
+                      x=alt.X("label:N", sort=_long_sort, title=None,
+                              axis=alt.Axis(labelAngle=-30, labelOverlap=False, labelLimit=200, labelPadding=4)),
+                      y=alt.Y("videos:Q", title=None,
+                              axis=alt.Axis(format="~s", minExtent=50)),
+                      tooltip=_long_hover,
+                  ).properties(height=240))
+            st.altair_chart(ln, use_container_width=True)
+        with lcol3:
+            st.markdown(
+                '<div style="font-size:14px;color:rgba(250,250,250,0.6);'
+                'line-height:1.6">📈 Avg views / video</div>',
+                unsafe_allow_html=True,
+            )
+            la = (alt.Chart(long_df).mark_bar(color="#FFA15A")
+                  .encode(
+                      x=alt.X("label:N", sort=_long_sort, title=None,
+                              axis=alt.Axis(labelAngle=-30, labelOverlap=False, labelLimit=200, labelPadding=4)),
+                      y=alt.Y("avg_views:Q", title=None,
+                              axis=alt.Axis(format="~s", minExtent=50)),
+                      tooltip=_long_hover,
+                  ).properties(height=240))
+            st.altair_chart(la, use_container_width=True)
+
     # ── All channels table — precomputed columns (zero video queries) ───
     st.subheader("All Channels — Season")
     color_map = get_global_color_map()
