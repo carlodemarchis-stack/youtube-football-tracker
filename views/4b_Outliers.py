@@ -53,6 +53,32 @@ dual = get_global_color_map_dual() or {}
 # scope changes). Heavy work is microseconds — no caching needed beyond
 # Streamlit's per-process state.
 profiles = _prof.compute_all_profiles(all_channels)
+
+
+# ── AI profile sentence ──────────────────────────────────────
+# Reads first from dashboard_cache (pre-generated nightly by the
+# rebuild_all cron). Falls back to live Claude call only when the
+# cache miss — that path is also Streamlit-cached for 1h.
+from src import dashboard_cache as _dc
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def _profile_sentence(channel_id: str) -> str | None:
+    """Get the pre-generated profile sentence for a club, or generate
+    on demand if cache miss. Returns empty string for typical clubs
+    (no tags fired). None on failure / no Anthropic key."""
+    # Try cache first
+    try:
+        row = _dc.read(db, "profile_sentence", channel_id)
+        if row and row.get("payload", {}).get("text"):
+            return row["payload"]["text"]
+    except Exception:
+        pass
+    # Fallback: live generate (most clubs already cached, this only
+    # fires for a single newly-flagged channel between cron runs)
+    chan = next((c for c in all_channels if c["id"] == channel_id), None)
+    if not chan:
+        return None
+    return _prof.generate_profile_sentence(chan, profiles[channel_id])
 clubs_only = [c for c in all_channels
               if c.get("entity_type") == "Club"
               and COUNTRY_TO_LEAGUE.get((c.get("country") or "").upper())]
@@ -155,6 +181,19 @@ if g_club:
         unsafe_allow_html=True,
     )
 
+    # AI-generated 1-sentence profile (silently no-op without ANTHROPIC_API_KEY)
+    _sent = _profile_sentence(g_club["id"])
+    if _sent:
+        st.markdown(
+            f'<div style="font-style:italic;color:#cccccc;line-height:1.6;'
+            f'border-left:3px solid #58A6FF;padding:8px 14px;margin:6px 0 14px 0;'
+            f'background:#1a1c24;border-radius:4px">'
+            f'<span style="color:#888;font-size:11px;font-weight:600;letter-spacing:0.5px;'
+            f'text-transform:uppercase;font-style:normal">🤖 Profile read</span>'
+            f'<div style="margin-top:4px">{_sent}</div></div>',
+            unsafe_allow_html=True,
+        )
+
     if not p["league"]["tags"] and not p["size"]["tags"]:
         st.success("✅ This channel sits within ±1.5σ of its peers on every axis "
                    "in both lenses — typical profile.")
@@ -234,17 +273,23 @@ else:
             for axis, z, label in p["size"]["tags"]
         ) or '<span style="color:#666;font-size:11px">—</span>'
         subs = int(c.get("subscriber_count") or 0)
+        sentence = _profile_sentence(c["id"]) or ""
+        sentence_html = (
+            f'<div style="font-size:12px;color:#aaa;font-style:italic;'
+            f'line-height:1.45;margin-top:4px;max-width:520px">{sentence}</div>'
+        ) if sentence else ""
         rows_html += f"""<tr>
-            <td style="padding:8px 12px">{badge}</td>
-            <td style="padding:8px 12px">
+            <td style="padding:8px 12px;vertical-align:top">{badge}</td>
+            <td style="padding:8px 12px;vertical-align:top">
               <div style="font-weight:600;color:#FAFAFA">{c["name"]}</div>
               <div style="font-size:11px;color:#888">
                 {p["league"]["name"]} · {p["size"]["bucket"]} · {fmt_num(subs)} subs
               </div>
+              {sentence_html}
             </td>
-            <td style="padding:8px 12px">{league_tags}</td>
-            <td style="padding:8px 12px">{size_tags}</td>
-            <td style="padding:8px 12px;text-align:right;font-weight:600;color:#58A6FF">{p["tag_count"]}</td>
+            <td style="padding:8px 12px;vertical-align:top">{league_tags}</td>
+            <td style="padding:8px 12px;vertical-align:top">{size_tags}</td>
+            <td style="padding:8px 12px;vertical-align:top;text-align:right;font-weight:600;color:#58A6FF">{p["tag_count"]}</td>
         </tr>"""
 
     components.html(f"""
@@ -266,7 +311,7 @@ else:
       </tr></thead>
       <tbody>{rows_html}</tbody>
     </table>
-    """, height=len(flagged) * 60 + 80, scrolling=False)
+    """, height=len(flagged) * 95 + 80, scrolling=False)
 
 
 # ──────────────────────────────────────────────────────────────

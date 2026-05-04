@@ -239,7 +239,40 @@ def rebuild_all(db, log=print) -> None:
     # so the rebuild path stays a single source of truth.
     refresh_latest_vibe(db, log=log, channels=chans)
 
+    # 5. profile_sentences — one AI line per flagged club (Outliers page).
+    refresh_profile_sentences(db, log=log, channels=chans)
+
     log("[dashboard_cache] rebuild done")
+
+
+def refresh_profile_sentences(db, log=print, channels: list[dict] | None = None) -> None:
+    """Pre-generate one AI sentence per flagged club and persist to
+    dashboard_cache. The Outliers page reads from cache so the table
+    can show sentences for every flagged channel without firing 96
+    LLM calls per pageload.
+
+    Cheap: ~96 channels × claude-haiku-4-5 ≈ a few cents per nightly run."""
+    try:
+        from src import profile as _prof
+        chans = channels if channels is not None else db.get_all_channels()
+        profiles = _prof.compute_all_profiles(chans)
+        n_total = len(profiles)
+        n_written = 0
+        log(f"[dashboard_cache] computing profile_sentences for {n_total} clubs")
+        for cid, p in profiles.items():
+            if not (p["league"]["tags"] or p["size"]["tags"]):
+                continue  # nothing to say about a typical club
+            chan = next((c for c in chans if c["id"] == cid), None)
+            if not chan:
+                continue
+            sentence = _prof.generate_profile_sentence(chan, p, log=log)
+            if sentence:
+                write(db, "profile_sentence", cid,
+                      {"text": sentence, "tag_count": p["tag_count"]})
+                n_written += 1
+        log(f"[dashboard_cache] profile_sentences WRITTEN ({n_written}/{n_total})")
+    except Exception as e:
+        log(f"[dashboard_cache] profile_sentences failed (non-fatal): {e}")
 
 
 def refresh_latest_vibe(db, log=print, channels: list[dict] | None = None) -> None:

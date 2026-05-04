@@ -218,3 +218,97 @@ def compute_all_profiles(all_channels: list[dict]) -> dict[str, dict]:
              if c.get("entity_type") == "Club"
              and COUNTRY_TO_LEAGUE.get((c.get("country") or "").upper())]
     return {c["id"]: compute_channel_profile(c, all_channels) for c in clubs}
+
+
+# ──────────────────────────────────────────────────────────────
+# AI sentence — turn tags + ratios into one human-readable line
+# ──────────────────────────────────────────────────────────────
+
+PROFILE_SENTENCE_PROMPT = """\
+You write one-sentence channel profiles for a YouTube football analytics site.
+
+You will be given: a club name, its league, its size bucket, six structural
+ratios (Views/Sub, Views/Video, Subs/Video, Subs/Year, Videos/Year, Shorts share),
+and a set of "tags" that fired because the club is unusually far from its
+league peers and/or its size cohort on a given axis.
+
+Write ONE sentence (max 25 words, no padding) describing what kind of channel
+this looks like. Use the tags as scaffolding but read like a human, not like
+a label list. Don't restate the numbers. Don't apologize. Don't hedge with
+"might" or "appears to". Be direct.
+
+Examples of the voice:
+- "Como built a Serie A audience faster than their content output, with subs
+  watching little — a recent surge waiting for matching activity."
+- "Real Madrid: every video lands hard and the audience keeps growing,
+  classic flagship-club output at scale."
+- "Newcastle posts rarely but each upload performs — quality-over-volume
+  signature."
+
+If the club has no tags, return an empty string."""
+
+
+def generate_profile_sentence(channel: dict, profile: dict, log=print) -> str | None:
+    """Call Claude for a 1-sentence profile description. Returns None on
+    failure or if no tags fired (nothing interesting to say)."""
+    import os
+    if not (profile["league"]["tags"] or profile["size"]["tags"]):
+        return ""
+
+    api_key = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
+    if not api_key:
+        log("[profile_sentence] ANTHROPIC_API_KEY missing")
+        return None
+
+    try:
+        import anthropic
+    except ImportError:
+        log("[profile_sentence] anthropic package not installed")
+        return None
+
+    import json, time
+    r = profile["ratios"]
+    payload = {
+        "name": channel.get("name", "?"),
+        "league": profile["league"]["name"],
+        "size_bucket": profile["size"]["bucket"],
+        "subscriber_count": int(channel.get("subscriber_count") or 0),
+        "ratios": {
+            "views_per_sub": round(r.get("vps") or 0, 1),
+            "views_per_video": int(r.get("vpv") or 0),
+            "subs_per_video": round(r.get("spv") or 0, 1),
+            "subs_per_year": int(r.get("spy") or 0),
+            "videos_per_year": round(r.get("vpy") or 0, 1),
+            "shorts_share_pct": round((r.get("shorts_share") or 0) * 100, 1)
+                                if r.get("shorts_share") is not None else None,
+        },
+        "tags_vs_league": [t[2] for t in profile["league"]["tags"]],
+        "tags_vs_size_cohort": [t[2] for t in profile["size"]["tags"]],
+    }
+
+    client = anthropic.Anthropic(api_key=api_key)
+    for attempt in range(3):
+        try:
+            resp = client.messages.create(
+                model="claude-haiku-4-5",
+                max_tokens=120,
+                temperature=0.5,
+                system=PROFILE_SENTENCE_PROMPT,
+                messages=[{"role": "user",
+                           "content": json.dumps(payload, ensure_ascii=False)}],
+            )
+            break
+        except anthropic.APIStatusError as e:
+            if getattr(e, "status_code", None) in (429, 529) and attempt < 2:
+                time.sleep(2 ** attempt)
+                continue
+            log(f"[profile_sentence] Claude API error: {e}")
+            return None
+        except Exception as e:
+            log(f"[profile_sentence] error: {e}")
+            return None
+    else:
+        return None
+
+    text = "".join(b.text for b in resp.content if hasattr(b, "text")).strip()
+    return text or None
