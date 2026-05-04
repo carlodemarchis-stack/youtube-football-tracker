@@ -787,18 +787,12 @@ if league is None and _scope == "Overall":
     if not cadence_df.empty:
         import altair as alt
         st.subheader("📅 Publish cadence — videos per month")
-        st.caption(f"Videos published per month since {SEASON_SINCE}, by league + total.")
+        st.caption(f"Videos published per month since {SEASON_SINCE}, by league.")
         league_order = [lg for lg, _ in sorted_leagues]
         league_palette = [LEAGUE_COLOR.get(lg, "#888") for lg in league_order]
-        # Add a 'Total' synthetic series so we can render it as another
-        # line in the same chart. White = always on top, easy to read
-        # against the league colors.
-        total_df = (cadence_df.groupby("month", as_index=False)["videos"].sum())
-        total_df["league"] = "Total"
-        plot_df = pd.concat([cadence_df, total_df], ignore_index=True)
-        domain = league_order + ["Total"]
-        rng = league_palette + ["#FFFFFF"]
-        base = alt.Chart(plot_df).encode(
+        domain = league_order
+        rng = league_palette
+        base = alt.Chart(cadence_df).encode(
             x=alt.X("yearmonth(month):T", title=None,
                     axis=alt.Axis(format="%b %Y", labelAngle=-30)),
             y=alt.Y("videos:Q", title=None, axis=alt.Axis(format="~s")),
