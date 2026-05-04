@@ -208,7 +208,7 @@ def yt_overlay_html() -> str:
        'background:#1a1c24;border-radius:8px;flex-direction:column;align-items:center;justify-content:center;'+
        'color:#FAFAFA;font-family:\\'Source Sans Pro\\',sans-serif;text-align:center;padding:20px;box-sizing:border-box">' +
        '<div style="font-size:18px;font-weight:600;margin-bottom:8px">This video can\\'t be embedded</div>' +
-       '<div style="font-size:13px;color:#aaa;margin-bottom:18px">The channel disabled in-page playback. Opening on YouTube…</div>' +
+       '<div style="font-size:13px;color:#aaa;margin-bottom:18px">The channel disabled in-page playback.</div>' +
        '<a id="yt-fallback-link" href="#" target="_blank" rel="noopener" style="background:#FF0000;color:#fff;padding:10px 20px;'+
          'border-radius:6px;text-decoration:none;font-weight:600;font-size:14px">Watch on YouTube ↗</a>' +
     '</div>' +
@@ -222,11 +222,9 @@ def yt_overlay_html() -> str:
   function showFallback(id) {
     var fb = p.getElementById('yt-fallback');
     var lk = p.getElementById('yt-fallback-link');
-    var url = 'https://www.youtube.com/watch?v=' + id;
-    lk.href = url;
+    lk.href = 'https://www.youtube.com/watch?v=' + id;
     fb.style.display = 'flex';
-    // Auto-open in a new tab — user already expressed intent to watch.
-    try { w.open(url, '_blank', 'noopener'); } catch(e) {}
+    // No auto-open — let the user click "Watch on YouTube" themselves.
   }
 
   function hideFallback() {
