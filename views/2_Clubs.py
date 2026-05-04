@@ -297,6 +297,7 @@ if league is None and _scope == "Overall":
         fig_stack.add_trace(go.Bar(name="Live",   x=stacked_order["League"], y=stacked_order["live"],   marker_color="#FFA15A"))
         fig_stack.update_layout(title="Videos by League (Long / Shorts / Live)", barmode="stack",
                                 xaxis_title="", yaxis_title="",
+                                xaxis=dict(tickangle=-45),
                                 margin=dict(t=80, b=20, l=10, r=10),
                                 legend=dict(orientation="h", yanchor="bottom", y=1.02,
                                             xanchor="center", x=0.5))
