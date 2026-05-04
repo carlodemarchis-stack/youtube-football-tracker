@@ -105,9 +105,10 @@ if not g_club and visible:
             lens_label = (f"vs {cp['league']['name']}") if lens == "league" else \
                          f"vs {cp['size']['bucket']} clubs"
             cards += f"""
-            <div style="flex:1 1 0;min-width:180px;background:#1a1c24;
-                       border-left:3px solid #58A6FF;border-radius:6px;
-                       padding:10px 12px;font-family:'Source Sans Pro',sans-serif">
+            <div style="flex:0 1 calc(33.33% - 8px);box-sizing:border-box;
+                       background:#1a1c24;border-left:3px solid #58A6FF;
+                       border-radius:6px;padding:10px 12px;
+                       font-family:'Source Sans Pro',sans-serif">
               <div style="font-size:11px;color:#888;text-transform:uppercase;
                          letter-spacing:0.5px;margin-bottom:4px">
                 {_prof.AXIS_LABEL[axis]}
@@ -123,9 +124,13 @@ if not g_club and visible:
               </div>
             </div>
             """
+        # Up to 5 cards in a 3-per-row grid → 1 or 2 rows. Each card ~120px
+        # tall + 10px gap; 2 rows = ~260px. Pad a bit so nothing clips.
+        n = len([axis for axis in ("vps","vpv","spv","spy","vpy") if axis in spotlight])
+        rows = (n + 2) // 3
         components.html(
             f"""<div style="display:flex;gap:10px;flex-wrap:wrap">{cards}</div>""",
-            height=170,
+            height=rows * 130 + 20,
         )
     else:
         st.caption("No outliers in scope.")
