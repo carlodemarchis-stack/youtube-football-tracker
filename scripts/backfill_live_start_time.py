@@ -33,15 +33,15 @@ from googleapiclient.discovery import build
 youtube = build("youtube", "v3", developerKey=YT_KEY)
 db = Database(SB_URL, SB_KEY)
 
-# Fetch all live videos from DB
+# Fetch all live videos from DB. Paginated — there are easily >1000
+# live rows across all channels.
 print("Fetching live videos from DB...")
-resp = (
+from src.database import _fetch_all
+live_videos = _fetch_all(
     db.client.table("videos")
     .select("id,youtube_video_id,title,actual_start_time")
     .eq("format", "live")
-    .execute()
 )
-live_videos = resp.data or []
 print(f"Found {len(live_videos)} live videos total")
 
 # Filter to those without actual_start_time already set

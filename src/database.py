@@ -207,16 +207,18 @@ class Database:
         prev_by_vid: dict[str, tuple[str, int]] = {}  # video_id -> (prev_date, prev_view_count)
         for i in range(0, len(video_ids), 500):
             chunk = video_ids[i:i + 500]
-            # Get all snapshots before today for these videos
-            resp = (
+            # Paginated — 500 videos × ~30 prior snapshots each could
+            # easily exceed the 1000-row cap. Without _fetch_all the
+            # delta lookup would silently miss earlier-than-yesterday
+            # baselines for some videos.
+            rows_chunk = _fetch_all(
                 self.client.table("video_snapshots")
                 .select("video_id,captured_date,view_count")
                 .in_("video_id", chunk)
                 .lt("captured_date", captured_date)
                 .order("captured_date", desc=True)
-                .execute()
             )
-            for row in (resp.data or []):
+            for row in rows_chunk:
                 vid = row["video_id"]
                 # Keep only the latest prev per video_id (order desc = first seen wins)
                 if vid not in prev_by_vid:
@@ -444,15 +446,17 @@ class Database:
             ).execute())
 
     def refresh_season_views(self, channel_db_id: str, since: str = "2025-08-01"):
-        """Recompute and store season_views for a channel."""
-        resp = (
+        """Recompute and store season_views for a channel.
+        Paginated — high-output channels (Bayern, Real, leagues) have
+        well over 1000 season videos, an unpaginated read would silently
+        cap and produce a low season_views total."""
+        rows = _fetch_all(
             self.client.table("videos")
             .select("view_count")
             .eq("channel_id", channel_db_id)
             .gte("published_at", since)
-            .execute()
         )
-        total = sum(int(r.get("view_count", 0) or 0) for r in (resp.data or []))
+        total = sum(int(r.get("view_count", 0) or 0) for r in rows)
         self.client.table("channels").update(
             {"season_views": total}
         ).eq("id", channel_db_id).execute()
@@ -905,13 +909,15 @@ class Database:
         Returns {channel_id: {platform: row}}."""
         if not channel_ids:
             return {}
-        rows = (
+        # Paginated — follower_snapshots accumulates one row per channel
+        # per platform per scrape, so this table grows indefinitely. An
+        # unpaginated read silently caps at 1000 rows and oldest channels
+        # would lose their latest snapshot.
+        rows = _fetch_all(
             self.client.table("follower_snapshots")
             .select("*")
             .in_("channel_id", channel_ids)
             .order("captured_at", desc=True)
-            .execute()
-            .data or []
         )
         out: dict[str, dict[str, dict]] = {}
         for r in rows:
@@ -926,14 +932,13 @@ class Database:
 
     def get_latest_follower_snapshots(self, channel_id: str) -> dict[str, dict]:
         """Return the most recent snapshot per platform for one channel —
-        a {platform: row} dict."""
-        rows = (
+        a {platform: row} dict. Paginated for the same reason as the bulk
+        version: follower_snapshots grows indefinitely per channel."""
+        rows = _fetch_all(
             self.client.table("follower_snapshots")
             .select("*")
             .eq("channel_id", channel_id)
             .order("captured_at", desc=True)
-            .execute()
-            .data or []
         )
         out: dict[str, dict] = {}
         for r in rows:

@@ -85,15 +85,14 @@ def _load_new_videos(start_ts: str, end_ts: str, channel_ids_tuple: tuple | None
 @st.cache_data(ttl=3600, show_spinner=False)
 def _load_new_video_channel_ids(start_ts: str, end_ts: str) -> list[dict]:
     """Just {channel_id} per new video — for ranking in the ONE_CLUB case.
-    Unfiltered so we can rank the current club against all others."""
-    return (
-        db.client.table("videos")
-        .select("channel_id")
-        .gte("published_at", start_ts)
-        .lt("published_at", end_ts)
-        .execute()
-        .data or []
-    )
+    Unfiltered so we can rank the current club against all others.
+    Paginated — ~2.5K videos / 7 days, well over Supabase's 1000-row default."""
+    from src.database import _fetch_all
+    q = (db.client.table("videos")
+         .select("channel_id")
+         .gte("published_at", start_ts)
+         .lt("published_at", end_ts))
+    return _fetch_all(q)
 
 
 @st.cache_data(ttl=3600, show_spinner=False)

@@ -36,7 +36,7 @@ if os.path.exists(_env_path):
             k, v = line.split("=", 1)
             os.environ.setdefault(k, v.strip('"\''))
 
-from src.database import Database
+from src.database import Database, _fetch_all
 from src.youtube_api import YouTubeClient
 from src.channels import get_season_since
 
@@ -144,13 +144,14 @@ def main() -> int:
             # Fetch all videos belonging to these channels
             vid_rows: list[dict] = []
             for cid in fed_cids:
-                resp = (
-                    db.client.table("videos")
-                    .select("id,youtube_video_id")
-                    .eq("channel_id", cid)
-                    .execute()
+                # Paginated — high-output channels (Bayern, Real, etc.)
+                # have well over 1000 videos, the unpaginated read would
+                # silently truncate.
+                vid_rows.extend(
+                    _fetch_all(db.client.table("videos")
+                               .select("id,youtube_video_id")
+                               .eq("channel_id", cid))
                 )
-                vid_rows.extend(resp.data or [])
             id_to_dbid = {r["youtube_video_id"]: r["id"] for r in vid_rows}
             yt_ids = list(id_to_dbid.keys())
             log(f"Snapshotting {len(yt_ids)} other club videos")

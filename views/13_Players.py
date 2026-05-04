@@ -20,7 +20,7 @@ import pandas as pd
 import plotly.express as px
 from dotenv import load_dotenv
 
-from src.database import Database
+from src.database import Database, _fetch_all
 from src.analytics import fmt_num
 from src.auth import require_login
 from src.filters import (
@@ -128,12 +128,11 @@ def _subs_per_year(subs: int, launched_iso: str | None) -> int:
 _last_by_cid: dict[str, str] = {}
 try:
     _last_resp = (
-        db.client.table("videos")
+        _fetch_all(db.client.table("videos")
         .select("channel_id,published_at")
         .in_("channel_id", [p["id"] for p in players])
         .order("published_at", desc=True)
-        .execute()
-        .data or []
+        )
     )
     for r in _last_resp:
         cid = r.get("channel_id")

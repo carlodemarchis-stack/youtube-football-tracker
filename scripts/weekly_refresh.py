@@ -100,8 +100,11 @@ def main() -> int:
                     if c.get("entity_type") in ("Player", "Federation", "OtherClub", "WomenClub")}
     if _player_cids:
         # get_all_video_rows returns id + youtube_video_id only, not channel_id.
-        # Fetch channel_id for all videos once, then filter.
-        _resp = db.client.table("videos").select("id,channel_id").execute().data or []
+        # Fetch channel_id for all videos once, then filter. Paginated —
+        # there are 100K+ video rows, an unpaginated SELECT silently caps
+        # at 1000 and would let player videos slip through the filter.
+        from src.database import _fetch_all
+        _resp = _fetch_all(db.client.table("videos").select("id,channel_id"))
         _vid_to_cid = {r["id"]: r.get("channel_id") for r in _resp}
         rows = [r for r in rows if _vid_to_cid.get(r["id"]) not in _player_cids]
     total_videos = len(rows)

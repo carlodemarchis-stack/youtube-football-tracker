@@ -149,6 +149,12 @@ if st.session_state.get("_feed_mode"):
 # ── Normal Home page ─────────────────────────────────────────
 st.title("YouTube Football Tracker")
 
+# Tagline — sits right under the title so the page opens with a
+# one-line "what is this".
+st.markdown(
+    "Track YouTube performance for 100+ football clubs across Europe's top leagues."
+)
+
 # ── Leagues covered ─────────────────────────────────────────────
 try:
     _chs = st.session_state.get("_global_channels") or []
@@ -432,8 +438,6 @@ except Exception:
     pass  # Snapshot data may not exist yet; degrade silently
 st.markdown(
     """
-    Track YouTube performance for 100+ football clubs across Europe's top leagues.
-
     ### Global filter
     At the top of every page you'll find a cascading filter that sets the zoom level
     for the whole site. Your selection persists as you navigate.
