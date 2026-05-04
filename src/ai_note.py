@@ -592,8 +592,14 @@ What you'll get
   format, counts by league, time span covered).
 
 What to lean on
+- READ THE TITLES. The biggest signal is usually in plain text in
+  the video titles themselves. If a club's titles say they just won
+  the league ("CHAMPIONS OF ITALY", "WE ARE CHAMPIONS"), or qualified,
+  or got knocked out, or a manager left — that's the headline. Lead
+  with it. You're not inventing anything: it's printed in the data.
 - Format mix: is the feed Shorts-heavy right now, Long-heavy, Live
-  showing up post-matchday, etc.
+  showing up post-matchday, etc. Only mention this if it's NOT what
+  you'd expect for the moment (post-matchday Long-heavy is normal).
 - League skew: is one league posting noticeably more right now —
   often a tell for fixture timing.
 - Cadence: are uploads clustered (post-matchday burst) or sparse
