@@ -295,12 +295,19 @@ if league is None and _scope == "Overall":
         fig_stack.add_trace(go.Bar(name="Long",   x=stacked_order["League"], y=stacked_order["long"],   marker_color="#636EFA"))
         fig_stack.add_trace(go.Bar(name="Shorts", x=stacked_order["League"], y=stacked_order["shorts"], marker_color="#00CC96"))
         fig_stack.add_trace(go.Bar(name="Live",   x=stacked_order["League"], y=stacked_order["live"],   marker_color="#FFA15A"))
-        fig_stack.update_layout(title="Videos by League (Long / Shorts / Live)", barmode="stack",
-                                xaxis_title="", yaxis_title="",
-                                xaxis=dict(tickangle=-45),
-                                margin=dict(t=80, b=20, l=10, r=10),
-                                legend=dict(orientation="h", yanchor="bottom", y=1.02,
-                                            xanchor="center", x=0.5))
+        # Match the sibling charts: short title, t=40 top margin, no legend
+        # box. Long/Shorts/Live colors are encoded in the title via the same
+        # palette swatches used elsewhere in the app.
+        fig_stack.update_layout(
+            title="Videos by League — <span style='color:#636EFA'>■</span> Long  "
+                  "<span style='color:#00CC96'>■</span> Shorts  "
+                  "<span style='color:#FFA15A'>■</span> Live",
+            barmode="stack",
+            xaxis_title="", yaxis_title="",
+            xaxis=dict(tickangle=-45),
+            showlegend=False,
+            margin=dict(t=40, b=20, l=10, r=10),
+        )
 
         charts = [
             make_league_bar(lg_df, "total_subs", "Subscribers by League"),
