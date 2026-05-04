@@ -421,15 +421,6 @@ dual_colors = get_global_color_map_dual()
 color_map_tbl = get_global_color_map()
 _now = pd.Timestamp.now(tz="UTC")
 
-def _dot(name: str) -> str:
-    c1, c2 = dual_colors.get(name, (color_map_tbl.get(name, "#636EFA"), "#FFFFFF"))
-    return (
-        f'<span style="display:inline-block;width:12px;height:12px;border-radius:50%;'
-        f'background:{c1};border:1px solid rgba(255,255,255,0.3);position:relative;vertical-align:middle">'
-        f'<span style="display:block;width:6px;height:6px;border-radius:50%;background:{c2};'
-        f'position:absolute;top:2px;left:2px"></span></span>'
-    )
-
 # Name → flag lookup, plus a name → channel-dict map so we can render the
 # standard channel_badge marker (flag for League channels, dual_dot for clubs)
 # instead of the previous flag+dot combo that produced a doubled glyph on
@@ -483,7 +474,8 @@ for i, r in enumerate(filtered.itertuples(index=False), 1):
     # channel_badge: flag for League channels, dual_dot for clubs. Replaces
     # the older `{flag} {dot}` combo which on league rows rendered both a
     # flag AND a dot — the doubled-marker bug.
-    _badge = channel_badge(_ch_by_name.get(ch, {"name": ch}), color_map_tbl, dual_colors, 12)
+    # Size 14 to match Daily Recap / Latest / Other Social / Channels / Season
+    _badge = channel_badge(_ch_by_name.get(ch, {"name": ch}), color_map_tbl, dual_colors, 14)
     _cat_span = f' · <span style="color:#666">{cat}</span>' if cat and cat != "Other" else ""
     _meta = f'{_badge} <span style="color:#AAA">{ch}</span> · {fmt_cell}{_cat_span}'
     _views = int(getattr(r, 'view_count', 0) or 0)
