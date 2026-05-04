@@ -578,7 +578,7 @@ if league is None and _scope == "Overall":
                       x=alt.X("label:N", sort=_bucket_sort, title=None,
                               axis=alt.Axis(labelAngle=-30, labelOverlap=False, labelLimit=200, labelPadding=4)),
                       y=alt.Y("views:Q", title=None,
-                              axis=alt.Axis(format="~s", minExtent=50)),
+                              axis=alt.Axis(labelExpr="replace(format(datum.value, \"~s\"), \"G\", \"B\")", minExtent=50)),
                       tooltip=_hover,
                   ).properties(height=240))
             st.altair_chart(cv, use_container_width=True)
@@ -593,7 +593,7 @@ if league is None and _scope == "Overall":
                       x=alt.X("label:N", sort=_bucket_sort, title=None,
                               axis=alt.Axis(labelAngle=-30, labelOverlap=False, labelLimit=200, labelPadding=4)),
                       y=alt.Y("videos:Q", title=None,
-                              axis=alt.Axis(format="~s", minExtent=50)),
+                              axis=alt.Axis(labelExpr="replace(format(datum.value, \"~s\"), \"G\", \"B\")", minExtent=50)),
                       tooltip=_hover,
                   ).properties(height=240))
             st.altair_chart(cn, use_container_width=True)
@@ -608,7 +608,7 @@ if league is None and _scope == "Overall":
                       x=alt.X("label:N", sort=_bucket_sort, title=None,
                               axis=alt.Axis(labelAngle=-30, labelOverlap=False, labelLimit=200, labelPadding=4)),
                       y=alt.Y("avg_views:Q", title=None,
-                              axis=alt.Axis(format="~s", minExtent=50)),
+                              axis=alt.Axis(labelExpr="replace(format(datum.value, \"~s\"), \"G\", \"B\")", minExtent=50)),
                       tooltip=_hover,
                   ).properties(height=240))
             st.altair_chart(ca, use_container_width=True)
@@ -693,7 +693,7 @@ if league is None and _scope == "Overall":
                       x=alt.X("label:N", sort=_long_sort, title=None,
                               axis=alt.Axis(labelAngle=-30, labelOverlap=False, labelLimit=200, labelPadding=4)),
                       y=alt.Y("views:Q", title=None,
-                              axis=alt.Axis(format="~s", minExtent=50)),
+                              axis=alt.Axis(labelExpr="replace(format(datum.value, \"~s\"), \"G\", \"B\")", minExtent=50)),
                       tooltip=_long_hover,
                   ).properties(height=240))
             st.altair_chart(lv, use_container_width=True)
@@ -708,7 +708,7 @@ if league is None and _scope == "Overall":
                       x=alt.X("label:N", sort=_long_sort, title=None,
                               axis=alt.Axis(labelAngle=-30, labelOverlap=False, labelLimit=200, labelPadding=4)),
                       y=alt.Y("videos:Q", title=None,
-                              axis=alt.Axis(format="~s", minExtent=50)),
+                              axis=alt.Axis(labelExpr="replace(format(datum.value, \"~s\"), \"G\", \"B\")", minExtent=50)),
                       tooltip=_long_hover,
                   ).properties(height=240))
             st.altair_chart(ln, use_container_width=True)
@@ -723,7 +723,7 @@ if league is None and _scope == "Overall":
                       x=alt.X("label:N", sort=_long_sort, title=None,
                               axis=alt.Axis(labelAngle=-30, labelOverlap=False, labelLimit=200, labelPadding=4)),
                       y=alt.Y("avg_views:Q", title=None,
-                              axis=alt.Axis(format="~s", minExtent=50)),
+                              axis=alt.Axis(labelExpr="replace(format(datum.value, \"~s\"), \"G\", \"B\")", minExtent=50)),
                       tooltip=_long_hover,
                   ).properties(height=240))
             st.altair_chart(la, use_container_width=True)
@@ -818,7 +818,7 @@ if league is None and _scope == "Overall":
         base = alt.Chart(plot_df).encode(
             x=alt.X("yearmonth(month):T", title=None,
                     axis=alt.Axis(format="%b %Y", labelAngle=-30)),
-            y=alt.Y("videos:Q", title=None, axis=alt.Axis(format="~s")),
+            y=alt.Y("videos:Q", title=None, axis=alt.Axis(labelExpr="replace(format(datum.value, \"~s\"), \"G\", \"B\")")),
             color=alt.Color("league:N",
                             scale=alt.Scale(domain=domain, range=rng)),
             tooltip=[
