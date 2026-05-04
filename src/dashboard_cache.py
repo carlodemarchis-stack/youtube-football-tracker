@@ -260,7 +260,10 @@ def refresh_latest_vibe(db, log=print, channels: list[dict] | None = None) -> No
         all_ch_ids = [c["id"] for c in chans]
         log(f"[dashboard_cache] computing latest_vibe / all "
             f"({len(all_ch_ids)} channels)")
-        recent = db.get_recent_videos(limit=30, channel_ids=all_ch_ids)
+        # 60 instead of 30 so big narrative arcs (championship-clinch,
+        # cup final, manager sack) stay visible to the model for ~12-24h
+        # after publication, not just the very next hour.
+        recent = db.get_recent_videos(limit=60, channel_ids=all_ch_ids)
         chans_by_id = {c["id"]: c for c in chans}
         vibe = _an2.generate_latest_vibe(recent, channels_by_id=chans_by_id, log=log)
         if vibe:

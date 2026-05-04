@@ -587,7 +587,7 @@ Hard constraints (will be checked)
 - If the recent feed is genuinely thin, say so plainly.
 
 What you'll get
-- A JSON blob with the last ~30 most-recent videos (channel, title,
+- A JSON blob with the last ~60 most-recent videos (channel, title,
   format, age, league, category) and a quick aggregate (counts by
   format, counts by league, time span covered).
 
@@ -631,7 +631,10 @@ def compose_latest_payload(videos: list[dict],
     league_counts: dict[str, int] = {}
     now_utc = datetime.now(timezone.utc)
     oldest = newest = None
-    for v in videos[:30]:
+    # Up to 60 — big narrative arcs (championship clinches, cup
+    # finals, manager moves) need a wider window than just the
+    # very-latest hour.
+    for v in videos[:60]:
         ch = (channels_by_id or {}).get(v.get("channel_id")) or {}
         ch_name = v.get("channel_name") or ch.get("name") or "?"
         country = (ch.get("country") or "").strip()
