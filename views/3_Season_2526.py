@@ -853,8 +853,8 @@ if league is None and _scope == "Overall":
             _pcts = [r["pct_to_80"] for r in _conc_all_rows]
             _customdata = [
                 [r["n_to_80"], r["n_videos"], r["top1_pct"], r["top10_pct"],
-                 _fmt(r["median_views"]), _fmt(r["avg_views"]),
-                 _fmt(r["total_views"])]
+                 fmt_num(r["median_views"]), fmt_num(r["avg_views"]),
+                 fmt_num(r["total_views"])]
                 for r in _conc_all_rows
             ]
             _bar_colors_ca = [LEAGUE_COLOR_CHART.get(r["league"], "#888")
