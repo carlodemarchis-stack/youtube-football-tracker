@@ -438,9 +438,9 @@ if league is None and _scope == "Overall":
       <thead>
         <tr>
           <th colspan="2"></th>
-          <th colspan="4" style="text-align:center;border-bottom:2px solid #636EFA;color:#636EFA">Views</th>
-          <th colspan="4" style="text-align:center;border-bottom:2px solid #00CC96;color:#00CC96">Videos</th>
-          <th colspan="4" style="text-align:center;border-bottom:2px solid #FFA15A;color:#FFA15A">Views/Video</th>
+          <th colspan="4" style="text-align:center;border-bottom:2px solid #58A6FF;color:#58A6FF">Views</th>
+          <th colspan="4" style="text-align:center;border-bottom:2px solid #FFB347;color:#FFB347">Videos</th>
+          <th colspan="4" style="text-align:center;border-bottom:2px solid #AB63FA;color:#AB63FA">Views/Video</th>
           <th colspan="2" style="text-align:center;border-bottom:2px solid #AB63FA;color:#AB63FA">Avg Duration</th>
           <th colspan="3" style="text-align:center;border-bottom:2px solid #EF553B;color:#EF553B">Engagement</th>
         </tr>
@@ -542,7 +542,7 @@ if league is None and _scope == "Overall":
                 'line-height:1.6">⚡ Cumulative views</div>',
                 unsafe_allow_html=True,
             )
-            cv = (alt.Chart(bucket_df).mark_bar(color="#636EFA")  # Views = blue (matches table header)
+            cv = (alt.Chart(bucket_df).mark_bar(color="#58A6FF")  # Views = sky blue (metric palette)
                   .encode(
                       x=alt.X("label:N", sort=_bucket_sort, title=None,
                               axis=alt.Axis(labelAngle=-30, labelOverlap=False, labelLimit=200, labelPadding=4)),
@@ -557,7 +557,7 @@ if league is None and _scope == "Overall":
                 'line-height:1.6">🎬 Number of shorts</div>',
                 unsafe_allow_html=True,
             )
-            cn = (alt.Chart(bucket_df).mark_bar(color="#00CC96")  # Videos = green (matches table header)
+            cn = (alt.Chart(bucket_df).mark_bar(color="#FFB347")  # Videos = peach (metric palette)
                   .encode(
                       x=alt.X("label:N", sort=_bucket_sort, title=None,
                               axis=alt.Axis(labelAngle=-30, labelOverlap=False, labelLimit=200, labelPadding=4)),
@@ -572,7 +572,7 @@ if league is None and _scope == "Overall":
                 'line-height:1.6">📈 Avg views / video</div>',
                 unsafe_allow_html=True,
             )
-            ca = (alt.Chart(bucket_df).mark_bar(color="#FFA15A")
+            ca = (alt.Chart(bucket_df).mark_bar(color="#AB63FA")  # Views/Video = purple (metric palette)
                   .encode(
                       x=alt.X("label:N", sort=_bucket_sort, title=None,
                               axis=alt.Axis(labelAngle=-30, labelOverlap=False, labelLimit=200, labelPadding=4)),
@@ -653,7 +653,7 @@ if league is None and _scope == "Overall":
                 'line-height:1.6">⚡ Cumulative views</div>',
                 unsafe_allow_html=True,
             )
-            lv = (alt.Chart(long_df).mark_bar(color="#636EFA")  # Views = blue
+            lv = (alt.Chart(long_df).mark_bar(color="#58A6FF")  # Views = sky blue (metric palette)
                   .encode(
                       x=alt.X("label:N", sort=_long_sort, title=None,
                               axis=alt.Axis(labelAngle=-30, labelOverlap=False, labelLimit=200, labelPadding=4)),
@@ -668,7 +668,7 @@ if league is None and _scope == "Overall":
                 'line-height:1.6">🎬 Number of long videos</div>',
                 unsafe_allow_html=True,
             )
-            ln = (alt.Chart(long_df).mark_bar(color="#00CC96")  # Videos = green
+            ln = (alt.Chart(long_df).mark_bar(color="#FFB347")  # Videos = peach (metric palette)
                   .encode(
                       x=alt.X("label:N", sort=_long_sort, title=None,
                               axis=alt.Axis(labelAngle=-30, labelOverlap=False, labelLimit=200, labelPadding=4)),
@@ -683,7 +683,7 @@ if league is None and _scope == "Overall":
                 'line-height:1.6">📈 Avg views / video</div>',
                 unsafe_allow_html=True,
             )
-            la = (alt.Chart(long_df).mark_bar(color="#FFA15A")
+            la = (alt.Chart(long_df).mark_bar(color="#AB63FA")  # Views/Video = purple (metric palette)
                   .encode(
                       x=alt.X("label:N", sort=_long_sort, title=None,
                               axis=alt.Axis(labelAngle=-30, labelOverlap=False, labelLimit=200, labelPadding=4)),
@@ -804,9 +804,9 @@ if league is None and _scope == "Overall":
     <thead>
     <tr>
         <th colspan="2"></th>
-        <th colspan="4" style="text-align:center;border-bottom:2px solid #636EFA;color:#636EFA">Views</th>
-        <th colspan="4" style="text-align:center;border-bottom:2px solid #00CC96;color:#00CC96">Videos</th>
-        <th colspan="4" style="text-align:center;border-bottom:2px solid #FFA15A;color:#FFA15A">Views/Video</th>
+        <th colspan="4" style="text-align:center;border-bottom:2px solid #58A6FF;color:#58A6FF">Views</th>
+        <th colspan="4" style="text-align:center;border-bottom:2px solid #FFB347;color:#FFB347">Videos</th>
+        <th colspan="4" style="text-align:center;border-bottom:2px solid #AB63FA;color:#AB63FA">Views/Video</th>
         <th colspan="2" style="text-align:center;border-bottom:2px solid #AB63FA;color:#AB63FA">Avg Duration</th>
         <th colspan="3" style="text-align:center;border-bottom:2px solid #EF553B;color:#EF553B">Engagement</th>
     </tr>
@@ -1092,9 +1092,9 @@ if club is None:
     <thead>
     <tr>
         <th colspan="2"></th>
-        <th colspan="4" style="text-align:center;border-bottom:2px solid #636EFA;color:#636EFA">Views</th>
-        <th colspan="4" style="text-align:center;border-bottom:2px solid #00CC96;color:#00CC96">Videos</th>
-        <th colspan="4" style="text-align:center;border-bottom:2px solid #FFA15A;color:#FFA15A">Views/Video</th>
+        <th colspan="4" style="text-align:center;border-bottom:2px solid #58A6FF;color:#58A6FF">Views</th>
+        <th colspan="4" style="text-align:center;border-bottom:2px solid #FFB347;color:#FFB347">Videos</th>
+        <th colspan="4" style="text-align:center;border-bottom:2px solid #AB63FA;color:#AB63FA">Views/Video</th>
         <th colspan="2" style="text-align:center;border-bottom:2px solid #AB63FA;color:#AB63FA">Avg Duration</th>
         <th colspan="3" style="text-align:center;border-bottom:2px solid #EF553B;color:#EF553B">Engagement</th>
     </tr>
