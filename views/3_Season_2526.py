@@ -12,7 +12,7 @@ from src.database import Database
 from src.analytics import fmt_num, yt_popup_js
 from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope, get_league_for_channel, render_page_subtitle
 from src.auth import require_login
-from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, LEAGUE_COLOR, get_season_since, LEAGUE_SEASON_START
+from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, LEAGUE_COLOR, LEAGUE_COLOR_CHART, get_season_since, LEAGUE_SEASON_START
 from src.dot import dual_dot, channel_badge
 
 load_dotenv()
@@ -191,7 +191,7 @@ def _render_per_league_charts(sorted_leagues):
     # gets its league's own color rather than one shared format color).
     _GREY = "#888"  # fallback for unknown leagues
     def _colors_for(rows):
-        return [LEAGUE_COLOR.get(lg, _GREY) for lg, _ in rows]
+        return [LEAGUE_COLOR_CHART.get(lg, _GREY) for lg, _ in rows]
 
     er_fig = ldur_fig = sdur_fig = None
     if any(v > 0 for _, v in er_data):
@@ -812,7 +812,7 @@ if league is None and _scope == "Overall":
         st.subheader("📅 Publish cadence — videos per month")
         st.caption(f"Videos published per month since {SEASON_SINCE}, by league.{projection_note}")
         league_order = [lg for lg, _ in sorted_leagues]
-        league_palette = [LEAGUE_COLOR.get(lg, "#888") for lg in league_order]
+        league_palette = [LEAGUE_COLOR_CHART.get(lg, "#888") for lg in league_order]
         domain = league_order
         rng = league_palette
         base = alt.Chart(plot_df).encode(

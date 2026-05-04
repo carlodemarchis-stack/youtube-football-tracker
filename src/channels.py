@@ -51,6 +51,20 @@ LEAGUE_COLOR = {
     "MLS":            "#001F47",  # MLS navy
 }
 
+# Brighter, chart-friendly variants of LEAGUE_COLOR. The brand-spec colors
+# for Premier League (#3D195B) and Ligue 1 (#091B59) are too dark to read
+# on the dark Streamlit theme — bars and lines disappear into the bg.
+# Use these for charts only; keep LEAGUE_COLOR for chips/badges/anywhere
+# the brand spec matters more than legibility.
+LEAGUE_COLOR_CHART = {
+    "Serie A":        "#008FD7",  # already bright enough
+    "Premier League": "#9B6AC9",  # lighter PL purple
+    "La Liga":        "#EE8707",  # already bright enough
+    "Bundesliga":     "#D3010C",  # already bright enough
+    "Ligue 1":        "#5C7AC9",  # lighter Ligue 1 navy
+    "MLS":            "#5C82C9",  # lighter MLS navy
+}
+
 
 LEAGUE_SEASON_START = {
     "Serie A": "2025-08-01",

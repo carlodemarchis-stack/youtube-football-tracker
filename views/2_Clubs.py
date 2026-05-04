@@ -268,15 +268,10 @@ if league is None and _scope == "Overall":
 
         # Fixed brand colors per league — same palette used in Daily Recap.
         # Pins each league to one color across every chart so it's easy to
-        # track e.g. Serie A across all 9 panes.
-        _LEAGUE_COLORS = {
-            "Serie A":        "#008FD7",
-            "Premier League": "#3D195B",
-            "La Liga":        "#EE8707",
-            "Bundesliga":     "#D20515",
-            "Ligue 1":        "#091C3E",
-            "MLS":            "#1A2B5F",
-        }
+        # track e.g. Serie A across all 9 panes. Uses LEAGUE_COLOR_CHART
+        # (brighter variants of the brand colors) so PL purple and Ligue 1
+        # navy don't disappear into the dark Streamlit background.
+        from src.channels import LEAGUE_COLOR_CHART as _LEAGUE_COLORS
 
         def make_league_bar(data, y_col, title):
             sorted_data = data.sort_values(y_col, ascending=False)
