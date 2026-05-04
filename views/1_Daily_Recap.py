@@ -858,7 +858,7 @@ def _gainer_table(metric: str, title: str, icon: str, positive_is_good: bool = T
     <thead><tr style="border-bottom:2px solid #444">
       <th style="padding:5px 10px;text-align:left">#</th>
       <th></th>
-      <th style="padding:5px 10px;text-align:left">Club</th>
+      <th style="padding:5px 10px;text-align:left">Channel</th>
       <th data-col="3" style="padding:5px 10px;text-align:right">Total</th>
       {season_hdr}
       <th data-col="{_delta_ci}" style="padding:5px 10px;text-align:right" class="active">Δ ▼</th>
@@ -936,7 +936,7 @@ if not ONE_CLUB:
             <thead><tr style="border-bottom:2px solid #444">
               <th style="padding:5px 10px;text-align:left">#</th>
               <th></th>
-              <th style="padding:5px 10px;text-align:left">Club</th>
+              <th style="padding:5px 10px;text-align:left">Channel</th>
               <th style="padding:5px 10px;text-align:center">Long / Shorts / Live</th>
               <th style="padding:5px 10px;text-align:right">Videos</th>
             </tr></thead>
