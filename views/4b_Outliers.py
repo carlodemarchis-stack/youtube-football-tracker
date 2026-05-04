@@ -122,7 +122,7 @@ if not g_club and visible:
     if spotlight:
         # Render as 5 small cards in a row (one per axis we have a hit for).
         cards = ""
-        for axis in ("vps", "vpv", "spv", "spy", "vpy", "shorts_share"):
+        for axis in ("vps", "vpv", "spv", "spy", "vpy", "shorts_share", "engagement", "pace_change"):
             if axis not in spotlight:
                 continue
             c, lens, z, label = spotlight[axis]
@@ -150,9 +150,9 @@ if not g_club and visible:
               </div>
             </div>
             """
-        # Up to 5 cards in a 3-per-row grid → 1 or 2 rows. Each card ~120px
-        # tall + 10px gap; 2 rows = ~260px. Pad a bit so nothing clips.
-        n = len([axis for axis in ("vps","vpv","spv","spy","vpy") if axis in spotlight])
+        # Up to 8 cards in a 3-per-row grid → 1–3 rows. Each card ~120px
+        # tall + 10px gap. Pad a bit so nothing clips.
+        n = len(spotlight)
         rows = (n + 2) // 3
         components.html(
             f"""<div style="display:flex;gap:10px;flex-wrap:wrap">{cards}</div>""",
@@ -221,19 +221,27 @@ if g_club:
     st.markdown("---")
     st.subheader("Ratios")
     r = p["ratios"]
-    rcols = st.columns(6)
-    for i, axis in enumerate(("vps", "vpv", "spv", "spy", "vpy", "shorts_share")):
-        val = r.get(axis)
+
+    # 8 metrics in 2 rows of 4 — keeps each cell legible at typical viewports.
+    AXES_ORDER = ("vps", "vpv", "spv", "spy", "vpy", "shorts_share", "engagement", "pace_change")
+
+    def _format_metric(axis: str, val):
         if val is None:
-            label = "—"
-        elif axis == "shorts_share":
-            # Proportion → render as percentage
-            label = f"{val * 100:.0f}% Shorts"
-        elif val >= 1000:
-            label = fmt_num(int(val))
-        else:
-            label = f"{val:.1f}"
-        rcols[i].metric(_prof.AXIS_LABEL[axis], label)
+            return "—"
+        if axis == "shorts_share":
+            return f"{val * 100:.0f}% Shorts"
+        if axis == "engagement":
+            return f"{val * 100:.2f}%"
+        if axis == "pace_change":
+            return f"{val:.2f}×"   # >1 = ramping up, <1 = slowing
+        if val >= 1000:
+            return fmt_num(int(val))
+        return f"{val:.1f}"
+
+    for row_start in (0, 4):
+        rcols = st.columns(4)
+        for j, axis in enumerate(AXES_ORDER[row_start:row_start + 4]):
+            rcols[j].metric(_prof.AXIS_LABEL[axis], _format_metric(axis, r.get(axis)))
     st.stop()
 
 
@@ -326,36 +334,36 @@ the second when it's **below**.
 """)
 
     st.markdown("---")
-    st.markdown("### 1. VPS — Views per Subscriber  *(engagement)*")
-    st.caption("Total views ÷ subscriber count. How much each sub actually watches.")
+    st.markdown("### 1. Season VPS — current activity per sub")
+    st.caption("Season views ÷ total subscribers. How much each sub watches in the *current* season.")
     g1, g2 = st.columns(2)
     with g1:
         st.markdown(
-            "**🌱 Small but loyal**  *(high)*  \n"
-            "Each sub watches a lot of content. Often smaller channels with a genuinely "
-            "engaged audience — people who subscribed and actually consume."
+            "**👀 Active audience**  *(high)*  \n"
+            "Each sub is watching a meaningful amount of season content. The fanbase shows up "
+            "for new posts."
         )
     with g2:
         st.markdown(
-            "**💧 Disengaged subs**  *(low)*  \n"
-            "Subs collected but the audience isn't watching much. Common for clubs whose "
-            "followers subbed for status / a viral moment and never converted to watch time."
+            "**😴 Dormant audience**  *(low)*  \n"
+            "Subs collected but barely watching this season. Common for legacy channels whose "
+            "audience doesn't refresh on new content."
         )
 
     st.markdown("---")
-    st.markdown("### 2. VPV — Views per Video  *(per-upload yield)*")
-    st.caption("Total views ÷ video count. How much each video earns on average.")
+    st.markdown("### 2. Season VPV — current per-upload hit rate")
+    st.caption("Season views ÷ season videos. The current-season hit rate, fair to all clubs.")
     g1, g2 = st.columns(2)
     with g1:
         st.markdown(
-            "**🚀 Punching above weight**  *(high)*  \n"
-            "Each video lands hard. Quality > quantity — fewer pieces, bigger views per piece."
+            "**🎯 Current hits**  *(high)*  \n"
+            "Each season upload lands well above peer median. Right strategy executing now."
         )
     with g2:
         st.markdown(
-            "**📉 High volume, low yield**  *(low)*  \n"
-            "Posts a lot, gets little watched per piece. Volume strategy that isn't converting — "
-            "could be over-producing or posting low-priority content."
+            "**❄️ Cold streak**  *(low)*  \n"
+            "Season uploads underperform peers per piece. Could be over-producing, off-strategy, "
+            "or audience saturation."
         )
 
     st.markdown("---")
@@ -425,8 +433,42 @@ the second when it's **below**.
             "Most of the season catalog is Long videos. Traditional highlights, press "
             "conferences, longer programming. Often legacy operations slower to shift to Shorts."
         )
-    st.caption(f"Computed only when season catalog ≥ {_prof.MIN_SEASON_VIDEOS} videos "
+    st.caption(f"Computed only when season catalog ≥ {_prof.MIN_SEASON_VIDEOS_FOR_SHARE} videos "
                "(below that, single uploads swing the percentage too much).")
+
+    st.markdown("---")
+    st.markdown("### 7. Engagement rate  *(season quality)*")
+    st.caption("(Season likes + comments) ÷ season views. What share of viewers actually react.")
+    g1, g2 = st.columns(2)
+    with g1:
+        st.markdown(
+            "**💬 Engaged community**  *(high)*  \n"
+            "Viewers like and comment at a rate well above peers. The audience is participating, "
+            "not just consuming."
+        )
+    with g2:
+        st.markdown(
+            "**🤐 Silent viewers**  *(low)*  \n"
+            "High views but minimal reactions. Algorithm-driven traffic without an active community, "
+            "or content that doesn't invite response."
+        )
+
+    st.markdown("---")
+    st.markdown("### 8. Pace change  *(cadence trend)*")
+    st.caption("Current season cadence ÷ lifetime average cadence. >1 = ramping up, <1 = slowing.")
+    g1, g2 = st.columns(2)
+    with g1:
+        st.markdown(
+            "**📈 Ramping up**  *(high)*  \n"
+            "Current output rate is well above the channel's historical average. New strategy, "
+            "post-promotion surge, or expanded content team."
+        )
+    with g2:
+        st.markdown(
+            "**🐌 Slowing down**  *(low)*  \n"
+            "Posting much less than the channel's career average. Resource cuts, strategy shift, "
+            "or reduced fixture coverage."
+        )
 
     st.markdown("---")
     st.markdown("### Common patterns when tags combine")

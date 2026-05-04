@@ -20,32 +20,44 @@ from src.channels import COUNTRY_TO_LEAGUE
 # Tag vocabulary — each axis has a positive (z>0) and a negative (z<0) tag.
 # Keep the wording short and human; these render as small chips.
 TAG_VOCAB = {
-    "vps":          ("🌱 Small but loyal",       "💧 Disengaged subs"),
-    "vpv":          ("🚀 Punching above weight", "📉 High volume, low yield"),
+    "vps":          ("👀 Active audience",       "😴 Dormant audience"),
+    "vpv":          ("🎯 Current hits",          "❄️ Cold streak"),
     "spv":          ("📺 Audience > output",     "💪 Output > audience"),
     "spy":          ("🚀 Fast-growing",          "🐢 Stagnant growth"),
     "vpy":          ("📡 Steady producer",       "🔇 Low cadence"),
     "shorts_share": ("⚡ Shorts-first",           "🎬 Long-form focused"),
+    "engagement":   ("💬 Engaged community",     "🤐 Silent viewers"),
+    "pace_change":  ("📈 Ramping up",            "🐌 Slowing down"),
 }
 
 AXIS_LABEL = {
-    "vps":          "Views / Subscriber",
-    "vpv":          "Views / Video",
+    "vps":          "Season Views / Sub",
+    "vpv":          "Season Views / Video",
     "spv":          "Subs / Video",
     "spy":          "Subs / Year",
     "vpy":          "Videos / Year",
     "shorts_share": "Format mix",
+    "engagement":   "Engagement rate",
+    "pace_change":  "Pace change",
 }
 
-# Ratio axes use log10 (power-law tails); shorts_share is already a
-# proportion (0–1) and is scored on its raw value.
-LOG_AXES    = {"vps", "vpv", "spv", "spy", "vpy"}
-LINEAR_AXES = {"shorts_share"}
+# Ratio axes use log10 (power-law tails). Proportion / multiplier axes
+# are scored on their raw value.
+LOG_AXES    = {"vps", "vpv", "spv", "spy", "vpy", "pace_change"}
+LINEAR_AXES = {"shorts_share", "engagement"}
 ALL_AXES    = (*LOG_AXES, *LINEAR_AXES)
 
-# Minimum season video count before we trust shorts_share. Below this,
-# adding/removing a single Short swings the percentage 5%+.
-MIN_SEASON_VIDEOS = 20
+# Sample-size guards.
+# • 5 season videos is enough to compute season_VPV / engagement / pace
+#   (single uploads still influence numbers but variance is bounded).
+# • 20 season videos before we trust shorts_share — a single upload
+#   can swing the percentage by 5%+ below that count.
+MIN_SEASON_VIDEOS_FOR_RATES = 5
+MIN_SEASON_VIDEOS_FOR_SHARE = 20
+
+# Hardcoded season start used for pace-change calculations. Matches the
+# season_* columns on the channels table, populated by the daily cron.
+SEASON_START_ISO = "2025-08-01"
 
 # Size buckets (log-spaced). Used for the size-cohort lens.
 SIZE_BUCKETS = [
@@ -76,28 +88,65 @@ def _age_years(channel: dict, now: datetime | None = None) -> float | None:
 
 
 def compute_ratios(channel: dict, now: datetime | None = None) -> dict:
-    """Six structural ratios for one channel. Values are None when not
-    computable (missing launched_at for spy / vpy; tiny season catalog
-    for shorts_share)."""
+    """Eight axes per channel. Values are None when not computable
+    (missing launched_at for spy/vpy/pace_change; tiny season catalog
+    for the season-based axes).
+
+    Most axes use SEASON data so older channels' lifetime accumulation
+    doesn't distort the picture — what matters is what the channel is
+    doing right now, in the same time window as everyone else."""
     s = int(channel.get("subscriber_count") or 0)
     v = int(channel.get("video_count") or 0)
-    t = int(channel.get("total_views") or 0)
     a = _age_years(channel, now)
 
-    # Format mix from the season_*_videos columns.
-    s_long  = int(channel.get("season_long_videos") or 0)
+    # Season aggregates from the channels table (populated daily).
+    s_long  = int(channel.get("season_long_videos")  or 0)
     s_short = int(channel.get("season_short_videos") or 0)
-    s_live  = int(channel.get("season_live_videos") or 0)
+    s_live  = int(channel.get("season_live_videos")  or 0)
     s_total = s_long + s_short + s_live
-    shorts_share = (s_short / s_total) if s_total >= MIN_SEASON_VIDEOS else None
+
+    s_views    = (int(channel.get("season_long_views")  or 0)
+                  + int(channel.get("season_short_views") or 0)
+                  + int(channel.get("season_live_views")  or 0))
+    s_likes    = int(channel.get("season_likes") or 0)
+    s_comments = int(channel.get("season_comments") or 0)
+
+    # Sample-size gates — small denominators give noisy ratios.
+    has_season = s_total >= MIN_SEASON_VIDEOS_FOR_RATES
+    has_share  = s_total >= MIN_SEASON_VIDEOS_FOR_SHARE
+    has_engmt  = has_season and s_views > 0
+
+    # Season VPV / VPS — the "what's working RIGHT NOW" axes.
+    season_vpv = (s_views / s_total) if has_season else None
+    season_vps = (s_views / s) if (has_season and s > 0) else None
+
+    # Engagement rate (proportion, 0–1, typically 0.001–0.05).
+    engagement = ((s_likes + s_comments) / s_views) if has_engmt else None
+
+    # Pace change: current cadence ÷ lifetime cadence. >1 = ramping up.
+    pace_change = None
+    if a and s_total > 0:
+        if now is None:
+            now = datetime.now(timezone.utc)
+        try:
+            season_start = datetime.fromisoformat(SEASON_START_ISO).replace(tzinfo=timezone.utc)
+            season_days = max((now - season_start).days, 1)
+            season_pace = (s_total / season_days) * 365  # videos/year at season pace
+            lifetime_pace = v / a                          # videos/year over lifetime
+            if lifetime_pace > 0:
+                pace_change = season_pace / lifetime_pace
+        except Exception:
+            pass
 
     return {
-        "vps": t / max(s, 1),
-        "vpv": t / max(v, 1),
-        "spv": s / max(v, 1),
-        "spy": (s / a) if a else None,
-        "vpy": (v / a) if a else None,
-        "shorts_share": shorts_share,
+        "vps":          season_vps,             # season views ÷ subs (current activity)
+        "vpv":          season_vpv,             # season views ÷ season videos (current hit rate)
+        "spv":          s / max(v, 1),          # subs ÷ videos (lifetime — subs are intrinsically lifetime)
+        "spy":          (s / a) if a else None, # growth velocity (already age-normalized)
+        "vpy":          (v / a) if a else None, # cadence (already age-normalized)
+        "shorts_share": (s_short / s_total) if has_share else None,
+        "engagement":   engagement,
+        "pace_change":  pace_change,
     }
 
 
