@@ -894,10 +894,97 @@ else:
                                       "views/video", "Avg Views/Video by Format"),
                             use_container_width=True)
 
-    # ── Growth (from channel_snapshots) ─────────────────────────
+    # ── Trend charts: Total Views over time + Videos per Month ───
+    # Subscriber count is excluded — YouTube exposes a rounded display
+    # value that updates in jumps, so a smooth trend isn't possible.
+    # Total views is the exact ledger and gives a much cleaner signal.
     from src.growth import delta as _gdelta, delta_since as _gdelta_since, days_covered as _gdays
     with st.spinner(f"Loading {channel.get('name','club')} snapshots…"):
         _snaps = db.get_channel_snapshots(channel["id"])
+
+    if _snaps and len(_snaps) >= 2:
+        import pandas as pd
+        _snap_df = pd.DataFrame(_snaps)
+        _snap_df["captured_date"] = pd.to_datetime(_snap_df["captured_date"])
+        _snap_df = _snap_df.sort_values("captured_date")
+
+        # 1) Total views over time — line chart
+        fig_views_trend = go.Figure()
+        fig_views_trend.add_trace(go.Scatter(
+            x=_snap_df["captured_date"],
+            y=_snap_df["total_views"],
+            mode="lines",
+            line=dict(color=CLUB_C1, width=2),
+            fill="tozeroy",
+            fillcolor=f"rgba({int(CLUB_C1[1:3],16)},{int(CLUB_C1[3:5],16)},{int(CLUB_C1[5:7],16)},0.15)",
+            hovertemplate="%{x|%b %d, %Y}<br>%{y:,.0f} views<extra></extra>",
+        ))
+        fig_views_trend.update_layout(
+            title=dict(text="Total Views over time", x=0.5),
+            xaxis_title="", yaxis_title="",
+            margin=dict(t=40, b=20, l=10, r=10),
+            height=320, showlegend=False,
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#FAFAFA"),
+        )
+    else:
+        fig_views_trend = None
+
+    # 2) Videos published per month — stacked Long / Shorts / Live
+    # Aggregates this channel's full lifetime video catalog by month
+    # and format. Single Supabase call (LIMIT-less, but per-channel
+    # video counts top out at ~30K which Supabase pages through fine).
+    with st.spinner("Aggregating monthly publishing history…"):
+        _vids = db.get_videos_by_channel(channel["id"])
+    fig_pub_trend = None
+    if _vids:
+        import pandas as pd
+        _vdf = pd.DataFrame([{
+            "published_at": v.get("published_at"),
+            "format": (v.get("format") or "").lower(),
+            "duration_seconds": v.get("duration_seconds") or 0,
+        } for v in _vids if v.get("published_at")])
+        if not _vdf.empty:
+            _vdf["published_at"] = pd.to_datetime(_vdf["published_at"], utc=True, errors="coerce")
+            _vdf = _vdf.dropna(subset=["published_at"])
+            # Bucket legacy rows (no format) by duration like other pages
+            _missing = ~_vdf["format"].isin(["long", "short", "live"])
+            _vdf.loc[_missing, "format"] = _vdf.loc[_missing, "duration_seconds"].apply(
+                lambda d: "long" if (d or 0) >= 60 else "short")
+            _vdf["month"] = _vdf["published_at"].dt.to_period("M").dt.to_timestamp()
+            _by = _vdf.groupby(["month", "format"]).size().unstack(fill_value=0)
+            for _f in ("long", "short", "live"):
+                if _f not in _by.columns:
+                    _by[_f] = 0
+            _by = _by.sort_index()
+
+            fig_pub_trend = go.Figure()
+            fig_pub_trend.add_trace(go.Bar(name="Long",   x=_by.index, y=_by["long"],   marker_color="#636EFA"))
+            fig_pub_trend.add_trace(go.Bar(name="Shorts", x=_by.index, y=_by["short"],  marker_color="#00CC96"))
+            if _by["live"].sum() > 0:
+                fig_pub_trend.add_trace(go.Bar(name="Live", x=_by.index, y=_by["live"], marker_color="#FFA15A"))
+            fig_pub_trend.update_layout(
+                title=dict(text="Videos Published per Month (lifetime)", x=0.5),
+                barmode="stack",
+                xaxis_title="", yaxis_title="",
+                margin=dict(t=40, b=70, l=10, r=10),
+                height=320,
+                legend=dict(orientation="h", yanchor="top", y=-0.15,
+                            xanchor="center", x=0.5),
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#FAFAFA"),
+            )
+
+    if fig_views_trend or fig_pub_trend:
+        _tcols = st.columns(2)
+        with _tcols[0]:
+            if fig_views_trend:
+                st.plotly_chart(fig_views_trend, use_container_width=True)
+            else:
+                st.caption("Views trend will appear after a few days of snapshots.")
+        with _tcols[1]:
+            if fig_pub_trend:
+                st.plotly_chart(fig_pub_trend, use_container_width=True)
 
     st.subheader("Growth")
     if not _snaps or len(_snaps) < 2:
