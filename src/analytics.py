@@ -278,18 +278,13 @@ def yt_overlay_html() -> str:
   p.getElementById('yt-close').addEventListener('click', closeOverlay);
   p.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeOverlay(); });
 
-  // Fallback "Watch on YouTube" link: open in a new tab and stop the click
-  // from bubbling to the page-wide YouTube-link interceptor (which would
-  // just re-open the overlay and loop forever on embed-disabled videos).
-  p.getElementById('yt-fallback-link').addEventListener('click', function(e) {
-    e.stopPropagation();
-    e.stopImmediatePropagation();
-    if (currentVideoId) {
-      w.open('https://www.youtube.com/watch?v=' + currentVideoId, '_blank', 'noopener');
-    }
-    e.preventDefault();
-    closeOverlay();
-  }, true);
+  // Fallback "Watch on YouTube" link: just close the overlay after the
+  // click. The native target="_blank" on the <a> opens the new tab; the
+  // document-level interceptor above is wired to skip this id so it
+  // doesn't re-trigger the overlay (which used to cause a loop).
+  p.getElementById('yt-fallback-link').addEventListener('click', function() {
+    setTimeout(closeOverlay, 0);
+  });
 
   w.addEventListener('message', function(e) {
     if (e.data && e.data.type === 'ytplay' && e.data.id) {
@@ -297,10 +292,13 @@ def yt_overlay_html() -> str:
     }
   });
 
-  // Intercept YouTube links in the parent page (st.markdown content)
+  // Intercept YouTube links in the parent page (st.markdown content),
+  // EXCEPT the fallback "Watch on YouTube" link inside the overlay —
+  // that one must open in a real new tab, not re-trigger the overlay.
   p.addEventListener('click', function(e) {
     var a = e.target.closest('a[href*="youtube.com/watch"]');
     if (!a) return;
+    if (a.id === 'yt-fallback-link') return;  // let the browser open the new tab
     e.preventDefault(); e.stopPropagation();
     try {
       var id = new URL(a.href).searchParams.get('v');
