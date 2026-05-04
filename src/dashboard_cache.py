@@ -559,7 +559,10 @@ def refresh_concentration(db, log=print, channels: list[dict] | None = None) -> 
         league_views: dict[str, list[int]] = {}
         for cid, views in per_ch.items():
             meta = ch_meta[cid]
-            if meta["entity_type"] != "Club":
+            # Include both Club and League channels in the league-level
+            # aggregate — League channels (e.g. @seriea) are a real part
+            # of each league's catalog and shouldn't be hidden.
+            if meta["entity_type"] not in ("Club", "League"):
                 continue
             league_views.setdefault(meta["league"], []).extend(views)
         all_rows = []

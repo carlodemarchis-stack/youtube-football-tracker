@@ -1593,10 +1593,11 @@ if club is None:
             from src import dashboard_cache as _dc_conc
             _conc = _dc_conc.read(db, "concentration", _dc_conc.scope_league(league))
             _conc_rows = (_conc or {}).get("payload", {}).get("rows", []) if _conc else []
-            # Filter to Club entity_type for the comparison chart and skip
-            # clubs with too few videos to be meaningful.
+            # Include both Club and League channels (e.g. @seriea); skip
+            # only channels with too few videos to be meaningful.
             _conc_rows = [r for r in _conc_rows
-                          if r.get("entity_type") == "Club" and r.get("n_videos", 0) >= 5]
+                          if r.get("entity_type") in ("Club", "League")
+                          and r.get("n_videos", 0) >= 5]
             if _conc_rows:
                 import plotly.graph_objects as _go_c
                 st.subheader(f"📊 Views concentration — {league}")
