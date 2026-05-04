@@ -117,6 +117,7 @@ def main() -> int:
                 continue
             snap_rows.append({
                 "video_id": dbid,
+                "youtube_video_id": v["youtube_video_id"],
                 "view_count": v.get("view_count", 0),
                 "like_count": v.get("like_count", 0),
                 "comment_count": v.get("comment_count", 0),
@@ -145,6 +146,7 @@ def main() -> int:
         try:
             update_rows = [{
                 "id": v["video_id"],
+                "youtube_video_id": v["youtube_video_id"],
                 "view_count": v["view_count"],
                 "like_count": v["like_count"],
                 "comment_count": v["comment_count"],

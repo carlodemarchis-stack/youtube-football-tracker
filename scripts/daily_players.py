@@ -151,7 +151,8 @@ def main() -> int:
                     .execute()
                 )
                 vid_rows.extend(resp.data or [])
-            id_to_dbid = {r["youtube_video_id"]: r["id"] for r in vid_rows}
+            id_to_dbid = {r["youtube_video_id"]: r["id"]
+                          for r in vid_rows if r.get("youtube_video_id")}
             yt_ids = list(id_to_dbid.keys())
             log(f"Snapshotting {len(yt_ids)} player videos")
             snap_rows: list[dict] = []
@@ -163,6 +164,11 @@ def main() -> int:
                         continue
                     snap_rows.append({
                         "video_id": dbid,
+                        # Carry yt_id so the freshness upsert can satisfy
+                        # the youtube_video_id NOT NULL constraint —
+                        # Postgres validates the proposed INSERT row even
+                        # when ON CONFLICT will resolve to UPDATE.
+                        "youtube_video_id": v["youtube_video_id"],
                         "view_count": v.get("view_count", 0),
                         "like_count": v.get("like_count", 0),
                         "comment_count": v.get("comment_count", 0),
@@ -177,10 +183,15 @@ def main() -> int:
                     log(f"Wrote {n} video_daily_deltas rows for {_today_iso}")
                 except Exception as e:
                     log(f"video_daily_deltas step skipped: {e}")
-                # Keep the `videos` table fresh too
+                # Keep the `videos` table fresh too. Include youtube_video_id
+                # in the payload so the proposed INSERT row passes the
+                # NOT NULL check (Postgres validates the INSERT even when
+                # ON CONFLICT will resolve to UPDATE — without this the
+                # whole batch fails with a 23502 NOT NULL violation).
                 try:
                     update_rows = [{
                         "id": r["video_id"],
+                        "youtube_video_id": r["youtube_video_id"],
                         "view_count": r["view_count"],
                         "like_count": r["like_count"],
                         "comment_count": r["comment_count"],

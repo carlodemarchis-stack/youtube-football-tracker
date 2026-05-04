@@ -126,6 +126,11 @@ def main() -> int:
                 continue
             update_buffer.append({
                 "id": dbid,
+                # carry yt_id so the upsert satisfies the NOT NULL
+                # constraint on youtube_video_id (Postgres validates the
+                # proposed INSERT row even when ON CONFLICT resolves to
+                # UPDATE — without this the entire batch fails 23502).
+                "youtube_video_id": v["youtube_video_id"],
                 "view_count": v.get("view_count", 0),
                 "like_count": v.get("like_count", 0),
                 "comment_count": v.get("comment_count", 0),
