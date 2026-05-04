@@ -149,6 +149,23 @@ if st.session_state.get("_feed_mode"):
 # ── Normal Home page ─────────────────────────────────────────
 st.title("YouTube Football Tracker")
 
+# Pre-beta banner — kept lightweight (no header / no markdown
+# bullets) so it sits right under the title without competing for
+# attention. Surfaces the disclaimer + a fast feedback channel.
+st.markdown(
+    '<div style="background:#1a1c24;border-left:3px solid #FFA15A;'
+    'padding:10px 14px;margin:6px 0 18px 0;border-radius:4px;'
+    'font-size:13px;line-height:1.55;color:#FAFAFA">'
+    '<span style="color:#FFA15A;font-weight:600">🚧 Work in progress · pre-beta</span>'
+    ' &nbsp;—&nbsp; this is an early build that will keep evolving. '
+    'Bumps and rough edges are expected. '
+    '<a href="mailto:carlo@factory63.com?subject=YTFT%20feedback" '
+    'style="color:#58A6FF;text-decoration:none">Let me know</a> '
+    'if you find any issue.'
+    '</div>',
+    unsafe_allow_html=True,
+)
+
 # ── Leagues covered ─────────────────────────────────────────────
 try:
     _chs = st.session_state.get("_global_channels") or []
@@ -396,7 +413,7 @@ st.markdown(
 
 st.info(
     """
-    **Premium pages** (require premium paid account):
+    **Invite-only pages** (require an invite to access):
 
     **Compare** — pick 2–5 clubs from any league and compare them side by
     side: pie charts, stats table, and top videos head-to-head.

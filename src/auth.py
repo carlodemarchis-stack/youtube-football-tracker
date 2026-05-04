@@ -401,15 +401,16 @@ def require_premium():
 
 
 def _show_upgrade_cta(user: dict):
-    """Friendly upgrade page shown to signed-in viewers when they hit a premium page."""
+    """Friendly access page shown to signed-in viewers when they hit an invite-only page."""
     st.markdown(
         """
         <div style="text-align:center; padding:48px 24px;">
           <div style="font-size:64px; margin-bottom:16px;">🔒</div>
-          <h2 style="margin:0 0 12px 0; color:#FAFAFA;">Premium feature</h2>
+          <h2 style="margin:0 0 12px 0; color:#FAFAFA;">Invite-only feature</h2>
           <p style="color:#AAA; font-size:16px; max-width:500px; margin:0 auto 24px;">
-            This page is available to <b>Premium</b> members only. Premium unlocks
-            AI-powered analysis, free-form data questions, and side-by-side club comparisons.
+            This page is available to <b>invited</b> members only. The invite-only
+            tier unlocks AI-powered analysis, free-form data questions, and
+            side-by-side club comparisons.
           </p>
         </div>
         """,
@@ -419,7 +420,7 @@ def _show_upgrade_cta(user: dict):
     with col2:
         st.info(
             f"Signed in as **{user.get('email', '—')}** ({user.get('role', 'viewer')}). "
-            f"Contact the admin ({ADMIN_EMAIL}) to request an upgrade."
+            f"Contact the admin ({ADMIN_EMAIL}) to request access."
         )
 
 

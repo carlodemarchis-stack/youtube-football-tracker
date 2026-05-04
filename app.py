@@ -70,9 +70,9 @@ nav = {"": public_pages}
 if is_logged_in():
     nav[""] = public_pages + viewer_pages
 if is_premium():
-    nav["Premium"] = premium_pages_unlocked
+    nav["Invite-only"] = premium_pages_unlocked
 elif is_logged_in():
-    nav["Premium"] = premium_pages_locked
+    nav["Invite-only"] = premium_pages_locked
 if is_admin():
     nav["Admin"] = admin_pages
 
