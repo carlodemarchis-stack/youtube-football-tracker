@@ -201,7 +201,7 @@ if g_club:
 # ──────────────────────────────────────────────────────────────
 # All flagged channels table
 # ──────────────────────────────────────────────────────────────
-st.subheader("All flagged channels")
+st.subheader("Profile breakdown")
 st.caption(f"{len(visible)} clubs in scope · sorted by total tag count")
 
 # Filter to clubs with at least one tag
