@@ -1465,14 +1465,16 @@ if club is None:
     )
     st.plotly_chart(fig_vids, use_container_width=True)
 
-    # Grouped bar: Avg Views/Video (Long vs Shorts)
+    # Grouped bar: Avg Views/Video (Long vs Shorts vs Live)
     sorted_df_vpv = df.sort_values("all_vpv", ascending=False)
     chart_names_vpv = sorted_df_vpv["name"].tolist()
     fig_vpv_bar = go.Figure()
     fig_vpv_bar.add_trace(go.Bar(name="Long", x=chart_names_vpv, y=sorted_df_vpv["long_vpv"], marker_color="#636EFA"))
     fig_vpv_bar.add_trace(go.Bar(name="Shorts", x=chart_names_vpv, y=sorted_df_vpv["short_vpv"], marker_color="#00CC96"))
+    if sorted_df_vpv.get("live_vpv") is not None and sorted_df_vpv["live_vpv"].sum() > 0:
+        fig_vpv_bar.add_trace(go.Bar(name="Live", x=chart_names_vpv, y=sorted_df_vpv["live_vpv"], marker_color="#FFA15A"))
     fig_vpv_bar.update_layout(
-        title="Avg Views/Video (Long vs Shorts)", barmode="group",
+        title="Avg Views/Video (Long vs Shorts vs Live)", barmode="group",
         xaxis_title="", yaxis_title="", margin=dict(t=40, b=70),
         legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(color="#FAFAFA"),
