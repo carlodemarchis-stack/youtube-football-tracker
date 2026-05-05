@@ -437,9 +437,28 @@ def render_club_header(channel: dict, all_channels: list[dict]) -> None:
     dual_map = get_global_color_map_dual() or {}
     badge = channel_badge(channel, color_map, dual_map, 18)
 
+    # Link the name to the channel's YouTube page (handle preferred,
+    # fallback to canonical /channel/<id> URL). Inherit color so the
+    # link doesn't get the default Streamlit blue.
+    handle = (channel.get("handle") or "").lstrip("@").strip()
+    yt_id = channel.get("youtube_channel_id") or ""
+    if handle:
+        yt_url = f"https://www.youtube.com/@{handle}"
+    elif yt_id:
+        yt_url = f"https://www.youtube.com/channel/{yt_id}"
+    else:
+        yt_url = ""
+    name_html = (
+        f"<a href='{yt_url}' target='_blank' rel='noopener' "
+        f"style='color:inherit;text-decoration:none' "
+        f"onmouseover=\"this.style.textDecoration='underline'\" "
+        f"onmouseout=\"this.style.textDecoration='none'\">{channel['name']}</a>"
+        if yt_url else channel["name"]
+    )
+
     st.markdown(
         f"<h3 style='margin:0;display:flex;align-items:center;gap:10px'>"
         f"<span style='display:inline-flex;align-items:center'>{badge}</span>"
-        f"<span>{channel['name']}{rank_html}</span></h3>",
+        f"<span>{name_html}{rank_html}</span></h3>",
         unsafe_allow_html=True,
     )
