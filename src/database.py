@@ -820,16 +820,22 @@ class Database:
         channel_ids: list[str] | None = None,
         since: str = "2025-08-01",
         limit: int = 20,
+        order_by: str = "view_count",
     ) -> list[dict]:
-        """Top-N season videos by view count, optionally restricted to a
-        set of channels. Used for the season-wide / per-league "Top
-        videos" tables. Single Supabase round-trip with LIMIT pushed
-        down — fast even across 150+ channels."""
+        """Top-N season videos, optionally restricted to a set of channels.
+        Used for the season-wide / per-league "Top videos" tables. Single
+        Supabase round-trip with LIMIT pushed down — fast even across
+        150+ channels.
+
+        order_by: 'view_count' (default), 'like_count', or 'comment_count'.
+        """
+        if order_by not in ("view_count", "like_count", "comment_count"):
+            order_by = "view_count"
         q = (
             self.client.table("videos")
             .select("*, channels(name, handle)")
             .gte("published_at", since)
-            .order("view_count", desc=True)
+            .order(order_by, desc=True)
             .limit(limit)
         )
         if channel_ids:

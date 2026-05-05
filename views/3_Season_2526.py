@@ -235,13 +235,19 @@ def _render_per_league_charts(sorted_leagues):
                 st.plotly_chart(sdur_fig, use_container_width=True)
 
 
-def _render_top_season_videos(channel_ids, channels_by_id, since, limit=20, header="Top Season Videos"):
+def _render_top_season_videos(channel_ids, channels_by_id, since,
+                              limit=20, header="Top Season Videos",
+                              order_by="view_count"):
     """Top-N season videos table, fed by get_top_season_videos. Same
     look as the per-club Top Season Videos table at zoom 3 — channel
     name on the meta line (with the standard dual-dot for clubs / flag
     for league channels) so the league/all-leagues version is
-    self-explanatory."""
-    vids = db.get_top_season_videos(channel_ids=channel_ids, since=since, limit=limit)
+    self-explanatory.
+
+    order_by: 'view_count' (default), 'like_count', or 'comment_count'.
+    """
+    vids = db.get_top_season_videos(channel_ids=channel_ids, since=since,
+                                    limit=limit, order_by=order_by)
     if not vids:
         return
     st.subheader(header)
@@ -262,6 +268,12 @@ def _render_top_season_videos(channel_ids, channels_by_id, since, limit=20, head
     color_map = get_global_color_map() or {}
     dual_map = get_global_color_map_dual() or {}
 
+    def _dur_local(secs):
+        s = int(secs or 0)
+        m, s = divmod(s, 60)
+        h, m = divmod(m, 60)
+        return f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
+
     rows = ""
     for i, v in enumerate(vids, 1):
         ch = channels_by_id.get(v.get("channel_id")) or v.get("channels") or {}
@@ -275,25 +287,28 @@ def _render_top_season_videos(channel_ids, channels_by_id, since, limit=20, head
         pub = (v.get("published_at") or "")[:10]
         title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;")
         _cat = (v.get("category") or "").replace("<", "&lt;")
-        # Hide "Other" / empty categories — same convention as zoom-3.
-        # Color matches the category pie chart palette.
         _cat_color = CATEGORY_COLORS.get(_cat, "#888")
-        _cat_html = (f'<span style="color:#666">·</span>'
-                     f'<span style="color:{_cat_color}">{_cat}</span>'
+        _cat_span = (f' · <span style="color:{_cat_color}">{_cat}</span>'
                      if _cat and _cat != "Other" else "")
+        # Same meta order as zoom-3: format · duration · date · category.
+        # Channel badge prefixes the line so the league/all-leagues table
+        # still tells you which club the video belongs to.
+        _meta = (
+            f'<span style="display:inline-flex;align-items:center;gap:6px">'
+            f'{ch_dot}<span style="color:#FAFAFA">{ch_name}</span></span>'
+            f' · <span style="color:{fmt_color}">{fmt_label}</span>'
+            f' · {_dur_local(v.get("duration_seconds", 0))}'
+            f' · <span style="color:#888">{pub}</span>'
+            f'{_cat_span}'
+        )
         rows += f"""<tr onclick="window.open('{yt_url}','_blank','noopener')" style="cursor:pointer">
             <td style="padding:6px 12px;text-align:right;color:#888">{i}</td>
-            <td style="padding:6px 12px"><img src="{thumb}" style="width:120px;height:68px;object-fit:cover;border-radius:4px"></td>
-            <td style="padding:6px 12px">
-              <div style="font-size:12px;margin-bottom:2px;display:flex;align-items:center;gap:6px">
-                {ch_dot}<span style="color:#FAFAFA">{ch_name}</span>
-                <span style="color:#666">·</span>
-                <span style="color:{fmt_color}">{fmt_label}</span>
-                {_cat_html}
-                <span style="color:#666">·</span>
-                <span style="color:#888">{pub}</span>
+            <td style="padding:6px 12px;vertical-align:top"><img src="{thumb}" style="width:120px;height:68px;object-fit:cover;border-radius:4px;display:block"></td>
+            <td style="padding:6px 12px;vertical-align:top">
+              <div style="display:flex;flex-direction:column;justify-content:space-between;height:68px">
+                <a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none;font-weight:700"><br>{title}</a>
+                <div style="font-size:12px">{_meta}</div>
               </div>
-              <a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none">{title}</a>
             </td>
             <td style="padding:6px 12px;text-align:right">{fmt_num(int(v.get('view_count') or 0))}</td>
             <td style="padding:6px 12px;text-align:right">{fmt_num(int(v.get('like_count') or 0))}</td>
@@ -318,7 +333,7 @@ def _render_top_season_videos(channel_ids, channels_by_id, since, limit=20, head
     </tr></thead>
     <tbody>{rows}</tbody>
     </table>
-    """, height=len(vids) * 92 + 80, scrolling=True)
+    """, height=len(vids) * 81 + 50, scrolling=False)
 
 
 # ══════════════════════════════════════════════════════════════
@@ -1742,10 +1757,19 @@ if club is None:
     # ── Top season videos for this scope (whole filter or one league) ──
     _scope_ids = [c["id"] for c in clubs_only]
     _ch_by_id = {c["id"]: c for c in all_channels}
-    _hdr = (f"Top Season Videos — {league}" if league
-            else "Top Season Videos — All Leagues")
+    _scope_label = league if league else "All Leagues"
     _render_top_season_videos(_scope_ids, _ch_by_id, SEASON_SINCE,
-                              limit=20, header=_hdr)
+                              limit=20,
+                              header=f"Top Season Videos — {_scope_label}",
+                              order_by="view_count")
+    _render_top_season_videos(_scope_ids, _ch_by_id, SEASON_SINCE,
+                              limit=5,
+                              header=f"Top Liked Videos — {_scope_label}",
+                              order_by="like_count")
+    _render_top_season_videos(_scope_ids, _ch_by_id, SEASON_SINCE,
+                              limit=5,
+                              header=f"Top Commented Videos — {_scope_label}",
+                              order_by="comment_count")
 
 else:
     # ══════════════════════════════════════════════════════════════
