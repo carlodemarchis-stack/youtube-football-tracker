@@ -2094,8 +2094,8 @@ else:
             <td style="padding:6px 12px;text-align:right;color:#888">{i}</td>
             <td style="padding:6px 12px;vertical-align:top"><img src="{thumb}" style="width:120px;height:68px;object-fit:cover;border-radius:4px;display:block"></td>
             <td style="padding:6px 12px;vertical-align:top">
-              <div style="display:flex;flex-direction:column;justify-content:space-between;height:68px;padding-top:18px">
-                <a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none;font-weight:500">{title}</a>
+              <div style="display:flex;flex-direction:column;justify-content:space-between;height:68px">
+                <a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none;font-weight:500"><br>{title}</a>
                 <div style="font-size:12px">{_meta}</div>
               </div>
             </td>
