@@ -85,7 +85,7 @@ def _render_publishing_heatmap_grid(grid_counts, grid_avg_views,
     ))
     fig_hm.update_layout(
         height=300,
-        xaxis=dict(title="Hour (CET)", tickfont=dict(size=10), side="bottom"),
+        xaxis=dict(title="Hour (CET)", tickfont=dict(size=10), side="bottom", tickmode="array", tickvals=[f"{h:02d}" for h in range(0, 24, 3)], ticktext=[f"{h:02d}" for h in range(0, 24, 3)]),
         yaxis=dict(title="", autorange="reversed",
                    tickfont=dict(size=11)),
         margin=dict(t=10, b=40, l=10, r=10),
@@ -2259,7 +2259,7 @@ else:
         ))
         fig_hm.update_layout(
             height=300,
-            xaxis=dict(title="Hour (CET)", tickfont=dict(size=10), side="bottom"),
+            xaxis=dict(title="Hour (CET)", tickfont=dict(size=10), side="bottom", tickmode="array", tickvals=[f"{h:02d}" for h in range(0, 24, 3)], ticktext=[f"{h:02d}" for h in range(0, 24, 3)]),
             yaxis=dict(title="", autorange="reversed",  # Mon at top
                        tickfont=dict(size=11)),
             margin=dict(t=10, b=40, l=10, r=10),
