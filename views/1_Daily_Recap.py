@@ -12,7 +12,13 @@ import pandas as pd
 from dotenv import load_dotenv
 
 from src.database import Database
-from src.analytics import fmt_num, yt_popup_js, CATEGORY_COLORS, video_table_height
+from src.analytics import fmt_num, yt_popup_js, CATEGORY_COLORS
+try:
+    from src.analytics import video_table_height
+except ImportError:
+    # Fallback if a prior version of src.analytics is still cached.
+    def video_table_height(n_rows: int, header_buffer: int = 50) -> int:
+        return max(0, int(n_rows)) * 75 + header_buffer
 from src.auth import require_login
 from src.filters import (
     get_global_channels, get_global_color_map, get_global_color_map_dual,
