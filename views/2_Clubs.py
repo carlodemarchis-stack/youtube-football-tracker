@@ -126,41 +126,55 @@ def _render_subs_rank_chart(channels, league_filter: str | None = None):
         return
 
     rows.sort(key=lambda r: r["subs"], reverse=True)
-    names = [r["name"] for r in rows]
-    subs = [r["subs"] for r in rows]
-    leagues = [r["league"] for r in rows]
-    colors = [_LCC.get(r["league"], "#888") for r in rows]
-    flags = [f"{_LF.get(r['league'], '')} {r['league']}" for r in rows]
-    customdata = list(zip(flags, [r["handle"] or "" for r in rows]))
 
     if league_filter:
         st.subheader(f"📊 Subscribers by channel — {_LF.get(league_filter, '')} {league_filter}")
-        st.caption("All channels in scope, ranked by subscriber count (highest left).")
+        st.caption("All channels in scope, ranked by subscriber count "
+                   "(highest left). Top row: ≥ 1M subs · bottom row: < 1M.")
     else:
         st.subheader("📊 Subscribers by channel — Top-5 leagues")
         st.caption("All clubs and league channels across the Top-5 leagues, "
-                   "ranked by subscriber count. Bar color = league.")
+                   "ranked by subscriber count. Bar color = league. "
+                   "Top row: ≥ 1M subs · bottom row: < 1M (the long tail).")
 
-    fig = _go.Figure(_go.Bar(
-        x=names, y=subs, marker_color=colors,
-        customdata=customdata,
-        hovertemplate=("<b>%{x}</b><br>"
-                       "%{customdata[0]} · %{customdata[1]}<br>"
-                       "Subs: %{y:,}<extra></extra>"),
-    ))
-    # Long club lists need angled labels; auto-rotate via tickangle.
-    fig.update_layout(
-        height=max(360, 22 * (1 if not names else 0) + 360),
-        xaxis=dict(title="", tickangle=-45, automargin=True,
-                   tickfont=dict(size=10)),
-        yaxis=dict(title="", showgrid=True,
-                   gridcolor="rgba(255,255,255,0.08)"),
-        margin=dict(t=10, b=120, l=10, r=10),
-        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#FAFAFA"),
-        showlegend=False,
-    )
-    st.plotly_chart(fig, use_container_width=True)
+    big = [r for r in rows if r["subs"] >= 1_000_000]
+    small = [r for r in rows if r["subs"] < 1_000_000]
+
+    def _build_bar(subset, height_floor: int = 360):
+        names = [r["name"] for r in subset]
+        subs = [r["subs"] for r in subset]
+        colors = [_LCC.get(r["league"], "#888") for r in subset]
+        flags = [f"{_LF.get(r['league'], '')} {r['league']}" for r in subset]
+        customdata = list(zip(flags, [r["handle"] or "" for r in subset]))
+        fig = _go.Figure(_go.Bar(
+            x=names, y=subs, marker_color=colors,
+            customdata=customdata,
+            hovertemplate=("<b>%{x}</b><br>"
+                           "%{customdata[0]} · %{customdata[1]}<br>"
+                           "Subs: %{y:,}<extra></extra>"),
+        ))
+        fig.update_layout(
+            height=height_floor,
+            xaxis=dict(title="", tickangle=-45, automargin=True,
+                       tickfont=dict(size=10)),
+            yaxis=dict(title="", showgrid=True,
+                       gridcolor="rgba(255,255,255,0.08)"),
+            margin=dict(t=10, b=120, l=10, r=10),
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#FAFAFA"),
+            showlegend=False,
+        )
+        return fig
+
+    if big:
+        st.markdown("**≥ 1M subscribers**")
+        st.plotly_chart(_build_bar(big), use_container_width=True)
+    if small:
+        st.markdown("**< 1M subscribers**")
+        st.plotly_chart(_build_bar(small), use_container_width=True)
+    if not big and not small:
+        # Fallback (shouldn't happen given filter above)
+        st.plotly_chart(_build_bar(rows), use_container_width=True)
 
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
