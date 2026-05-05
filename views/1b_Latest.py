@@ -39,8 +39,21 @@ dual = get_global_color_map_dual()
 
 # ── Apply global filter ──────────────────────────────────────
 g_league, g_club = get_global_filter()
-_rss_updated = db.get_last_fetch_time("hourly_rss")
-render_page_subtitle("Most recently published videos", updated_raw=_rss_updated)
+# Use the most recent video's published_at as the "updated" indicator
+# (not the latest hourly_rss fetch_history row — that only writes AT
+# THE END of a run, so during the ~5-10 min an hourly run is in flight
+# the page would falsely show the previous cycle's stale timestamp).
+_latest_pub = None
+try:
+    _r = (db.client.table("videos")
+          .select("published_at")
+          .order("published_at", desc=True)
+          .limit(1).execute().data or [])
+    _latest_pub = _r[0]["published_at"] if _r else None
+except Exception:
+    pass
+render_page_subtitle("Most recently published videos",
+                     updated_raw=_latest_pub or db.get_last_fetch_time("hourly_rss"))
 
 
 if g_club:
