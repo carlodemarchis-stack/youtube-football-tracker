@@ -11,7 +11,7 @@ import plotly.graph_objects as go
 from dotenv import load_dotenv
 
 from src.database import Database
-from src.analytics import compute_channel_comparison, compute_tier_stats, compute_theme_distribution, fmt_num, yt_popup_js
+from src.analytics import compute_channel_comparison, compute_tier_stats, compute_theme_distribution, fmt_num, yt_popup_js, CATEGORY_COLORS
 from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope, render_page_subtitle
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, league_with_flag
 from src.auth import require_login
@@ -439,7 +439,7 @@ for i, r in enumerate(filtered.itertuples(index=False), 1):
     yt_id = getattr(r, "youtube_video_id", "") or ""
     title_cell = (
         f'<a href="https://www.youtube.com/watch?v={yt_id}" target="_blank" rel="noopener" '
-        f'style="color:#FAFAFA;text-decoration:none">{title}</a>' if yt_id else title
+        f'style="color:#FAFAFA;text-decoration:none;font-weight:700">{title}</a>' if yt_id else title
     )
     pub = pd.to_datetime(getattr(r, "published_at", None), utc=True) if getattr(r, "published_at", None) else None
     age = f"{((_now - pub).days / 365.25):.1f}y" if pub is not None else ""
@@ -476,17 +476,18 @@ for i, r in enumerate(filtered.itertuples(index=False), 1):
     # flag AND a dot — the doubled-marker bug.
     # Size 14 to match Daily Recap / Latest / Other Social / Channels / Season
     _badge = channel_badge(_ch_by_name.get(ch, {"name": ch}), color_map_tbl, dual_colors, 14)
-    _cat_span = f' · <span style="color:#666">{cat}</span>' if cat and cat != "Other" else ""
+    _cat_color = CATEGORY_COLORS.get(cat, "#888")
+    _cat_span = f' · <span style="color:{_cat_color}">{cat}</span>' if cat and cat != "Other" else ""
     _meta = f'{_badge} <span style="color:#AAA">{ch}</span> · {fmt_cell}{_cat_span}'
     _views = int(getattr(r, 'view_count', 0) or 0)
     _likes = int(getattr(r, 'like_count', 0) or 0)
     _comments = int(getattr(r, 'comment_count', 0) or 0)
     _age_days = round((_now - pub).total_seconds() / 86400, 2) if pub is not None else 0
     _rows_html += f"""<tr {row_attrs} data-views="{_views}" data-likes="{_likes}" data-comments="{_comments}" data-age="{_age_days}" data-dur="{dur}">
-        <td style="padding:6px 12px;text-align:right;color:#888">{i}</td>
-        <td style="padding:6px 12px">
-          <div style="font-size:12px;margin-bottom:2px;white-space:nowrap">{_meta}</div>
+        <td style="padding:6px 12px;text-align:right;color:#888;vertical-align:top">{i}</td>
+        <td style="padding:6px 12px;vertical-align:top">
           <div>{title_cell}</div>
+          <div style="font-size:12px;margin-top:3px;white-space:nowrap">{_meta}</div>
         </td>
         <td style="padding:6px 12px;text-align:right">{fmt_num(_views)}</td>
         <td style="padding:6px 12px;text-align:right">{fmt_num(_likes)}</td>
