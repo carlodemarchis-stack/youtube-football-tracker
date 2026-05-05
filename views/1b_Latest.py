@@ -360,8 +360,10 @@ components.html(f"""
             user-select:none; white-space:nowrap; }}
   .lt th[data-col] {{ cursor:pointer; }}
   .lt th[data-col]:hover {{ color:#58A6FF; }}
-  .lt th .arrow {{ font-size:10px; margin-left:4px; opacity:0.5; }}
+  /* Hide arrow on inactive columns; show only on the active sorted one */
+  .lt th .arrow {{ font-size:10px; margin-left:4px; opacity:0; }}
   .lt th.sorted .arrow {{ opacity:1; color:#58A6FF; }}
+  .lt th.sorted {{ color:#58A6FF; }}
   .lt td {{ border-bottom:1px solid #262730; padding:6px 12px; vertical-align:middle; }}
   .lt tr:hover td {{ background:#1a1c24; }}
   .dot {{ display:inline-block; width:12px; height:12px; border-radius:50%;
@@ -392,7 +394,15 @@ components.html(f"""
 (function() {{
   const table = document.getElementById('ltTable');
   const headers = table.querySelectorAll('th[data-col]');
-  let currentCol = null, asc = true;
+  // Initial sort state: rows arrive ordered by published_at DESC, which
+  // is equivalent to Age ascending (newest = lowest age first). Mark
+  // the Age header as the active sort so the indicator matches reality.
+  let currentCol = 'age', asc = true;
+  const ageTh = table.querySelector('th[data-col="age"]');
+  if (ageTh) {{
+    ageTh.classList.add('sorted');
+    ageTh.querySelector('.arrow').textContent = '▲';
+  }}
 
   headers.forEach(th => {{
     th.addEventListener('click', () => {{
@@ -401,7 +411,12 @@ components.html(f"""
       if (currentCol === col) {{ asc = !asc; }}
       else {{ currentCol = col; asc = (type === 'num') ? false : true; }}
 
-      headers.forEach(h => h.classList.remove('sorted'));
+      // Clear all arrows / sorted markers, then set on the active column.
+      headers.forEach(h => {{
+        h.classList.remove('sorted');
+        const a = h.querySelector('.arrow');
+        if (a) a.textContent = '▲';  // reset glyph (hidden via opacity:0)
+      }});
       th.classList.add('sorted');
       th.querySelector('.arrow').textContent = asc ? '▲' : '▼';
 
