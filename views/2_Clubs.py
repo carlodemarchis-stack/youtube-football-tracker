@@ -153,7 +153,7 @@ def _render_subs_rank_chart(channels, league_filter: str | None = None):
         height=max(360, 22 * (1 if not names else 0) + 360),
         xaxis=dict(title="", tickangle=-45, automargin=True,
                    tickfont=dict(size=10)),
-        yaxis=dict(title="Subscribers", showgrid=True,
+        yaxis=dict(title="", showgrid=True,
                    gridcolor="rgba(255,255,255,0.08)"),
         margin=dict(t=30, b=120, l=60, r=20),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
