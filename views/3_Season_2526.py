@@ -1164,7 +1164,14 @@ if league is None and _scope == "Overall":
                 and (include_league or c.get("entity_type") != "League")]
     _ch_by_id = {c["id"]: c for c in all_channels}
     _render_top_season_videos(_all_ids, _ch_by_id, SEASON_SINCE, limit=20,
-                              header="Top Season Videos — All Leagues")
+                              header="Top Season Videos — All Leagues",
+                              order_by="view_count")
+    _render_top_season_videos(_all_ids, _ch_by_id, SEASON_SINCE, limit=5,
+                              header="Top Liked Videos — All Leagues",
+                              order_by="like_count")
+    _render_top_season_videos(_all_ids, _ch_by_id, SEASON_SINCE, limit=5,
+                              header="Top Commented Videos — All Leagues",
+                              order_by="comment_count")
 
     st.stop()
 
