@@ -243,6 +243,13 @@ class YouTubeClient:
                 id=",".join(batch),
             ).execute()
             for item in resp.get("items", []):
+                # Defensive: skip items that came back without an id. This
+                # has been seen in rare cases (deleted/private/region-locked
+                # videos, malformed API responses) and used to leak NULL
+                # youtube_video_id rows into snapshot upserts, which
+                # subsequently violated NOT NULL on the videos table.
+                if not item.get("id"):
+                    continue
                 stats = item.get("statistics", {})
                 snippet = item.get("snippet", {})
                 content = item.get("contentDetails", {})

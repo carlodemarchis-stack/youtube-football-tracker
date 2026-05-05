@@ -212,6 +212,10 @@ def main() -> int:
                 update_rows = []
                 now = datetime.now(timezone.utc).isoformat()
                 for v in snap_rows:
+                    # Skip rows missing youtube_video_id — would fail
+                    # NOT NULL on the proposed INSERT and abort the batch.
+                    if not v.get("youtube_video_id"):
+                        continue
                     update_rows.append({
                         "id": v["video_id"],
                         "youtube_video_id": v["youtube_video_id"],
@@ -219,6 +223,9 @@ def main() -> int:
                         "like_count": v["like_count"],
                         "comment_count": v["comment_count"],
                     })
+                skipped = len(snap_rows) - len(update_rows)
+                if skipped:
+                    log(f"  videos freshness: dropped {skipped} row(s) without youtube_video_id")
                 for b in range(0, len(update_rows), 500):
                     db.client.table("videos").upsert(update_rows[b:b+500], on_conflict="id").execute()
             except Exception as e:

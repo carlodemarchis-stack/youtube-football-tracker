@@ -196,7 +196,10 @@ def main() -> int:
                         "view_count": r["view_count"],
                         "like_count": r["like_count"],
                         "comment_count": r["comment_count"],
-                    } for r in snap_rows]
+                    } for r in snap_rows if r.get("youtube_video_id")]
+                    skipped = len(snap_rows) - len(update_rows)
+                    if skipped:
+                        log(f"videos freshness: dropped {skipped} row(s) without youtube_video_id")
                     for b in range(0, len(update_rows), 500):
                         db.client.table("videos").upsert(
                             update_rows[b:b + 500], on_conflict="id"

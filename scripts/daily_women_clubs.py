@@ -179,7 +179,12 @@ def main() -> int:
                     log(f"Wrote {n} video_daily_deltas rows for {_today_iso}")
                 except Exception as e:
                     log(f"video_daily_deltas step skipped: {e}")
-                # Keep the `videos` table fresh too
+                # Keep the `videos` table fresh too. Filter out rows
+                # missing youtube_video_id — even one such entry in the
+                # batch makes PostgreSQL reject the whole INSERT...ON
+                # CONFLICT statement (NOT NULL is validated against the
+                # proposed INSERT row, regardless of whether the conflict
+                # would resolve to UPDATE).
                 try:
                     update_rows = [{
                         "id": r["video_id"],
@@ -187,7 +192,10 @@ def main() -> int:
                         "view_count": r["view_count"],
                         "like_count": r["like_count"],
                         "comment_count": r["comment_count"],
-                    } for r in snap_rows]
+                    } for r in snap_rows if r.get("youtube_video_id")]
+                    skipped = len(snap_rows) - len(update_rows)
+                    if skipped:
+                        log(f"videos freshness: dropped {skipped} row(s) without youtube_video_id")
                     for b in range(0, len(update_rows), 500):
                         db.client.table("videos").upsert(
                             update_rows[b:b + 500], on_conflict="id"
