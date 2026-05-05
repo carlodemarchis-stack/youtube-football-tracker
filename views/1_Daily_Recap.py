@@ -347,13 +347,11 @@ if ONE_CLUB:
 
     # View delta per club
     _all_view_deltas: dict[str, int] = {}
-    _all_sub_deltas: dict[str, int] = {}
     for cid in _all_day:
         a = _all_day.get(cid)
         b = _all_prev.get(cid)
         if a and b:
             _all_view_deltas[cid] = int(a.get("total_views", 0) or 0) - int(b.get("total_views", 0) or 0)
-            _all_sub_deltas[cid] = int(a.get("subscriber_count", 0) or 0) - int(b.get("subscriber_count", 0) or 0)
 
     # New videos per club (unfiltered — needed to rank this club vs all others)
     _all_new_rows = _load_new_video_channel_ids(start_ts, end_ts)
@@ -404,19 +402,37 @@ if ONE_CLUB:
         unsafe_allow_html=True,
     )
     _fmt_combined = f"{_fmt_counts['long']} / {_fmt_counts['short']} / {_fmt_counts['live']}"
-    # 4-tile row to match Z1/Z2 width — adds Δ Subscribers (with rank).
-    # YouTube rounds subs to the nearest 10K, so deltas are coarse but
-    # still useful for "did this club gain/lose subs today vs peers?"
-    _sub_delta = int(_all_sub_deltas.get(g_club["id"], 0))
+    # 4-tile row to match Z1/Z2 width — adds "Top viral video" today
+    # (single biggest Δ-views gainer for this club). More meaningful than
+    # subs Δ (which YouTube rounds to nearest 10K) and complements the
+    # "Most watched videos" table at the bottom by surfacing the headline
+    # number up top.
+    _top_today = _load_top_video_deltas(day_iso, 1, (g_club["id"],))
+    if _top_today:
+        _tv = _top_today[0]
+        _tv_video = _load_videos_by_ids((_tv["video_id"],))
+        _tv_title = (_tv_video[0].get("title") if _tv_video else "") or ""
+        _tv_delta = int(_tv.get("view_delta") or 0)
+    else:
+        _tv_title, _tv_delta = "", 0
     k1, k2, k3, k4 = st.columns(4)
     k1.metric("👁️ Δ Channel Views", f"{'+' if total_view_delta >= 0 else ''}{fmt_num(total_view_delta)}")
     k1.markdown(_daily_rank_html(_all_view_deltas), unsafe_allow_html=True)
     k2.metric("🎬 New videos", fmt_num(total_new_videos))
     k2.markdown(_daily_rank_html(_all_new_counts), unsafe_allow_html=True)
-    k3.metric("👥 Δ Subscribers", f"{'+' if _sub_delta >= 0 else ''}{fmt_num(_sub_delta)}",
-              help="YouTube rounds subscriber counts to the nearest 10K, so daily Δ is coarse.")
-    k3.markdown(_daily_rank_html(_all_sub_deltas), unsafe_allow_html=True)
-    k4.metric("📺 Long / Shorts / Live", _fmt_combined)
+    k3.metric("📺 Long / Shorts / Live", _fmt_combined)
+    if _tv_title:
+        # Custom render to fit a long video title into a metric-shaped tile.
+        _short_title = (_tv_title[:48] + "…") if len(_tv_title) > 49 else _tv_title
+        k4.markdown(f"""<div title="{_tv_title.replace('"', '&quot;')}">
+            <div style="font-size:0.875rem;color:#999;margin-bottom:2px">🔥 Top viral today</div>
+            <div style="font-size:1.6rem;font-weight:700;line-height:1.2;color:#00CC96">+{fmt_num(_tv_delta)}</div>
+            <div style="font-size:0.78rem;color:#aaa;line-height:1.25;margin-top:2px;
+                        white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{_short_title}</div>
+        </div>""", unsafe_allow_html=True)
+    else:
+        k4.metric("🔥 Top viral today", "—",
+                  help="No video gained views today (or no snapshots yet).")
 else:
     # Most active club: posted most videos yesterday
     club_new_counts: dict[str, int] = {}
