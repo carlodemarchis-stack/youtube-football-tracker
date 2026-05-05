@@ -835,10 +835,62 @@ if league is None and _scope == "Overall":
                 alt.Tooltip("videos:Q", format=",", title="Videos"),
             ],
         )
-        cadence_chart = (
-            base.mark_line(point=True, strokeWidth=2)
-            .properties(height=300)
+        # If the current month is projected, render the final segment dashed
+        # so it visually reads as estimated rather than measured. Done by
+        # layering two line marks: solid up to the previous month, dashed
+        # spanning the previous→projected segment (overlap on the previous
+        # month so colors and points line up at the seam).
+        is_projected = bool(projection_note) and (
+            plot_df["month"].max() == cur_month_start
         )
+        if is_projected:
+            months_sorted = sorted(plot_df["month"].unique())
+            if len(months_sorted) >= 2:
+                last_month = months_sorted[-1]
+                prev_month = months_sorted[-2]
+                solid_df = plot_df[plot_df["month"] <= prev_month]
+                dashed_df = plot_df[plot_df["month"] >= prev_month]
+                solid_layer = (
+                    alt.Chart(solid_df).encode(
+                        x=alt.X("yearmonth(month):T", title=None,
+                                axis=alt.Axis(format="%b %Y", labelAngle=-30)),
+                        y=alt.Y("videos:Q", title=None,
+                                axis=alt.Axis(labelExpr="replace(format(datum.value, \"~s\"), \"G\", \"B\")")),
+                        color=alt.Color("league:N",
+                                        scale=alt.Scale(domain=domain, range=rng)),
+                        tooltip=[
+                            alt.Tooltip("yearmonth(month):T", title="Month"),
+                            alt.Tooltip("league:N", title="League"),
+                            alt.Tooltip("videos:Q", format=",", title="Videos"),
+                        ],
+                    ).mark_line(point=True, strokeWidth=2)
+                )
+                dashed_layer = (
+                    alt.Chart(dashed_df).encode(
+                        x=alt.X("yearmonth(month):T", title=None,
+                                axis=alt.Axis(format="%b %Y", labelAngle=-30)),
+                        y=alt.Y("videos:Q", title=None,
+                                axis=alt.Axis(labelExpr="replace(format(datum.value, \"~s\"), \"G\", \"B\")")),
+                        color=alt.Color("league:N",
+                                        scale=alt.Scale(domain=domain, range=rng)),
+                        tooltip=[
+                            alt.Tooltip("yearmonth(month):T", title="Month"),
+                            alt.Tooltip("league:N", title="League"),
+                            alt.Tooltip("videos:Q", format=",", title="Videos (projected)"),
+                        ],
+                    ).mark_line(point=True, strokeWidth=2, strokeDash=[5, 4])
+                )
+                cadence_chart = (solid_layer + dashed_layer).properties(height=300)
+            else:
+                cadence_chart = (
+                    base.mark_line(point=True, strokeWidth=2)
+                    .properties(height=300)
+                )
+        else:
+            cadence_chart = (
+                base.mark_line(point=True, strokeWidth=2)
+                .properties(height=300)
+            )
         st.altair_chart(cadence_chart, use_container_width=True)
 
     # ── Views concentration — one bar per league ───────────────────────
