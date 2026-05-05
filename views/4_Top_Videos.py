@@ -512,8 +512,10 @@ components.html(
       .vidlist tr:hover td {{ background:#1a1c24; }}
       .vidlist th[data-col] {{ cursor:pointer; user-select:none; }}
       .vidlist th[data-col]:hover {{ color:#58A6FF; }}
-      .vidlist .arrow {{ font-size:11px; opacity:0.4; margin-left:2px; }}
-      .vidlist th.sorted .arrow {{ opacity:1; }}
+      /* Hide arrow on inactive columns; only the sorted one gets it. */
+      .vidlist .arrow {{ font-size:11px; opacity:0; margin-left:2px; }}
+      .vidlist th.sorted {{ color:#58A6FF; }}
+      .vidlist th.sorted .arrow {{ opacity:1; color:#58A6FF; }}
     </style>
     <div style="max-height:1350px;overflow:auto">
     <table class="vidlist" id="vlTable"><thead><tr>
@@ -530,7 +532,13 @@ components.html(
     (function() {{
       const table = document.getElementById('vlTable');
       const headers = table.querySelectorAll('th[data-col]');
-      let currentCol = null, asc = true;
+      // Initial sort: rows arrive ordered by view_count DESC. Mark Views ▼.
+      let currentCol = 'views', asc = false;
+      const viewsTh = table.querySelector('th[data-col="views"]');
+      if (viewsTh) {{
+        viewsTh.classList.add('sorted');
+        viewsTh.querySelector('.arrow').textContent = '▼';
+      }}
       headers.forEach(th => {{
         th.addEventListener('click', () => {{
           const col = th.dataset.col;
