@@ -74,6 +74,8 @@ if club:
 elif league:
     # One league — fetch top-N only for that league's channels
     league_channels = get_channels_for_filter(all_channels, league)
+    from src.filters import render_league_header
+    render_league_header(league, channels_in_scope=league_channels)
     ch_ids = tuple(ch["id"] for ch in league_channels)
     with st.spinner(f"Loading top videos for {league}…"):
         all_videos = _load_top_videos_for_channels(ch_ids, limit=500)

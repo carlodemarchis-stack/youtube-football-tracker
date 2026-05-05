@@ -430,6 +430,14 @@ else:
         <div style="font-size:0.8rem;color:#888">{most_active[1]} videos posted</div>
     </div>""", unsafe_allow_html=True)
 
+# League header at zoom-2 — same visual signature as render_club_header.
+if g_league and not ONE_CLUB:
+    from src.filters import render_league_header
+    _lg_chans = [c for c in all_channels
+                 if get_league_for_channel(c) == g_league
+                 and c.get("entity_type") in ("Club", "League")]
+    render_league_header(g_league, channels_in_scope=_lg_chans)
+
 # ── Trend chart ──────────────────────────────────────────────
 # Show Δ Views and New Videos per day across all available snapshot dates.
 st.markdown("---")
