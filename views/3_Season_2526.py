@@ -2072,11 +2072,8 @@ else:
         with col_p2:
             st.plotly_chart(build_category_pie(cat_views, "Views by Category", "views"), use_container_width=True)
 
-    # ── Top 20 season videos ───────────────────────────────────
-    st.subheader("Top Season Videos")
-    top = sorted(vids, key=lambda v: v.get("view_count", 0), reverse=True)[:20]
-    top_rows = ""
-    for i, v in enumerate(top, 1):
+    # ── Top season videos — three leaderboards ─────────────────
+    def _video_row(i: int, v: dict) -> str:
         yt_url = f"https://www.youtube.com/watch?v={v['youtube_video_id']}"
         thumb = v.get("thumbnail_url") or ""
         _f = _fmt_of(v)
@@ -2085,16 +2082,13 @@ else:
         pub = (v.get("published_at") or "")[:10]
         title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;")
         _cat = (v.get("category") or "").replace("<", "&lt;")
-        # Hide "Other" / empty categories — they aren't useful as tags.
-        # Category is rendered LAST in the meta line, colored to match
-        # the category pie chart palette so the tag and slice line up.
         _cat_color = CATEGORY_COLORS.get(_cat, "#888")
         _cat_span = f' · <span style="color:{_cat_color}">{_cat}</span>' if _cat and _cat != "Other" else ""
         _meta = (f'<span style="color:{fmt_color}">{fmt_label}</span> · '
                  f'{_dur(v.get("duration_seconds", 0))} · '
                  f'<span style="color:#888">{pub}</span>'
                  f'{_cat_span}')
-        top_rows += f"""<tr onclick="window.open('{yt_url}','_blank','noopener')" style="cursor:pointer">
+        return f"""<tr onclick="window.open('{yt_url}','_blank','noopener')" style="cursor:pointer">
             <td style="padding:6px 12px;text-align:right;color:#888">{i}</td>
             <td style="padding:6px 12px;vertical-align:top"><img src="{thumb}" style="width:120px;height:68px;object-fit:cover;border-radius:4px;display:block"></td>
             <td style="padding:6px 12px;vertical-align:top">
@@ -2108,23 +2102,34 @@ else:
             <td style="padding:6px 12px;text-align:right">{_fmt(v.get('comment_count', 0))}</td>
         </tr>"""
 
-    components.html(f"""
-    <style>
-        .top-vids {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
-                     font-family:"Source Sans Pro",sans-serif; }}
-        .top-vids th {{ padding:6px 12px; border-bottom:2px solid #444; text-align:left; }}
-        .top-vids td {{ border-bottom:1px solid #262730; }}
-    </style>
-    <table class="top-vids">
-    <thead><tr>
-        <th style="text-align:right">#</th>
-        <th></th>
-        <th>Video</th>
-        <th style="text-align:right">Views</th>
-        <th style="text-align:right">Likes</th>
-        <th style="text-align:right">Comments</th>
-    </tr></thead>
-    <tbody>{top_rows}</tbody>
-    </table>
-    {yt_popup_js()}
-    """, height=len(top) * 92 + 80, scrolling=False)
+    def _render_top_table(header: str, ranked: list[dict]) -> None:
+        st.subheader(header)
+        rows_html = "".join(_video_row(i, v) for i, v in enumerate(ranked, 1))
+        components.html(f"""
+        <style>
+            .top-vids {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
+                         font-family:"Source Sans Pro",sans-serif; }}
+            .top-vids th {{ padding:6px 12px; border-bottom:2px solid #444; text-align:left; }}
+            .top-vids td {{ border-bottom:1px solid #262730; }}
+        </style>
+        <table class="top-vids">
+        <thead><tr>
+            <th style="text-align:right">#</th>
+            <th></th>
+            <th>Video</th>
+            <th style="text-align:right">Views</th>
+            <th style="text-align:right">Likes</th>
+            <th style="text-align:right">Comments</th>
+        </tr></thead>
+        <tbody>{rows_html}</tbody>
+        </table>
+        {yt_popup_js()}
+        """, height=len(ranked) * 92 + 80, scrolling=False)
+
+    top_views = sorted(vids, key=lambda v: v.get("view_count", 0) or 0, reverse=True)[:20]
+    top_likes = sorted(vids, key=lambda v: v.get("like_count", 0) or 0, reverse=True)[:5]
+    top_comments = sorted(vids, key=lambda v: v.get("comment_count", 0) or 0, reverse=True)[:5]
+
+    _render_top_table("Top Season Videos", top_views)
+    _render_top_table("Top Liked Videos", top_likes)
+    _render_top_table("Top Commented Videos", top_comments)
