@@ -472,13 +472,11 @@ if league is None and _scope == "Overall":
             <td style="padding:6px 12px;text-align:right" data-val="{_r['short_vpv']}">{_v(_r['short_vpv'])}</td>
             <td style="padding:6px 12px;text-align:right" data-val="{_r['live_vpv']}">{_v(_r['live_vpv'])}</td>
         </tr>"""
-    # Row sizing math:
-    #   body row     = 6+6 padding + ~16 line-height + 1px border ≈ 30px (use 34)
-    #   2-row header = 2 × ~32px = ~64px (grouped supercolumns + sortable cols)
-    #   iframe chrome ≈ 16-20px
-    # Old calc (37 + 130) over-allocated by ~3 per row + ~50 header → ~350px
-    # of empty space below a ~100-row table.
-    _all_tbl_h = len(_ac_rows) * 34 + 84
+    # Row sizing — measured: body rows render at ~30px in Streamlit's iframe
+    # (6+6 padding + 14-16 line-height + 1 border). Two-row grouped header is
+    # ~60px. Add ~12px iframe chrome buffer. Anything more leaves a visible
+    # empty band below the table.
+    _all_tbl_h = len(_ac_rows) * 30 + 72
     components.html(f"""
     <style>
         .ac-wrap {{ overflow-x:auto; width:100%; }}
