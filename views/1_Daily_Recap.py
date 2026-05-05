@@ -12,7 +12,7 @@ import pandas as pd
 from dotenv import load_dotenv
 
 from src.database import Database
-from src.analytics import fmt_num, yt_popup_js
+from src.analytics import fmt_num, yt_popup_js, CATEGORY_COLORS
 from src.auth import require_login
 from src.filters import (
     get_global_channels, get_global_color_map, get_global_color_map_dual,
@@ -1009,14 +1009,20 @@ else:
             fmt = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
         fmt_color = {"long": "#636EFA", "short": "#00CC96", "live": "#FFA15A"}.get(fmt, "#AAAAAA")
         fmt_label = {"long": "Long", "short": "Shorts", "live": "Live"}.get(fmt, fmt.title())
+        _cat_t = (v.get("category") or "")
+        _cat_color_t = CATEGORY_COLORS.get(_cat_t, "#888")
+        _cat_html_t = (f' · <span style="color:{_cat_color_t}">{_cat_t}</span>'
+                       if _cat_t and _cat_t != "Other" else "")
         _tv_rows += f"""<tr>
-            <td style="padding:6px 12px;text-align:right;color:#888">{i}</td>
-            <td style="padding:6px 12px"><a href="{yt_url}" target="_blank"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px"></a></td>
-            <td style="padding:6px 12px">
-                <div style="color:#AAA;font-size:12px;margin-bottom:2px;display:flex;align-items:center;gap:6px">
-                  {ch_dot}<span>{ch.get('name', '?')} · <span style="color:{fmt_color}">{fmt_label}</span> · {pub}</span>
+            <td style="padding:6px 12px;text-align:right;color:#888;vertical-align:top">{i}</td>
+            <td style="padding:6px 12px;vertical-align:top"><a href="{yt_url}" target="_blank"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px;display:block"></a></td>
+            <td style="padding:6px 12px;vertical-align:top">
+                <div style="display:flex;flex-direction:column;justify-content:space-between;height:62px">
+                  <a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none;font-weight:700"><br>{title}</a>
+                  <div style="color:#AAA;font-size:12px;display:flex;align-items:center;gap:6px">
+                    {ch_dot}<span>{ch.get('name', '?')} · <span style="color:{fmt_color}">{fmt_label}</span> · {pub}{_cat_html_t}</span>
+                  </div>
                 </div>
-                <a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none">{title}</a>
             </td>
             <td style="padding:6px 12px;text-align:right;color:#00CC96;font-weight:600">+{fmt_num(t['delta'])}</td>
             <td style="padding:6px 12px;text-align:right">{fmt_num(t['views'])}</td>
@@ -1041,7 +1047,7 @@ else:
       <tbody>{_tv_rows}</tbody>
     </table>
     {yt_popup_js()}
-    """, height=min(_top_n, len(trending)) * 86 + 80, scrolling=True)
+    """, height=min(_top_n, len(trending)) * 75 + 50, scrolling=True)
 
 # ── New videos published on this day (skip for single club — already shown above) ──
 if new_video_rows and not ONE_CLUB:
@@ -1062,18 +1068,21 @@ if new_video_rows and not ONE_CLUB:
         fmt_color = {"long": "#636EFA", "short": "#00CC96", "live": "#FFA15A"}.get(fmt, "#AAAAAA")
         fmt_label = {"long": "Long", "short": "Shorts", "live": "Live"}.get(fmt, fmt.title())
         cat = v.get("category") or ""
-        cat_span = f' · <span style="color:#666">{cat}</span>' if cat and cat != "Other" else ""
+        _cat_color_n = CATEGORY_COLORS.get(cat, "#888")
+        cat_span = f' · <span style="color:{_cat_color_n}">{cat}</span>' if cat and cat != "Other" else ""
         views = int(v.get("view_count") or 0)
         likes = int(v.get("like_count") or 0)
         comments = int(v.get("comment_count") or 0)
         _mw_rows += f"""<tr>
-            <td style="padding:6px 12px;text-align:right;color:#888">{i}</td>
-            <td style="padding:6px 12px"><a href="{yt_url}" target="_blank"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px"></a></td>
-            <td style="padding:6px 12px">
-                <div style="color:#AAA;font-size:12px;margin-bottom:2px;display:flex;align-items:center;gap:6px">
-                  {ch_dot}<span>{ch.get('name', '?')} · <span style="color:{fmt_color}">{fmt_label}</span>{cat_span}</span>
+            <td style="padding:6px 12px;text-align:right;color:#888;vertical-align:top">{i}</td>
+            <td style="padding:6px 12px;vertical-align:top"><a href="{yt_url}" target="_blank"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px;display:block"></a></td>
+            <td style="padding:6px 12px;vertical-align:top">
+                <div style="display:flex;flex-direction:column;justify-content:space-between;height:62px">
+                  <a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none;font-weight:700"><br>{title}</a>
+                  <div style="color:#AAA;font-size:12px;display:flex;align-items:center;gap:6px">
+                    {ch_dot}<span>{ch.get('name', '?')} · <span style="color:{fmt_color}">{fmt_label}</span>{cat_span}</span>
+                  </div>
                 </div>
-                <a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none">{title}</a>
             </td>
             <td style="padding:6px 12px;text-align:right;font-weight:600">{fmt_num(views)}</td>
             <td style="padding:6px 12px;text-align:right">{fmt_num(likes)}</td>
@@ -1100,4 +1109,4 @@ if new_video_rows and not ONE_CLUB:
       <tbody>{_mw_rows}</tbody>
     </table>
     {yt_popup_js()}
-    """, height=min(_mw_top_n, len(_mw_sorted)) * 86 + 80, scrolling=True)
+    """, height=min(_mw_top_n, len(_mw_sorted)) * 75 + 50, scrolling=True)
