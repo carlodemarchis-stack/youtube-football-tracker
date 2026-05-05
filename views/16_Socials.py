@@ -61,6 +61,8 @@ if g_club:
 elif g_league:
     rows = [c for c in get_channels_for_filter(all_channels, g_league)
             if c.get("entity_type") == "Club" or _is_top5_league_channel(c)]
+    from src.filters import render_league_header
+    render_league_header(g_league, channels_in_scope=rows)
 else:
     rows = [c for c in all_channels
             if c.get("entity_type") == "Club" or _is_top5_league_channel(c)]
