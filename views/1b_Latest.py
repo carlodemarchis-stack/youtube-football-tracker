@@ -9,7 +9,7 @@ import streamlit.components.v1 as components
 from dotenv import load_dotenv
 
 from src.database import Database
-from src.analytics import fmt_num, yt_popup_js, CATEGORY_COLORS
+from src.analytics import fmt_num, yt_popup_js, CATEGORY_COLORS, video_table_height
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
 from src.auth import require_login
 from src.filters import (
@@ -296,7 +296,7 @@ for v in latest:
     c1, c2 = dual.get(ch_name, (color_map.get(ch_name, "#636EFA"), "#FFFFFF"))
 
     thumb = v.get("thumbnail_url") or ""
-    thumb_html = f'<img src="{thumb}" style="width:120px;height:68px;object-fit:cover;border-radius:4px">' if thumb else ""
+    thumb_html = f'<img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px">' if thumb else ""
 
     dur = v.get("duration_seconds") or 0
     dur_s = f"{dur // 60}:{dur % 60:02d}" if dur else "0:00"
@@ -382,8 +382,8 @@ components.html(f"""
           margin-right:5px; }}
   .c-video {{ padding:6px 8px !important; }}
   .v-row {{ display:flex; align-items:flex-start; gap:10px; }}
-  .v-row img {{ width:120px; height:68px; object-fit:cover; border-radius:4px; flex-shrink:0; }}
-  .v-info {{ min-width:0; display:flex; flex-direction:column; justify-content:space-between; height:68px; flex:1; }}
+  .v-row img {{ width:110px; height:62px; object-fit:cover; border-radius:4px; flex-shrink:0; }}
+  .v-info {{ min-width:0; display:flex; flex-direction:column; justify-content:space-between; height:62px; flex:1; }}
   .v-meta {{ font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
   .v-title {{ color:#FAFAFA; text-decoration:none; font-size:13px; line-height:1.3; font-weight:700;
               display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }}
@@ -449,4 +449,4 @@ components.html(f"""
 {yt_popup_js()}
 # Row height: 6+6 padding + 68 thumbnail + 1 border ≈ 81px.
 # Header (8+8 padding + ~14 line-height + 2 border) ≈ 32px. iframe chrome ~16px.
-""", height=len(latest) * 81 + 50, scrolling=True)
+""", height=video_table_height(len(latest)), scrolling=True)

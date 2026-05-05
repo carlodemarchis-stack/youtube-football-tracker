@@ -49,6 +49,24 @@ FORMAT_LABELS: dict[str, str] = {
 }
 
 
+# Standard thumbnail size + table row height for the "thumbnail + 2-line
+# meta" video tables (Season Top, Latest, Daily Recap).
+# Row height math:
+#   6+6 padding + 62 thumb + 1 border ≈ 75px
+#   header (one row) ~32px + iframe chrome ~16-20px → +50 buffer
+THUMB_W = 110
+THUMB_H = 62
+VIDEO_ROW_H = 75
+VIDEO_TABLE_HEADER_BUFFER = 50
+
+
+def video_table_height(n_rows: int, header_buffer: int = VIDEO_TABLE_HEADER_BUFFER) -> int:
+    """Pixel height for an `st.components.v1.html` iframe rendering a
+    table of n_rows video rows (thumbnail + bold title + meta line).
+    Single source of truth so the three pages stay in sync."""
+    return max(0, int(n_rows)) * VIDEO_ROW_H + header_buffer
+
+
 def build_category_pie(values_by_cat: dict[str, float], title: str, value_suffix: str = ""):
     """Standard category pie: drop 'Other' (mention its % in title), drop <1%,
     use CATEGORY_COLORS, donut style, sorted descending.

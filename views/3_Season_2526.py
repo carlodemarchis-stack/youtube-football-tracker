@@ -9,7 +9,7 @@ import pandas as pd
 from dotenv import load_dotenv
 
 from src.database import Database
-from src.analytics import fmt_num, yt_popup_js, CATEGORY_COLORS
+from src.analytics import fmt_num, yt_popup_js, CATEGORY_COLORS, video_table_height
 from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope, get_league_for_channel, render_page_subtitle
 from src.auth import require_login
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, LEAGUE_COLOR, LEAGUE_COLOR_CHART, get_season_since, LEAGUE_SEASON_START
@@ -303,9 +303,9 @@ def _render_top_season_videos(channel_ids, channels_by_id, since,
         )
         rows += f"""<tr onclick="window.open('{yt_url}','_blank','noopener')" style="cursor:pointer">
             <td style="padding:6px 12px;text-align:right;color:#888">{i}</td>
-            <td style="padding:6px 12px;vertical-align:top"><img src="{thumb}" style="width:120px;height:68px;object-fit:cover;border-radius:4px;display:block"></td>
+            <td style="padding:6px 12px;vertical-align:top"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px;display:block"></td>
             <td style="padding:6px 12px;vertical-align:top">
-              <div style="display:flex;flex-direction:column;justify-content:space-between;height:68px">
+              <div style="display:flex;flex-direction:column;justify-content:space-between;height:62px">
                 <a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none;font-weight:700"><br>{title}</a>
                 <div style="font-size:12px">{_meta}</div>
               </div>
@@ -333,7 +333,7 @@ def _render_top_season_videos(channel_ids, channels_by_id, since,
     </tr></thead>
     <tbody>{rows}</tbody>
     </table>
-    """, height=len(vids) * 81 + 50, scrolling=False)
+    """, height=video_table_height(len(vids)), scrolling=False)
 
 
 # ══════════════════════════════════════════════════════════════
@@ -2196,9 +2196,9 @@ else:
                  f'{_cat_span}')
         return f"""<tr onclick="window.open('{yt_url}','_blank','noopener')" style="cursor:pointer">
             <td style="padding:6px 12px;text-align:right;color:#888">{i}</td>
-            <td style="padding:6px 12px;vertical-align:top"><img src="{thumb}" style="width:120px;height:68px;object-fit:cover;border-radius:4px;display:block"></td>
+            <td style="padding:6px 12px;vertical-align:top"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px;display:block"></td>
             <td style="padding:6px 12px;vertical-align:top">
-              <div style="display:flex;flex-direction:column;justify-content:space-between;height:68px">
+              <div style="display:flex;flex-direction:column;justify-content:space-between;height:62px">
                 <a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none;font-weight:700"><br>{title}</a>
                 <div style="font-size:12px">{_meta}</div>
               </div>
@@ -2232,7 +2232,7 @@ else:
         {yt_popup_js()}
         # Row height: 6+6 padding + 68px thumbnail + 1px border ≈ 81px.
         # Header: ~32px. iframe chrome: ~16px buffer.
-        """, height=len(ranked) * 81 + 50, scrolling=False)
+        """, height=video_table_height(len(ranked)), scrolling=False)
 
     top_views = sorted(vids, key=lambda v: v.get("view_count", 0) or 0, reverse=True)[:20]
     top_likes = sorted(vids, key=lambda v: v.get("like_count", 0) or 0, reverse=True)[:5]

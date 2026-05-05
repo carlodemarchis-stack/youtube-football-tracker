@@ -12,7 +12,7 @@ import pandas as pd
 from dotenv import load_dotenv
 
 from src.database import Database
-from src.analytics import fmt_num, yt_popup_js, CATEGORY_COLORS
+from src.analytics import fmt_num, yt_popup_js, CATEGORY_COLORS, video_table_height
 from src.auth import require_login
 from src.filters import (
     get_global_channels, get_global_color_map, get_global_color_map_dual,
@@ -1080,7 +1080,7 @@ else:
       <tbody>{_tv_rows}</tbody>
     </table>
     {yt_popup_js()}
-    """, height=min(_top_n, len(trending)) * 75 + 50, scrolling=True)
+    """, height=video_table_height(min(_top_n, len(trending))), scrolling=True)
 
 # ── New videos published on this day (skip for single club — already shown above) ──
 if new_video_rows and not ONE_CLUB:
@@ -1142,4 +1142,4 @@ if new_video_rows and not ONE_CLUB:
       <tbody>{_mw_rows}</tbody>
     </table>
     {yt_popup_js()}
-    """, height=min(_mw_top_n, len(_mw_sorted)) * 75 + 50, scrolling=True)
+    """, height=video_table_height(min(_mw_top_n, len(_mw_sorted))), scrolling=True)
