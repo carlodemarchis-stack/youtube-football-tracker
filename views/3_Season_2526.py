@@ -1959,18 +1959,6 @@ else:
     st.subheader("Monthly output")
     col_m1, col_m2 = st.columns(2)
     with col_m1:
-        fig_mv = go.Figure()
-        fig_mv.add_trace(go.Bar(name="Long", x=months, y=_series("long", "videos"), marker_color=LONG_COLOR))
-        fig_mv.add_trace(go.Bar(name="Shorts", x=months, y=_series("short", "videos"), marker_color=SHORT_COLOR))
-        if has_live:
-            fig_mv.add_trace(go.Bar(name="Live", x=months, y=_series("live", "videos"), marker_color=LIVE_COLOR))
-        fig_mv.update_layout(title="Videos per Month", barmode="stack",
-                             xaxis_title="", yaxis_title="", margin=dict(t=40, b=70),
-                             legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
-                             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                             font=dict(color="#FAFAFA"))
-        st.plotly_chart(fig_mv, use_container_width=True)
-    with col_m2:
         fig_mviews = go.Figure()
         fig_mviews.add_trace(go.Bar(name="Long", x=months, y=_series("long", "views"), marker_color=LONG_COLOR))
         fig_mviews.add_trace(go.Bar(name="Shorts", x=months, y=_series("short", "views"), marker_color=SHORT_COLOR))
@@ -1982,6 +1970,18 @@ else:
                                  paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                                  font=dict(color="#FAFAFA"))
         st.plotly_chart(fig_mviews, use_container_width=True)
+    with col_m2:
+        fig_mv = go.Figure()
+        fig_mv.add_trace(go.Bar(name="Long", x=months, y=_series("long", "videos"), marker_color=LONG_COLOR))
+        fig_mv.add_trace(go.Bar(name="Shorts", x=months, y=_series("short", "videos"), marker_color=SHORT_COLOR))
+        if has_live:
+            fig_mv.add_trace(go.Bar(name="Live", x=months, y=_series("live", "videos"), marker_color=LIVE_COLOR))
+        fig_mv.update_layout(title="Videos per Month", barmode="stack",
+                             xaxis_title="", yaxis_title="", margin=dict(t=40, b=70),
+                             legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+                             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                             font=dict(color="#FAFAFA"))
+        st.plotly_chart(fig_mv, use_container_width=True)
 
     # ── Views distribution (Pareto) ────────────────────────────
     st.subheader("Views distribution")
