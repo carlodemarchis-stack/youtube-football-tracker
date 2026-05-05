@@ -1880,14 +1880,82 @@ else:
     # _rate already returns a percentage (num / den * 100). Don't double-multiply.
     _eng_rate = _rate(total_likes + total_comments, total_views)
 
+    # ── Per-metric league/overall rank (season-scoped) ─────────
+    # Mirrors the Channels Z3 banner — answers "how does this club
+    # stack up?" inline under each KPI. Computed against the same Top-5
+    # clubs cohort that drives every other rank on the site.
+    _clubs_cohort = [c for c in all_channels
+                     if c.get("entity_type") not in ("League", "Player",
+                                                     "Federation", "OtherClub",
+                                                     "WomenClub")]
+    _ch_lg_z3 = get_league_for_channel(club)
+    _peers_z3 = [c for c in _clubs_cohort if get_league_for_channel(c) == _ch_lg_z3]
+
+    def _season_views(c):
+        return ((c.get("season_long_views") or 0)
+                + (c.get("season_short_views") or 0)
+                + (c.get("season_live_views") or 0))
+    def _season_videos(c):
+        return ((c.get("season_long_videos") or 0)
+                + (c.get("season_short_videos") or 0)
+                + (c.get("season_live_videos") or 0))
+    def _season_avg_vpv(c):
+        v = _season_videos(c)
+        return _season_views(c) // v if v else 0
+    def _season_eng_rate(c):
+        v = _season_views(c)
+        if not v:
+            return 0.0
+        return ((c.get("season_likes") or 0) + (c.get("season_comments") or 0)) / v * 100
+
+    _season_metric_getters = {
+        "views":    _season_views,
+        "videos":   _season_videos,
+        "vpv":      _season_avg_vpv,
+        "likes":    lambda c: c.get("season_likes") or 0,
+        "comments": lambda c: c.get("season_comments") or 0,
+        "eng":      _season_eng_rate,
+    }
+
+    def _rank_z3(metric, scope):
+        pool = _peers_z3 if scope == "league" else _clubs_cohort
+        sorted_pool = sorted(pool, key=_season_metric_getters[metric], reverse=True)
+        try:
+            return next(i + 1 for i, c in enumerate(sorted_pool) if c["id"] == club["id"]), len(sorted_pool)
+        except StopIteration:
+            return None, len(sorted_pool)
+
+    def _rank_html_z3(metric):
+        lr, lt = _rank_z3(metric, "league")
+        orr, ot = _rank_z3(metric, "overall")
+        parts = []
+        if lr and _ch_lg_z3:
+            parts.append(f"#{lr}/{lt} in {_ch_lg_z3}")
+        if orr:
+            parts.append(f"#{orr}/{ot} overall")
+        return (f"<div style='color:#888;font-size:0.8rem;margin-top:-6px'>{' · '.join(parts)}</div>"
+                if parts else "")
+
     # KPI banner row
     k1, k2, k3, k4, k5, k6 = st.columns(6)
-    k1.metric("Total Views", fmt_num(_total_v_banner))
-    k2.metric("Total Videos", fmt_num(_total_n_banner))
-    k3.metric("Avg Views/Video", fmt_num(_avg_vpv_banner))
-    k4.metric("Total Likes", fmt_num(total_likes))
-    k5.metric("Total Comments", fmt_num(total_comments))
-    k6.metric("Engagement Rate", f"{_eng_rate:.2f}%", help="(Likes + Comments) / Views")
+    with k1:
+        st.metric("Total Views", fmt_num(_total_v_banner))
+        st.markdown(_rank_html_z3("views"), unsafe_allow_html=True)
+    with k2:
+        st.metric("Total Videos", fmt_num(_total_n_banner))
+        st.markdown(_rank_html_z3("videos"), unsafe_allow_html=True)
+    with k3:
+        st.metric("Avg Views/Video", fmt_num(_avg_vpv_banner))
+        st.markdown(_rank_html_z3("vpv"), unsafe_allow_html=True)
+    with k4:
+        st.metric("Total Likes", fmt_num(total_likes))
+        st.markdown(_rank_html_z3("likes"), unsafe_allow_html=True)
+    with k5:
+        st.metric("Total Comments", fmt_num(total_comments))
+        st.markdown(_rank_html_z3("comments"), unsafe_allow_html=True)
+    with k6:
+        st.metric("Engagement Rate", f"{_eng_rate:.2f}%", help="(Likes + Comments) / Views")
+        st.markdown(_rank_html_z3("eng"), unsafe_allow_html=True)
 
     # Pie charts row
     def _make_pie_club(values, labels, colors, hover_suffix, title):
