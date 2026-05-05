@@ -700,8 +700,12 @@ elif club is None:
         </tr>"""
 
     # ── Sortable table via components.html (pure JS, no server round-trip) ──
-    # Tightened: single-line rows ~30px, two-row sticky header ~60px.
-    _table_height = len(df) * 32 + 70
+    # Row sizing math:
+    #   body row  = 6+6 padding + ~16 line-height + 1px border ≈ 30px (use 34 for safety)
+    #   header    = single <tr>, 6+6 padding + ~16 line-height + 2px border ≈ 32px
+    #   iframe chrome adds ~8-12px of internal padding on some browsers,
+    #   so add ~24px buffer beyond header to avoid clipping the last row.
+    _table_height = len(df) * 34 + 56
     components.html(f"""
     <style>
         .st-table {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
