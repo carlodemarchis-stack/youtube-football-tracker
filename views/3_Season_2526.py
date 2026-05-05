@@ -2084,14 +2084,18 @@ else:
         title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;")
         _cat = (v.get("category") or "").replace("<", "&lt;")
         # Hide "Other" / empty categories — they aren't useful as tags.
-        _cat_span = f' · <span style="color:#666">{_cat}</span>' if _cat and _cat != "Other" else ""
-        _meta = f'<span style="color:{fmt_color}">{fmt_label}</span> · {_dur(v.get("duration_seconds", 0))}{_cat_span} · <span style="color:#888">{pub}</span>'
+        # Category is rendered LAST in the meta line.
+        _cat_span = f' · <span style="color:#888">{_cat}</span>' if _cat and _cat != "Other" else ""
+        _meta = (f'<span style="color:{fmt_color}">{fmt_label}</span> · '
+                 f'{_dur(v.get("duration_seconds", 0))} · '
+                 f'<span style="color:#888">{pub}</span>'
+                 f'{_cat_span}')
         top_rows += f"""<tr onclick="window.open('{yt_url}','_blank','noopener')" style="cursor:pointer">
             <td style="padding:6px 12px;text-align:right;color:#888">{i}</td>
             <td style="padding:6px 12px"><img src="{thumb}" style="width:120px;height:68px;object-fit:cover;border-radius:4px"></td>
             <td style="padding:6px 12px">
-              <div style="font-size:12px;margin-bottom:2px">{_meta}</div>
-              <a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none">{title}</a>
+              <a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none;font-weight:500">{title}</a>
+              <div style="font-size:12px;margin-top:4px">{_meta}</div>
             </td>
             <td style="padding:6px 12px;text-align:right">{_fmt(v.get('view_count', 0))}</td>
             <td style="padding:6px 12px;text-align:right">{_fmt(v.get('like_count', 0))}</td>
