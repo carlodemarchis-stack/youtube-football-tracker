@@ -428,4 +428,6 @@ components.html(f"""
 }})();
 </script>
 {yt_popup_js()}
-""", height=len(latest) * 92 + 80, scrolling=True)
+# Row height: 6+6 padding + 68 thumbnail + 1 border ≈ 81px.
+# Header (8+8 padding + ~14 line-height + 2 border) ≈ 32px. iframe chrome ~16px.
+""", height=len(latest) * 81 + 50, scrolling=True)
