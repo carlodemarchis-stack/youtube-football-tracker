@@ -97,6 +97,72 @@ def _render_launch_year_chart(channels, league_filter: str | None = None):
     st.plotly_chart(fig, use_container_width=True)
 
 
+def _render_subs_rank_chart(channels, league_filter: str | None = None):
+    """Bar chart of subscribers by channel, sorted high→low, colored by league.
+
+    Restricted to entity_type ∈ (Club, League) and Top-5 leagues so it
+    stays consistent with the rest of the page. Hover shows full handle
+    + league + subs.
+    """
+    import plotly.graph_objects as _go
+    from src.channels import LEAGUE_COLOR_CHART as _LCC, LEAGUE_FLAG as _LF
+
+    TOP5 = {"Serie A", "Premier League", "La Liga", "Bundesliga", "Ligue 1"}
+    rows = []
+    for c in channels:
+        if c.get("entity_type") not in ("Club", "League"):
+            continue
+        lg = COUNTRY_TO_LEAGUE.get((c.get("country") or "").upper())
+        if lg not in TOP5:
+            continue
+        if league_filter and lg != league_filter:
+            continue
+        subs = int(c.get("subscriber_count") or 0)
+        if subs <= 0:
+            continue
+        rows.append({"name": c["name"], "subs": subs, "league": lg,
+                     "handle": c.get("handle", "")})
+    if not rows:
+        return
+
+    rows.sort(key=lambda r: r["subs"], reverse=True)
+    names = [r["name"] for r in rows]
+    subs = [r["subs"] for r in rows]
+    leagues = [r["league"] for r in rows]
+    colors = [_LCC.get(r["league"], "#888") for r in rows]
+    flags = [f"{_LF.get(r['league'], '')} {r['league']}" for r in rows]
+    customdata = list(zip(flags, [r["handle"] or "" for r in rows]))
+
+    if league_filter:
+        st.subheader(f"📊 Subscribers by channel — {_LF.get(league_filter, '')} {league_filter}")
+        st.caption("All channels in scope, ranked by subscriber count (highest left).")
+    else:
+        st.subheader("📊 Subscribers by channel — Top-5 leagues")
+        st.caption("All clubs and league channels across the Top-5 leagues, "
+                   "ranked by subscriber count. Bar color = league.")
+
+    fig = _go.Figure(_go.Bar(
+        x=names, y=subs, marker_color=colors,
+        customdata=customdata,
+        hovertemplate=("<b>%{x}</b><br>"
+                       "%{customdata[0]} · %{customdata[1]}<br>"
+                       "Subs: %{y:,}<extra></extra>"),
+    ))
+    # Long club lists need angled labels; auto-rotate via tickangle.
+    fig.update_layout(
+        height=max(360, 22 * (1 if not names else 0) + 360),
+        xaxis=dict(title="", tickangle=-45, automargin=True,
+                   tickfont=dict(size=10)),
+        yaxis=dict(title="Subscribers", showgrid=True,
+                   gridcolor="rgba(255,255,255,0.08)"),
+        margin=dict(t=30, b=120, l=60, r=20),
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#FAFAFA"),
+        showlegend=False,
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 
@@ -562,6 +628,9 @@ if league is None and _scope == "Overall":
     </script>
     """, height=_all_tbl_h, scrolling=False)
 
+    # ── Subscribers by channel — all channels in sequence by rank ──
+    _render_subs_rank_chart(all_channels)
+
     # ── Channels launched per year (Top-5 leagues, stacked) ──
     _render_launch_year_chart(all_channels)
 
@@ -880,6 +949,7 @@ elif club is None:
     # ── Channels launched per year ──
     # All-Leagues + scope-toggle modes (league is None) → stacked Top-5.
     # One-league mode (league set) → single-color bars for that league.
+    _render_subs_rank_chart(all_channels, league_filter=league)
     _render_launch_year_chart(all_channels, league_filter=league)
 
 
