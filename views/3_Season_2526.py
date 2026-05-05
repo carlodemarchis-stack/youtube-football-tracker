@@ -26,6 +26,75 @@ require_login()
 
 st.title("Season 25/26")
 
+# Heatmap colorscale shared by all three publishing-heatmap renders
+# (Z1, Z2, Z3). Dark for empty/low slots, bright red at the peak so the
+# "hottest" hour reads as such regardless of scale.
+_HEATMAP_SCALE = [
+    [0.0,  "#0E1117"],   # background (empty cells)
+    [0.001, "#2a1c1c"],  # very dim red-tint just above zero
+    [0.30, "#7a2c2c"],
+    [0.55, "#FF6B35"],   # orange
+    [0.80, "#FF1744"],   # red
+    [1.0,  "#FFEB3B"],   # peak yellow-white pop
+]
+
+
+def _render_publishing_heatmap_grid(grid_counts, grid_avg_views,
+                                    title: str, scope_label: str):
+    """Render a 7×24 publishing-rhythm heatmap from precomputed grids.
+
+    grid_counts / grid_avg_views: 7-row × 24-col 2D iterables (rows in
+    Mon→Sun order, cols 00→23 hours, CET-bucketed).
+    """
+    import plotly.graph_objects as _go_h
+    _hour_labels = [f"{h:02d}" for h in range(24)]
+    _dow_labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    # Find peak slot for the caption
+    _max_n = 0
+    _peak_dow = _peak_h = 0
+    for r in range(7):
+        for c in range(24):
+            v = int(grid_counts[r][c] or 0)
+            if v > _max_n:
+                _max_n, _peak_dow, _peak_h = v, r, c
+    if _max_n > 0:
+        _peak = (f"Peak slot: **{_dow_labels[_peak_dow]} "
+                 f"{_peak_h:02d}:00 CET** with {_max_n} posts.")
+    else:
+        _peak = ""
+
+    st.subheader(title)
+    st.caption(f"Day-of-week × hour (CET) for the season{scope_label}. "
+               f"Brighter / redder = more videos. Hover for count and "
+               f"average views per slot. {_peak}")
+
+    _avg_disp = [[fmt_num(int(round(grid_avg_views[r][c] or 0)))
+                  for c in range(24)] for r in range(7)]
+    _counts_z = [[int(grid_counts[r][c] or 0) for c in range(24)] for r in range(7)]
+    fig_hm = _go_h.Figure(_go_h.Heatmap(
+        z=_counts_z,
+        x=_hour_labels,
+        y=_dow_labels,
+        customdata=_avg_disp,
+        colorscale=_HEATMAP_SCALE,
+        colorbar=dict(title="Posts", thickness=10, x=1.02, len=0.9),
+        hovertemplate=("<b>%{y} %{x}:00</b><br>"
+                       "%{z} post(s)<br>"
+                       "Avg views/post: %{customdata}<extra></extra>"),
+        xgap=1, ygap=1,
+    ))
+    fig_hm.update_layout(
+        height=300,
+        xaxis=dict(title="Hour (CET)", tickfont=dict(size=10), side="bottom"),
+        yaxis=dict(title="", autorange="reversed",
+                   tickfont=dict(size=11)),
+        margin=dict(t=10, b=40, l=10, r=10),
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#FAFAFA"),
+    )
+    st.plotly_chart(fig_hm, use_container_width=True)
+
+
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 
@@ -916,6 +985,24 @@ if league is None and _scope == "Overall":
             )
         st.altair_chart(cadence_chart, use_container_width=True)
 
+    # ── Publishing heatmap — when does the whole ecosystem post? ──
+    try:
+        from src import dashboard_cache as _dc_hm_all
+        _hm = _dc_hm_all.read(db, "publishing_heatmap", _dc_hm_all.scope_all())
+        _hm_payload = (_hm or {}).get("payload") or {}
+        _hm_counts = _hm_payload.get("counts")
+        _hm_sums = _hm_payload.get("sum_views")
+        if _hm_counts and _hm_sums:
+            _hm_avg = [[(_hm_sums[r][c] // _hm_counts[r][c])
+                        if _hm_counts[r][c] else 0
+                        for c in range(24)] for r in range(7)]
+            _render_publishing_heatmap_grid(
+                _hm_counts, _hm_avg,
+                "📅 Publishing heatmap — All Leagues",
+                " (all Top-5 league channels combined)")
+    except Exception as _e:
+        st.caption(f"(publishing heatmap unavailable: {_e})")
+
     # ── Views concentration — one bar per league ───────────────────────
     try:
         from src import dashboard_cache as _dc_conc_all
@@ -1708,6 +1795,25 @@ if club is None:
         except Exception as _e:
             st.caption(f"(cadence chart unavailable: {_e})")
 
+    # ── Publishing heatmap (one league) ───────────────────────────────
+    if league:
+        try:
+            from src import dashboard_cache as _dc_hm_lg
+            _hm_lg = _dc_hm_lg.read(db, "publishing_heatmap", _dc_hm_lg.scope_league(league))
+            _hm_payload = (_hm_lg or {}).get("payload") or {}
+            _hm_counts = _hm_payload.get("counts")
+            _hm_sums = _hm_payload.get("sum_views")
+            if _hm_counts and _hm_sums:
+                _hm_avg = [[(_hm_sums[r][c] // _hm_counts[r][c])
+                            if _hm_counts[r][c] else 0
+                            for c in range(24)] for r in range(7)]
+                _render_publishing_heatmap_grid(
+                    _hm_counts, _hm_avg,
+                    f"📅 Publishing heatmap — {league}",
+                    f" ({league} channels combined)")
+        except Exception as _e:
+            st.caption(f"(publishing heatmap unavailable: {_e})")
+
     # ── Views concentration per club (one league only) ────────────────
     if league:
         try:
@@ -2130,9 +2236,9 @@ else:
             _peak_caption = ""
 
         st.subheader("📅 Publishing heatmap — when does this club post?")
-        st.caption(f"Day-of-week × hour (CET) for the season. Darker = more "
-                   f"videos. Hover for count and average views per slot. "
-                   f"{_peak_caption}")
+        st.caption(f"Day-of-week × hour (CET) for the season. Brighter / "
+                   f"redder = more videos. Hover for count and average views "
+                   f"per slot. {_peak_caption}")
 
         _hour_labels = [f"{h:02d}" for h in range(24)]
         _dow_labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -2144,8 +2250,7 @@ else:
             x=_hour_labels,
             y=_dow_labels,
             customdata=_avg_disp,
-            colorscale=[[0, "#0E1117"], [0.001, "#1c2230"],
-                        [0.5, "#3a6fb5"], [1, "#7ab6ff"]],
+            colorscale=_HEATMAP_SCALE,
             colorbar=dict(title="Posts", thickness=10, x=1.02, len=0.9),
             hovertemplate=("<b>%{y} %{x}:00</b><br>"
                            "%{z} post(s)<br>"

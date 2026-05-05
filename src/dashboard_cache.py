@@ -399,6 +399,16 @@ def refresh_publish_cadence(db, log=print, channels: list[dict] | None = None) -
         league_month: dict[str, dict[str, dict[str, int]]] = {}
         # per-league → {YYYY-MM: {format: {videos, views}}}
         league_fmt_month: dict[str, dict[str, dict[str, dict[str, int]]]] = {}
+        # Publishing-rhythm grids (CET). 7 dows × 24 hours.
+        # all → 2D counts + sum_views (for avg_views/cell)
+        # per-league → same shape
+        from datetime import datetime as _dt
+        def _empty_grid():
+            return [[0] * 24 for _ in range(7)]
+        all_count = _empty_grid()
+        all_views = _empty_grid()
+        league_count: dict[str, list] = {}
+        league_views: dict[str, list] = {}
 
         for r in rows:
             cid = r.get("channel_id")
@@ -424,6 +434,19 @@ def refresh_publish_cadence(db, log=print, channels: list[dict] | None = None) -
                                       .setdefault(label, {"videos": 0, "views": 0})
             fbucket["videos"] += 1
             fbucket["views"] += v
+            # ── Heatmap accumulators (CET-bucketed) ──
+            try:
+                pub_dt = _dt.fromisoformat(pa.replace("Z", "+00:00")).astimezone(CET)
+                dow = pub_dt.weekday()  # 0=Mon
+                hr = pub_dt.hour
+                all_count[dow][hr] += 1
+                all_views[dow][hr] += v
+                lg_c = league_count.setdefault(lg, _empty_grid())
+                lg_v = league_views.setdefault(lg, _empty_grid())
+                lg_c[dow][hr] += 1
+                lg_v[dow][hr] += v
+            except Exception:
+                pass
 
         # ── Write the "all" payload (zoom-1 charts) ──
         all_rows = []
@@ -452,6 +475,25 @@ def refresh_publish_cadence(db, log=print, channels: list[dict] | None = None) -
                    "as_of": _date.today().isoformat()})
             log(f"[dashboard_cache] publish_cadence/{lg} WRITTEN "
                 f"({len(payload_rows)} (month, format) pairs)")
+
+        # ── Publishing heatmap payloads (7×24 dow×hour grids, CET) ──
+        # Used by Season Z1 (all scope) and Season Z2 (per-league).
+        # Z3 is computed live from the already-loaded df_vids (no cache).
+        write(db, "publishing_heatmap", scope_all(),
+              {"counts": all_count,
+               "sum_views": all_views,
+               "since": DURATION_SEASON_SINCE,
+               "as_of": _date.today().isoformat()})
+        _total_h = sum(sum(row) for row in all_count)
+        log(f"[dashboard_cache] publishing_heatmap/all WRITTEN ({_total_h} videos)")
+        for lg, grid in league_count.items():
+            write(db, "publishing_heatmap", scope_league(lg),
+                  {"counts": grid,
+                   "sum_views": league_views.get(lg, _empty_grid()),
+                   "since": DURATION_SEASON_SINCE,
+                   "as_of": _date.today().isoformat()})
+            _ln = sum(sum(row) for row in grid)
+            log(f"[dashboard_cache] publishing_heatmap/{lg} WRITTEN ({_ln} videos)")
     except Exception as e:
         log(f"[dashboard_cache] publish_cadence failed (non-fatal): {e}")
 
