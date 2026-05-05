@@ -9,7 +9,7 @@ import pandas as pd
 from dotenv import load_dotenv
 
 from src.database import Database
-from src.analytics import fmt_num, yt_popup_js
+from src.analytics import fmt_num, yt_popup_js, CATEGORY_COLORS
 from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope, get_league_for_channel, render_page_subtitle
 from src.auth import require_login
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, LEAGUE_COLOR, LEAGUE_COLOR_CHART, get_season_since, LEAGUE_SEASON_START
@@ -276,8 +276,10 @@ def _render_top_season_videos(channel_ids, channels_by_id, since, limit=20, head
         title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;")
         _cat = (v.get("category") or "").replace("<", "&lt;")
         # Hide "Other" / empty categories — same convention as zoom-3.
+        # Color matches the category pie chart palette.
+        _cat_color = CATEGORY_COLORS.get(_cat, "#888")
         _cat_html = (f'<span style="color:#666">·</span>'
-                     f'<span style="color:#888">{_cat}</span>'
+                     f'<span style="color:{_cat_color}">{_cat}</span>'
                      if _cat and _cat != "Other" else "")
         rows += f"""<tr onclick="window.open('{yt_url}','_blank','noopener')" style="cursor:pointer">
             <td style="padding:6px 12px;text-align:right;color:#888">{i}</td>
@@ -2084,8 +2086,10 @@ else:
         title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;")
         _cat = (v.get("category") or "").replace("<", "&lt;")
         # Hide "Other" / empty categories — they aren't useful as tags.
-        # Category is rendered LAST in the meta line.
-        _cat_span = f' · <span style="color:#888">{_cat}</span>' if _cat and _cat != "Other" else ""
+        # Category is rendered LAST in the meta line, colored to match
+        # the category pie chart palette so the tag and slice line up.
+        _cat_color = CATEGORY_COLORS.get(_cat, "#888")
+        _cat_span = f' · <span style="color:{_cat_color}">{_cat}</span>' if _cat and _cat != "Other" else ""
         _meta = (f'<span style="color:{fmt_color}">{fmt_label}</span> · '
                  f'{_dur(v.get("duration_seconds", 0))} · '
                  f'<span style="color:#888">{pub}</span>'
