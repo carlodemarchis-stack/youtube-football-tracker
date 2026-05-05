@@ -2124,7 +2124,9 @@ else:
         <tbody>{rows_html}</tbody>
         </table>
         {yt_popup_js()}
-        """, height=len(ranked) * 92 + 80, scrolling=False)
+        # Row height: 6+6 padding + 68px thumbnail + 1px border ≈ 81px.
+        # Header: ~32px. iframe chrome: ~16px buffer.
+        """, height=len(ranked) * 81 + 50, scrolling=False)
 
     top_views = sorted(vids, key=lambda v: v.get("view_count", 0) or 0, reverse=True)[:20]
     top_likes = sorted(vids, key=lambda v: v.get("like_count", 0) or 0, reverse=True)[:5]
