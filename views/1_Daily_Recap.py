@@ -347,11 +347,13 @@ if ONE_CLUB:
 
     # View delta per club
     _all_view_deltas: dict[str, int] = {}
+    _all_sub_deltas: dict[str, int] = {}
     for cid in _all_day:
         a = _all_day.get(cid)
         b = _all_prev.get(cid)
         if a and b:
             _all_view_deltas[cid] = int(a.get("total_views", 0) or 0) - int(b.get("total_views", 0) or 0)
+            _all_sub_deltas[cid] = int(a.get("subscriber_count", 0) or 0) - int(b.get("subscriber_count", 0) or 0)
 
     # New videos per club (unfiltered — needed to rank this club vs all others)
     _all_new_rows = _load_new_video_channel_ids(start_ts, end_ts)
@@ -402,12 +404,19 @@ if ONE_CLUB:
         unsafe_allow_html=True,
     )
     _fmt_combined = f"{_fmt_counts['long']} / {_fmt_counts['short']} / {_fmt_counts['live']}"
-    k1, k2, k3 = st.columns(3)
+    # 4-tile row to match Z1/Z2 width — adds Δ Subscribers (with rank).
+    # YouTube rounds subs to the nearest 10K, so deltas are coarse but
+    # still useful for "did this club gain/lose subs today vs peers?"
+    _sub_delta = int(_all_sub_deltas.get(g_club["id"], 0))
+    k1, k2, k3, k4 = st.columns(4)
     k1.metric("👁️ Δ Channel Views", f"{'+' if total_view_delta >= 0 else ''}{fmt_num(total_view_delta)}")
     k1.markdown(_daily_rank_html(_all_view_deltas), unsafe_allow_html=True)
     k2.metric("🎬 New videos", fmt_num(total_new_videos))
     k2.markdown(_daily_rank_html(_all_new_counts), unsafe_allow_html=True)
-    k3.metric("📺 Long / Shorts / Live", _fmt_combined)
+    k3.metric("👥 Δ Subscribers", f"{'+' if _sub_delta >= 0 else ''}{fmt_num(_sub_delta)}",
+              help="YouTube rounds subscriber counts to the nearest 10K, so daily Δ is coarse.")
+    k3.markdown(_daily_rank_html(_all_sub_deltas), unsafe_allow_html=True)
+    k4.metric("📺 Long / Shorts / Live", _fmt_combined)
 else:
     # Most active club: posted most videos yesterday
     club_new_counts: dict[str, int] = {}

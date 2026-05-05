@@ -360,10 +360,8 @@ components.html(f"""
             user-select:none; white-space:nowrap; }}
   .lt th[data-col] {{ cursor:pointer; }}
   .lt th[data-col]:hover {{ color:#58A6FF; }}
-  /* Hide arrow on inactive columns; show only on the active sorted one */
-  .lt th .arrow {{ font-size:10px; margin-left:4px; opacity:0; }}
-  .lt th.sorted .arrow {{ opacity:1; color:#58A6FF; }}
-  .lt th.sorted {{ color:#58A6FF; }}
+  /* Inline text-arrow + .active pattern — matches the rest of the site. */
+  .lt th.active {{ color:#58A6FF; }}
   .lt td {{ border-bottom:1px solid #262730; padding:6px 12px; vertical-align:middle; }}
   .lt tr:hover td {{ background:#1a1c24; }}
   .dot {{ display:inline-block; width:12px; height:12px; border-radius:50%;
@@ -382,11 +380,11 @@ components.html(f"""
 <table class="lt" id="ltTable">
   <thead><tr>
     <th>Video</th>
-    <th data-col="dur" data-type="num" style="text-align:right">Duration <span class="arrow">▲</span></th>
-    <th data-col="views" data-type="num" style="text-align:right">Views <span class="arrow">▲</span></th>
-    <th data-col="likes" data-type="num" style="text-align:right">Likes <span class="arrow">▲</span></th>
-    <th data-col="comments" data-type="num" style="text-align:right">Comments <span class="arrow">▲</span></th>
-    <th data-col="age" data-type="num">Age <span class="arrow">▲</span></th>
+    <th data-col="dur" data-type="num" style="text-align:right">Duration</th>
+    <th data-col="views" data-type="num" style="text-align:right">Views</th>
+    <th data-col="likes" data-type="num" style="text-align:right">Likes</th>
+    <th data-col="comments" data-type="num" style="text-align:right">Comments</th>
+    <th data-col="age" data-type="num" class="active">Age ▲</th>
   </tr></thead>
   <tbody>{rows_html}</tbody>
 </table>
@@ -395,14 +393,8 @@ components.html(f"""
   const table = document.getElementById('ltTable');
   const headers = table.querySelectorAll('th[data-col]');
   // Initial sort state: rows arrive ordered by published_at DESC, which
-  // is equivalent to Age ascending (newest = lowest age first). Mark
-  // the Age header as the active sort so the indicator matches reality.
+  // is equivalent to Age ascending — Age ▲ is rendered server-side.
   let currentCol = 'age', asc = true;
-  const ageTh = table.querySelector('th[data-col="age"]');
-  if (ageTh) {{
-    ageTh.classList.add('sorted');
-    ageTh.querySelector('.arrow').textContent = '▲';
-  }}
 
   headers.forEach(th => {{
     th.addEventListener('click', () => {{
@@ -411,14 +403,13 @@ components.html(f"""
       if (currentCol === col) {{ asc = !asc; }}
       else {{ currentCol = col; asc = (type === 'num') ? false : true; }}
 
-      // Clear all arrows / sorted markers, then set on the active column.
+      // Strip arrows + active class from all, then mark the clicked column.
       headers.forEach(h => {{
-        h.classList.remove('sorted');
-        const a = h.querySelector('.arrow');
-        if (a) a.textContent = '▲';  // reset glyph (hidden via opacity:0)
+        h.classList.remove('active');
+        h.textContent = h.textContent.replace(/ [▲▼]/g, '');
       }});
-      th.classList.add('sorted');
-      th.querySelector('.arrow').textContent = asc ? '▲' : '▼';
+      th.classList.add('active');
+      th.textContent += asc ? ' ▲' : ' ▼';
 
       const tbody = table.querySelector('tbody');
       const rows = Array.from(tbody.querySelectorAll('tr'));

@@ -509,46 +509,45 @@ components.html(
       .vidlist {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
                   font-family:"Source Sans Pro",sans-serif; }}
       .vidlist th {{ padding:8px 12px; border-bottom:2px solid #444; text-align:left;
-                     background:#0E1117; position:sticky; top:0; z-index:1; }}
+                     background:#0E1117; position:sticky; top:0; z-index:1;
+                     user-select:none; }}
       .vidlist td {{ border-bottom:1px solid #262730; }}
       .vidlist tr:hover td {{ background:#1a1c24; }}
-      .vidlist th[data-col] {{ cursor:pointer; user-select:none; }}
+      .vidlist th[data-col] {{ cursor:pointer; }}
       .vidlist th[data-col]:hover {{ color:#58A6FF; }}
-      /* Hide arrow on inactive columns; only the sorted one gets it. */
-      .vidlist .arrow {{ font-size:11px; opacity:0; margin-left:2px; }}
-      .vidlist th.sorted {{ color:#58A6FF; }}
-      .vidlist th.sorted .arrow {{ opacity:1; color:#58A6FF; }}
+      /* Match the inline text-arrow + .active pattern used everywhere else
+         on the site (Channels, Season, Daily Recap, Federations, …). */
+      .vidlist th.active {{ color:#58A6FF; }}
     </style>
     <div style="max-height:1350px;overflow:auto">
     <table class="vidlist" id="vlTable"><thead><tr>
       <th style="text-align:right">#</th>
       <th>Video</th>
-      <th data-col="views" style="text-align:right">Views <span class="arrow">▲</span></th>
-      <th data-col="likes" style="text-align:right">Likes <span class="arrow">▲</span></th>
-      <th data-col="comments" style="text-align:right">Comments <span class="arrow">▲</span></th>
-      <th data-col="age">Age <span class="arrow">▲</span></th>
-      <th data-col="dur">Duration <span class="arrow">▲</span></th>
+      <th data-col="views" style="text-align:right" class="active">Views ▼</th>
+      <th data-col="likes" style="text-align:right">Likes</th>
+      <th data-col="comments" style="text-align:right">Comments</th>
+      <th data-col="age">Age</th>
+      <th data-col="dur">Duration</th>
     </tr></thead><tbody>{_rows_html}</tbody></table>
     </div>
     <script>
     (function() {{
       const table = document.getElementById('vlTable');
       const headers = table.querySelectorAll('th[data-col]');
-      // Initial sort: rows arrive ordered by view_count DESC. Mark Views ▼.
+      // Initial sort: rows arrive ordered by view_count DESC. Views ▼ marked.
       let currentCol = 'views', asc = false;
-      const viewsTh = table.querySelector('th[data-col="views"]');
-      if (viewsTh) {{
-        viewsTh.classList.add('sorted');
-        viewsTh.querySelector('.arrow').textContent = '▼';
-      }}
       headers.forEach(th => {{
         th.addEventListener('click', () => {{
           const col = th.dataset.col;
           if (currentCol === col) {{ asc = !asc; }}
           else {{ currentCol = col; asc = false; }}
-          headers.forEach(h => {{ h.classList.remove('sorted'); h.querySelector('.arrow').textContent = '▲'; }});
-          th.classList.add('sorted');
-          th.querySelector('.arrow').textContent = asc ? '▲' : '▼';
+          // Strip arrows + active class from everyone, then mark this one.
+          headers.forEach(h => {{
+            h.classList.remove('active');
+            h.textContent = h.textContent.replace(/ [▲▼]/g, '');
+          }});
+          th.classList.add('active');
+          th.textContent += asc ? ' ▲' : ' ▼';
           const tbody = table.querySelector('tbody');
           const rows = Array.from(tbody.querySelectorAll('tr'));
           rows.sort((a, b) => {{
