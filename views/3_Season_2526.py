@@ -1624,23 +1624,47 @@ if club is None:
                            f"since {SEASON_SINCE}.{projection_note}")
                 fmt_order = ["Long", "Shorts", "Live"]
                 fmt_palette = ["#636EFA", "#00CC96", "#FFA15A"]
-                area_chart = (
-                    alt.Chart(plot_df).mark_area(opacity=0.85).encode(
-                        x=alt.X("yearmonth(month):T", title=None,
-                                axis=alt.Axis(format="%b %Y", labelAngle=-30)),
-                        y=alt.Y("videos:Q", title=None, stack="zero",
-                                axis=alt.Axis(labelExpr="replace(format(datum.value, \"~s\"), \"G\", \"B\")")),
-                        color=alt.Color("format:N",
-                                        scale=alt.Scale(domain=fmt_order,
-                                                        range=fmt_palette)),
-                        order=alt.Order("format:N"),
-                        tooltip=[
-                            alt.Tooltip("yearmonth(month):T", title="Month"),
-                            alt.Tooltip("format:N", title="Format"),
-                            alt.Tooltip("videos:Q", format=",", title="Videos"),
-                        ],
-                    ).properties(height=300)
+
+                def _area_layer(df_in, opacity, tooltip_views_label):
+                    return (
+                        alt.Chart(df_in).mark_area(opacity=opacity).encode(
+                            x=alt.X("yearmonth(month):T", title=None,
+                                    axis=alt.Axis(format="%b %Y", labelAngle=-30)),
+                            y=alt.Y("videos:Q", title=None, stack="zero",
+                                    axis=alt.Axis(labelExpr="replace(format(datum.value, \"~s\"), \"G\", \"B\")")),
+                            color=alt.Color("format:N",
+                                            scale=alt.Scale(domain=fmt_order,
+                                                            range=fmt_palette)),
+                            order=alt.Order("format:N"),
+                            tooltip=[
+                                alt.Tooltip("yearmonth(month):T", title="Month"),
+                                alt.Tooltip("format:N", title="Format"),
+                                alt.Tooltip("videos:Q", format=",",
+                                            title=tooltip_views_label),
+                            ],
+                        )
+                    )
+
+                # If the current month is projected, fade its segment by
+                # rendering two area layers: solid up to the previous month,
+                # semi-transparent overlay for the prev→current segment.
+                # The shared seam at prev_month keeps the stack continuous.
+                is_projected_z2 = bool(projection_note) and (
+                    plot_df["month"].max() == cur_start
                 )
+                months_sorted_z2 = sorted(plot_df["month"].unique()) if is_projected_z2 else []
+                if is_projected_z2 and len(months_sorted_z2) >= 2:
+                    last_m = months_sorted_z2[-1]
+                    prev_m = months_sorted_z2[-2]
+                    solid_df = plot_df[plot_df["month"] <= prev_m]
+                    proj_df = plot_df[plot_df["month"] >= prev_m]
+                    area_chart = (
+                        _area_layer(solid_df, 0.85, "Videos")
+                        + _area_layer(proj_df, 0.35, "Videos (projected)")
+                    ).properties(height=300)
+                else:
+                    area_chart = _area_layer(plot_df, 0.85, "Videos") \
+                                 .properties(height=300)
                 st.altair_chart(area_chart, use_container_width=True)
         except Exception as _e:
             st.caption(f"(cadence chart unavailable: {_e})")
