@@ -23,6 +23,80 @@ _lg_flag = lambda name: LEAGUE_FLAG.get(name, "")
 
 st.title("Channels")
 
+
+def _render_launch_year_chart(channels, league_filter: str | None = None):
+    """Bar chart of YouTube channels launched per year.
+
+    All-Leagues case: stacked by league (Top-5). One-League case: single
+    bar color (league brand). Restricted to entity_type in (Club, League).
+    """
+    import plotly.graph_objects as _go
+    from src.channels import LEAGUE_COLOR_CHART as _LCC, LEAGUE_FLAG as _LF
+
+    TOP5 = ["Serie A", "Premier League", "La Liga", "Bundesliga", "Ligue 1"]
+    rows = []
+    for c in channels:
+        if c.get("entity_type") not in ("Club", "League"):
+            continue
+        lg = COUNTRY_TO_LEAGUE.get((c.get("country") or "").upper())
+        if lg not in TOP5:
+            continue
+        if league_filter and lg != league_filter:
+            continue
+        la = (c.get("launched_at") or "")
+        if len(la) < 4:
+            continue
+        try:
+            year = int(la[:4])
+        except Exception:
+            continue
+        rows.append({"year": year, "league": lg})
+    if not rows:
+        return
+
+    df = pd.DataFrame(rows)
+    yr_min, yr_max = int(df["year"].min()), int(df["year"].max())
+    years = list(range(yr_min, yr_max + 1))
+
+    if league_filter:
+        st.subheader(f"📅 Channels launched per year — {_LF.get(league_filter, '')} {league_filter}")
+        st.caption("YouTube channel creation year for clubs and the league channel.")
+        counts = df.groupby("year").size().reindex(years, fill_value=0)
+        fig = _go.Figure(_go.Bar(
+            x=list(counts.index), y=list(counts.values),
+            marker_color=_LCC.get(league_filter, "#888"),
+            hovertemplate="%{x}: %{y} channel(s)<extra></extra>",
+        ))
+    else:
+        st.subheader("📅 Channels launched per year — by league")
+        st.caption("YouTube channel creation year for clubs and league channels (Top-5 leagues).")
+        fig = _go.Figure()
+        # Stack in a stable order so colors line up across reloads.
+        for lg in TOP5:
+            sub = df[df["league"] == lg]
+            if sub.empty:
+                continue
+            counts = sub.groupby("year").size().reindex(years, fill_value=0)
+            fig.add_trace(_go.Bar(
+                name=f"{_LF.get(lg, '')} {lg}".strip(),
+                x=list(counts.index), y=list(counts.values),
+                marker_color=_LCC.get(lg, "#888"),
+                hovertemplate=f"<b>{lg}</b><br>%{{x}}: %{{y}}<extra></extra>",
+            ))
+        fig.update_layout(barmode="stack")
+
+    fig.update_layout(
+        xaxis=dict(title="", dtick=1, tickangle=-30),
+        yaxis=dict(title="Channels launched"),
+        margin=dict(t=30, b=60),
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#FAFAFA"),
+        legend=dict(orientation="h", yanchor="top", y=-0.18,
+                    xanchor="center", x=0.5),
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 
@@ -484,6 +558,8 @@ if league is None and _scope == "Overall":
     </script>
     """, height=_all_tbl_h, scrolling=False)
 
+    # ── Channels launched per year (Top-5 leagues, stacked) ──
+    _render_launch_year_chart(all_channels)
 
 
 # ══════════════════════════════════════════════════════════════
@@ -748,6 +824,11 @@ elif club is None:
     else:
         for _f in _charts:
             st.plotly_chart(_f, use_container_width=True)
+
+    # ── Channels launched per year ──
+    # All-Leagues + scope-toggle modes (league is None) → stacked Top-5.
+    # One-league mode (league set) → single-color bars for that league.
+    _render_launch_year_chart(all_channels, league_filter=league)
 
 
     # ── AI Chat — hidden for now ──
