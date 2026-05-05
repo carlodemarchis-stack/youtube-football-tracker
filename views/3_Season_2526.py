@@ -2097,6 +2097,74 @@ else:
                              font=dict(color="#FAFAFA"))
         st.plotly_chart(fig_mv, use_container_width=True)
 
+    # ── Publishing heatmap (day-of-week × hour, CET) ───────────
+    # Reveals the club's editorial rhythm: when do they post highlights,
+    # press conferences, shorts? CET-bucketed to match the rest of the
+    # app (Daily Recap, KPI counts, etc.). Source data is df_vids which
+    # already has published_at parsed and TZ-aware.
+    try:
+        from zoneinfo import ZoneInfo as _ZI
+        _df_h = df_vids.copy()
+        _df_h["_pub_cet"] = _df_h["published_at"].dt.tz_convert(_ZI("Europe/Rome"))
+        _df_h["_dow"] = _df_h["_pub_cet"].dt.weekday  # 0=Mon … 6=Sun
+        _df_h["_hour"] = _df_h["_pub_cet"].dt.hour
+
+        # Counts grid 7×24 — reindex to fill empty cells with 0 so the
+        # heatmap renders the full week even on sparse channels.
+        _counts = (_df_h.groupby(["_dow", "_hour"]).size()
+                   .unstack(fill_value=0)
+                   .reindex(index=range(7), columns=range(24), fill_value=0))
+        # Average views per cell — used as a secondary hover signal.
+        _avg_views = (_df_h.groupby(["_dow", "_hour"])["view_count"].mean()
+                      .unstack(fill_value=0)
+                      .reindex(index=range(7), columns=range(24), fill_value=0))
+
+        # Peak callout
+        _max_n = int(_counts.values.max()) if _counts.values.size else 0
+        if _max_n > 0:
+            _peak_dow, _peak_h = _counts.stack().idxmax()
+            _dow_short = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][int(_peak_dow)]
+            _peak_caption = (f"Peak slot: **{_dow_short} {int(_peak_h):02d}:00 CET** "
+                             f"with {_max_n} posts.")
+        else:
+            _peak_caption = ""
+
+        st.subheader("📅 Publishing heatmap — when does this club post?")
+        st.caption(f"Day-of-week × hour (CET) for the season. Darker = more "
+                   f"videos. Hover for count and average views per slot. "
+                   f"{_peak_caption}")
+
+        _hour_labels = [f"{h:02d}" for h in range(24)]
+        _dow_labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        # Custom 2D for hover: show avg views as integer, formatted.
+        _avg_disp = [[fmt_num(int(round(_avg_views.iat[r, c])))
+                      for c in range(24)] for r in range(7)]
+        fig_hm = go.Figure(go.Heatmap(
+            z=_counts.values,
+            x=_hour_labels,
+            y=_dow_labels,
+            customdata=_avg_disp,
+            colorscale=[[0, "#0E1117"], [0.001, "#1c2230"],
+                        [0.5, "#3a6fb5"], [1, "#7ab6ff"]],
+            colorbar=dict(title="Posts", thickness=10, x=1.02, len=0.9),
+            hovertemplate=("<b>%{y} %{x}:00</b><br>"
+                           "%{z} post(s)<br>"
+                           "Avg views/post: %{customdata}<extra></extra>"),
+            xgap=1, ygap=1,
+        ))
+        fig_hm.update_layout(
+            height=300,
+            xaxis=dict(title="Hour (CET)", tickfont=dict(size=10), side="bottom"),
+            yaxis=dict(title="", autorange="reversed",  # Mon at top
+                       tickfont=dict(size=11)),
+            margin=dict(t=10, b=40, l=10, r=10),
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#FAFAFA"),
+        )
+        st.plotly_chart(fig_hm, use_container_width=True)
+    except Exception as _e:
+        st.caption(f"(publishing heatmap unavailable: {_e})")
+
     # ── Views distribution (Pareto) ────────────────────────────
     st.subheader("Views distribution")
     st.caption("Are season views balanced across videos, or driven by a few hits? "
