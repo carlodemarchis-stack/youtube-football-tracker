@@ -283,7 +283,7 @@ try:
 except Exception:
     pass  # never block the page on a missing/broken note
 
-# ── Biggest gainers this week (snapshot-driven) ─────────────────
+# ── Biggest gainers this week (cached: dashboard_cache.home_top) ─────────────
 try:
     SUPABASE_URL = os.getenv("SUPABASE_URL", "")
     SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
@@ -291,89 +291,27 @@ try:
         _db = Database(SUPABASE_URL, SUPABASE_KEY)
         _channels = _db.get_all_channels()
         _ch_by_id = {c["id"]: c for c in _channels}
-        _since = (pd.Timestamp.utcnow().normalize() - pd.Timedelta(days=14)).strftime("%Y-%m-%d")
-        _snaps = _db.get_all_snapshots(since_date=_since)
-        _by_ch = group_by_channel(_snaps)
 
-        # Top-5 European leagues only — clubs + the 5 league channels.
-        _TOP5 = {"Serie A", "Premier League", "La Liga", "Bundesliga", "Ligue 1"}
-        _gainers = []
-        for cid, s in _by_ch.items():
-            ch = _ch_by_id.get(cid)
-            if not ch or len(s) < 2:
-                continue
-            if ch.get("entity_type") not in ("Club", "League"):
-                continue
-            _lg = COUNTRY_TO_LEAGUE.get((ch.get("country") or "").upper())
-            if _lg not in _TOP5:
-                continue
-            # YouTube rounds subscriber_count to the nearest 10K — 7d subs delta
-            # is too coarse (everyone shows ±100K). Rank by Δ total_views instead.
-            d7_views = delta(s, "total_views", 7)
-            if d7_views is None:
-                continue
-            _gainers.append({
-                "name": ch["name"],
-                "views": int(s[-1].get("total_views", 0) or 0),
-                "subs": int(s[-1].get("subscriber_count", 0) or 0),
-                "d7_views": int(d7_views),
-                "handle": ch.get("handle", ""),
-                "_ch": ch,
-            })
+        # Read pre-computed leaderboards. Cache is refreshed nightly by
+        # daily_refresh and on every new-video pull by hourly_rss, so the
+        # numbers are at most 1 hour stale.
+        from src import dashboard_cache as _dc_home
+        _home = _dc_home.read(_db, "home_top", _dc_home.scope_all())
+        _home_payload = (_home or {}).get("payload") or {}
+        top5_views = _home_payload.get("top5_views") or []
+        top5_pubs = _home_payload.get("top5_pubs") or []
 
-        if _gainers:
-            _gainers.sort(key=lambda g: g["d7_views"], reverse=True)
-            top5_views = _gainers[:5]
+        # Re-attach the live channel dict (for badge color lookups) — the
+        # cache only stores ids/names so we don't bloat the payload with
+        # the full channel record.
+        for _r in top5_views:
+            _r["_ch"] = _ch_by_id.get(_r.get("channel_id")) or {}
+        for _r in top5_pubs:
+            _r["_ch"] = _ch_by_id.get(_r.get("channel_id")) or {}
+
+        if top5_views or top5_pubs:
             color_map = get_global_color_map()
             dual = get_global_color_map_dual()
-
-            # ── Right-hand table data: most videos published in last 7d ──
-            # Query videos published in the last 7 days, group per channel,
-            # count per format. Restrict to top-5 leagues + League channels
-            # so the two tables share the same scope.
-            from datetime import timezone as _tz, timedelta as _td2
-            _start_iso = (datetime.now(_tz.utc) - _td2(days=7)).isoformat()
-            # Paginate — there are 2-3K videos published every 7 days
-            # across all tracked channels, well above Supabase's 1000-row
-            # default. Without this loop we'd return a partial slice and
-            # per-channel counts would silently undercount.
-            _vid_rows: list[dict] = []
-            _page = 1000
-            _offset = 0
-            try:
-                while True:
-                    _batch = (_db.client.table("videos")
-                              .select("channel_id,format,duration_seconds,published_at")
-                              .gte("published_at", _start_iso)
-                              .order("published_at")
-                              .range(_offset, _offset + _page - 1)
-                              .execute().data or [])
-                    _vid_rows.extend(_batch)
-                    if len(_batch) < _page:
-                        break
-                    _offset += _page
-            except Exception:
-                _vid_rows = []
-
-            _pub_counts: dict[str, dict] = {}
-            for v in _vid_rows:
-                ch = _ch_by_id.get(v.get("channel_id"))
-                if not ch or ch.get("entity_type") not in ("Club", "League"):
-                    continue
-                _lg = COUNTRY_TO_LEAGUE.get((ch.get("country") or "").upper())
-                if _lg not in _TOP5:
-                    continue
-                f = (v.get("format") or "").lower()
-                if f not in ("long", "short", "live"):
-                    f = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
-                e = _pub_counts.setdefault(ch["id"], {
-                    "_ch": ch, "name": ch["name"],
-                    "long": 0, "short": 0, "live": 0, "count": 0,
-                })
-                e[f] += 1
-                e["count"] += 1
-            top5_pubs = sorted(_pub_counts.values(),
-                               key=lambda r: r["count"], reverse=True)[:5]
 
             # ── Two side-by-side tables ─────────────────────────────
             _gcol1, _gcol2 = st.columns(2)

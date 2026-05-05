@@ -180,6 +180,15 @@ def main() -> int:
     except Exception as e:
         log(f"latest_vibe refresh failed (non-fatal): {e}")
 
+    # Refresh the Home-page leaderboards (Top 5 view gainers / publishers).
+    # Cheap: one paginated scan of last-7d videos + a snapshot read. No LLM.
+    # Keeps the unauthenticated Home page numbers fresh hourly.
+    try:
+        from src.dashboard_cache import refresh_home_top
+        refresh_home_top(db, log=log)
+    except Exception as e:
+        log(f"home_top refresh failed (non-fatal): {e}")
+
     # Log to fetch_log
     try:
         db.log_fetch(

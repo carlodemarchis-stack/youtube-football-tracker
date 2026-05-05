@@ -254,6 +254,11 @@ def rebuild_all(db, log=print) -> None:
     #    top-1, top-10 share, median, mean). One payload per league.
     refresh_concentration(db, log=log, channels=chans)
 
+    # 9. home_top — Top-5 view gainers + Top-5 publishers (last 7 days).
+    #    The Home page is unauthenticated and high-traffic; this saves
+    #    a 14-day snapshot scan + 7-day video pagination per cold pageview.
+    refresh_home_top(db, log=log, channels=chans)
+
     log("[dashboard_cache] rebuild done")
 
 
@@ -608,6 +613,96 @@ def refresh_concentration(db, log=print, channels: list[dict] | None = None) -> 
         log(f"[dashboard_cache] concentration/all WRITTEN ({len(all_rows)} leagues)")
     except Exception as e:
         log(f"[dashboard_cache] concentration failed (non-fatal): {e}")
+
+
+def refresh_home_top(db, log=print, channels: list[dict] | None = None) -> None:
+    """Pre-compute the Home-page leaderboards (last 7 days):
+      - Top-5 channels by Δ total_views
+      - Top-5 channels by # videos published, with Long/Shorts/Live split
+
+    Both restricted to Top-5 European leagues (clubs + the 5 league channels).
+    Single payload at scope='all' — Home page reads one row, looks up
+    channel meta, renders. No live aggregations.
+    """
+    from src.database import _fetch_all
+    from src.channels import COUNTRY_TO_LEAGUE
+    from src.growth import delta as _delta_fn, group_by_channel as _gbc
+    from datetime import datetime as _dt, timedelta as _td, timezone as _tz, date as _date
+
+    TOP5 = {"Serie A", "Premier League", "La Liga", "Bundesliga", "Ligue 1"}
+
+    try:
+        chans = channels if channels is not None else db.get_all_channels()
+        ch_by_id = {c["id"]: c for c in chans}
+
+        def _in_scope(ch: dict) -> bool:
+            if not ch or ch.get("entity_type") not in ("Club", "League"):
+                return False
+            lg = COUNTRY_TO_LEAGUE.get((ch.get("country") or "").upper())
+            return lg in TOP5
+
+        # ── 7d view gains ────────────────────────────────────
+        since = (_dt.utcnow().date() - _td(days=14)).isoformat()
+        log(f"[dashboard_cache] computing home_top / view gains (since {since})")
+        snaps = db.get_all_snapshots(since_date=since)
+        by_ch = _gbc(snaps)
+        gainers: list[dict] = []
+        for cid, s in by_ch.items():
+            ch = ch_by_id.get(cid)
+            if not _in_scope(ch) or len(s) < 2:
+                continue
+            d7 = _delta_fn(s, "total_views", 7)
+            if d7 is None:
+                continue
+            gainers.append({
+                "channel_id": cid,
+                "name": ch["name"],
+                "handle": ch.get("handle", ""),
+                "country": ch.get("country"),
+                "entity_type": ch.get("entity_type"),
+                "views": int(s[-1].get("total_views", 0) or 0),
+                "subs": int(s[-1].get("subscriber_count", 0) or 0),
+                "d7_views": int(d7),
+            })
+        gainers.sort(key=lambda g: g["d7_views"], reverse=True)
+        top5_views = gainers[:5]
+
+        # ── 7d publishers ───────────────────────────────────
+        start_iso = (_dt.now(_tz.utc) - _td(days=7)).isoformat()
+        log(f"[dashboard_cache] computing home_top / publishers (since {start_iso})")
+        rows = _fetch_all(
+            db.client.table("videos")
+            .select("channel_id,format,duration_seconds,published_at")
+            .gte("published_at", start_iso)
+        )
+        pub_counts: dict[str, dict] = {}
+        for v in rows:
+            ch = ch_by_id.get(v.get("channel_id"))
+            if not _in_scope(ch):
+                continue
+            f = (v.get("format") or "").lower()
+            if f not in ("long", "short", "live"):
+                f = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
+            e = pub_counts.setdefault(ch["id"], {
+                "channel_id": ch["id"], "name": ch["name"],
+                "handle": ch.get("handle", ""),
+                "country": ch.get("country"),
+                "entity_type": ch.get("entity_type"),
+                "long": 0, "short": 0, "live": 0, "count": 0,
+            })
+            e[f] += 1
+            e["count"] += 1
+        top5_pubs = sorted(pub_counts.values(),
+                           key=lambda r: r["count"], reverse=True)[:5]
+
+        write(db, "home_top", scope_all(),
+              {"top5_views": top5_views,
+               "top5_pubs": top5_pubs,
+               "as_of": _date.today().isoformat()})
+        log(f"[dashboard_cache] home_top WRITTEN "
+            f"({len(top5_views)} gainers, {len(top5_pubs)} publishers)")
+    except Exception as e:
+        log(f"[dashboard_cache] home_top failed (non-fatal): {e}")
 
 
 def refresh_profile_sentences(db, log=print, channels: list[dict] | None = None) -> None:
