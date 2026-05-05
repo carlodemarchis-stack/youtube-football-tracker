@@ -2092,10 +2092,12 @@ else:
                  f'{_cat_span}')
         top_rows += f"""<tr onclick="window.open('{yt_url}','_blank','noopener')" style="cursor:pointer">
             <td style="padding:6px 12px;text-align:right;color:#888">{i}</td>
-            <td style="padding:6px 12px"><img src="{thumb}" style="width:120px;height:68px;object-fit:cover;border-radius:4px"></td>
-            <td style="padding:6px 12px">
-              <a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none;font-weight:500">{title}</a>
-              <div style="font-size:12px;margin-top:4px">{_meta}</div>
+            <td style="padding:6px 12px;vertical-align:top"><img src="{thumb}" style="width:120px;height:68px;object-fit:cover;border-radius:4px;display:block"></td>
+            <td style="padding:6px 12px;vertical-align:top">
+              <div style="display:flex;flex-direction:column;justify-content:space-between;height:68px">
+                <a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none;font-weight:500">{title}</a>
+                <div style="font-size:12px">{_meta}</div>
+              </div>
             </td>
             <td style="padding:6px 12px;text-align:right">{_fmt(v.get('view_count', 0))}</td>
             <td style="padding:6px 12px;text-align:right">{_fmt(v.get('like_count', 0))}</td>
