@@ -1057,8 +1057,8 @@ if league is None and _scope == "Overall":
             <td style="padding:6px 12px;text-align:right" data-val="{eng_rate}">{eng_rate:.2f}%</td>
         </tr>"""
 
-    # Tightened: single-line rows ~30px, two-row sticky header ~60px.
-    _ch_table_height = len(ch_rows) * 32 + 70
+    # Measured: body rows ~30px, 2-row sticky header ~62px, iframe chrome ~12px.
+    _ch_table_height = len(ch_rows) * 30 + 74
     components.html(f"""
     <style>
         .ch-wrap {{ overflow-x:auto; width:100%; }}
