@@ -456,7 +456,7 @@ if not _mix_long.empty:
     fig = px.bar(
         _mix_long, x="Club", y="Videos", color="Format",
         title="Season video mix by format",
-        color_discrete_map={"Long": "#636EFA", "Shorts": "#FFA15A", "Live": "#EF553B"},
+        color_discrete_map={"Long": "#636EFA", "Shorts": "#00CC96", "Live": "#FFA15A"},
         category_orders={"Club": _order, "Format": ["Long", "Shorts", "Live"]},
     )
     fig.update_layout(

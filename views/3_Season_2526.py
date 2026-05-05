@@ -1195,6 +1195,13 @@ if club is None:
         st.info("No clubs in this league yet.")
         st.stop()
 
+    # League header — same visual signature as render_club_header at Z3.
+    # When league is None (All-Leagues + scope toggle) we don't render a
+    # header; the page already has the global filter bar at the top.
+    if league:
+        from src.filters import render_league_header
+        render_league_header(league, channels_in_scope=clubs_only)
+
     color_map = get_global_color_map()
     dual_colors = get_global_color_map_dual()
 
@@ -1549,7 +1556,7 @@ if club is None:
         fig_sdur = go.Figure()
         fig_sdur.add_trace(go.Bar(
             name="Shorts", x=chart_names_sdur, y=sorted_df_sdur["short_dur"],
-            marker_color="#EF553B",
+            marker_color="#00CC96",
             text=[f"{int(s)}s" for s in sorted_df_sdur["short_dur"]],
             textposition="outside",
         ))

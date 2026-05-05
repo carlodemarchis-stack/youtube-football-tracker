@@ -594,7 +594,7 @@ if len(_all_dates) >= 2:
         # the chart's plot area matches the left chart's height exactly. A
         # bottom legend would steal ~30px of vertical space and misalign the
         # two x-axis baselines.
-        _FORMAT_COLORS = {"Long": "#636EFA", "Shorts": "#FF6B6B", "Live": "#00CC96"}
+        _FORMAT_COLORS = {"Long": "#636EFA", "Shorts": "#00CC96", "Live": "#FFA15A"}
         _legend_html = "  ".join(
             f'<span style="display:inline-flex;align-items:center;gap:4px">'
             f'<span style="display:inline-block;width:10px;height:10px;'

@@ -193,7 +193,7 @@ if all_vids:
         if _fmt_raw not in ("long", "short", "live"):
             _fmt_raw = "long" if _dur >= 60 else "short"
         _fmt_label = {"long": "Long", "short": "Shorts", "live": "Live"}[_fmt_raw]
-        _fmt_color = {"long": "#636EFA", "short": "#EF553B", "live": "#FFA15A"}[_fmt_raw]
+        _fmt_color = {"long": "#636EFA", "short": "#00CC96", "live": "#FFA15A"}[_fmt_raw]
         _cat = (getattr(r, "category", "") or "").replace("<", "&lt;")
         _cat_span = f' · <span style="color:#666">{_cat}</span>' if _cat and _cat != "Other" else ""
         _meta = f'{_flag} {dot} <span style="color:#AAA">{club}</span> · <span style="color:{_fmt_color}">{_fmt_label}</span>{_cat_span}'

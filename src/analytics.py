@@ -34,6 +34,21 @@ CATEGORY_COLORS: dict[str, str] = {
 }
 
 
+# Single source of truth for the Long / Shorts / Live color triplet.
+# Every chart, badge, table cell that distinguishes the three video formats
+# pulls from here so the visual signature is stable across pages.
+FORMAT_COLORS: dict[str, str] = {
+    "long":  "#636EFA",  # blue
+    "short": "#00CC96",  # green
+    "live":  "#FFA15A",  # orange
+}
+FORMAT_LABELS: dict[str, str] = {
+    "long":  "Long",
+    "short": "Shorts",
+    "live":  "Live",
+}
+
+
 def build_category_pie(values_by_cat: dict[str, float], title: str, value_suffix: str = ""):
     """Standard category pie: drop 'Other' (mention its % in title), drop <1%,
     use CATEGORY_COLORS, donut style, sorted descending.

@@ -462,3 +462,41 @@ def render_club_header(channel: dict, all_channels: list[dict]) -> None:
         f"<span>{name_html}{rank_html}</span></h3>",
         unsafe_allow_html=True,
     )
+
+
+def render_league_header(league_name: str,
+                         channels_in_scope: list[dict] | None = None,
+                         extra_suffix: str = "") -> None:
+    """Render a league header in the same visual signature as
+    `render_club_header` — flag + league name + grey suffix.
+
+    suffix defaults to a club-count breakdown when channels_in_scope is
+    provided ("20 clubs · 1 league channel"), or you can override with
+    extra_suffix (e.g. "All Leagues" / "Leagues only · 5 channels").
+    """
+    flag = LEAGUE_FLAG.get(league_name, "")
+    if extra_suffix:
+        suffix = extra_suffix
+    elif channels_in_scope is not None:
+        n_clubs = sum(1 for c in channels_in_scope
+                      if c.get("entity_type") not in ("League", "Player",
+                                                      "Federation", "OtherClub",
+                                                      "WomenClub"))
+        n_lg = sum(1 for c in channels_in_scope
+                   if c.get("entity_type") == "League")
+        bits = [f"{n_clubs} clubs"]
+        if n_lg:
+            bits.append(f"{n_lg} league channel")
+        suffix = " · ".join(bits)
+    else:
+        suffix = ""
+    suffix_html = (
+        f"<span style='color:#888;font-size:0.95rem;font-weight:400;margin-left:14px'>"
+        f"{suffix}</span>" if suffix else ""
+    )
+    st.markdown(
+        f"<h3 style='margin:0;display:flex;align-items:center;gap:10px'>"
+        f"<span style='font-size:1.2em'>{flag}</span>"
+        f"<span>{league_name}{suffix_html}</span></h3>",
+        unsafe_allow_html=True,
+    )

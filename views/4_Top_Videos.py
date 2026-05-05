@@ -467,7 +467,7 @@ for i, r in enumerate(filtered.itertuples(index=False), 1):
         fmt_color = "#AB63FA"
     else:
         fmt_label = {"long": "Long", "short": "Shorts", "live": "Live"}[fmt_raw]
-        fmt_color = {"long": "#636EFA", "short": "#EF553B", "live": "#FFA15A"}[fmt_raw]
+        fmt_color = {"long": "#636EFA", "short": "#00CC96", "live": "#FFA15A"}[fmt_raw]
     fmt_cell = f'<span style="color:{fmt_color}">{fmt_label}</span>'
     row_url = f"https://www.youtube.com/watch?v={yt_id}" if yt_id else ""
     row_attrs = f'onclick="window.open(\'{row_url}\',\'_blank\',\'noopener\')" style="cursor:pointer"' if row_url else ''

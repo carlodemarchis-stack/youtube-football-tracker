@@ -582,26 +582,10 @@ elif club is None:
     else:
         clubs_only = [ch for ch in league_channels if ch.get("entity_type") not in ("League", "Player", "Federation", "OtherClub", "WomenClub")]
 
-    # League title — same convention as the single-club case (where
-    # render_club_header prints flag + name + ranks). For a league
-    # we don't have a "rank within peers" concept, so the suffix is
-    # just the channel-count breakdown (clubs + league channel).
+    # League header — same visual signature as render_club_header at Z3.
     if league:
-        _flag = _lg_flag(league)
-        _n_clubs = sum(1 for c in clubs_only if c.get("entity_type") != "League")
-        _n_lg = sum(1 for c in clubs_only if c.get("entity_type") == "League")
-        _suffix_bits = [f"{_n_clubs} clubs"]
-        if _n_lg:
-            _suffix_bits.append(f"{_n_lg} league channel")
-        _suffix = " · ".join(_suffix_bits)
-        st.markdown(
-            f"<h3 style='margin:0;display:flex;align-items:center;gap:10px'>"
-            f"<span style='font-size:1.2em'>{_flag}</span>"
-            f"<span>{league}"
-            f"<span style='color:#888;font-size:0.95rem;font-weight:400;margin-left:14px'>"
-            f"{_suffix}</span></span></h3>",
-            unsafe_allow_html=True,
-        )
+        from src.filters import render_league_header
+        render_league_header(league, channels_in_scope=clubs_only)
 
     # Totals banner for the selection
     total_subs = sum(ch.get("subscriber_count", 0) for ch in clubs_only)
@@ -832,6 +816,66 @@ elif club is None:
     else:
         for _f in _charts:
             st.plotly_chart(_f, use_container_width=True)
+
+    # ── Season views concentration (read from dashboard_cache) ──
+    # Mirrors the parallel section on the Season page so zoom-2 has the
+    # same anchor between Channels and Season. Cached → no extra queries.
+    if league:
+        try:
+            from src import dashboard_cache as _dc_conc
+            _conc = _dc_conc.read(db, "concentration", _dc_conc.scope_league(league))
+            _conc_rows = (_conc or {}).get("payload", {}).get("rows", []) if _conc else []
+            _conc_rows = [r for r in _conc_rows
+                          if r.get("entity_type") in ("Club", "League")
+                          and r.get("n_videos", 0) >= 5]
+            if _conc_rows:
+                import plotly.graph_objects as _go_c
+                st.subheader(f"📊 Season views concentration — {league}")
+                st.caption("Season-scoped: % of each club's videos that account "
+                           "for 80% of season views. Lower = hit-driven (long "
+                           "tail). Hover for top-1 / top-10 share, median vs avg.")
+                _conc_rows = sorted(_conc_rows, key=lambda r: r["pct_to_80"])
+                _names = [r["name"] for r in _conc_rows]
+                _pcts = [r["pct_to_80"] for r in _conc_rows]
+                _customdata = [
+                    [r["n_to_80"], r["n_videos"], r["top1_pct"], r["top10_pct"],
+                     fmt_num(r["median_views"]), fmt_num(r["avg_views"]),
+                     fmt_num(r["total_views"])]
+                    for r in _conc_rows
+                ]
+                _bar_colors_c = [color_map.get(n, "#888") for n in _names]
+                fig_c = _go_c.Figure()
+                fig_c.add_trace(_go_c.Bar(
+                    x=_pcts, y=_names, orientation="h",
+                    marker_color=_bar_colors_c,
+                    customdata=_customdata,
+                    hovertemplate=(
+                        "<b>%{y}</b><br>"
+                        "Top %{customdata[0]} of %{customdata[1]} videos = 80% of views<br>"
+                        "Top 1 video = %{customdata[2]:.0f}% · "
+                        "Top 10 = %{customdata[3]:.0f}%<br>"
+                        "Median: %{customdata[4]} · Avg: %{customdata[5]}<br>"
+                        "Total season views: %{customdata[6]}<extra></extra>"
+                    ),
+                ))
+                fig_c.add_vline(x=20, line_dash="dash", line_color="#888",
+                                annotation_text="20%", annotation_position="top",
+                                annotation_font_color="#888")
+                fig_c.update_layout(
+                    height=max(300, 28 * len(_names) + 80),
+                    xaxis=dict(title="% of videos to reach 80% of season views",
+                               range=[0, max(60, max(_pcts) * 1.15)],
+                               ticksuffix="%",
+                               showgrid=True, gridcolor="rgba(255,255,255,0.08)"),
+                    yaxis=dict(title="", autorange="reversed"),
+                    margin=dict(t=30, b=50, l=160),
+                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                    font=dict(color="#FAFAFA"),
+                    showlegend=False,
+                )
+                st.plotly_chart(fig_c, use_container_width=True)
+        except Exception as _e:
+            st.caption(f"(concentration chart unavailable: {_e})")
 
     # ── Channels launched per year ──
     # All-Leagues + scope-toggle modes (league is None) → stacked Top-5.
