@@ -9,7 +9,7 @@ import streamlit.components.v1 as components
 from dotenv import load_dotenv
 
 from src.database import Database
-from src.analytics import fmt_num, yt_popup_js
+from src.analytics import fmt_num, yt_popup_js, CATEGORY_COLORS
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
 from src.auth import require_login
 from src.filters import (
@@ -332,13 +332,16 @@ for v in latest:
     # Other Social conventions.
     _badge = channel_badge(ch, color_map, dual, 14)
 
+    _cat_color = CATEGORY_COLORS.get(cat, "#888")
+    _cat_html = (f' · <span style="color:{_cat_color}">{cat}</span>'
+                 if cat and cat != 'Other' else '')
     rows_html += f"""<tr {row_click} style="cursor:pointer" data-views="{views}" data-likes="{likes}" data-comments="{comments}" data-dur="{dur}" data-age="{age_minutes}" data-ch="{ch_name}" data-fmt="{fmt_raw}" data-cat="{cat}">
         <td class="c-video">
           <div class="v-row">
             {thumb_html}
             <div class="v-info">
-              <div class="v-meta">{_badge} <span style="color:#AAA">{ch_name}</span> · <span style="color:{fmt_color}">{fmt_label}</span>{(' · <span style="color:#666">' + cat + '</span>') if cat and cat != 'Other' else ''}</div>
-              <a href="{url}" target="_blank" rel="noopener" class="v-title">{title}</a>
+              <a href="{url}" target="_blank" rel="noopener" class="v-title"><br>{title}</a>
+              <div class="v-meta">{_badge} <span style="color:#AAA">{ch_name}</span> · <span style="color:{fmt_color}">{fmt_label}</span>{_cat_html}</div>
             </div>
           </div>
         </td>
@@ -365,11 +368,11 @@ components.html(f"""
           border:1px solid rgba(255,255,255,0.3); vertical-align:middle;
           margin-right:5px; }}
   .c-video {{ padding:6px 8px !important; }}
-  .v-row {{ display:flex; align-items:center; gap:10px; }}
+  .v-row {{ display:flex; align-items:flex-start; gap:10px; }}
   .v-row img {{ width:120px; height:68px; object-fit:cover; border-radius:4px; flex-shrink:0; }}
-  .v-info {{ min-width:0; }}
-  .v-meta {{ font-size:12px; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
-  .v-title {{ color:#FAFAFA; text-decoration:none; font-size:13px; line-height:1.3;
+  .v-info {{ min-width:0; display:flex; flex-direction:column; justify-content:space-between; height:68px; flex:1; }}
+  .v-meta {{ font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+  .v-title {{ color:#FAFAFA; text-decoration:none; font-size:13px; line-height:1.3; font-weight:700;
               display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }}
   .c-dur, .c-views, .c-likes, .c-comments {{ text-align:right; }}
   .c-age {{ white-space:nowrap; }}
