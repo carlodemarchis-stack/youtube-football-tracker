@@ -2246,12 +2246,17 @@ else:
                 )
 
             # Hour gridlines (every 6h: 48,42,36,30,24,18,12,6,0).
-            # Labels mirrored at TOP and BOTTOM so the time axis is
-            # readable whether the user lands at the top or scrolls past.
+            # Labels show the wall-clock time in CET — 'now' for h=0,
+            # 'Mon 14:00' for the rest. Mirrored top + bottom.
+            _now_cet = _now48.astimezone(_ZI("Europe/Rome"))
             ticks_html = ""
             for h in range(0, 49, 6):
                 x = LEFT_MARGIN + (48 - h) / 48 * USABLE
-                lab = "now" if h == 0 else f"{h}h ago"
+                if h == 0:
+                    lab = "now"
+                else:
+                    t = _now_cet - _td48(hours=h)
+                    lab = t.strftime("%a %H:%M")
                 ticks_html += (
                     f'<div class="t48-tick" style="left:{x:.1f}%"></div>'
                     f'<div class="t48-ticklabel t48-tick-top" style="left:{x:.1f}%">{lab}</div>'
