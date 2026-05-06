@@ -98,57 +98,34 @@ def detect_language(title: str | None,
     youtube_lang: pre-normalized value from snippet.defaultAudioLanguage or
     snippet.defaultLanguage. Wins outright if present.
     """
+    # We're classifying TITLE language (what the user sees on the card),
+    # not audio/content language. So lingua-py's verdict on the actual
+    # title text is the primary signal; the country prior is only a
+    # fallback when the title is too short or genuinely ambiguous.
     yt = normalize(youtube_lang)
     if yt:
         return yt, "youtube"
 
     prior = COUNTRY_TO_LANG.get((channel_country or "").upper())
-
-    # Try title-based detection. Branded English titles like
-    #   "OFFICIAL HIGHLIGHTS | INTER VS MILAN | SERIE A 25/26"
-    # would otherwise classify Italian content as English. So the bar to
-    # OVERRIDE the country prior is set high — particularly for English
-    # overrides, which are by far the most common false positive (sports
-    # clubs love English-branded titles regardless of audio language).
-    detected: str | None = None
-    detected_conf = 0.0
     text = (title or "").strip()
     if text and is_available():
         import re
         cleaned = re.sub(r"[\#\|\:\!\?\.\,\-\—\–\(\)\[\]\{\}]", " ", text)
         cleaned = re.sub(r"\s+", " ", cleaned).strip()
-        if len(cleaned) >= 12:
+        if len(cleaned) >= 8:
             try:
                 confs = _DETECTOR.compute_language_confidence_values(cleaned)
                 if confs:
                     top = confs[0]
                     runner_val = confs[1].value if len(confs) > 1 else 0.0
                     margin = top.value - runner_val
-                    # Require BOTH high confidence AND a clear margin —
-                    # was previously OR (way too loose).
-                    if top.value >= 0.70 and margin >= 0.15:
-                        detected = _LANG_TO_ISO.get(top.language)
-                        detected_conf = top.value
+                    iso = _LANG_TO_ISO.get(top.language)
+                    # Reasonable confidence floor — high enough to dodge
+                    # noise, low enough to honor short branded titles.
+                    if iso and (top.value >= 0.55 or margin >= 0.20):
+                        return iso, "detected"
             except Exception:
                 pass
-
-    # Decision logic — prior is the strong default; detection only wins
-    # when it agrees with the prior, OR when the override is decisive.
-    if detected:
-        if not prior or detected == prior:
-            return detected, "detected"
-        if detected == "en":
-            # English-stuffed branded titles are the dominant false-positive
-            # mode. Require very high confidence AND a long-ish title to
-            # override a non-English country prior.
-            if detected_conf >= 0.92 and len(text) >= 40:
-                return "en", "detected"
-            return prior, "prior"
-        # Other cross-language overrides (e.g. ES content on an IT channel):
-        # still need elevated confidence.
-        if detected_conf >= 0.85:
-            return detected, "detected"
-        return prior, "prior"
 
     if prior:
         return prior, "prior"
