@@ -124,7 +124,8 @@ if df.empty:
     st.stop()
 
 # ── KPI line (computed up front so it sits above the main table) ─
-_filtered_for_kpi = df.sort_values("view_count", ascending=False).head(100)
+# Aggregates from precomputed per-channel top-100 stats — same source
+# the bottom channel table reads from, so the numbers tie out.
 try:
     if club:
         _scope_channels = [club]
@@ -145,20 +146,33 @@ try:
                                if c.get("entity_type") not in
                                   ("Player", "Federation",
                                    "OtherClub", "WomenClub")]
+
+    # Per-channel precomputed top-100 stats. Sum across the scope so
+    # "Total views (top 100)" = Σ each club's top-100, matching the
+    # bottom table's column.
     _lifetime_views = sum(int(c.get("total_views") or 0) for c in _scope_channels)
-    _top_views = int(_filtered_for_kpi["view_count"].sum())
-    _avg_views = int(_filtered_for_kpi["view_count"].mean()) if len(_filtered_for_kpi) else 0
-    _cutoff = int(_filtered_for_kpi["view_count"].min()) if len(_filtered_for_kpi) else 0
+    _top_views = sum(int(c.get("top100_views") or 0) for c in _scope_channels)
+    _n_channels = sum(1 for c in _scope_channels if int(c.get("top100_views") or 0) > 0)
+    # Each channel contributes up to 100 vids; for channels with fewer
+    # this slightly inflates the divisor, but the bias is small in
+    # practice (most channels have well over 100).
+    _vid_count = _n_channels * 100
+    _avg_views = (_top_views // _vid_count) if _vid_count else 0
+    _per_club = (_top_views // _n_channels) if _n_channels else 0
     _pct_lifetime = (_top_views / _lifetime_views * 100) if _lifetime_views else 0.0
 
-    # Average age (years) of the top 100 — tells you how front- or
-    # back-loaded the catalogue is.
-    _now_utc_kpi = pd.Timestamp.now(tz="UTC")
-    _ages_days = (_now_utc_kpi - pd.to_datetime(
-        _filtered_for_kpi["published_at"], utc=True, errors="coerce"
-    )).dt.total_seconds() / 86400.0
-    _ages_days = _ages_days.dropna()
-    _avg_age_years = float(_ages_days.mean() / 365.25) if len(_ages_days) else 0.0
+    # Views-weighted avg age across channels: bigger top-100s contribute
+    # more to the headline number, which feels right when comparing
+    # leagues with very different total volumes.
+    _w_age = 0.0
+    _w_sum = 0.0
+    for c in _scope_channels:
+        v = int(c.get("top100_views") or 0)
+        a = float(c.get("top100_avg_age_days") or 0)
+        if v > 0 and a > 0:
+            _w_age += a * v
+            _w_sum += v
+    _avg_age_years = (_w_age / _w_sum / 365.25) if _w_sum else 0.0
 
     _kpi_html = f"""
     <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;
@@ -194,10 +208,10 @@ try:
                   border-left:3px solid #AB63FA">
         <div style="color:#888;font-size:11px;font-weight:600;
                     text-transform:uppercase;letter-spacing:0.5px">
-          Cutoff (rank 100)
+          Avg views per club
         </div>
         <div style="color:#FAFAFA;font-size:22px;font-weight:700;
-                    margin-top:2px">{fmt_num(_cutoff)}</div>
+                    margin-top:2px">{fmt_num(_per_club)}</div>
       </div>
       <div style="background:#1a1c24;border-radius:6px;padding:10px 14px;
                   border-left:3px solid #EF553B">
