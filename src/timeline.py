@@ -221,7 +221,10 @@ def render_48h_dots(
                 ch_label[cid] = v.get("channel_name") or cid
             if cid not in ch_last or ts > ch_last[cid]:
                 ch_last[cid] = ts
-        rows = sorted(by_ch.keys(), key=lambda c: ch_last[c], reverse=True)
+        # Order rows by video count desc (then by most-recent as tiebreaker).
+        rows = sorted(by_ch.keys(),
+                      key=lambda c: (len(by_ch[c]), ch_last[c]),
+                      reverse=True)
 
         LEFT_MARGIN = 16.0   # badge + channel name + count column
         RIGHT_RESERVE = 4.0
