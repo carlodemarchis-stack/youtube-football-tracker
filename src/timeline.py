@@ -173,3 +173,156 @@ def render_48h_timeline(
     except Exception as e:
         st.caption(f"(48h timeline unavailable: {e})")
         return False
+
+
+def render_48h_dots(
+    videos: list[dict],
+    *,
+    header: str = "⏱️ Last 48 hours — published timeline",
+    caption: str | None = None,
+    channel_resolver=None,
+    color_resolver=None,
+) -> bool:
+    """Compact dot version of the 48h timeline.
+
+    One row per channel; each video is a dot positioned at its publish
+    time and colored by `color_resolver(video) -> "#rrggbb"`. Dot shape
+    encodes format (long=circle, short=diamond, live=square). Click a
+    dot to open the video in the popup.
+    """
+    try:
+        now48 = datetime.now(timezone.utc)
+        from48 = now48 - timedelta(hours=48)
+
+        recent = []
+        for v in videos:
+            ts = pd.to_datetime(v.get("published_at"), utc=True, errors="coerce")
+            if pd.isna(ts):
+                continue
+            if ts >= from48:
+                recent.append((v, ts))
+        if not recent:
+            return False
+
+        # Group by channel; row order = most recent activity first.
+        by_ch: dict[str, list[tuple[dict, object]]] = {}
+        ch_label: dict[str, str] = {}
+        ch_last: dict[str, object] = {}
+        for v, ts in recent:
+            cid = v.get("channel_id") or "?"
+            by_ch.setdefault(cid, []).append((v, ts))
+            if channel_resolver is not None:
+                try:
+                    ch_label[cid] = channel_resolver(v) or v.get("channel_name") or cid
+                except Exception:
+                    ch_label[cid] = v.get("channel_name") or cid
+            else:
+                ch_label[cid] = v.get("channel_name") or cid
+            if cid not in ch_last or ts > ch_last[cid]:
+                ch_last[cid] = ts
+        rows = sorted(by_ch.keys(), key=lambda c: ch_last[c], reverse=True)
+
+        LEFT_MARGIN = 12.0   # leaves room for the channel-name labels
+        RIGHT_RESERVE = 4.0
+        USABLE = 100.0 - LEFT_MARGIN - RIGHT_RESERVE
+        ROW_H = 22
+        TOP_PAD = 28        # axis labels at top
+        BOT_PAD = 24        # axis labels at bottom
+
+        if header:
+            st.subheader(header)
+        if caption is None:
+            caption = (f"{len(recent)} video(s) across {len(rows)} club(s) "
+                       f"in the last 48h. Click any dot to open the video.")
+        if caption:
+            st.caption(caption)
+
+        # Build axis ticks (every 6h, wall-clock CET, full hour).
+        now_cet = now48.astimezone(ZoneInfo("Europe/Rome")).replace(
+            minute=0, second=0, microsecond=0
+        )
+        ticks_html = ""
+        for h in range(0, 49, 6):
+            x = LEFT_MARGIN + (48 - h) / 48 * USABLE
+            lab = "now" if h == 0 else (now_cet - timedelta(hours=h)).strftime("%a %H:%M")
+            ticks_html += (
+                f'<div class="dt-tick" style="left:{x:.2f}%"></div>'
+                f'<div class="dt-ticklabel dt-tick-top" style="left:{x:.2f}%">{lab}</div>'
+                f'<div class="dt-ticklabel dt-tick-bot" style="left:{x:.2f}%">{lab}</div>'
+            )
+
+        # Build channel rows + dots.
+        rows_html = ""
+        for ridx, cid in enumerate(rows):
+            top_px = TOP_PAD + ridx * ROW_H
+            label = (ch_label.get(cid, "") or "").replace("<", "&lt;").replace(">", "&gt;")
+            rows_html += (
+                f'<div class="dt-rowline" style="top:{top_px + ROW_H // 2}px"></div>'
+                f'<div class="dt-rowlabel" style="top:{top_px}px;line-height:{ROW_H}px">'
+                f'{label}</div>'
+            )
+            for v, ts in by_ch[cid]:
+                f = _fmt_of(v)
+                color = "#636EFA"
+                if color_resolver is not None:
+                    try:
+                        color = color_resolver(v) or color
+                    except Exception:
+                        pass
+                raw_pct = (ts - from48).total_seconds() / (48 * 3600) * 100
+                x_pct = LEFT_MARGIN + raw_pct * USABLE / 100
+                yt_url = f"https://www.youtube.com/watch?v={v.get('youtube_video_id','')}"
+                title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+                pub_str = ts.tz_convert("Europe/Rome").strftime("%a %H:%M")
+                fmt_label = {"long": "Long", "short": "Shorts", "live": "Live"}[f]
+                shape_cls = {"long": "dt-long", "short": "dt-short", "live": "dt-live"}[f]
+                rows_html += (
+                    f'<a href="{yt_url}" target="_blank" rel="noopener" '
+                    f'data-fmt="{f}" '
+                    f'class="dt-dot {shape_cls}" '
+                    f'style="left:{x_pct:.3f}%;top:{top_px + ROW_H // 2}px;'
+                    f'background:{color}" '
+                    f'title="{label} · {title} · {fmt_label} · {pub_str}"></a>'
+                )
+
+        total_height = TOP_PAD + len(rows) * ROW_H + BOT_PAD
+        components.html(f"""
+        <style>
+          .dt-wrap {{ position:relative; width:100%; height:{total_height}px;
+                     background:#0E1117; border-radius:6px; overflow:hidden;
+                     font-family:"Source Sans Pro",sans-serif; }}
+          .dt-tick {{ position:absolute; top:{TOP_PAD - 4}px;
+                      bottom:{BOT_PAD - 4}px; width:1px;
+                      background:rgba(255,255,255,0.06); }}
+          .dt-ticklabel {{ position:absolute; transform:translateX(-50%);
+                           font-size:10px; color:#888; }}
+          .dt-tick-top {{ top:6px; }}
+          .dt-tick-bot {{ bottom:4px; }}
+          .dt-rowline {{ position:absolute; left:{LEFT_MARGIN}%;
+                         right:{RIGHT_RESERVE}%; height:1px;
+                         background:rgba(255,255,255,0.04); }}
+          .dt-rowlabel {{ position:absolute; left:4px; width:{LEFT_MARGIN - 1}%;
+                          font-size:11px; color:#bbb; overflow:hidden;
+                          white-space:nowrap; text-overflow:ellipsis;
+                          padding-right:6px; box-sizing:border-box; }}
+          .dt-dot {{ position:absolute; transform:translate(-50%,-50%);
+                     border:1px solid rgba(0,0,0,0.5); cursor:pointer;
+                     transition:transform 0.1s ease; }}
+          .dt-dot:hover {{ transform:translate(-50%,-50%) scale(1.6);
+                           z-index:10; box-shadow:0 0 0 2px rgba(255,255,255,0.4); }}
+          .dt-long  {{ width:11px; height:11px; border-radius:50%; }}
+          .dt-short {{ width:10px; height:10px;
+                       transform:translate(-50%,-50%) rotate(45deg); }}
+          .dt-short:hover {{ transform:translate(-50%,-50%) rotate(45deg) scale(1.6); }}
+          .dt-live  {{ width:11px; height:11px; }}
+        </style>
+        <div class="dt-wrap">
+          {ticks_html}
+          {rows_html}
+        </div>
+        {yt_popup_js()}
+        """, height=total_height + 16, scrolling=False)
+        return True
+    except Exception as e:
+        st.caption(f"(48h dot timeline unavailable: {e})")
+        return False

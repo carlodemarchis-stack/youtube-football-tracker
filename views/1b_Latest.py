@@ -211,13 +211,29 @@ if live_now:
     {yt_popup_js()}
     """, height=310, scrolling=False)
 
-# ── 48h timeline strip (single-club zoom only) ───────────────
-# At league or all-leagues zoom the strip becomes too dense to read; we
-# only render it when the user has drilled into a single club.
+# ── 48h timeline strip ───────────────────────────────────────
+# Z3 (single club): full thumbnail strip.
+# Z2 (one league, all clubs): compact dot timeline, one row per club.
+# Z1 (all leagues): hidden — too dense to be useful.
 if g_club:
     try:
         from src.timeline import render_48h_timeline
         render_48h_timeline(latest_raw_unscheduled)
+    except Exception as _e:
+        st.caption(f"(48h timeline unavailable: {_e})")
+elif g_league:
+    try:
+        from src.timeline import render_48h_dots
+        def _ch_name(v):
+            ch = ch_by_id.get(v.get("channel_id")) or {}
+            return v.get("channel_name") or ch.get("name") or ""
+        def _ch_color(v):
+            ch = ch_by_id.get(v.get("channel_id")) or {}
+            name = v.get("channel_name") or ch.get("name") or ""
+            return color_map.get(name, "#636EFA")
+        render_48h_dots(latest_raw_unscheduled,
+                        channel_resolver=_ch_name,
+                        color_resolver=_ch_color)
     except Exception as _e:
         st.caption(f"(48h timeline unavailable: {_e})")
 
