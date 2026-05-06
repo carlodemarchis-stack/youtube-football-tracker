@@ -363,13 +363,28 @@ for v in latest:
     }
     _lang_html = (f' · <span style="color:#888">{_LANG_FLAG.get(_lang, "")} {_lang.upper()}</span>'
                   if _lang else "")
+    # Three-row layout in v-info:
+    #   1. Channel (badge + name)
+    #   2. Title (bold)
+    #   3. Tags (format · category · language)
+    # The leading "·" on _cat/_lang spans is stripped because they're no
+    # longer following something — rebuild a clean tag line.
+    _cat_only = (f'<span style="color:{_cat_color}">{cat}</span>'
+                 if cat and cat != 'Other' else '')
+    _lang_only = (f'<span style="color:#888">{_LANG_FLAG.get(_lang, "")} {_lang.upper()}</span>'
+                  if _lang else '')
+    _fmt_only = f'<span style="color:{fmt_color}">{fmt_label}</span>'
+    _tag_parts = [_fmt_only] + [p for p in (_cat_only, _lang_only) if p]
+    _tags_line = ' · '.join(_tag_parts)
+
     rows_html += f"""<tr {row_click} style="cursor:pointer" data-views="{views}" data-likes="{likes}" data-comments="{comments}" data-dur="{dur}" data-age="{age_minutes}" data-ch="{ch_name}" data-fmt="{fmt_raw}" data-cat="{cat}">
         <td class="c-video">
           <div class="v-row">
             {thumb_html}
             <div class="v-info">
-              <a href="{url}" target="_blank" rel="noopener" class="v-title"><br>{title}</a>
-              <div class="v-meta">{_badge} <span style="color:#AAA">{ch_name}</span> · <span style="color:{fmt_color}">{fmt_label}</span>{_cat_html}{_lang_html}</div>
+              <div class="v-channel">{_badge} <span style="color:#AAA">{ch_name}</span></div>
+              <a href="{url}" target="_blank" rel="noopener" class="v-title">{title}</a>
+              <div class="v-meta">{_tags_line}</div>
             </div>
           </div>
         </td>
@@ -398,10 +413,15 @@ components.html(f"""
   .c-video {{ padding:6px 8px !important; }}
   .v-row {{ display:flex; align-items:flex-start; gap:10px; }}
   .v-row img {{ width:110px; height:62px; object-fit:cover; border-radius:4px; flex-shrink:0; }}
-  .v-info {{ min-width:0; display:flex; flex-direction:column; justify-content:space-between; height:62px; flex:1; }}
+  /* 3-row stack: channel / title / tags. No fixed height — let content
+     drive it; the row itself stretches around it. */
+  .v-info {{ min-width:0; display:flex; flex-direction:column; gap:2px; flex:1; }}
+  .v-channel {{ font-size:12px; display:flex; align-items:center; gap:6px;
+                white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
   .v-meta {{ font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
-  .v-title {{ color:#FAFAFA; text-decoration:none; font-size:13px; line-height:1.3; font-weight:700;
-              display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }}
+  .v-title {{ color:#FAFAFA; text-decoration:none; font-size:13px; line-height:1.25; font-weight:700;
+              display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden;
+              text-overflow:ellipsis; }}
   .c-dur, .c-views, .c-likes, .c-comments {{ text-align:right; }}
   .c-age {{ white-space:nowrap; }}
 </style>
