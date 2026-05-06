@@ -196,6 +196,234 @@ try:
 except Exception as _e:
     st.caption(f"(KPIs unavailable: {_e})")
 
+filtered = df.sort_values("view_count", ascending=False).head(100).reset_index(drop=True)
+
+from zoneinfo import ZoneInfo as _ZoneInfo
+current_year = datetime.now(_ZoneInfo("Europe/Rome")).year
+
+# ── Video Table ───────────────────────────────────────────────
+st.subheader("Video List")
+dual_colors = get_global_color_map_dual()
+color_map_tbl = get_global_color_map()
+_now = pd.Timestamp.now(tz="UTC")
+
+# Name → flag lookup, plus a name → channel-dict map so we can render the
+# standard channel_badge marker (flag for League channels, dual_dot for clubs)
+# instead of the previous flag+dot combo that produced a doubled glyph on
+# league rows.
+_ch_flag = {}
+_ch_by_name = {}
+for _c in all_channels:
+    _lg = COUNTRY_TO_LEAGUE.get((_c.get("country") or "").strip(), "")
+    _ch_flag[_c["name"]] = LEAGUE_FLAG.get(_lg, "")
+    _ch_by_name[_c["name"]] = _c
+
+_rows_html = ""
+for i, r in enumerate(filtered.itertuples(index=False), 1):
+    ch = getattr(r, "channel_name", "") or ""
+    title = (getattr(r, "title", "") or "").replace("<", "&lt;").replace(">", "&gt;")
+    yt_id = getattr(r, "youtube_video_id", "") or ""
+    title_cell = (
+        f'<a href="https://www.youtube.com/watch?v={yt_id}" target="_blank" rel="noopener" '
+        f'style="color:#FAFAFA;text-decoration:none;font-weight:700">{title}</a>' if yt_id else title
+    )
+    pub = pd.to_datetime(getattr(r, "published_at", None), utc=True) if getattr(r, "published_at", None) else None
+    age = f"{((_now - pub).days / 365.25):.1f}y" if pub is not None else ""
+    pub_s = pub.strftime("%Y-%m-%d") if pub is not None else ""
+    dur = getattr(r, "duration_seconds", 0) or 0
+    dur_s = f"{dur // 60}:{dur % 60:02d}" if dur else "0:00"
+    cat = getattr(r, "category", "") or ""
+    fmt_raw = (getattr(r, "format", "") or "").lower()
+    if fmt_raw not in ("long", "short", "live"):
+        fmt_raw = "long" if dur >= 60 else "short"
+    # Detect scheduled/premiere (future actual_start_time) for any format
+    _is_sched = False
+    _ast = getattr(r, "actual_start_time", None) or ""
+    if _ast:
+        try:
+            _ast_dt = pd.to_datetime(_ast, utc=True)
+            if _ast_dt > _now:
+                _is_sched = True
+        except Exception:
+            pass
+    elif fmt_raw == "live" and dur == 0:
+        _is_sched = True
+    if _is_sched:
+        fmt_label = "Scheduled"
+        fmt_color = "#AB63FA"
+    else:
+        fmt_label = {"long": "Long", "short": "Shorts", "live": "Live"}[fmt_raw]
+        fmt_color = {"long": "#636EFA", "short": "#00CC96", "live": "#FFA15A"}[fmt_raw]
+    fmt_cell = f'<span style="color:{fmt_color}">{fmt_label}</span>'
+    row_url = f"https://www.youtube.com/watch?v={yt_id}" if yt_id else ""
+    row_attrs = f'onclick="window.open(\'{row_url}\',\'_blank\',\'noopener\')" style="cursor:pointer"' if row_url else ''
+    # channel_badge: flag for League channels, dual_dot for clubs. Replaces
+    # the older `{flag} {dot}` combo which on league rows rendered both a
+    # flag AND a dot — the doubled-marker bug.
+    # Size 14 to match Daily Recap / Latest / Other Social / Channels / Season
+    _badge = channel_badge(_ch_by_name.get(ch, {"name": ch}), color_map_tbl, dual_colors, 14)
+    _cat_color = CATEGORY_COLORS.get(cat, "#888")
+    _cat_span = f' · <span style="color:{_cat_color}">{cat}</span>' if cat and cat != "Other" else ""
+    _meta = f'{_badge} <span style="color:#AAA">{ch}</span> · {fmt_cell}{_cat_span}'
+    _views = int(getattr(r, 'view_count', 0) or 0)
+    _likes = int(getattr(r, 'like_count', 0) or 0)
+    _comments = int(getattr(r, 'comment_count', 0) or 0)
+    _age_days = round((_now - pub).total_seconds() / 86400, 2) if pub is not None else 0
+    _rows_html += f"""<tr {row_attrs} data-views="{_views}" data-likes="{_likes}" data-comments="{_comments}" data-age="{_age_days}" data-dur="{dur}">
+        <td style="padding:6px 12px;text-align:right;color:#888;vertical-align:top">{i}</td>
+        <td style="padding:6px 12px;vertical-align:top">
+          <div>{title_cell}</div>
+          <div style="font-size:12px;margin-top:3px;white-space:nowrap">{_meta}</div>
+        </td>
+        <td style="padding:6px 12px;text-align:right">{fmt_num(_views)}</td>
+        <td style="padding:6px 12px;text-align:right">{fmt_num(_likes)}</td>
+        <td style="padding:6px 12px;text-align:right">{fmt_num(_comments)}</td>
+        <td style="padding:6px 12px;white-space:nowrap">{age}</td>
+        <td style="padding:6px 12px;white-space:nowrap">{dur_s}</td>
+    </tr>"""
+
+# Two-line rows (channel meta + title) actually run ~50px each, header ~45px.
+# Old formula `80 + 34*n, cap 1200` undercounted per-row but capped too low,
+# so when filters narrowed results we got both inner-scroll AND empty tail.
+# New: 50px×n + 50 header, capped at viewport-friendly 1400.
+_table_height = min(50 + 50 * len(filtered), 1400)
+components.html(
+    f"""
+    <style>
+      .vidlist {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
+                  font-family:"Source Sans Pro",sans-serif; }}
+      .vidlist th {{ padding:8px 12px; border-bottom:2px solid #444; text-align:left;
+                     background:#0E1117; position:sticky; top:0; z-index:1;
+                     user-select:none; }}
+      .vidlist td {{ border-bottom:1px solid #262730; }}
+      .vidlist tr:hover td {{ background:#1a1c24; }}
+      .vidlist th[data-col] {{ cursor:pointer; }}
+      .vidlist th[data-col]:hover {{ color:#58A6FF; }}
+      /* Match the inline text-arrow + .active pattern used everywhere else
+         on the site (Channels, Season, Daily Recap, Federations, …). */
+      .vidlist th.active {{ color:#58A6FF; }}
+    </style>
+    <div style="max-height:1350px;overflow:auto">
+    <table class="vidlist" id="vlTable"><thead><tr>
+      <th style="text-align:right">#</th>
+      <th>Video</th>
+      <th data-col="views" style="text-align:right" class="active">Views ▼</th>
+      <th data-col="likes" style="text-align:right">Likes</th>
+      <th data-col="comments" style="text-align:right">Comments</th>
+      <th data-col="age">Age</th>
+      <th data-col="dur">Duration</th>
+    </tr></thead><tbody>{_rows_html}</tbody></table>
+    </div>
+    <script>
+    (function() {{
+      const table = document.getElementById('vlTable');
+      const headers = table.querySelectorAll('th[data-col]');
+      // Initial sort: rows arrive ordered by view_count DESC. Views ▼ marked.
+      let currentCol = 'views', asc = false;
+      headers.forEach(th => {{
+        th.addEventListener('click', () => {{
+          const col = th.dataset.col;
+          if (currentCol === col) {{ asc = !asc; }}
+          else {{ currentCol = col; asc = false; }}
+          // Strip arrows + active class from everyone, then mark this one.
+          headers.forEach(h => {{
+            h.classList.remove('active');
+            h.textContent = h.textContent.replace(/ [▲▼]/g, '');
+          }});
+          th.classList.add('active');
+          th.textContent += asc ? ' ▲' : ' ▼';
+          const tbody = table.querySelector('tbody');
+          const rows = Array.from(tbody.querySelectorAll('tr'));
+          rows.sort((a, b) => {{
+            const va = parseFloat(a.dataset[col]) || 0;
+            const vb = parseFloat(b.dataset[col]) || 0;
+            return asc ? va - vb : vb - va;
+          }});
+          rows.forEach((r, idx) => {{
+            r.querySelector('td').textContent = idx + 1;
+            tbody.appendChild(r);
+          }});
+        }});
+      }});
+    }})();
+    </script>
+    {yt_popup_js()}
+    """,
+    height=_table_height,
+    scrolling=True,
+)
+# ── Views by Rank chart ───────────────────────────────────────
+st.subheader("Views by Rank")
+chart_df = filtered[["view_count", "title", "channel_name"]].copy()
+chart_df[color_field] = filtered[color_field] if color_field in filtered.columns else filtered["channel_name"]
+chart_df["rank"] = range(1, len(chart_df) + 1)
+
+fig = px.bar(
+    chart_df, x="rank", y="view_count",
+    color=color_field, color_discrete_map=color_map,
+    hover_data=["title", "channel_name"],
+    labels={"rank": "Rank", "view_count": "Views"},
+)
+fig.update_layout(
+    xaxis=dict(tickvals=[1] + list(range(5, 96, 5)) + [100], title="Rank"),
+    yaxis_title="Total Views",
+    margin=dict(t=20, b=40),
+    bargap=0.1,
+)
+st.plotly_chart(fig, use_container_width=True)
+
+# ── Rank vs Year ──────────────────────────────────────────────
+st.subheader("Rank vs Publication Year")
+scatter_df = filtered[["title", "channel_name", "view_count", "published_at"]].copy()
+scatter_df[color_field] = filtered[color_field] if color_field in filtered.columns else filtered["channel_name"]
+scatter_df["rank"] = range(1, len(scatter_df) + 1)
+scatter_df["year"] = pd.to_datetime(scatter_df["published_at"], utc=True).dt.year
+
+fig_scatter = go.Figure()
+baseline = current_year
+
+for group_name in scatter_df[color_field].unique():
+    grp = scatter_df[scatter_df[color_field] == group_name]
+    bar_color = color_map.get(group_name, None) if color_map else None
+    fig_scatter.add_trace(go.Bar(
+        x=grp["rank"],
+        y=grp["year"] - baseline,
+        base=baseline,
+        name=str(group_name),
+        marker_color=bar_color,
+        customdata=list(zip(grp["title"], grp["view_count"])),
+        hovertemplate="Rank %{x}<br>Year: %{y}<br>%{customdata[0]}<br>Views: %{customdata[1]:,}<extra></extra>",
+        width=0.8,
+    ))
+
+fig_scatter.update_layout(
+    yaxis=dict(autorange="reversed", dtick=1, title="Year"),
+    xaxis=dict(range=[0.5, 100.5], tickvals=[1] + list(range(5, 96, 5)) + [100], title="Rank"),
+    margin=dict(t=20, b=40),
+    bargap=0.1,
+    barmode="overlay",
+)
+st.plotly_chart(fig_scatter, use_container_width=True)
+
+# ── Videos by Year ────────────────────────────────────────────
+st.subheader("Top 100 Videos by Publication Year")
+year_df = filtered.copy()
+year_df["year"] = pd.to_datetime(year_df["published_at"], utc=True).dt.year
+year_counts = year_df.groupby("year").size().reset_index(name="count").sort_values("year")
+
+fig_year = px.bar(year_counts, x="year", y="count",
+                  labels={"year": "Year", "count": "Videos in Top 100"},
+                  color_discrete_sequence=["#636EFA"])
+fig_year.update_layout(xaxis=dict(dtick=1, title="Year"), yaxis_title="Videos in Top 100", margin=dict(t=20, b=40))
+st.plotly_chart(fig_year, use_container_width=True)
+
+# ── Theme Distribution ────────────────────────────────────────
+theme_df = compute_theme_distribution(filtered)
+if not theme_df.empty:
+    from src.analytics import build_category_pie
+    cat_counts = dict(zip(theme_df["category"], theme_df["count"]))
+    st.plotly_chart(build_category_pie(cat_counts, "Theme Distribution", "videos"), use_container_width=True)
+
 # ── Channel table (same as Clubs page) ───────────────────────
 if not club:
     _loading = st.info("⏳ Building channel stats table…")
@@ -413,231 +641,3 @@ if not club:
     _loading.empty()
 
 
-filtered = df.sort_values("view_count", ascending=False).head(100).reset_index(drop=True)
-
-from zoneinfo import ZoneInfo as _ZoneInfo
-current_year = datetime.now(_ZoneInfo("Europe/Rome")).year
-
-# ── Views by Rank chart ───────────────────────────────────────
-st.subheader("Views by Rank")
-chart_df = filtered[["view_count", "title", "channel_name"]].copy()
-chart_df[color_field] = filtered[color_field] if color_field in filtered.columns else filtered["channel_name"]
-chart_df["rank"] = range(1, len(chart_df) + 1)
-
-fig = px.bar(
-    chart_df, x="rank", y="view_count",
-    color=color_field, color_discrete_map=color_map,
-    hover_data=["title", "channel_name"],
-    labels={"rank": "Rank", "view_count": "Views"},
-)
-fig.update_layout(
-    xaxis=dict(tickvals=[1] + list(range(5, 96, 5)) + [100], title="Rank"),
-    yaxis_title="Total Views",
-    margin=dict(t=20, b=40),
-    bargap=0.1,
-)
-st.plotly_chart(fig, use_container_width=True)
-
-# ── Rank vs Year ──────────────────────────────────────────────
-st.subheader("Rank vs Publication Year")
-scatter_df = filtered[["title", "channel_name", "view_count", "published_at"]].copy()
-scatter_df[color_field] = filtered[color_field] if color_field in filtered.columns else filtered["channel_name"]
-scatter_df["rank"] = range(1, len(scatter_df) + 1)
-scatter_df["year"] = pd.to_datetime(scatter_df["published_at"], utc=True).dt.year
-
-fig_scatter = go.Figure()
-baseline = current_year
-
-for group_name in scatter_df[color_field].unique():
-    grp = scatter_df[scatter_df[color_field] == group_name]
-    bar_color = color_map.get(group_name, None) if color_map else None
-    fig_scatter.add_trace(go.Bar(
-        x=grp["rank"],
-        y=grp["year"] - baseline,
-        base=baseline,
-        name=str(group_name),
-        marker_color=bar_color,
-        customdata=list(zip(grp["title"], grp["view_count"])),
-        hovertemplate="Rank %{x}<br>Year: %{y}<br>%{customdata[0]}<br>Views: %{customdata[1]:,}<extra></extra>",
-        width=0.8,
-    ))
-
-fig_scatter.update_layout(
-    yaxis=dict(autorange="reversed", dtick=1, title="Year"),
-    xaxis=dict(range=[0.5, 100.5], tickvals=[1] + list(range(5, 96, 5)) + [100], title="Rank"),
-    margin=dict(t=20, b=40),
-    bargap=0.1,
-    barmode="overlay",
-)
-st.plotly_chart(fig_scatter, use_container_width=True)
-
-# ── Videos by Year ────────────────────────────────────────────
-st.subheader("Top 100 Videos by Publication Year")
-year_df = filtered.copy()
-year_df["year"] = pd.to_datetime(year_df["published_at"], utc=True).dt.year
-year_counts = year_df.groupby("year").size().reset_index(name="count").sort_values("year")
-
-fig_year = px.bar(year_counts, x="year", y="count",
-                  labels={"year": "Year", "count": "Videos in Top 100"},
-                  color_discrete_sequence=["#636EFA"])
-fig_year.update_layout(xaxis=dict(dtick=1, title="Year"), yaxis_title="Videos in Top 100", margin=dict(t=20, b=40))
-st.plotly_chart(fig_year, use_container_width=True)
-
-# ── Theme Distribution ────────────────────────────────────────
-theme_df = compute_theme_distribution(filtered)
-if not theme_df.empty:
-    from src.analytics import build_category_pie
-    cat_counts = dict(zip(theme_df["category"], theme_df["count"]))
-    st.plotly_chart(build_category_pie(cat_counts, "Theme Distribution", "videos"), use_container_width=True)
-
-# ── Video Table ───────────────────────────────────────────────
-st.subheader("Video List")
-dual_colors = get_global_color_map_dual()
-color_map_tbl = get_global_color_map()
-_now = pd.Timestamp.now(tz="UTC")
-
-# Name → flag lookup, plus a name → channel-dict map so we can render the
-# standard channel_badge marker (flag for League channels, dual_dot for clubs)
-# instead of the previous flag+dot combo that produced a doubled glyph on
-# league rows.
-_ch_flag = {}
-_ch_by_name = {}
-for _c in all_channels:
-    _lg = COUNTRY_TO_LEAGUE.get((_c.get("country") or "").strip(), "")
-    _ch_flag[_c["name"]] = LEAGUE_FLAG.get(_lg, "")
-    _ch_by_name[_c["name"]] = _c
-
-_rows_html = ""
-for i, r in enumerate(filtered.itertuples(index=False), 1):
-    ch = getattr(r, "channel_name", "") or ""
-    title = (getattr(r, "title", "") or "").replace("<", "&lt;").replace(">", "&gt;")
-    yt_id = getattr(r, "youtube_video_id", "") or ""
-    title_cell = (
-        f'<a href="https://www.youtube.com/watch?v={yt_id}" target="_blank" rel="noopener" '
-        f'style="color:#FAFAFA;text-decoration:none;font-weight:700">{title}</a>' if yt_id else title
-    )
-    pub = pd.to_datetime(getattr(r, "published_at", None), utc=True) if getattr(r, "published_at", None) else None
-    age = f"{((_now - pub).days / 365.25):.1f}y" if pub is not None else ""
-    pub_s = pub.strftime("%Y-%m-%d") if pub is not None else ""
-    dur = getattr(r, "duration_seconds", 0) or 0
-    dur_s = f"{dur // 60}:{dur % 60:02d}" if dur else "0:00"
-    cat = getattr(r, "category", "") or ""
-    fmt_raw = (getattr(r, "format", "") or "").lower()
-    if fmt_raw not in ("long", "short", "live"):
-        fmt_raw = "long" if dur >= 60 else "short"
-    # Detect scheduled/premiere (future actual_start_time) for any format
-    _is_sched = False
-    _ast = getattr(r, "actual_start_time", None) or ""
-    if _ast:
-        try:
-            _ast_dt = pd.to_datetime(_ast, utc=True)
-            if _ast_dt > _now:
-                _is_sched = True
-        except Exception:
-            pass
-    elif fmt_raw == "live" and dur == 0:
-        _is_sched = True
-    if _is_sched:
-        fmt_label = "Scheduled"
-        fmt_color = "#AB63FA"
-    else:
-        fmt_label = {"long": "Long", "short": "Shorts", "live": "Live"}[fmt_raw]
-        fmt_color = {"long": "#636EFA", "short": "#00CC96", "live": "#FFA15A"}[fmt_raw]
-    fmt_cell = f'<span style="color:{fmt_color}">{fmt_label}</span>'
-    row_url = f"https://www.youtube.com/watch?v={yt_id}" if yt_id else ""
-    row_attrs = f'onclick="window.open(\'{row_url}\',\'_blank\',\'noopener\')" style="cursor:pointer"' if row_url else ''
-    # channel_badge: flag for League channels, dual_dot for clubs. Replaces
-    # the older `{flag} {dot}` combo which on league rows rendered both a
-    # flag AND a dot — the doubled-marker bug.
-    # Size 14 to match Daily Recap / Latest / Other Social / Channels / Season
-    _badge = channel_badge(_ch_by_name.get(ch, {"name": ch}), color_map_tbl, dual_colors, 14)
-    _cat_color = CATEGORY_COLORS.get(cat, "#888")
-    _cat_span = f' · <span style="color:{_cat_color}">{cat}</span>' if cat and cat != "Other" else ""
-    _meta = f'{_badge} <span style="color:#AAA">{ch}</span> · {fmt_cell}{_cat_span}'
-    _views = int(getattr(r, 'view_count', 0) or 0)
-    _likes = int(getattr(r, 'like_count', 0) or 0)
-    _comments = int(getattr(r, 'comment_count', 0) or 0)
-    _age_days = round((_now - pub).total_seconds() / 86400, 2) if pub is not None else 0
-    _rows_html += f"""<tr {row_attrs} data-views="{_views}" data-likes="{_likes}" data-comments="{_comments}" data-age="{_age_days}" data-dur="{dur}">
-        <td style="padding:6px 12px;text-align:right;color:#888;vertical-align:top">{i}</td>
-        <td style="padding:6px 12px;vertical-align:top">
-          <div>{title_cell}</div>
-          <div style="font-size:12px;margin-top:3px;white-space:nowrap">{_meta}</div>
-        </td>
-        <td style="padding:6px 12px;text-align:right">{fmt_num(_views)}</td>
-        <td style="padding:6px 12px;text-align:right">{fmt_num(_likes)}</td>
-        <td style="padding:6px 12px;text-align:right">{fmt_num(_comments)}</td>
-        <td style="padding:6px 12px;white-space:nowrap">{age}</td>
-        <td style="padding:6px 12px;white-space:nowrap">{dur_s}</td>
-    </tr>"""
-
-# Two-line rows (channel meta + title) actually run ~50px each, header ~45px.
-# Old formula `80 + 34*n, cap 1200` undercounted per-row but capped too low,
-# so when filters narrowed results we got both inner-scroll AND empty tail.
-# New: 50px×n + 50 header, capped at viewport-friendly 1400.
-_table_height = min(50 + 50 * len(filtered), 1400)
-components.html(
-    f"""
-    <style>
-      .vidlist {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
-                  font-family:"Source Sans Pro",sans-serif; }}
-      .vidlist th {{ padding:8px 12px; border-bottom:2px solid #444; text-align:left;
-                     background:#0E1117; position:sticky; top:0; z-index:1;
-                     user-select:none; }}
-      .vidlist td {{ border-bottom:1px solid #262730; }}
-      .vidlist tr:hover td {{ background:#1a1c24; }}
-      .vidlist th[data-col] {{ cursor:pointer; }}
-      .vidlist th[data-col]:hover {{ color:#58A6FF; }}
-      /* Match the inline text-arrow + .active pattern used everywhere else
-         on the site (Channels, Season, Daily Recap, Federations, …). */
-      .vidlist th.active {{ color:#58A6FF; }}
-    </style>
-    <div style="max-height:1350px;overflow:auto">
-    <table class="vidlist" id="vlTable"><thead><tr>
-      <th style="text-align:right">#</th>
-      <th>Video</th>
-      <th data-col="views" style="text-align:right" class="active">Views ▼</th>
-      <th data-col="likes" style="text-align:right">Likes</th>
-      <th data-col="comments" style="text-align:right">Comments</th>
-      <th data-col="age">Age</th>
-      <th data-col="dur">Duration</th>
-    </tr></thead><tbody>{_rows_html}</tbody></table>
-    </div>
-    <script>
-    (function() {{
-      const table = document.getElementById('vlTable');
-      const headers = table.querySelectorAll('th[data-col]');
-      // Initial sort: rows arrive ordered by view_count DESC. Views ▼ marked.
-      let currentCol = 'views', asc = false;
-      headers.forEach(th => {{
-        th.addEventListener('click', () => {{
-          const col = th.dataset.col;
-          if (currentCol === col) {{ asc = !asc; }}
-          else {{ currentCol = col; asc = false; }}
-          // Strip arrows + active class from everyone, then mark this one.
-          headers.forEach(h => {{
-            h.classList.remove('active');
-            h.textContent = h.textContent.replace(/ [▲▼]/g, '');
-          }});
-          th.classList.add('active');
-          th.textContent += asc ? ' ▲' : ' ▼';
-          const tbody = table.querySelector('tbody');
-          const rows = Array.from(tbody.querySelectorAll('tr'));
-          rows.sort((a, b) => {{
-            const va = parseFloat(a.dataset[col]) || 0;
-            const vb = parseFloat(b.dataset[col]) || 0;
-            return asc ? va - vb : vb - va;
-          }});
-          rows.forEach((r, idx) => {{
-            r.querySelector('td').textContent = idx + 1;
-            tbody.appendChild(r);
-          }});
-        }});
-      }});
-    }})();
-    </script>
-    {yt_popup_js()}
-    """,
-    height=_table_height,
-    scrolling=True,
-)
