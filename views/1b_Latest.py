@@ -354,14 +354,10 @@ for v in latest:
     _cat_color = CATEGORY_COLORS.get(cat, "#888")
     _cat_html = (f' · <span style="color:{_cat_color}">{cat}</span>'
                  if cat and cat != 'Other' else '')
-    # Language tag — small flag emoji + uppercase ISO at the very end
-    # of the meta line. Subtle gray so it reads as a tag, not a header.
+    # Language tag — uppercase ISO code only (flag emoji dropped: it's
+    # ambiguous on multi-country languages like English/Spanish/Portuguese).
     _lang = (v.get("language") or "").lower()
-    _LANG_FLAG = {
-        "en": "🇬🇧", "it": "🇮🇹", "es": "🇪🇸", "de": "🇩🇪",
-        "fr": "🇫🇷", "pt": "🇵🇹", "nl": "🇳🇱", "ca": "🏴",
-    }
-    _lang_html = (f' · <span style="color:#888">{_LANG_FLAG.get(_lang, "")} {_lang.upper()}</span>'
+    _lang_html = (f' · <span style="color:#888">{_lang.upper()}</span>'
                   if _lang else "")
     # Three-row layout in v-info:
     #   1. Channel (badge + name)
@@ -371,7 +367,7 @@ for v in latest:
     # longer following something — rebuild a clean tag line.
     _cat_only = (f'<span style="color:{_cat_color}">{cat}</span>'
                  if cat and cat != 'Other' else '')
-    _lang_only = (f'<span style="color:#888">{_LANG_FLAG.get(_lang, "")} {_lang.upper()}</span>'
+    _lang_only = (f'<span style="color:#888">{_lang.upper()}</span>'
                   if _lang else '')
     _fmt_only = f'<span style="color:{fmt_color}">{fmt_label}</span>'
     _tag_parts = [_fmt_only] + [p for p in (_cat_only, _lang_only) if p]
