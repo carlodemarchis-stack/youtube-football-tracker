@@ -211,17 +211,15 @@ if live_now:
     {yt_popup_js()}
     """, height=310, scrolling=False)
 
-# ── 48h timeline strip ───────────────────────────────────────
-# Renders before the table controls so it always reflects everything
-# published in the last 48h (independent of the format filter below).
-try:
-    from src.timeline import render_48h_timeline
-    def _ch_name(v):
-        ch = ch_by_id.get(v.get("channel_id")) or {}
-        return v.get("channel_name") or ch.get("name") or ""
-    render_48h_timeline(latest_raw_unscheduled, channel_resolver=_ch_name)
-except Exception as _e:
-    st.caption(f"(48h timeline unavailable: {_e})")
+# ── 48h timeline strip (single-club zoom only) ───────────────
+# At league or all-leagues zoom the strip becomes too dense to read; we
+# only render it when the user has drilled into a single club.
+if g_club:
+    try:
+        from src.timeline import render_48h_timeline
+        render_48h_timeline(latest_raw_unscheduled)
+    except Exception as _e:
+        st.caption(f"(48h timeline unavailable: {_e})")
 
 # ── Format filter (applies to the table / mosaic below) ──────
 _fc1, _fc2, _fc3 = st.columns([4, 1, 1])
