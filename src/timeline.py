@@ -182,6 +182,7 @@ def render_48h_dots(
     caption: str | None = None,
     channel_resolver=None,
     color_resolver=None,
+    badge_resolver=None,
 ) -> bool:
     """Compact dot version of the 48h timeline.
 
@@ -222,7 +223,7 @@ def render_48h_dots(
                 ch_last[cid] = ts
         rows = sorted(by_ch.keys(), key=lambda c: ch_last[c], reverse=True)
 
-        LEFT_MARGIN = 12.0   # leaves room for the channel-name labels
+        LEFT_MARGIN = 16.0   # badge + channel name + count column
         RIGHT_RESERVE = 4.0
         USABLE = 100.0 - LEFT_MARGIN - RIGHT_RESERVE
         ROW_H = 22
@@ -256,10 +257,21 @@ def render_48h_dots(
         for ridx, cid in enumerate(rows):
             top_px = TOP_PAD + ridx * ROW_H
             label = (ch_label.get(cid, "") or "").replace("<", "&lt;").replace(">", "&gt;")
+            badge_html = ""
+            if badge_resolver is not None:
+                try:
+                    sample_v = by_ch[cid][0][0]
+                    badge_html = badge_resolver(sample_v) or ""
+                except Exception:
+                    badge_html = ""
+            count = len(by_ch[cid])
             rows_html += (
                 f'<div class="dt-rowline" style="top:{top_px + ROW_H // 2}px"></div>'
-                f'<div class="dt-rowlabel" style="top:{top_px}px;line-height:{ROW_H}px">'
-                f'{label}</div>'
+                f'<div class="dt-rowlabel" style="top:{top_px}px;height:{ROW_H}px">'
+                f'<span class="dt-badge">{badge_html}</span>'
+                f'<span class="dt-name">{label}</span>'
+                f'<span class="dt-count">{count}</span>'
+                f'</div>'
             )
             for v, ts in by_ch[cid]:
                 f = _fmt_of(v)
@@ -302,9 +314,16 @@ def render_48h_dots(
                          right:{RIGHT_RESERVE}%; height:1px;
                          background:rgba(255,255,255,0.04); }}
           .dt-rowlabel {{ position:absolute; left:4px; width:{LEFT_MARGIN - 1}%;
-                          font-size:11px; color:#bbb; overflow:hidden;
-                          white-space:nowrap; text-overflow:ellipsis;
+                          display:flex; align-items:center; gap:6px;
+                          font-size:11px; color:#bbb;
                           padding-right:6px; box-sizing:border-box; }}
+          .dt-badge {{ display:inline-flex; align-items:center;
+                       justify-content:center; flex-shrink:0; }}
+          .dt-name {{ flex:1; min-width:0; overflow:hidden;
+                      white-space:nowrap; text-overflow:ellipsis; }}
+          .dt-count {{ flex-shrink:0; font-size:10px; color:#888;
+                       background:#1a1c24; border-radius:8px;
+                       padding:1px 6px; min-width:20px; text-align:center; }}
           .dt-dot {{ position:absolute; transform:translate(-50%,-50%);
                      border:1px solid rgba(0,0,0,0.5); cursor:pointer;
                      transition:transform 0.1s ease; }}

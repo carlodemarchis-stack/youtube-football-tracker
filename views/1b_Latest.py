@@ -231,9 +231,13 @@ elif g_league:
             ch = ch_by_id.get(v.get("channel_id")) or {}
             name = v.get("channel_name") or ch.get("name") or ""
             return color_map.get(name, "#636EFA")
+        def _ch_badge(v):
+            ch = ch_by_id.get(v.get("channel_id")) or {}
+            return channel_badge(ch, color_map, dual, 12)
         render_48h_dots(latest_raw_unscheduled,
                         channel_resolver=_ch_name,
-                        color_resolver=_ch_color)
+                        color_resolver=_ch_color,
+                        badge_resolver=_ch_badge)
     except Exception as _e:
         st.caption(f"(48h timeline unavailable: {_e})")
 
