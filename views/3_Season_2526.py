@@ -2176,6 +2176,106 @@ else:
             d[r["month"]] = r[metric]
         return [d[m] for m in months]
 
+    # ── Last 48h timeline (visual strip with thumbnails) ─────
+    try:
+        from datetime import datetime as _dt48, timezone as _tz48, timedelta as _td48
+        _now48 = _dt48.now(_tz48.utc)
+        _from48 = _now48 - _td48(hours=48)
+        _recent48 = [v for v in vids
+                     if pd.to_datetime(v.get("published_at"), utc=True, errors="coerce") is not pd.NaT
+                     and pd.to_datetime(v.get("published_at"), utc=True) >= _from48]
+        _recent48.sort(key=lambda v: pd.to_datetime(v.get("published_at"), utc=True))
+
+        if _recent48:
+            # Lane assignment: each video card is ~110px wide; place into
+            # the first lane where the previous card's right edge is left
+            # of this card's x position.
+            CARD_W_PCT = 8.5   # ~110/1300 * 100
+            LANES = 5
+            LANE_H = 92        # px per lane (thumb 80×45 + 2-line title)
+            lanes_last_x = [-100.0] * LANES
+            placements = []
+            for v in _recent48:
+                pub = pd.to_datetime(v.get("published_at"), utc=True)
+                x_pct = (pub - _from48).total_seconds() / (48 * 3600) * 100
+                lane = LANES - 1
+                for i, lx in enumerate(lanes_last_x):
+                    if x_pct - lx >= CARD_W_PCT:
+                        lane = i
+                        break
+                lanes_last_x[lane] = x_pct
+                placements.append((v, x_pct, lane, pub))
+
+            st.subheader("⏱️ Last 48 hours — published timeline")
+            st.caption(f"{len(_recent48)} video(s) in the last 48h. Cards "
+                       f"positioned by exact publish time (CET ticks below). "
+                       f"Click any card to open on YouTube.")
+
+            # Build cards
+            cards_html = ""
+            for v, x_pct, lane, pub in placements:
+                pub_cet = pub.tz_convert("Europe/Rome")
+                yt_url = f"https://www.youtube.com/watch?v={v.get('youtube_video_id','')}"
+                thumb = (v.get("thumbnail_url") or "").replace('"', "&quot;")
+                title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+                _f = _fmt_of(v)
+                fmt_color = {"long": "#636EFA", "short": "#00CC96", "live": "#FFA15A"}[_f]
+                fmt_label = {"long": "Long", "short": "Shorts", "live": "Live"}[_f]
+                pub_str = pub_cet.strftime("%a %H:%M")
+                top_px = lane * LANE_H + 8
+                cards_html += (
+                    f'<a href="{yt_url}" target="_blank" rel="noopener" '
+                    f'class="t48-card" style="left:{x_pct:.2f}%;top:{top_px}px;'
+                    f'border-top:3px solid {fmt_color}" '
+                    f'title="{title} · {fmt_label} · {pub_str}">'
+                    f'<img src="{thumb}" />'
+                    f'<div class="t48-title">{title}</div>'
+                    f'<div class="t48-meta"><span style="color:{fmt_color}">{fmt_label}</span> · {pub_str}</div>'
+                    f'</a>'
+                )
+
+            # Hour gridlines (every 6h: 48,42,36,30,24,18,12,6,0)
+            ticks_html = ""
+            for h in range(0, 49, 6):
+                # x at "h hours ago" = (48 - h) / 48 * 100
+                x = (48 - h) / 48 * 100
+                lab = "now" if h == 0 else f"{h}h ago"
+                ticks_html += (f'<div class="t48-tick" style="left:{x:.1f}%"></div>'
+                               f'<div class="t48-ticklabel" style="left:{x:.1f}%">{lab}</div>')
+
+            total_height = LANES * LANE_H + 50
+            components.html(f"""
+            <style>
+              .t48-wrap {{ position:relative; width:100%; height:{total_height}px;
+                           background:#0E1117; border-radius:6px; overflow:hidden;
+                           font-family:"Source Sans Pro",sans-serif; }}
+              .t48-tick {{ position:absolute; top:0; bottom:30px; width:1px;
+                           background:rgba(255,255,255,0.06); }}
+              .t48-ticklabel {{ position:absolute; bottom:6px; transform:translateX(-50%);
+                                font-size:10px; color:#888; }}
+              .t48-card {{ position:absolute; width:108px; height:80px;
+                           background:#1a1c24; border-radius:4px; overflow:hidden;
+                           color:#FAFAFA; text-decoration:none; display:block;
+                           transition:transform 0.1s ease; cursor:pointer; }}
+              .t48-card:hover {{ transform:translateY(-2px); z-index:10;
+                                 box-shadow:0 4px 12px rgba(0,0,0,0.4); }}
+              .t48-card img {{ width:108px; height:45px; object-fit:cover;
+                               display:block; }}
+              .t48-title {{ font-size:10px; line-height:1.15; padding:3px 5px 0 5px;
+                            font-weight:600; color:#FAFAFA;
+                            display:-webkit-box; -webkit-line-clamp:2;
+                            -webkit-box-orient:vertical; overflow:hidden;
+                            text-overflow:ellipsis; }}
+              .t48-meta {{ display:none; }}  /* tooltip carries the meta */
+            </style>
+            <div class="t48-wrap">
+              {ticks_html}
+              {cards_html}
+            </div>
+            """, height=total_height + 20, scrolling=False)
+    except Exception as _e:
+        st.caption(f"(48h timeline unavailable: {_e})")
+
     st.subheader("Monthly output")
     col_m1, col_m2 = st.columns(2)
     with col_m1:
