@@ -2357,57 +2357,6 @@ else:
         with col_p2:
             st.plotly_chart(build_category_pie(cat_views, "Views by Category", "views"), use_container_width=True)
 
-    # ── Language mix (Videos + Views by language) ─────────────
-    lang_count: dict[str, int] = {}
-    lang_views: dict[str, int] = {}
-    for v in vids:
-        lg = (v.get("language") or "").upper().strip()
-        if not lg:
-            continue
-        lang_count[lg] = lang_count.get(lg, 0) + 1
-        lang_views[lg] = lang_views.get(lg, 0) + int(v.get("view_count") or 0)
-
-    if lang_count:
-        # Stable palette so the same language renders the same color on
-        # every club's page.
-        _LANG_COLORS = {
-            "EN": "#636EFA",  # blue
-            "IT": "#00CC96",  # green
-            "ES": "#EF553B",  # red
-            "DE": "#FECB52",  # yellow
-            "FR": "#AB63FA",  # purple
-            "PT": "#19D3F3",  # cyan
-            "NL": "#FFA15A",  # orange
-            "CA": "#FF6692",  # pink
-        }
-
-        def _make_lang_pie(d: dict[str, int], title: str, suffix: str):
-            labels = sorted(d.keys(), key=lambda k: -d[k])
-            values = [d[k] for k in labels]
-            colors = [_LANG_COLORS.get(k, "#888") for k in labels]
-            fig = go.Figure(go.Pie(
-                labels=labels, values=values,
-                marker=dict(colors=colors), hole=0.45,
-                textinfo="percent+label", textposition="inside",
-                hovertemplate="%{label}: %{value:,.0f} " + suffix + "<extra></extra>",
-                sort=False,  # respect our sort order
-            ))
-            fig.update_layout(
-                title=dict(text=title, x=0.5), showlegend=False, height=300,
-                margin=dict(t=40, b=20, l=20, r=20),
-                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(color="#FAFAFA"),
-            )
-            return fig
-
-        col_l1, col_l2 = st.columns(2)
-        with col_l1:
-            st.plotly_chart(_make_lang_pie(lang_count, "Videos by Language", "videos"),
-                            use_container_width=True)
-        with col_l2:
-            st.plotly_chart(_make_lang_pie(lang_views, "Views by Language", "views"),
-                            use_container_width=True)
-
     # ── Top season videos — three leaderboards ─────────────────
     # Use the standard Long/Shorts/Live palette here (not the club's
     # brand colors) so the row tags read consistently with every other
@@ -2425,12 +2374,10 @@ else:
         _cat = (v.get("category") or "").replace("<", "&lt;")
         _cat_color = CATEGORY_COLORS.get(_cat, "#888")
         _cat_span = f' · <span style="color:{_cat_color}">{_cat}</span>' if _cat and _cat != "Other" else ""
-        _lang = (v.get("language") or "").upper()
-        _lang_span = f' · <span style="color:#888">{_lang}</span>' if _lang else ""
         _meta = (f'<span style="color:{fmt_color}">{fmt_label}</span> · '
                  f'{_dur(v.get("duration_seconds", 0))} · '
                  f'<span style="color:#888">{pub}</span>'
-                 f'{_cat_span}{_lang_span}')
+                 f'{_cat_span}')
         return f"""<tr onclick="window.open('{yt_url}','_blank','noopener')" style="cursor:pointer">
             <td style="padding:6px 12px;text-align:right;color:#888">{i}</td>
             <td style="padding:6px 12px;vertical-align:top"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px;display:block"></td>

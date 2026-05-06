@@ -352,25 +352,14 @@ for v in latest:
     _badge = channel_badge(ch, color_map, dual, 14)
 
     _cat_color = CATEGORY_COLORS.get(cat, "#888")
-    _cat_html = (f' · <span style="color:{_cat_color}">{cat}</span>'
-                 if cat and cat != 'Other' else '')
-    # Language tag — uppercase ISO code only (flag emoji dropped: it's
-    # ambiguous on multi-country languages like English/Spanish/Portuguese).
-    _lang = (v.get("language") or "").lower()
-    _lang_html = (f' · <span style="color:#888">{_lang.upper()}</span>'
-                  if _lang else "")
     # Three-row layout in v-info:
     #   1. Channel (badge + name)
     #   2. Title (bold)
-    #   3. Tags (format · category · language)
-    # The leading "·" on _cat/_lang spans is stripped because they're no
-    # longer following something — rebuild a clean tag line.
+    #   3. Tags (format · category)
     _cat_only = (f'<span style="color:{_cat_color}">{cat}</span>'
                  if cat and cat != 'Other' else '')
-    _lang_only = (f'<span style="color:#888">{_lang.upper()}</span>'
-                  if _lang else '')
     _fmt_only = f'<span style="color:{fmt_color}">{fmt_label}</span>'
-    _tag_parts = [_fmt_only] + [p for p in (_cat_only, _lang_only) if p]
+    _tag_parts = [_fmt_only] + [p for p in (_cat_only,) if p]
     _tags_line = ' · '.join(_tag_parts)
 
     rows_html += f"""<tr {row_click} style="cursor:pointer" data-views="{views}" data-likes="{likes}" data-comments="{comments}" data-dur="{dur}" data-age="{age_minutes}" data-ch="{ch_name}" data-fmt="{fmt_raw}" data-cat="{cat}">
