@@ -187,6 +187,8 @@ def render_48h_dots(
     channel_resolver=None,
     color_resolver=None,
     badge_resolver=None,
+    group_resolver=None,
+    row_label: str = "club",
 ) -> bool:
     """Compact dot version of the 48h timeline.
 
@@ -209,12 +211,19 @@ def render_48h_dots(
         if not recent:
             return False
 
-        # Group by channel; row order = most recent activity first.
+        # Group; default = by channel. group_resolver(v) -> key lets the
+        # caller bucket by something else (e.g. league at Z1).
         by_ch: dict[str, list[tuple[dict, object]]] = {}
         ch_label: dict[str, str] = {}
         ch_last: dict[str, object] = {}
         for v, ts in recent:
-            cid = v.get("channel_id") or "?"
+            if group_resolver is not None:
+                try:
+                    cid = group_resolver(v) or "?"
+                except Exception:
+                    cid = "?"
+            else:
+                cid = v.get("channel_id") or "?"
             by_ch.setdefault(cid, []).append((v, ts))
             if channel_resolver is not None:
                 try:
@@ -241,7 +250,7 @@ def render_48h_dots(
         if _hdr:
             st.subheader(_hdr)
         if caption is None:
-            caption = (f"{len(recent)} video(s) across {len(rows)} club(s) "
+            caption = (f"{len(recent)} video(s) across {len(rows)} {row_label}(s) "
                        f"in the last {hours}h. Click any dot to open the video.")
         if caption:
             st.caption(caption)

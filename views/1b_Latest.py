@@ -240,6 +240,37 @@ elif g_league:
                         badge_resolver=_ch_badge)
     except Exception as _e:
         st.caption(f"(48h timeline unavailable: {_e})")
+else:
+    # Z1 (all leagues): one row per league, dots = all clubs + the
+    # league's own channel within that league.
+    try:
+        from src.timeline import render_48h_dots
+        from src.channels import LEAGUE_FLAG, LEAGUE_COLOR
+        def _league_of(v):
+            ch = ch_by_id.get(v.get("channel_id")) or {}
+            return get_league_for_channel(ch) or "Other"
+        def _lg_label(v):
+            return _league_of(v)
+        def _lg_color(v):
+            # Color each dot by its league brand color so rows read as
+            # one stripe of color per league.
+            return LEAGUE_COLOR.get(_league_of(v), "#636EFA")
+        def _lg_badge(v):
+            lg = _league_of(v)
+            flag = LEAGUE_FLAG.get(lg, "")
+            if not flag:
+                return ""
+            return (f'<span style="display:inline-flex;align-items:center;'
+                    f'justify-content:center;width:14px;height:14px;'
+                    f'font-size:12px;line-height:1">{flag}</span>')
+        render_48h_dots(latest_raw_unscheduled,
+                        channel_resolver=_lg_label,
+                        color_resolver=_lg_color,
+                        badge_resolver=_lg_badge,
+                        group_resolver=_league_of,
+                        row_label="league")
+    except Exception as _e:
+        st.caption(f"(48h timeline unavailable: {_e})")
 
 # ── Format filter (applies to the table / mosaic below) ──────
 _fc1, _fc2, _fc3 = st.columns([4, 1, 1])
