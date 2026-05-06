@@ -96,16 +96,6 @@ if g_league is None and g_club is None:
             unsafe_allow_html=True,
         )
 
-# ── Format filter ────────────────────────────────────────────
-_fc1, _fc2, _fc3 = st.columns([4, 1, 1])
-with _fc1:
-    fmt_options = ["All", "Long", "Shorts", "Live"]
-    fmt_pick = st.segmented_control("Format", fmt_options, default="All")
-with _fc2:
-    show_scheduled = st.checkbox("Show scheduled", value=False)
-with _fc3:
-    mosaic_view = st.checkbox("Mosaic", value=False)
-
 with st.spinner("Loading latest videos…"):
     latest_raw = db.get_recent_videos(limit=200, channel_ids=ch_ids)
 
@@ -142,27 +132,10 @@ def _is_live_now(v):
 
 live_now = [v for v in latest_raw if _is_live_now(v)]
 
-if not show_scheduled:
-    latest_raw = [v for v in latest_raw if not _is_scheduled(v) or _is_live_now(v)]
-
-# Apply format filter
-if fmt_pick and fmt_pick != "All":
-    _fmt_map = {"Long": "long", "Shorts": "short", "Live": "live"}
-    _target = _fmt_map[fmt_pick]
-    latest = []
-    for v in latest_raw:
-        vfmt = (v.get("format") or "").lower()
-        if vfmt not in ("long", "short", "live"):
-            vfmt = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
-        if vfmt == _target:
-            latest.append(v)
-    latest = latest[:100]
-else:
-    latest = latest_raw[:100]
-
-if not latest:
-    st.caption("No videos found.")
-    st.stop()
+# Drop unstarted scheduled videos from the timeline strip; the user gets
+# a checkbox below to opt them back in for the table view.
+latest_raw_unscheduled = [v for v in latest_raw
+                          if not _is_scheduled(v) or _is_live_now(v)]
 
 ch_by_id = {c["id"]: c for c in all_channels}
 
@@ -238,6 +211,53 @@ if live_now:
     {yt_popup_js()}
     """, height=310, scrolling=False)
 
+# ── 48h timeline strip ───────────────────────────────────────
+# Renders before the table controls so it always reflects everything
+# published in the last 48h (independent of the format filter below).
+try:
+    from src.timeline import render_48h_timeline
+    def _ch_name(v):
+        ch = ch_by_id.get(v.get("channel_id")) or {}
+        return v.get("channel_name") or ch.get("name") or ""
+    render_48h_timeline(latest_raw_unscheduled, channel_resolver=_ch_name)
+except Exception as _e:
+    st.caption(f"(48h timeline unavailable: {_e})")
+
+# ── Format filter (applies to the table / mosaic below) ──────
+_fc1, _fc2, _fc3 = st.columns([4, 1, 1])
+with _fc1:
+    fmt_options = ["All", "Long", "Shorts", "Live"]
+    fmt_pick = st.segmented_control("Format", fmt_options, default="All")
+with _fc2:
+    show_scheduled = st.checkbox("Show scheduled", value=False)
+with _fc3:
+    mosaic_view = st.checkbox("Mosaic", value=False)
+
+# Apply scheduled filter
+if show_scheduled:
+    _src = latest_raw
+else:
+    _src = latest_raw_unscheduled
+
+# Apply format filter
+if fmt_pick and fmt_pick != "All":
+    _fmt_map = {"Long": "long", "Shorts": "short", "Live": "live"}
+    _target = _fmt_map[fmt_pick]
+    latest = []
+    for v in _src:
+        vfmt = (v.get("format") or "").lower()
+        if vfmt not in ("long", "short", "live"):
+            vfmt = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
+        if vfmt == _target:
+            latest.append(v)
+    latest = latest[:100]
+else:
+    latest = _src[:100]
+
+if not latest:
+    st.caption("No videos found.")
+    st.stop()
+
 # ── Mosaic view ─────────────────────────────────────────────
 if mosaic_view:
     cards_html = ""
@@ -290,19 +310,6 @@ if mosaic_view:
     {yt_popup_js()}
     """, height=max(280, (len(latest) // 5 + 1) * 195), scrolling=True)
     st.stop()
-
-# ── 48h timeline strip ───────────────────────────────────────
-# Use the unfiltered set so the strip shows the full picture even when
-# the user has narrowed the table by format. Channel name in the tooltip
-# helps disambiguate the multi-club view.
-try:
-    from src.timeline import render_48h_timeline
-    def _ch_name(v):
-        ch = ch_by_id.get(v.get("channel_id")) or {}
-        return v.get("channel_name") or ch.get("name") or ""
-    render_48h_timeline(latest_raw, channel_resolver=_ch_name)
-except Exception as _e:
-    st.caption(f"(48h timeline unavailable: {_e})")
 
 # ── Build HTML table rows ────────────────────────────────────
 rows_html = ""
