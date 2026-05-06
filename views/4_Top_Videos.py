@@ -199,43 +199,6 @@ try:
         unsafe_allow_html=True,
     )
 
-    # ── Row 2 (Z1/Z2 only): sum of every channel's own top 100
-    if not club:
-        _agg_total = sum(int(c.get("top100_views") or 0) for c in _scope_channels)
-        _agg_n = sum(1 for c in _scope_channels if int(c.get("top100_views") or 0) > 0)
-        _agg_vids = _agg_n * 100  # ≈ each channel contributes up to 100
-        _agg_avg = (_agg_total // _agg_vids) if _agg_vids else 0
-        _agg_per = (_agg_total // _agg_n) if _agg_n else 0
-        _agg_pct = (_agg_total / _lifetime_views * 100) if _lifetime_views else 0.0
-        _w_age = 0.0
-        _w_sum = 0.0
-        for c in _scope_channels:
-            v = int(c.get("top100_views") or 0)
-            a = float(c.get("top100_avg_age_days") or 0)
-            if v > 0 and a > 0:
-                _w_age += a * v
-                _w_sum += v
-        _agg_avg_age = (_w_age / _w_sum / 365.25) if _w_sum else 0.0
-
-        _ent_label = "leagues" if (not league and _scope_channels and
-                                   all(c.get("entity_type") == "League"
-                                       for c in _scope_channels)) else "clubs"
-        _row2 = "".join([
-            _kpi_card("Total views (sum of top 100s)", fmt_num(_agg_total), "#58A6FF"),
-            _kpi_card("Share of lifetime", f"{_agg_pct:.1f}%", "#00CC96"),
-            _kpi_card("Avg views / video", fmt_num(_agg_avg), "#FFA15A"),
-            _kpi_card(f"Avg per {_ent_label[:-1]}", fmt_num(_agg_per), "#AB63FA"),
-            _kpi_card("Avg age", f"{_agg_avg_age:.1f}y", "#EF553B"),
-        ])
-        st.markdown(
-            f'<div style="color:#999;font-size:12px;margin:4px 0 6px 2px">'
-            f'<b>Sum of each {_ent_label[:-1]}\'s own top 100.</b> '
-            f'{_agg_n} {_ent_label} × up to 100 videos each — ties to the '
-            f'bottom channel-stats table.</div>'
-            f'<div style="display:grid;grid-template-columns:repeat(5,1fr);'
-            f'gap:10px;margin:0 0 14px 0">{_row2}</div>',
-            unsafe_allow_html=True,
-        )
 except Exception as _e:
     st.caption(f"(KPIs unavailable: {_e})")
 
@@ -466,6 +429,49 @@ if not theme_df.empty:
     from src.analytics import build_category_pie
     cat_counts = dict(zip(theme_df["category"], theme_df["count"]))
     st.plotly_chart(build_category_pie(cat_counts, "Theme Distribution", "videos"), use_container_width=True)
+
+# ── KPI Row 2 (Z1/Z2 only): sum of every channel's own top 100 ──
+# Sits right above the channel-stats table since the numbers tie out
+# to that table's "Top 100 views" column.
+if not club:
+    try:
+        _agg_total = sum(int(c.get("top100_views") or 0) for c in _scope_channels)
+        _agg_n = sum(1 for c in _scope_channels if int(c.get("top100_views") or 0) > 0)
+        _agg_vids = _agg_n * 100
+        _agg_avg = (_agg_total // _agg_vids) if _agg_vids else 0
+        _agg_per = (_agg_total // _agg_n) if _agg_n else 0
+        _agg_pct = (_agg_total / _lifetime_views * 100) if _lifetime_views else 0.0
+        _w_age = 0.0
+        _w_sum = 0.0
+        for c in _scope_channels:
+            v = int(c.get("top100_views") or 0)
+            a = float(c.get("top100_avg_age_days") or 0)
+            if v > 0 and a > 0:
+                _w_age += a * v
+                _w_sum += v
+        _agg_avg_age = (_w_age / _w_sum / 365.25) if _w_sum else 0.0
+
+        _ent_label = "leagues" if (not league and _scope_channels and
+                                   all(c.get("entity_type") == "League"
+                                       for c in _scope_channels)) else "clubs"
+        _row2 = "".join([
+            _kpi_card("Total views (sum of top 100s)", fmt_num(_agg_total), "#58A6FF"),
+            _kpi_card("Share of lifetime", f"{_agg_pct:.1f}%", "#00CC96"),
+            _kpi_card("Avg views / video", fmt_num(_agg_avg), "#FFA15A"),
+            _kpi_card(f"Avg per {_ent_label[:-1]}", fmt_num(_agg_per), "#AB63FA"),
+            _kpi_card("Avg age", f"{_agg_avg_age:.1f}y", "#EF553B"),
+        ])
+        st.markdown(
+            f'<div style="color:#999;font-size:12px;margin:14px 0 6px 2px">'
+            f'<b>Sum of each {_ent_label[:-1]}\'s own top 100.</b> '
+            f'{_agg_n} {_ent_label} × up to 100 videos each — ties to the '
+            f'channel-stats table below.</div>'
+            f'<div style="display:grid;grid-template-columns:repeat(5,1fr);'
+            f'gap:10px;margin:0 0 14px 0">{_row2}</div>',
+            unsafe_allow_html=True,
+        )
+    except Exception as _e:
+        st.caption(f"(KPI row 2 unavailable: {_e})")
 
 # ── Channel table (same as Clubs page) ───────────────────────
 if not club:
