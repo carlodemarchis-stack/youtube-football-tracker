@@ -762,7 +762,7 @@ class Database:
             .select("id,youtube_video_id,title,channel_id,published_at,"
                     "actual_start_time,duration_seconds,"
                     "format,category,view_count,like_count,comment_count,"
-                    "thumbnail_url,channels(name)")
+                    "thumbnail_url,language,channels(name)")
             .order("published_at", desc=True)
             .limit(limit)
         )

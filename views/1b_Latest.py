@@ -354,13 +354,22 @@ for v in latest:
     _cat_color = CATEGORY_COLORS.get(cat, "#888")
     _cat_html = (f' · <span style="color:{_cat_color}">{cat}</span>'
                  if cat and cat != 'Other' else '')
+    # Language tag — small flag emoji + uppercase ISO at the very end
+    # of the meta line. Subtle gray so it reads as a tag, not a header.
+    _lang = (v.get("language") or "").lower()
+    _LANG_FLAG = {
+        "en": "🇬🇧", "it": "🇮🇹", "es": "🇪🇸", "de": "🇩🇪",
+        "fr": "🇫🇷", "pt": "🇵🇹", "nl": "🇳🇱", "ca": "🏴",
+    }
+    _lang_html = (f' · <span style="color:#888">{_LANG_FLAG.get(_lang, "")} {_lang.upper()}</span>'
+                  if _lang else "")
     rows_html += f"""<tr {row_click} style="cursor:pointer" data-views="{views}" data-likes="{likes}" data-comments="{comments}" data-dur="{dur}" data-age="{age_minutes}" data-ch="{ch_name}" data-fmt="{fmt_raw}" data-cat="{cat}">
         <td class="c-video">
           <div class="v-row">
             {thumb_html}
             <div class="v-info">
               <a href="{url}" target="_blank" rel="noopener" class="v-title"><br>{title}</a>
-              <div class="v-meta">{_badge} <span style="color:#AAA">{ch_name}</span> · <span style="color:{fmt_color}">{fmt_label}</span>{_cat_html}</div>
+              <div class="v-meta">{_badge} <span style="color:#AAA">{ch_name}</span> · <span style="color:{fmt_color}">{fmt_label}</span>{_cat_html}{_lang_html}</div>
             </div>
           </div>
         </td>
