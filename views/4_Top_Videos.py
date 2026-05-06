@@ -151,8 +151,17 @@ try:
     _cutoff = int(_filtered_for_kpi["view_count"].min()) if len(_filtered_for_kpi) else 0
     _pct_lifetime = (_top_views / _lifetime_views * 100) if _lifetime_views else 0.0
 
+    # Average age (years) of the top 100 — tells you how front- or
+    # back-loaded the catalogue is.
+    _now_utc_kpi = pd.Timestamp.now(tz="UTC")
+    _ages_days = (_now_utc_kpi - pd.to_datetime(
+        _filtered_for_kpi["published_at"], utc=True, errors="coerce"
+    )).dt.total_seconds() / 86400.0
+    _ages_days = _ages_days.dropna()
+    _avg_age_years = float(_ages_days.mean() / 365.25) if len(_ages_days) else 0.0
+
     _kpi_html = f"""
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;
                 margin:4px 0 14px 0">
       <div style="background:#1a1c24;border-radius:6px;padding:10px 14px;
                   border-left:3px solid #58A6FF">
@@ -189,6 +198,15 @@ try:
         </div>
         <div style="color:#FAFAFA;font-size:22px;font-weight:700;
                     margin-top:2px">{fmt_num(_cutoff)}</div>
+      </div>
+      <div style="background:#1a1c24;border-radius:6px;padding:10px 14px;
+                  border-left:3px solid #EF553B">
+        <div style="color:#888;font-size:11px;font-weight:600;
+                    text-transform:uppercase;letter-spacing:0.5px">
+          Avg age
+        </div>
+        <div style="color:#FAFAFA;font-size:22px;font-weight:700;
+                    margin-top:2px">{_avg_age_years:.1f}y</div>
       </div>
     </div>
     """
