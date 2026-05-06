@@ -2246,28 +2246,33 @@ else:
                 )
 
             # Hour gridlines (every 6h: 48,42,36,30,24,18,12,6,0).
-            # Mapped onto the same usable strip as the cards so labels
-            # ('48h ago' on the left, 'now' on the right) sit fully
-            # inside the container.
+            # Labels mirrored at TOP and BOTTOM so the time axis is
+            # readable whether the user lands at the top or scrolls past.
             ticks_html = ""
             for h in range(0, 49, 6):
                 x = LEFT_MARGIN + (48 - h) / 48 * USABLE
                 lab = "now" if h == 0 else f"{h}h ago"
-                ticks_html += (f'<div class="t48-tick" style="left:{x:.1f}%"></div>'
-                               f'<div class="t48-ticklabel" style="left:{x:.1f}%">{lab}</div>')
+                ticks_html += (
+                    f'<div class="t48-tick" style="left:{x:.1f}%"></div>'
+                    f'<div class="t48-ticklabel t48-tick-top" style="left:{x:.1f}%">{lab}</div>'
+                    f'<div class="t48-ticklabel t48-tick-bot" style="left:{x:.1f}%">{lab}</div>'
+                )
 
-            total_height = LANES * LANE_H + 50
+            # 30px top label band + cards + 30px bottom label band.
+            total_height = 30 + LANES * LANE_H + 30
             components.html(f"""
             <style>
               .t48-wrap {{ position:relative; width:100%; height:{total_height}px;
                            background:#0E1117; border-radius:6px; overflow:hidden;
                            font-family:"Source Sans Pro",sans-serif; }}
-              /* Time axis on top: 30px label band, gridlines drop from
-                 there to the bottom of the wrap. */
-              .t48-tick {{ position:absolute; top:30px; bottom:0; width:1px;
+              /* Time axis: 30px label bands top AND bottom; gridlines
+                 span the card area between them. */
+              .t48-tick {{ position:absolute; top:30px; bottom:30px; width:1px;
                            background:rgba(255,255,255,0.06); }}
-              .t48-ticklabel {{ position:absolute; top:8px; transform:translateX(-50%);
+              .t48-ticklabel {{ position:absolute; transform:translateX(-50%);
                                 font-size:10px; color:#888; }}
+              .t48-tick-top {{ top:8px; }}
+              .t48-tick-bot {{ bottom:8px; }}
               .t48-card {{ position:absolute; width:108px; height:80px;
                            background:#1a1c24; border-radius:4px; overflow:hidden;
                            color:#FAFAFA; text-decoration:none; display:block;
