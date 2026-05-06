@@ -2246,10 +2246,13 @@ else:
                     f'</a>'
                 )
 
-            # Hour gridlines (every 6h: 48,42,36,30,24,18,12,6,0).
-            # Labels show the wall-clock time in CET — 'now' for h=0,
-            # 'Mon 14:00' for the rest. Mirrored top + bottom.
-            _now_cet = _now48.astimezone(_ZI("Europe/Rome"))
+            # Hour gridlines (every 6h). Labels show round-hour CET wall
+            # clock — 'now' for h=0, 'Mon 14:00' / 'Tue 02:00' / etc. for
+            # the rest. Round down to the nearest hour so ticks read
+            # cleanly regardless of when the page is loaded.
+            _now_cet = _now48.astimezone(_ZI("Europe/Rome")).replace(
+                minute=0, second=0, microsecond=0
+            )
             ticks_html = ""
             for h in range(0, 49, 6):
                 x = LEFT_MARGIN + (48 - h) / 48 * USABLE
