@@ -345,6 +345,82 @@ filtered = df.sort_values("view_count", ascending=False).head(100).reset_index(d
 from zoneinfo import ZoneInfo as _ZoneInfo
 current_year = datetime.now(_ZoneInfo("Europe/Rome")).year
 
+# ── KPI line ──────────────────────────────────────────────────
+# Lifetime denominator = sum of channels.total_views across the
+# channels in scope (matches the current zoom level). At Z1 we honor
+# the Leagues-only / All-clubs scope toggle so the % stays meaningful.
+try:
+    if club:
+        _scope_channels = [club]
+    elif league:
+        _scope_channels = get_channels_for_filter(all_channels, league)
+    else:
+        _scope = get_all_leagues_scope()
+        _ch_by_name = {ch["name"]: ch for ch in all_channels}
+        if _scope == "Leagues only":
+            _scope_channels = [c for c in all_channels
+                               if c.get("entity_type") == "League"]
+        elif _scope == "All clubs":
+            _scope_channels = [c for c in all_channels
+                               if c.get("entity_type") not in
+                                  ("League", "Player", "Federation",
+                                   "OtherClub", "WomenClub")]
+        else:
+            _scope_channels = [c for c in all_channels
+                               if c.get("entity_type") not in
+                                  ("Player", "Federation",
+                                   "OtherClub", "WomenClub")]
+    _lifetime_views = sum(int(c.get("total_views") or 0) for c in _scope_channels)
+    _top_views = int(filtered["view_count"].sum())
+    _avg_views = int(filtered["view_count"].mean()) if len(filtered) else 0
+    _cutoff = int(filtered["view_count"].min()) if len(filtered) else 0
+    _pct_lifetime = (_top_views / _lifetime_views * 100) if _lifetime_views else 0.0
+
+    _kpi_html = f"""
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;
+                margin:4px 0 14px 0">
+      <div style="background:#1a1c24;border-radius:6px;padding:10px 14px;
+                  border-left:3px solid #58A6FF">
+        <div style="color:#888;font-size:11px;font-weight:600;
+                    text-transform:uppercase;letter-spacing:0.5px">
+          Total views (top 100)
+        </div>
+        <div style="color:#FAFAFA;font-size:22px;font-weight:700;
+                    margin-top:2px">{fmt_num(_top_views)}</div>
+      </div>
+      <div style="background:#1a1c24;border-radius:6px;padding:10px 14px;
+                  border-left:3px solid #00CC96">
+        <div style="color:#888;font-size:11px;font-weight:600;
+                    text-transform:uppercase;letter-spacing:0.5px">
+          Share of lifetime
+        </div>
+        <div style="color:#FAFAFA;font-size:22px;font-weight:700;
+                    margin-top:2px">{_pct_lifetime:.1f}%</div>
+      </div>
+      <div style="background:#1a1c24;border-radius:6px;padding:10px 14px;
+                  border-left:3px solid #FFA15A">
+        <div style="color:#888;font-size:11px;font-weight:600;
+                    text-transform:uppercase;letter-spacing:0.5px">
+          Avg views / video
+        </div>
+        <div style="color:#FAFAFA;font-size:22px;font-weight:700;
+                    margin-top:2px">{fmt_num(_avg_views)}</div>
+      </div>
+      <div style="background:#1a1c24;border-radius:6px;padding:10px 14px;
+                  border-left:3px solid #AB63FA">
+        <div style="color:#888;font-size:11px;font-weight:600;
+                    text-transform:uppercase;letter-spacing:0.5px">
+          Cutoff (rank 100)
+        </div>
+        <div style="color:#FAFAFA;font-size:22px;font-weight:700;
+                    margin-top:2px">{fmt_num(_cutoff)}</div>
+      </div>
+    </div>
+    """
+    st.markdown(_kpi_html, unsafe_allow_html=True)
+except Exception as _e:
+    st.caption(f"(KPIs unavailable: {_e})")
+
 # ── Views by Rank chart ───────────────────────────────────────
 st.subheader("Views by Rank")
 chart_df = filtered[["view_count", "title", "channel_name"]].copy()
