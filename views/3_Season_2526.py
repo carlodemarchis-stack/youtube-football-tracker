@@ -2231,7 +2231,8 @@ else:
                 fmt_color = {"long": "#636EFA", "short": "#00CC96", "live": "#FFA15A"}[_f]
                 fmt_label = {"long": "Long", "short": "Shorts", "live": "Live"}[_f]
                 pub_str = pub_cet.strftime("%a %H:%M")
-                top_px = lane * LANE_H + 8
+                # 30px reserved at top for the time-axis labels.
+                top_px = lane * LANE_H + 8 + 30
                 cards_html += (
                     f'<a href="{yt_url}" target="_blank" rel="noopener" '
                     f'data-fmt="{_f}" '
@@ -2261,9 +2262,11 @@ else:
               .t48-wrap {{ position:relative; width:100%; height:{total_height}px;
                            background:#0E1117; border-radius:6px; overflow:hidden;
                            font-family:"Source Sans Pro",sans-serif; }}
-              .t48-tick {{ position:absolute; top:0; bottom:30px; width:1px;
+              /* Time axis on top: 30px label band, gridlines drop from
+                 there to the bottom of the wrap. */
+              .t48-tick {{ position:absolute; top:30px; bottom:0; width:1px;
                            background:rgba(255,255,255,0.06); }}
-              .t48-ticklabel {{ position:absolute; bottom:6px; transform:translateX(-50%);
+              .t48-ticklabel {{ position:absolute; top:8px; transform:translateX(-50%);
                                 font-size:10px; color:#888; }}
               .t48-card {{ position:absolute; width:108px; height:80px;
                            background:#1a1c24; border-radius:4px; overflow:hidden;
