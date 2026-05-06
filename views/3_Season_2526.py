@@ -2409,21 +2409,28 @@ else:
                             use_container_width=True)
 
     # ── Top season videos — three leaderboards ─────────────────
+    # Use the standard Long/Shorts/Live palette here (not the club's
+    # brand colors) so the row tags read consistently with every other
+    # table on the site.
+    from src.analytics import FORMAT_COLORS as _ROW_FMT_COLORS
+
     def _video_row(i: int, v: dict) -> str:
         yt_url = f"https://www.youtube.com/watch?v={v['youtube_video_id']}"
         thumb = v.get("thumbnail_url") or ""
         _f = _fmt_of(v)
         fmt_label = {"long": "Long", "short": "Shorts", "live": "Live"}[_f]
-        fmt_color = {"long": LONG_COLOR, "short": SHORT_COLOR, "live": LIVE_COLOR}[_f]
+        fmt_color = _ROW_FMT_COLORS[_f]
         pub = (v.get("published_at") or "")[:10]
         title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;")
         _cat = (v.get("category") or "").replace("<", "&lt;")
         _cat_color = CATEGORY_COLORS.get(_cat, "#888")
         _cat_span = f' · <span style="color:{_cat_color}">{_cat}</span>' if _cat and _cat != "Other" else ""
+        _lang = (v.get("language") or "").upper()
+        _lang_span = f' · <span style="color:#888">{_lang}</span>' if _lang else ""
         _meta = (f'<span style="color:{fmt_color}">{fmt_label}</span> · '
                  f'{_dur(v.get("duration_seconds", 0))} · '
                  f'<span style="color:#888">{pub}</span>'
-                 f'{_cat_span}')
+                 f'{_cat_span}{_lang_span}')
         return f"""<tr onclick="window.open('{yt_url}','_blank','noopener')" style="cursor:pointer">
             <td style="padding:6px 12px;text-align:right;color:#888">{i}</td>
             <td style="padding:6px 12px;vertical-align:top"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px;display:block"></td>
