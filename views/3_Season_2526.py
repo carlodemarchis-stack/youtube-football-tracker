@@ -2225,6 +2225,7 @@ else:
                 top_px = lane * LANE_H + 8
                 cards_html += (
                     f'<a href="{yt_url}" target="_blank" rel="noopener" '
+                    f'data-fmt="{_f}" '
                     f'class="t48-card" style="left:{x_pct:.2f}%;top:{top_px}px;'
                     f'border-top:3px solid {fmt_color}" '
                     f'title="{title} · {fmt_label} · {pub_str}">'

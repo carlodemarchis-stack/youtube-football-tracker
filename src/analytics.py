@@ -176,19 +176,26 @@ def yt_popup_js() -> str:
     """
     return """<script>
 (function(){
+  // If the clicked element (or any ancestor) carries data-fmt="short",
+  // we forward that on the postMessage so the overlay can render in
+  // 9:16 vertical mode for Shorts. data-fmt may also be 'long' / 'live'.
+  function fmtOf(el) {
+    var f = el && el.closest && el.closest('[data-fmt]');
+    return f ? f.getAttribute('data-fmt') : '';
+  }
   var _origOpen = window.open;
   window.open = function(url, target, features) {
     if (url && url.indexOf('youtube.com/watch') !== -1) {
       try {
         var id = new URL(url).searchParams.get('v');
-        if (id) { window.parent.postMessage({type:'ytplay',id:id},'*'); return; }
+        if (id) { window.parent.postMessage({type:'ytplay',id:id,format:''},'*'); return; }
       } catch(e) {}
     }
     if (url && url.indexOf('youtube.com/embed') !== -1) {
       try {
         var parts = url.split('/embed/');
         var id2 = parts[1] ? parts[1].split('?')[0] : null;
-        if (id2) { window.parent.postMessage({type:'ytplay',id:id2},'*'); return; }
+        if (id2) { window.parent.postMessage({type:'ytplay',id:id2,format:''},'*'); return; }
       } catch(e) {}
     }
     return _origOpen.call(window, url, target, features);
@@ -199,7 +206,7 @@ def yt_popup_js() -> str:
     e.preventDefault(); e.stopPropagation();
     try {
       var id = new URL(a.href).searchParams.get('v');
-      if (id) window.parent.postMessage({type:'ytplay',id:id},'*');
+      if (id) window.parent.postMessage({type:'ytplay',id:id,format:fmtOf(a)},'*');
     } catch(e2) {}
   }, true);
 })();
@@ -235,7 +242,7 @@ def yt_overlay_html() -> str:
   ov.id = 'yt-overlay';
   ov.style.cssText = 'display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;'+
     'background:rgba(0,0,0,0.88);z-index:100000;justify-content:center;align-items:center;cursor:pointer;';
-  ov.innerHTML = '<div style="position:relative;width:80vw;max-width:960px;aspect-ratio:16/9;cursor:default">' +
+  ov.innerHTML = '<div id="yt-frame" style="position:relative;width:80vw;max-width:960px;aspect-ratio:16/9;cursor:default">' +
     '<div id="yt-player-mount" style="width:100%;height:100%"></div>' +
     '<div id="yt-fallback" style="display:none;position:absolute;top:0;left:0;width:100%;height:100%;'+
        'background:#1a1c24;border-radius:8px;flex-direction:column;align-items:center;justify-content:center;'+
@@ -291,10 +298,32 @@ def yt_overlay_html() -> str:
     tryInit();
   }
 
-  function playVideo(id) {
+  function applyFrameShape(format) {
+    // Reshape the player container based on video format. Shorts are 9:16
+    // vertical (no letterboxing on the embed if the iframe matches),
+    // long-form / live are 16:9 horizontal.
+    var f = p.getElementById('yt-frame');
+    if (!f) return;
+    if (format === 'short') {
+      f.style.width = 'auto';
+      f.style.maxWidth = '420px';
+      f.style.height = '85vh';
+      f.style.maxHeight = '760px';
+      f.style.aspectRatio = '9 / 16';
+    } else {
+      f.style.width = '80vw';
+      f.style.maxWidth = '960px';
+      f.style.height = '';
+      f.style.maxHeight = '';
+      f.style.aspectRatio = '16 / 9';
+    }
+  }
+
+  function playVideo(id, format) {
     if (!id) return;
     currentVideoId = id;
     hideFallback();
+    applyFrameShape(format);
     ov.style.display = 'flex';
     ensurePlayer(function() {
       try { ytPlayer.loadVideoById(id); } catch(e) { showFallback(id); }
@@ -321,7 +350,7 @@ def yt_overlay_html() -> str:
 
   w.addEventListener('message', function(e) {
     if (e.data && e.data.type === 'ytplay' && e.data.id) {
-      playVideo(e.data.id);
+      playVideo(e.data.id, e.data.format || '');
     }
   });
 
