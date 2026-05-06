@@ -291,6 +291,19 @@ if mosaic_view:
     """, height=max(280, (len(latest) // 5 + 1) * 195), scrolling=True)
     st.stop()
 
+# ── 48h timeline strip ───────────────────────────────────────
+# Use the unfiltered set so the strip shows the full picture even when
+# the user has narrowed the table by format. Channel name in the tooltip
+# helps disambiguate the multi-club view.
+try:
+    from src.timeline import render_48h_timeline
+    def _ch_name(v):
+        ch = ch_by_id.get(v.get("channel_id")) or {}
+        return v.get("channel_name") or ch.get("name") or ""
+    render_48h_timeline(latest_raw, channel_resolver=_ch_name)
+except Exception as _e:
+    st.caption(f"(48h timeline unavailable: {_e})")
+
 # ── Build HTML table rows ────────────────────────────────────
 rows_html = ""
 for v in latest:
