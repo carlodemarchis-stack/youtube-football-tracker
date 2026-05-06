@@ -30,7 +30,8 @@ def _fmt_of(v: dict) -> str:
 def render_48h_timeline(
     videos: list[dict],
     *,
-    header: str = "⏱️ Last 48 hours — published timeline",
+    hours: int = 24,
+    header: str | None = None,
     caption: str | None = None,
     channel_resolver=None,
 ) -> bool:
@@ -41,7 +42,7 @@ def render_48h_timeline(
     """
     try:
         now48 = datetime.now(timezone.utc)
-        from48 = now48 - timedelta(hours=48)
+        from48 = now48 - timedelta(hours=hours)
 
         recent = []
         for v in videos:
@@ -64,7 +65,7 @@ def render_48h_timeline(
         lanes_last_right = [-100.0] * LANES
         placements = []
         for v, pub in recent:
-            raw_pct = (pub - from48).total_seconds() / (48 * 3600) * 100
+            raw_pct = (pub - from48).total_seconds() / (hours * 3600) * 100
             x_pct = LEFT_MARGIN + raw_pct * USABLE / 100
             f = _fmt_of(v)
             w_pct = SHORT_W_PCT if f == "short" else LONG_W_PCT
@@ -76,10 +77,11 @@ def render_48h_timeline(
             lanes_last_right[lane] = x_pct + w_pct
             placements.append((v, x_pct, lane, pub, f))
 
-        if header:
-            st.subheader(header)
+        _hdr = header if header is not None else f"⏱️ Last {hours} hours — published timeline"
+        if _hdr:
+            st.subheader(_hdr)
         if caption is None:
-            caption = (f"{len(recent)} video(s) in the last 48h. Cards "
+            caption = (f"{len(recent)} video(s) in the last {hours}h. Cards "
                        f"positioned by exact publish time (CET ticks). "
                        f"Click any card to open in popup.")
         if caption:
@@ -121,8 +123,9 @@ def render_48h_timeline(
             minute=0, second=0, microsecond=0
         )
         ticks_html = ""
-        for h in range(0, 49, 6):
-            x = LEFT_MARGIN + (48 - h) / 48 * USABLE
+        step = max(1, hours // 8)
+        for h in range(0, hours + 1, step):
+            x = LEFT_MARGIN + (hours - h) / hours * USABLE
             if h == 0:
                 lab = "now"
             else:
@@ -178,7 +181,8 @@ def render_48h_timeline(
 def render_48h_dots(
     videos: list[dict],
     *,
-    header: str = "⏱️ Last 48 hours — published timeline",
+    hours: int = 24,
+    header: str | None = None,
     caption: str | None = None,
     channel_resolver=None,
     color_resolver=None,
@@ -193,7 +197,7 @@ def render_48h_dots(
     """
     try:
         now48 = datetime.now(timezone.utc)
-        from48 = now48 - timedelta(hours=48)
+        from48 = now48 - timedelta(hours=hours)
 
         recent = []
         for v in videos:
@@ -233,11 +237,12 @@ def render_48h_dots(
         TOP_PAD = 28        # axis labels at top
         BOT_PAD = 24        # axis labels at bottom
 
-        if header:
-            st.subheader(header)
+        _hdr = header if header is not None else f"⏱️ Last {hours} hours — published timeline"
+        if _hdr:
+            st.subheader(_hdr)
         if caption is None:
             caption = (f"{len(recent)} video(s) across {len(rows)} club(s) "
-                       f"in the last 48h. Click any dot to open the video.")
+                       f"in the last {hours}h. Click any dot to open the video.")
         if caption:
             st.caption(caption)
 
@@ -246,8 +251,9 @@ def render_48h_dots(
             minute=0, second=0, microsecond=0
         )
         ticks_html = ""
-        for h in range(0, 49, 6):
-            x = LEFT_MARGIN + (48 - h) / 48 * USABLE
+        step = max(1, hours // 8)
+        for h in range(0, hours + 1, step):
+            x = LEFT_MARGIN + (hours - h) / hours * USABLE
             lab = "now" if h == 0 else (now_cet - timedelta(hours=h)).strftime("%a %H:%M")
             ticks_html += (
                 f'<div class="dt-tick" style="left:{x:.2f}%"></div>'
@@ -284,7 +290,7 @@ def render_48h_dots(
                         color = color_resolver(v) or color
                     except Exception:
                         pass
-                raw_pct = (ts - from48).total_seconds() / (48 * 3600) * 100
+                raw_pct = (ts - from48).total_seconds() / (hours * 3600) * 100
                 x_pct = LEFT_MARGIN + raw_pct * USABLE / 100
                 yt_url = f"https://www.youtube.com/watch?v={v.get('youtube_video_id','')}"
                 title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
