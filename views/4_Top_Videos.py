@@ -123,9 +123,13 @@ if df.empty:
     st.warning("No video data for this selection.")
     st.stop()
 
-# ── KPI line (computed up front so it sits above the main table) ─
-# Aggregates from precomputed per-channel top-100 stats — same source
-# the bottom channel table reads from, so the numbers tie out.
+# ── KPI rows ─────────────────────────────────────────────────
+# Two zoom-aware rows:
+#   Row 1: the *context* top 100 — one merged ranked list at this
+#          zoom (global at Z1, league-wide at Z2, club at Z3).
+#   Row 2 (Z1/Z2 only): sum of every channel's *own* top 100 — ties
+#          to the bottom channel-stats table, where each row is one
+#          channel's top 100.
 try:
     if club:
         _scope_channels = [club]
@@ -147,84 +151,91 @@ try:
                                   ("Player", "Federation",
                                    "OtherClub", "WomenClub")]
 
-    # Per-channel precomputed top-100 stats. Sum across the scope so
-    # "Total views (top 100)" = Σ each club's top-100, matching the
-    # bottom table's column.
     _lifetime_views = sum(int(c.get("total_views") or 0) for c in _scope_channels)
-    _top_views = sum(int(c.get("top100_views") or 0) for c in _scope_channels)
-    _n_channels = sum(1 for c in _scope_channels if int(c.get("top100_views") or 0) > 0)
-    # Each channel contributes up to 100 vids; for channels with fewer
-    # this slightly inflates the divisor, but the bias is small in
-    # practice (most channels have well over 100).
-    _vid_count = _n_channels * 100
-    _avg_views = (_top_views // _vid_count) if _vid_count else 0
-    _per_club = (_top_views // _n_channels) if _n_channels else 0
-    _pct_lifetime = (_top_views / _lifetime_views * 100) if _lifetime_views else 0.0
 
-    # Views-weighted avg age across channels: bigger top-100s contribute
-    # more to the headline number, which feels right when comparing
-    # leagues with very different total volumes.
-    _w_age = 0.0
-    _w_sum = 0.0
-    for c in _scope_channels:
-        v = int(c.get("top100_views") or 0)
-        a = float(c.get("top100_avg_age_days") or 0)
-        if v > 0 and a > 0:
-            _w_age += a * v
-            _w_sum += v
-    _avg_age_years = (_w_age / _w_sum / 365.25) if _w_sum else 0.0
+    # ── Row 1: context top 100 (one ranked list)
+    _kpi_top = df.sort_values("view_count", ascending=False).head(100)
+    _ctx_total = int(_kpi_top["view_count"].sum())
+    _ctx_avg = int(_kpi_top["view_count"].mean()) if len(_kpi_top) else 0
+    _ctx_cutoff = int(_kpi_top["view_count"].min()) if len(_kpi_top) else 0
+    _ctx_pct = (_ctx_total / _lifetime_views * 100) if _lifetime_views else 0.0
+    _now_utc_kpi = pd.Timestamp.now(tz="UTC")
+    _ctx_ages = (_now_utc_kpi - pd.to_datetime(
+        _kpi_top["published_at"], utc=True, errors="coerce"
+    )).dt.total_seconds() / 86400.0
+    _ctx_ages = _ctx_ages.dropna()
+    _ctx_avg_age = float(_ctx_ages.mean() / 365.25) if len(_ctx_ages) else 0.0
 
-    _kpi_html = f"""
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;
-                margin:4px 0 14px 0">
-      <div style="background:#1a1c24;border-radius:6px;padding:10px 14px;
-                  border-left:3px solid #58A6FF">
-        <div style="color:#888;font-size:11px;font-weight:600;
-                    text-transform:uppercase;letter-spacing:0.5px">
-          Total views (top 100)
-        </div>
-        <div style="color:#FAFAFA;font-size:22px;font-weight:700;
-                    margin-top:2px">{fmt_num(_top_views)}</div>
-      </div>
-      <div style="background:#1a1c24;border-radius:6px;padding:10px 14px;
-                  border-left:3px solid #00CC96">
-        <div style="color:#888;font-size:11px;font-weight:600;
-                    text-transform:uppercase;letter-spacing:0.5px">
-          Share of lifetime
-        </div>
-        <div style="color:#FAFAFA;font-size:22px;font-weight:700;
-                    margin-top:2px">{_pct_lifetime:.1f}%</div>
-      </div>
-      <div style="background:#1a1c24;border-radius:6px;padding:10px 14px;
-                  border-left:3px solid #FFA15A">
-        <div style="color:#888;font-size:11px;font-weight:600;
-                    text-transform:uppercase;letter-spacing:0.5px">
-          Avg views / video
-        </div>
-        <div style="color:#FAFAFA;font-size:22px;font-weight:700;
-                    margin-top:2px">{fmt_num(_avg_views)}</div>
-      </div>
-      <div style="background:#1a1c24;border-radius:6px;padding:10px 14px;
-                  border-left:3px solid #AB63FA">
-        <div style="color:#888;font-size:11px;font-weight:600;
-                    text-transform:uppercase;letter-spacing:0.5px">
-          Avg views per club
-        </div>
-        <div style="color:#FAFAFA;font-size:22px;font-weight:700;
-                    margin-top:2px">{fmt_num(_per_club)}</div>
-      </div>
-      <div style="background:#1a1c24;border-radius:6px;padding:10px 14px;
-                  border-left:3px solid #EF553B">
-        <div style="color:#888;font-size:11px;font-weight:600;
-                    text-transform:uppercase;letter-spacing:0.5px">
-          Avg age
-        </div>
-        <div style="color:#FAFAFA;font-size:22px;font-weight:700;
-                    margin-top:2px">{_avg_age_years:.1f}y</div>
-      </div>
-    </div>
-    """
-    st.markdown(_kpi_html, unsafe_allow_html=True)
+    if club:
+        _ctx_label = f"Top 100 of {club['name']}"
+    elif league:
+        _ctx_label = f"Top 100 across {league} (single ranked list)"
+    else:
+        _ctx_label = "Top 100 across all leagues (single ranked list)"
+
+    def _kpi_card(label: str, value: str, color: str) -> str:
+        return (
+            f'<div style="background:#1a1c24;border-radius:6px;padding:10px 14px;'
+            f'border-left:3px solid {color}">'
+            f'<div style="color:#888;font-size:11px;font-weight:600;'
+            f'text-transform:uppercase;letter-spacing:0.5px">{label}</div>'
+            f'<div style="color:#FAFAFA;font-size:22px;font-weight:700;'
+            f'margin-top:2px">{value}</div></div>'
+        )
+
+    _row1 = "".join([
+        _kpi_card("Total views (top 100)", fmt_num(_ctx_total), "#58A6FF"),
+        _kpi_card("Share of lifetime", f"{_ctx_pct:.1f}%", "#00CC96"),
+        _kpi_card("Avg views / video", fmt_num(_ctx_avg), "#FFA15A"),
+        _kpi_card("Cutoff (rank 100)", fmt_num(_ctx_cutoff), "#AB63FA"),
+        _kpi_card("Avg age", f"{_ctx_avg_age:.1f}y", "#EF553B"),
+    ])
+    st.markdown(
+        f'<div style="color:#999;font-size:12px;margin:4px 0 6px 2px">'
+        f'<b>{_ctx_label}.</b> One merged ranked list — the same 100 '
+        f'videos shown in the table below.</div>'
+        f'<div style="display:grid;grid-template-columns:repeat(5,1fr);'
+        f'gap:10px;margin:0 0 14px 0">{_row1}</div>',
+        unsafe_allow_html=True,
+    )
+
+    # ── Row 2 (Z1/Z2 only): sum of every channel's own top 100
+    if not club:
+        _agg_total = sum(int(c.get("top100_views") or 0) for c in _scope_channels)
+        _agg_n = sum(1 for c in _scope_channels if int(c.get("top100_views") or 0) > 0)
+        _agg_vids = _agg_n * 100  # ≈ each channel contributes up to 100
+        _agg_avg = (_agg_total // _agg_vids) if _agg_vids else 0
+        _agg_per = (_agg_total // _agg_n) if _agg_n else 0
+        _agg_pct = (_agg_total / _lifetime_views * 100) if _lifetime_views else 0.0
+        _w_age = 0.0
+        _w_sum = 0.0
+        for c in _scope_channels:
+            v = int(c.get("top100_views") or 0)
+            a = float(c.get("top100_avg_age_days") or 0)
+            if v > 0 and a > 0:
+                _w_age += a * v
+                _w_sum += v
+        _agg_avg_age = (_w_age / _w_sum / 365.25) if _w_sum else 0.0
+
+        _ent_label = "leagues" if (not league and _scope_channels and
+                                   all(c.get("entity_type") == "League"
+                                       for c in _scope_channels)) else "clubs"
+        _row2 = "".join([
+            _kpi_card("Total views (sum of top 100s)", fmt_num(_agg_total), "#58A6FF"),
+            _kpi_card("Share of lifetime", f"{_agg_pct:.1f}%", "#00CC96"),
+            _kpi_card("Avg views / video", fmt_num(_agg_avg), "#FFA15A"),
+            _kpi_card(f"Avg per {_ent_label[:-1]}", fmt_num(_agg_per), "#AB63FA"),
+            _kpi_card("Avg age", f"{_agg_avg_age:.1f}y", "#EF553B"),
+        ])
+        st.markdown(
+            f'<div style="color:#999;font-size:12px;margin:4px 0 6px 2px">'
+            f'<b>Sum of each {_ent_label[:-1]}\'s own top 100.</b> '
+            f'{_agg_n} {_ent_label} × up to 100 videos each — ties to the '
+            f'bottom channel-stats table.</div>'
+            f'<div style="display:grid;grid-template-columns:repeat(5,1fr);'
+            f'gap:10px;margin:0 0 14px 0">{_row2}</div>',
+            unsafe_allow_html=True,
+        )
 except Exception as _e:
     st.caption(f"(KPIs unavailable: {_e})")
 
