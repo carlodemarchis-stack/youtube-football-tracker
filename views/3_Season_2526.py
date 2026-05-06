@@ -2188,33 +2188,34 @@ else:
         _recent48.sort(key=lambda v: pd.to_datetime(v.get("published_at"), utc=True))
 
         if _recent48:
-            # Lane assignment: each video card is ~110px wide; place into
-            # the first lane where the previous card's right edge is left
-            # of this card's x position.
-            #
-            # Reserve margins so the leftmost ('48h ago') label and the
-            # rightmost cards (a video at 'now') aren't clipped by the
-            # rounded background container. Times map onto a usable strip
-            # of [LEFT_MARGIN, 100 - RIGHT_RESERVE].
+            # Lane assignment with two card sizes: long/live cards are
+            # 108×80 (16:9 thumb), shorts are 70×130 (9:16 thumb cropped
+            # from the 16:9 source via object-fit:cover, which trims the
+            # letterbox bars and leaves the central vertical content).
+            # Each card carries its own width so the no-overlap check
+            # uses the right footprint.
             LEFT_MARGIN = 5.0
-            RIGHT_RESERVE = 10.0  # ~130px on a 1300px wrap → fits 108px card
+            RIGHT_RESERVE = 10.0
             USABLE = 100.0 - LEFT_MARGIN - RIGHT_RESERVE  # 85
-            CARD_W_PCT = 8.5   # ~110/1300 * 100
-            LANES = 5
-            LANE_H = 92        # px per lane (thumb 80×45 + 2-line title)
-            lanes_last_x = [-100.0] * LANES
+            LONG_W_PCT = 8.5    # 108/1300 * 100
+            SHORT_W_PCT = 5.5   # 70/1300 * 100
+            LANES = 4
+            LANE_H = 140        # accommodates the taller 130px short card
+            lanes_last_right = [-100.0] * LANES  # right-edge x_pct per lane
             placements = []
             for v in _recent48:
                 pub = pd.to_datetime(v.get("published_at"), utc=True)
                 raw_pct = (pub - _from48).total_seconds() / (48 * 3600) * 100
                 x_pct = LEFT_MARGIN + raw_pct * USABLE / 100
+                _f_v = _fmt_of(v)
+                w_pct = SHORT_W_PCT if _f_v == "short" else LONG_W_PCT
                 lane = LANES - 1
-                for i, lx in enumerate(lanes_last_x):
-                    if x_pct - lx >= CARD_W_PCT:
+                for i, lr in enumerate(lanes_last_right):
+                    if x_pct >= lr:
                         lane = i
                         break
-                lanes_last_x[lane] = x_pct
-                placements.append((v, x_pct, lane, pub))
+                lanes_last_right[lane] = x_pct + w_pct
+                placements.append((v, x_pct, lane, pub, _f_v))
 
             st.subheader("⏱️ Last 48 hours — published timeline")
             st.caption(f"{len(_recent48)} video(s) in the last 48h. Cards "
@@ -2223,21 +2224,24 @@ else:
 
             # Build cards
             cards_html = ""
-            for v, x_pct, lane, pub in placements:
+            for v, x_pct, lane, pub, _f in placements:
                 pub_cet = pub.tz_convert("Europe/Rome")
                 yt_url = f"https://www.youtube.com/watch?v={v.get('youtube_video_id','')}"
                 thumb = (v.get("thumbnail_url") or "").replace('"', "&quot;")
                 title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
-                _f = _fmt_of(v)
                 fmt_color = {"long": "#636EFA", "short": "#00CC96", "live": "#FFA15A"}[_f]
                 fmt_label = {"long": "Long", "short": "Shorts", "live": "Live"}[_f]
                 pub_str = pub_cet.strftime("%a %H:%M")
                 # 30px reserved at top for the time-axis labels.
                 top_px = lane * LANE_H + 8 + 30
+                # Modifier class drives the card shape (long-form/live
+                # use horizontal 16:9, shorts use vertical 9:16 thumb).
+                shape_cls = "t48-short" if _f == "short" else "t48-long"
                 cards_html += (
                     f'<a href="{yt_url}" target="_blank" rel="noopener" '
                     f'data-fmt="{_f}" '
-                    f'class="t48-card" style="left:{x_pct:.2f}%;top:{top_px}px;'
+                    f'class="t48-card {shape_cls}" '
+                    f'style="left:{x_pct:.2f}%;top:{top_px}px;'
                     f'border-top:3px solid {fmt_color}" '
                     f'title="{title} · {fmt_label} · {pub_str}">'
                     f'<img src="{thumb}" />'
@@ -2282,14 +2286,22 @@ else:
                                 font-size:10px; color:#888; }}
               .t48-tick-top {{ top:8px; }}
               .t48-tick-bot {{ bottom:8px; }}
-              .t48-card {{ position:absolute; width:108px; height:80px;
+              .t48-card {{ position:absolute;
                            background:#1a1c24; border-radius:4px; overflow:hidden;
                            color:#FAFAFA; text-decoration:none; display:block;
                            transition:transform 0.1s ease; cursor:pointer; }}
               .t48-card:hover {{ transform:translateY(-2px); z-index:10;
                                  box-shadow:0 4px 12px rgba(0,0,0,0.4); }}
-              .t48-card img {{ width:108px; height:45px; object-fit:cover;
+              /* Long & live: 16:9 horizontal thumb, wide card. */
+              .t48-long {{ width:108px; height:80px; }}
+              .t48-long img {{ width:108px; height:45px; object-fit:cover;
                                display:block; }}
+              /* Shorts: vertical 9:16 thumb. The source thumbnail is 16:9
+                 with letterbox bars on the sides for vertical content,
+                 so object-fit:cover crops to the central content band. */
+              .t48-short {{ width:70px; height:130px; }}
+              .t48-short img {{ width:70px; height:100px; object-fit:cover;
+                                object-position:center; display:block; }}
               .t48-title {{ font-size:10px; line-height:1.15; padding:3px 5px 0 5px;
                             font-weight:600; color:#FAFAFA;
                             display:-webkit-box; -webkit-line-clamp:2;
