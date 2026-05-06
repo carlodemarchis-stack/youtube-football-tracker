@@ -2190,6 +2190,14 @@ else:
             # Lane assignment: each video card is ~110px wide; place into
             # the first lane where the previous card's right edge is left
             # of this card's x position.
+            #
+            # Reserve margins so the leftmost ('48h ago') label and the
+            # rightmost cards (a video at 'now') aren't clipped by the
+            # rounded background container. Times map onto a usable strip
+            # of [LEFT_MARGIN, 100 - RIGHT_RESERVE].
+            LEFT_MARGIN = 5.0
+            RIGHT_RESERVE = 10.0  # ~130px on a 1300px wrap → fits 108px card
+            USABLE = 100.0 - LEFT_MARGIN - RIGHT_RESERVE  # 85
             CARD_W_PCT = 8.5   # ~110/1300 * 100
             LANES = 5
             LANE_H = 92        # px per lane (thumb 80×45 + 2-line title)
@@ -2197,7 +2205,8 @@ else:
             placements = []
             for v in _recent48:
                 pub = pd.to_datetime(v.get("published_at"), utc=True)
-                x_pct = (pub - _from48).total_seconds() / (48 * 3600) * 100
+                raw_pct = (pub - _from48).total_seconds() / (48 * 3600) * 100
+                x_pct = LEFT_MARGIN + raw_pct * USABLE / 100
                 lane = LANES - 1
                 for i, lx in enumerate(lanes_last_x):
                     if x_pct - lx >= CARD_W_PCT:
@@ -2235,11 +2244,13 @@ else:
                     f'</a>'
                 )
 
-            # Hour gridlines (every 6h: 48,42,36,30,24,18,12,6,0)
+            # Hour gridlines (every 6h: 48,42,36,30,24,18,12,6,0).
+            # Mapped onto the same usable strip as the cards so labels
+            # ('48h ago' on the left, 'now' on the right) sit fully
+            # inside the container.
             ticks_html = ""
             for h in range(0, 49, 6):
-                # x at "h hours ago" = (48 - h) / 48 * 100
-                x = (48 - h) / 48 * 100
+                x = LEFT_MARGIN + (48 - h) / 48 * USABLE
                 lab = "now" if h == 0 else f"{h}h ago"
                 ticks_html += (f'<div class="t48-tick" style="left:{x:.1f}%"></div>'
                                f'<div class="t48-ticklabel" style="left:{x:.1f}%">{lab}</div>')
