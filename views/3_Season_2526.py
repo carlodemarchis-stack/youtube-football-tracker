@@ -2272,6 +2272,7 @@ else:
               {ticks_html}
               {cards_html}
             </div>
+            {yt_popup_js()}
             """, height=total_height + 20, scrolling=False)
     except Exception as _e:
         st.caption(f"(48h timeline unavailable: {_e})")
