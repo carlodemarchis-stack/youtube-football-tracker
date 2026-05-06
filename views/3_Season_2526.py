@@ -2179,6 +2179,7 @@ else:
     # ── Last 48h timeline (visual strip with thumbnails) ─────
     try:
         from datetime import datetime as _dt48, timezone as _tz48, timedelta as _td48
+        from zoneinfo import ZoneInfo as _ZI
         _now48 = _dt48.now(_tz48.utc)
         _from48 = _now48 - _td48(hours=48)
         _recent48 = [v for v in vids
