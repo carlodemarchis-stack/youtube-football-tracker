@@ -68,8 +68,14 @@ def main() -> int:
     cid_to_country = {c["id"]: (c.get("country") or "").upper() for c in chans}
     print(f"Loaded {len(chans)} channels for country prior")
 
-    # Pull the videos that need updating.
-    q = db.client.table("videos").select("id,title,channel_id,language,language_source")
+    # Pull the videos that need updating. youtube_video_id is included
+    # in the SELECT so we can echo it into the upsert payload — the
+    # videos table has NOT NULL on that column, and PostgreSQL validates
+    # NOT NULL against the proposed INSERT row even when ON CONFLICT
+    # would resolve to UPDATE. Without it, the entire batch aborts.
+    q = db.client.table("videos").select(
+        "id,youtube_video_id,title,channel_id,language,language_source"
+    )
     if args.rerun_source == "all":
         pass  # all rows
     elif args.rerun_source:
@@ -99,8 +105,17 @@ def main() -> int:
         if r.get("language") == lang and r.get("language_source") == source:
             src_count["skipped"] += 1
             continue
+        # Echo youtube_video_id so the upsert's INSERT path doesn't trip
+        # the NOT NULL constraint (see comment on the SELECT above).
+        # Skip the row entirely if it's missing — corrupted record, can't
+        # safely upsert.
+        yt_id = r.get("youtube_video_id")
+        if not yt_id:
+            src_count["skipped"] += 1
+            continue
         updates.append({
             "id": r["id"],
+            "youtube_video_id": yt_id,
             "language": lang,
             "language_source": source,
         })
