@@ -97,7 +97,7 @@ if g_league is None and g_club is None:
         )
 
 with st.spinner("Loading latest videos…"):
-    latest_raw = db.get_recent_videos(limit=200, channel_ids=ch_ids)
+    latest_raw = db.get_recent_videos(limit=300, channel_ids=ch_ids)
 
 # Filter out scheduled/premiere videos (future actual_start_time) unless checkbox is on
 _now_utc = datetime.now(timezone.utc)
