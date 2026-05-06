@@ -413,9 +413,10 @@ components.html(f"""
   .c-video {{ padding:6px 8px !important; }}
   .v-row {{ display:flex; align-items:flex-start; gap:10px; }}
   .v-row img {{ width:110px; height:62px; object-fit:cover; border-radius:4px; flex-shrink:0; }}
-  /* 3-row stack: channel / title / tags. No fixed height — let content
-     drive it; the row itself stretches around it. */
-  .v-info {{ min-width:0; display:flex; flex-direction:column; gap:2px; flex:1; }}
+  /* 3-row stack: channel / title / tags. Fills the thumbnail's full
+     62px height — channel at top, title centered, tags at bottom. */
+  .v-info {{ min-width:0; display:flex; flex-direction:column;
+             justify-content:space-between; height:62px; flex:1; }}
   .v-channel {{ font-size:12px; display:flex; align-items:center; gap:6px;
                 white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
   .v-meta {{ font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
