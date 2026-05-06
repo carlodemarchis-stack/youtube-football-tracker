@@ -424,6 +424,26 @@ class Database:
     def upsert_videos(self, videos: list[dict], channel_db_id: str):
         from src.analytics import detect_theme
         now = datetime.now(timezone.utc).isoformat()
+
+        # One-shot: fetch the channel's country so language detection has
+        # the prior available without a per-row query.
+        _country = None
+        try:
+            _ch = (self.client.table("channels")
+                   .select("country").eq("id", channel_db_id)
+                   .limit(1).execute().data or [])
+            if _ch:
+                _country = (_ch[0].get("country") or "").upper() or None
+        except Exception:
+            pass
+
+        # lang_detect is best-effort — if lingua-py isn't installed we just
+        # store NULL and the backfill will fill in later.
+        try:
+            from src.lang_detect import detect_language
+        except Exception:
+            detect_language = None
+
         rows = []
         for v in videos:
             # Classify theme from title + duration + format
@@ -449,6 +469,18 @@ class Database:
                 row["format"] = v["format"]
             if v.get("actual_start_time"):
                 row["actual_start_time"] = v["actual_start_time"]
+            # Language detection (best-effort). Priority: YouTube field >
+            # lingua-py title detection > channel country prior. Stored
+            # together with the source so we can rebuild signals later.
+            if detect_language is not None:
+                lang, source = detect_language(
+                    title=v.get("title"),
+                    channel_country=_country,
+                    youtube_lang=v.get("youtube_language"),
+                )
+                if lang:
+                    row["language"] = lang
+                    row["language_source"] = source
             rows.append(row)
         # Batch upsert in chunks of 50
         for i in range(0, len(rows), 50):

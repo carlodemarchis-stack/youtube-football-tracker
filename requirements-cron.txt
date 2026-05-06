@@ -4,3 +4,5 @@ pandas>=2.1.0
 python-dotenv>=1.0.0
 isodate>=0.6.1
 anthropic>=0.30.0
+# Language detection on new video titles, run by hourly_rss / daily_refresh.
+lingua-language-detector>=2.0.0

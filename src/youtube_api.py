@@ -267,6 +267,12 @@ class YouTubeClient:
                     or live_details.get("scheduledStartTime")
                     or None
                 )
+                # YouTube-supplied language hints (frequently empty, but
+                # when present they're the most reliable signal — beats
+                # title-based heuristics).
+                _yt_lang = (snippet.get("defaultAudioLanguage")
+                            or snippet.get("defaultLanguage")
+                            or None)
                 videos.append({
                     "youtube_video_id": item["id"],
                     "title": snippet.get("title", ""),
@@ -277,6 +283,9 @@ class YouTubeClient:
                     "comment_count": int(stats.get("commentCount", 0)),
                     "duration_seconds": duration_sec,
                     "thumbnail_url": snippet.get("thumbnails", {}).get("high", {}).get("url", ""),
+                    # Raw value (e.g. "it", "en-GB"); will be normalized
+                    # into the videos.language column by lang_detect.
+                    "youtube_language": _yt_lang,
                 })
             if on_progress:
                 on_progress(min(i + 50, total), total)

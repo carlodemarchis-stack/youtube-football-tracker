@@ -12,3 +12,6 @@ python-dotenv>=1.0.0
 isodate>=0.6.1
 anthropic>=0.30.0
 streamlit-cookies-controller>=0.0.4
+# Language detection from video titles (Season-page language mix charts).
+# Pure-Python, MIT, no compiled deps.
+lingua-language-detector>=2.0.0
