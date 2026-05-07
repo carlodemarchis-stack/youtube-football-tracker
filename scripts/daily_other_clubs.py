@@ -149,22 +149,37 @@ def main() -> int:
                 # silently truncate.
                 vid_rows.extend(
                     _fetch_all(db.client.table("videos")
-                               .select("id,youtube_video_id")
+                               .select("id,youtube_video_id,channel_id")
                                .eq("channel_id", cid))
                 )
-            id_to_dbid = {r["youtube_video_id"]: r["id"] for r in vid_rows}
+            # Build both yt_id → dbid AND yt_id → channel_id maps. The
+            # channel_id is needed in the freshness upsert payload (videos.channel_id
+            # is NOT NULL — without it, a stray INSERT path on the upsert would
+            # blow up the same way youtube_video_id used to).
+            id_to_dbid: dict[str, str] = {}
+            id_to_cid: dict[str, str] = {}
+            for r in vid_rows:
+                yt_id_db = (r.get("youtube_video_id") or "").strip()
+                if not yt_id_db:
+                    continue
+                id_to_dbid[yt_id_db] = r["id"]
+                id_to_cid[yt_id_db] = r.get("channel_id") or ""
             yt_ids = list(id_to_dbid.keys())
             log(f"Snapshotting {len(yt_ids)} other club videos")
             snap_rows: list[dict] = []
             for b in range(0, len(yt_ids), 50):
                 details = yt.get_video_details(yt_ids[b:b + 50])
                 for v in details:
-                    dbid = id_to_dbid.get(v["youtube_video_id"])
+                    yt_id = (v.get("youtube_video_id") or "").strip()
+                    if not yt_id:
+                        continue
+                    dbid = id_to_dbid.get(yt_id)
                     if not dbid:
                         continue
                     snap_rows.append({
                         "video_id": dbid,
-                        "youtube_video_id": v["youtube_video_id"],
+                        "youtube_video_id": yt_id,
+                        "channel_id": id_to_cid.get(yt_id) or "",
                         "view_count": v.get("view_count", 0),
                         "like_count": v.get("like_count", 0),
                         "comment_count": v.get("comment_count", 0),
@@ -181,16 +196,28 @@ def main() -> int:
                     log(f"video_daily_deltas step skipped: {e}")
                 # Keep the `videos` table fresh too
                 try:
-                    update_rows = [{
-                        "id": r["video_id"],
-                        "youtube_video_id": r["youtube_video_id"],
-                        "view_count": r["view_count"],
-                        "like_count": r["like_count"],
-                        "comment_count": r["comment_count"],
-                    } for r in snap_rows if r.get("youtube_video_id")]
+                    # Dedupe by `id` first — Supabase batch upsert with duplicate
+                    # ids has been observed to produce odd merged payloads where
+                    # individual columns vanish, including youtube_video_id, which
+                    # then trips the NOT NULL check on the proposed INSERT row.
+                    by_id: dict[str, dict] = {}
+                    for r in snap_rows:
+                        yt = (r.get("youtube_video_id") or "").strip()
+                        cid_v = (r.get("channel_id") or "").strip()
+                        if not yt or not cid_v:
+                            continue
+                        by_id[r["video_id"]] = {
+                            "id": r["video_id"],
+                            "youtube_video_id": yt,
+                            "channel_id": cid_v,  # NOT NULL — keep upsert safe even if Postgres tries the INSERT path
+                            "view_count": r["view_count"],
+                            "like_count": r["like_count"],
+                            "comment_count": r["comment_count"],
+                        }
+                    update_rows = list(by_id.values())
                     skipped = len(snap_rows) - len(update_rows)
                     if skipped:
-                        log(f"videos freshness: dropped {skipped} row(s) without youtube_video_id")
+                        log(f"videos freshness: dropped {skipped} row(s) (missing yt_id/channel_id or dup)")
                     for b in range(0, len(update_rows), 500):
                         db.client.table("videos").upsert(
                             update_rows[b:b + 500], on_conflict="id"
