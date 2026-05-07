@@ -95,25 +95,36 @@ def main() -> int:
 
     # ── 2. Video stats (ALL videos — excluding Player videos) ────
     rows = db.get_all_video_rows()
+    # Always fetch id→channel_id once: needed both for the player-exclusion
+    # filter AND for the freshness upsert payload (videos.channel_id is
+    # NOT NULL — Postgres validates the proposed INSERT row even when
+    # ON CONFLICT resolves to UPDATE).
+    from src.database import _fetch_all
+    _resp = _fetch_all(db.client.table("videos").select("id,channel_id"))
+    _vid_to_cid = {r["id"]: (r.get("channel_id") or "") for r in _resp}
+
     # Exclude Player + Federation videos — handled by their dedicated crons
     _player_cids = {c["id"] for c in db.get_all_channels()
                     if c.get("entity_type") in ("Player", "Federation", "OtherClub", "WomenClub")}
     if _player_cids:
-        # get_all_video_rows returns id + youtube_video_id only, not channel_id.
-        # Fetch channel_id for all videos once, then filter. Paginated —
-        # there are 100K+ video rows, an unpaginated SELECT silently caps
-        # at 1000 and would let player videos slip through the filter.
-        from src.database import _fetch_all
-        _resp = _fetch_all(db.client.table("videos").select("id,channel_id"))
-        _vid_to_cid = {r["id"]: r.get("channel_id") for r in _resp}
         rows = [r for r in rows if _vid_to_cid.get(r["id"]) not in _player_cids]
     total_videos = len(rows)
     log(f"Step 2: refreshing stats for {total_videos} videos (Player + Federation videos excluded)")
 
-    id_to_dbid = {r["youtube_video_id"]: r["id"] for r in rows}
+    # Build yt_id → dbid; skip rows missing either side (defensive against
+    # any stale/null entries that would later trip the freshness upsert).
+    id_to_dbid: dict[str, str] = {}
+    for r in rows:
+        yt_id_db = (r.get("youtube_video_id") or "").strip()
+        if not yt_id_db or not r.get("id"):
+            continue
+        id_to_dbid[yt_id_db] = r["id"]
     yt_ids = list(id_to_dbid.keys())
 
-    update_buffer: list[dict] = []
+    # Dedupe by id as we go (Supabase batch upsert with duplicate ids has
+    # been observed to drop columns from the merged proposed row, which is
+    # what trips the NOT NULL check).
+    update_buffer: dict[str, dict] = {}
 
     for b in range(0, len(yt_ids), 50):
         batch = yt_ids[b:b + 50]
@@ -124,29 +135,40 @@ def main() -> int:
             log(f"  batch {b}-{b + 50} fetch failed: {e}")
             continue
         for v in details:
-            dbid = id_to_dbid.get(v["youtube_video_id"])
+            yt_id = (v.get("youtube_video_id") or "").strip()
+            if not yt_id:
+                continue
+            dbid = id_to_dbid.get(yt_id)
             if not dbid:
                 continue
-            update_buffer.append({
+            cid_v = _vid_to_cid.get(dbid) or ""
+            if not cid_v:
+                # Shouldn't happen — dbid came from videos.id which has channel_id
+                # NOT NULL — but skip rather than poison the batch if it ever does.
+                continue
+            update_buffer[dbid] = {
                 "id": dbid,
-                # carry yt_id so the upsert satisfies the NOT NULL
-                # constraint on youtube_video_id (Postgres validates the
-                # proposed INSERT row even when ON CONFLICT resolves to
-                # UPDATE — without this the entire batch fails 23502).
-                "youtube_video_id": v["youtube_video_id"],
+                # Carry yt_id + channel_id so the proposed INSERT row
+                # satisfies BOTH NOT NULL constraints. Postgres validates
+                # the proposed INSERT row even when ON CONFLICT resolves
+                # to UPDATE — missing either column fails the whole batch
+                # with a 23502 NOT NULL violation.
+                "youtube_video_id": yt_id,
+                "channel_id": cid_v,
                 "view_count": v.get("view_count", 0),
                 "like_count": v.get("like_count", 0),
                 "comment_count": v.get("comment_count", 0),
-            })
+            }
         if (b // 50) % 20 == 0:
             log(f"  fetched stats for {min(b + 50, len(yt_ids))}/{len(yt_ids)}")
 
     # Flush to Supabase in 500-row chunks
+    update_rows = list(update_buffer.values())
     videos_updated = 0
-    for b in range(0, len(update_buffer), 500):
+    for b in range(0, len(update_rows), 500):
         try:
-            db.client.table("videos").upsert(update_buffer[b:b + 500], on_conflict="id").execute()
-            videos_updated += len(update_buffer[b:b + 500])
+            db.client.table("videos").upsert(update_rows[b:b + 500], on_conflict="id").execute()
+            videos_updated += len(update_rows[b:b + 500])
         except Exception as e:
             log(f"  upsert chunk {b} failed: {e}")
             errors += 1
