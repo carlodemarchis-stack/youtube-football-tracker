@@ -277,6 +277,27 @@ def main() -> int:
     except Exception as e:
         log(f"log_fetch failed (non-fatal): {e}")
 
+    # ── ntfy alert ─────────────────────────────────────────────
+    try:
+        from src.notify import send_run_alert, read_latest_vibe_text
+        _ok = (ok > 0) and not failed and not snap_step_error
+        _err = ""
+        if failed:
+            _err = f"{len(failed)} channels failed"
+        elif snap_step_error:
+            _err = f"snapshot step: {snap_step_error}"
+        elif ok == 0:
+            _err = "0 channels OK"
+        summary = (f"{ok} channels, {new_videos_total} new videos, "
+                   f"{video_snapshots_written} snapshots in {elapsed:.0f}s")
+        send_run_alert("daily_refresh",
+                       ok=_ok,
+                       summary=summary,
+                       error=_err,
+                       vibe_text=read_latest_vibe_text(db))
+    except Exception as _e:
+        log(f"ntfy alert failed (non-fatal): {_e}")
+
     if failed:
         log("Failures:")
         for n, e in failed:
@@ -289,7 +310,15 @@ def main() -> int:
 if __name__ == "__main__":
     try:
         sys.exit(main())
-    except Exception:
+    except Exception as _exc:
         log("FATAL unhandled exception:")
         traceback.print_exc()
+        try:
+            from src.notify import send_run_alert
+            send_run_alert("daily_refresh", ok=False,
+                           summary="run crashed before completion",
+                           error=str(_exc)[:300],
+                           priority="urgent")
+        except Exception:
+            pass
         sys.exit(2)

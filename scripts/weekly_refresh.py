@@ -190,13 +190,31 @@ def main() -> int:
     except Exception as e:
         log(f"log_fetch failed (non-fatal): {e}")
 
+    try:
+        from src.notify import send_run_alert
+        send_run_alert("weekly_refresh",
+                       ok=(errors == 0),
+                       summary=(f"{ch_ok} channels, {videos_updated} videos, "
+                                f"{stats_ok} top100 in {elapsed:.0f}s"),
+                       error=(f"{errors} errors" if errors else ""))
+    except Exception as _e:
+        log(f"ntfy alert failed (non-fatal): {_e}")
+
     return 0 if (ch_ok > 0 or videos_updated > 0) else 1
 
 
 if __name__ == "__main__":
     try:
         sys.exit(main())
-    except Exception:
+    except Exception as _exc:
         log("FATAL unhandled exception:")
         traceback.print_exc()
+        try:
+            from src.notify import send_run_alert
+            send_run_alert("weekly_refresh", ok=False,
+                           summary="run crashed before completion",
+                           error=str(_exc)[:300],
+                           priority="urgent")
+        except Exception:
+            pass
         sys.exit(2)

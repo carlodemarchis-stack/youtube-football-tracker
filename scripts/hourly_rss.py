@@ -123,6 +123,18 @@ def main() -> int:
 
     if not all_new:
         log("No new videos found. Done.")
+        try:
+            from src.notify import send_run_alert, read_latest_vibe_text
+            elapsed = time.time() - start
+            send_run_alert(
+                "hourly_rss",
+                ok=True,
+                summary=f"No new videos. {ok}/{total} channels scanned in {elapsed:.0f}s.",
+                vibe_text=read_latest_vibe_text(db),
+                priority="low",
+            )
+        except Exception as _e:
+            log(f"ntfy alert failed (non-fatal): {_e}")
         return 0
 
     # ── Fetch full details for new videos via API ────────────────
@@ -198,13 +210,43 @@ def main() -> int:
     except Exception:
         pass
 
+    # ── ntfy alert (top-5 leagues only) ──────────────────────
+    # Restrict the headline counts to the top-5 European leagues so the
+    # phone push isn't dominated by MLS / women / federation traffic.
+    try:
+        from src.notify import send_run_alert, read_latest_vibe_text
+        TOP5 = {"IT", "GB", "EN", "ES", "DE", "FR"}
+        ch_country = {c["id"]: ((c.get("country") or "")).upper()[:2]
+                      for c in channels}
+        top5_ids = {v[1] for v in all_new if ch_country.get(v[1], "") in TOP5}
+        top5_new = sum(1 for v in all_new if ch_country.get(v[1], "") in TOP5)
+        top5_channels_hit = len({cid for cid in by_channel if ch_country.get(cid, "") in TOP5})
+        summary = (f"Top-5 leagues: {top5_new} new videos across "
+                   f"{top5_channels_hit} channels. "
+                   f"(Run-wide: {total_inserted} new in {elapsed:.0f}s, "
+                   f"{ok}/{total} channels scanned)")
+        send_run_alert("hourly_rss",
+                       ok=True,
+                       summary=summary,
+                       vibe_text=read_latest_vibe_text(db))
+    except Exception as _e:
+        log(f"ntfy alert failed (non-fatal): {_e}")
+
     return 0
 
 
 if __name__ == "__main__":
     try:
         sys.exit(main())
-    except Exception:
+    except Exception as _exc:
         log("FATAL unhandled exception:")
         traceback.print_exc()
+        try:
+            from src.notify import send_run_alert
+            send_run_alert("hourly_rss", ok=False,
+                           summary="run crashed before completion",
+                           error=str(_exc)[:300],
+                           priority="urgent")
+        except Exception:
+            pass
         sys.exit(2)

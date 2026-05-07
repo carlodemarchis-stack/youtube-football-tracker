@@ -214,6 +214,16 @@ def main() -> int:
     except Exception as e:
         log(f"log_fetch failed (non-fatal): {e}")
 
+    try:
+        from src.notify import send_run_alert
+        send_run_alert("daily_federations",
+                       ok=not failed,
+                       summary=(f"{ok} federations, {new_videos_total} new videos, "
+                                f"{video_snapshots_written} snapshots in {elapsed:.0f}s"),
+                       error=(f"{len(failed)} failed" if failed else ""))
+    except Exception as _e:
+        log(f"ntfy alert failed (non-fatal): {_e}")
+
     return 0 if not failed else 1
 
 
