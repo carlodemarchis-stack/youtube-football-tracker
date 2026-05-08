@@ -38,7 +38,6 @@ viewer_pages = [
     st.Page("views/3_Season_2526.py", title="Season 25/26"),
     st.Page("views/4_Top_Videos.py", title="Top Videos"),
     st.Page("views/16_Socials.py", title="Other Social"),
-    # st.Page("views/12_Reddit.py", title="Reddit"),  # disabled — Reddit blocks cloud IPs
 ]
 
 # Tier 1.7 — "Others": tangential entity types we track but don't
