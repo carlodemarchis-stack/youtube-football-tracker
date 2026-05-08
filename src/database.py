@@ -1,9 +1,33 @@
 from __future__ import annotations
 
+import os
 import time
 from datetime import datetime, timezone
 
 from supabase import create_client, Client
+
+
+def admin_db() -> "Database":
+    """Build a Database client using the Supabase **service-role** key.
+
+    Use this only on pages/scripts that have already gated themselves
+    behind `require_admin()` (or that run server-side without user input,
+    e.g. Railway crons). The service-role key bypasses Row-Level Security,
+    so it must NEVER be used on a code path that's reachable by an
+    unauthenticated visitor.
+
+    Resolution order:
+      1. SUPABASE_SERVICE_KEY  ← preferred (post-RLS-rollout setup)
+      2. SUPABASE_KEY          ← fallback during transition (when both
+                                  vars hold the same service_role JWT)
+
+    The fallback exists so this code change ships as a no-op: until the
+    operator splits the keys, admin_db() returns the same Database that
+    the rest of the app uses.
+    """
+    url = os.getenv("SUPABASE_URL", "")
+    key = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_KEY", "")
+    return Database(url, key)
 
 
 def _retry(fn, retries=3, delay=2):

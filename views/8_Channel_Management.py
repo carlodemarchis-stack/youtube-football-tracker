@@ -6,7 +6,7 @@ import pandas as pd
 from dotenv import load_dotenv
 
 from src.auth import require_admin, show_auth_sidebar
-from src.database import Database
+from src.database import Database, admin_db
 from src.youtube_api import YouTubeClient
 from src.channels import SPORTS, ENTITY_TYPES
 from src.analytics import fmt_num
@@ -17,11 +17,10 @@ require_admin()
 
 st.title("Channel Management")
 
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY", "")
 
-db = Database(SUPABASE_URL, SUPABASE_KEY)
+# Admin page — gated by require_admin() above. Service-role key.
+db = admin_db()
 yt = YouTubeClient(YOUTUBE_API_KEY)
 
 # ── Add Channel ───────────────────────────────────────────────

@@ -9,7 +9,7 @@ import streamlit as st
 from dotenv import load_dotenv
 
 from src.auth import require_admin, ROLE_LEVELS
-from src.database import Database
+from src.database import Database, admin_db
 
 load_dotenv()
 
@@ -17,9 +17,10 @@ require_admin()
 
 st.title("User Management")
 
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
-db = Database(SUPABASE_URL, SUPABASE_KEY)
+# Admin page — gated by require_admin() above. Service-role key
+# (essential here: this page reads/writes user_profiles, which will be
+# locked-down once RLS is enabled on the public app).
+db = admin_db()
 
 users = db.get_all_users()
 

@@ -12,7 +12,7 @@ import anthropic
 
 from src.auth import require_admin, show_auth_sidebar
 from src.youtube_api import YouTubeClient
-from src.database import Database
+from src.database import Database, admin_db
 from src.analytics import classify_videos, fmt_num, fmt_date
 from src.filters import get_global_filter, get_channels_for_filter
 from src.channels import get_season_since
@@ -23,15 +23,17 @@ require_admin()
 
 st.title("Data")
 
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY", "")
 
 if not YOUTUBE_API_KEY:
     st.error("Set YOUTUBE_API_KEY in your .env file.")
     st.stop()
 
-db = Database(SUPABASE_URL, SUPABASE_KEY)
+# Admin page — already gated by require_admin() above. Use the
+# service-role key (SUPABASE_SERVICE_KEY, falls back to SUPABASE_KEY
+# during transition) so RLS can be enabled on the public app without
+# breaking the admin write path.
+db = admin_db()
 yt = YouTubeClient(YOUTUBE_API_KEY)
 
 # ── All channels + state (needed for AI command + selectors) ──
