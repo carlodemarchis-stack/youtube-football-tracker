@@ -150,10 +150,31 @@ if top_views:
         _card("Top 1 share",             f"{_top1_share:.1f}%", "#00CC96"),
         _card("Avg age",                 f"{_avg_age_days:.0f}d", "#EF553B"),
     ]
-    # 5th card only at multi-channel zooms — at Z3 it always reads "1"
-    # which adds no signal.
+    # 5th card depends on zoom:
+    # - Z1/Z2: # of channels represented in the top set
+    # - Z3:    inline Long/Shorts(/Live) breakdown — channels-count
+    #          would always read "1" at this zoom.
     if club is None:
         cards.append(_card(f"Channels in top {_n}", str(_ch_in_top), "#AB63FA"))
+    else:
+        # Format-counts inline. Pre-compute fmt_counts here (the pie
+        # block below also computes it but only inside its own scope).
+        _fmt_n = {"long": 0, "short": 0, "live": 0}
+        for v in top_views:
+            f = (v.get("format") or "").lower()
+            if f not in _fmt_n:
+                f = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
+            _fmt_n[f] = _fmt_n.get(f, 0) + 1
+        _segs = [
+            f'<span style="color:#636EFA">{_fmt_n["long"]}</span>',
+            f'<span style="color:#00CC96">{_fmt_n["short"]}</span>',
+        ]
+        _fmt_label = f"Format L/S (top {_n})"
+        if _fmt_n["live"]:
+            _segs.append(f'<span style="color:#FFA15A">{_fmt_n["live"]}</span>')
+            _fmt_label = f"Format L/S/Lv (top {_n})"
+        _fmt_value = '<span style="color:#666"> / </span>'.join(_segs)
+        cards.append(_card(_fmt_label, _fmt_value, "#636EFA"))
 
     n_cols = len(cards)
     st.markdown(
@@ -299,37 +320,8 @@ if top_views:
         col_fmt.plotly_chart(fig_fmt, use_container_width=True)
         col_ch_n.plotly_chart(fig_ch_n, use_container_width=True)
         col_ch_v.plotly_chart(fig_ch_v, use_container_width=True)
-    else:
-        # Z3 (single club): no pie. Format breakdown collapsed into a
-        # single KPI card showing Long / Shorts / Live counts inline —
-        # tighter than three separate cards and reads at a glance.
-        def _kpi_card(label, value, color):
-            return (f'<div style="background:#1a1c24;border-radius:6px;padding:10px 14px;'
-                    f'border-left:3px solid {color}">'
-                    f'<div style="color:#888;font-size:11px;font-weight:600;'
-                    f'text-transform:uppercase;letter-spacing:0.5px">{label}</div>'
-                    f'<div style="color:#FAFAFA;font-size:22px;font-weight:700;'
-                    f'margin-top:2px">{value}</div></div>')
-        _long_n = fmt_counts.get("long", 0)
-        _short_n = fmt_counts.get("short", 0)
-        _live_n = fmt_counts.get("live", 0)
-        # Compose value as "Long/Short" or "Long/Short/Live" if any lives.
-        # Each segment colored by format so the breakdown is obvious.
-        _segs = [
-            f'<span style="color:#636EFA">{_long_n}</span>',
-            f'<span style="color:#00CC96">{_short_n}</span>',
-        ]
-        _label = f"Format L/S (top {len(top_views)})"
-        if _live_n:
-            _segs.append(f'<span style="color:#FFA15A">{_live_n}</span>')
-            _label = f"Format L/S/Lv (top {len(top_views)})"
-        _value = '<span style="color:#666"> / </span>'.join(_segs)
-        st.markdown(
-            f'<div style="display:grid;grid-template-columns:1fr;'
-            f'gap:10px;margin:0 0 14px 0">'
-            f'{_kpi_card(_label, _value, "#636EFA")}</div>',
-            unsafe_allow_html=True,
-        )
+    # Z3 falls through here with nothing to render — the format
+    # breakdown is already inline in the KPI bar above.
 
 # ── Render the three ranked tables ────────────────────────────
 render_top_season_videos_table(top_views, ch_by_id,
