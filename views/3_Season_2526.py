@@ -991,6 +991,79 @@ if league is None and _scope == "Overall":
             )
         st.altair_chart(cadence_chart, use_container_width=True)
 
+    # ── Videos per day across the whole ecosystem ─────────────────────
+    # One column per calendar day since SEASON_SINCE: total videos
+    # published by every in-scope channel (clubs + league channels,
+    # Players / Federations / Other / Women excluded). Shows the
+    # day-by-day pulse — match-day spikes, deadline-day chatter,
+    # international-break valleys.
+    try:
+        from src.database import _fetch_all as _fa_vpd
+        _vpd_clubs = [c for c in all_channels
+                      if c.get("entity_type") not in
+                         ("Player", "Federation", "OtherClub", "WomenClub")]
+        _vpd_ids = [c["id"] for c in _vpd_clubs if c.get("id")]
+        if _vpd_ids:
+            _vpd_rows = _fa_vpd(
+                db.client.table("videos")
+                  .select("published_at")
+                  .gte("published_at", SEASON_SINCE)
+                  .in_("channel_id", _vpd_ids)
+            )
+            from collections import Counter as _Counter
+            _vpd_counts = _Counter()
+            for _r in _vpd_rows:
+                _pa = _r.get("published_at") or ""
+                if not _pa:
+                    continue
+                try:
+                    _d = pd.to_datetime(_pa, utc=True).date()
+                except Exception:
+                    continue
+                _vpd_counts[_d] += 1
+            if _vpd_counts:
+                import plotly.graph_objects as _go_vpd
+                _dates = sorted(_vpd_counts.keys())
+                _vals = [_vpd_counts[d] for d in _dates]
+                # Highlight weekends with a slightly warmer color so the
+                # match-day rhythm reads at a glance.
+                _bar_colors_vpd = [
+                    "#FFA15A" if d.weekday() >= 5 else "#636EFA"
+                    for d in _dates
+                ]
+                _avg = sum(_vals) / len(_vals) if _vals else 0
+                st.subheader("📈 Videos per day — All Leagues")
+                st.caption(
+                    f"{sum(_vals):,} videos across {len(_dates)} days "
+                    f"(avg {_avg:.0f}/day). Weekends in orange — useful "
+                    f"to spot match-day spikes vs midweek baseline."
+                )
+                fig_vpd = _go_vpd.Figure()
+                fig_vpd.add_trace(_go_vpd.Bar(
+                    x=_dates, y=_vals,
+                    marker_color=_bar_colors_vpd,
+                    hovertemplate="<b>%{x|%a %b %d, %Y}</b><br>"
+                                  "%{y} video(s)<extra></extra>",
+                ))
+                fig_vpd.add_hline(y=_avg, line_dash="dash",
+                                  line_color="rgba(255,255,255,0.35)",
+                                  annotation_text=f"avg {_avg:.0f}",
+                                  annotation_position="top right",
+                                  annotation_font_color="rgba(255,255,255,0.55)")
+                fig_vpd.update_layout(
+                    height=320,
+                    xaxis=dict(title="", showgrid=False),
+                    yaxis=dict(title="Videos published", showgrid=True,
+                               gridcolor="rgba(255,255,255,0.08)"),
+                    margin=dict(t=30, b=40, l=60, r=20),
+                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                    font=dict(color="#FAFAFA"),
+                    showlegend=False, bargap=0.15,
+                )
+                st.plotly_chart(fig_vpd, use_container_width=True)
+    except Exception as _e:
+        st.caption(f"(videos-per-day chart unavailable: {_e})")
+
     # ── Publishing heatmap — when does the whole ecosystem post? ──
     try:
         from src import dashboard_cache as _dc_hm_all
