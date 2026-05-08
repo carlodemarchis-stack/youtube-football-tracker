@@ -1435,20 +1435,8 @@ if league is None and _scope == "Overall":
     """, height=_ch_table_height, scrolling=False)
 
     # ── Top season videos across the whole ecosystem ───────────
-    _all_ids = [c["id"] for c in all_channels
-                if c.get("entity_type") not in ("Player", "Federation", "OtherClub", "WomenClub")
-                and (include_league or c.get("entity_type") != "League")]
-    _ch_by_id = {c["id"]: c for c in all_channels}
-    _render_top_season_videos(_all_ids, _ch_by_id, SEASON_SINCE, limit=20,
-                              header="Top Season Videos — All Leagues",
-                              order_by="view_count")
-    _render_top_season_videos(_all_ids, _ch_by_id, SEASON_SINCE, limit=5,
-                              header="Top Liked Videos — All Leagues",
-                              order_by="like_count")
-    _render_top_season_videos(_all_ids, _ch_by_id, SEASON_SINCE, limit=5,
-                              header="Top Commented Videos — All Leagues",
-                              order_by="comment_count")
-
+    # Top Season Videos lists moved to their own page (Season Top Videos)
+    # to keep this page focused on rhythm + cadence + format mix.
     st.stop()
 
 
@@ -2233,22 +2221,7 @@ if club is None:
         except Exception as _e:
             st.caption(f"(zero-day chart unavailable: {_e})")
 
-    # ── Top season videos for this scope (whole filter or one league) ──
-    _scope_ids = [c["id"] for c in clubs_only]
-    _ch_by_id = {c["id"]: c for c in all_channels}
-    _scope_label = league if league else "All Leagues"
-    _render_top_season_videos(_scope_ids, _ch_by_id, SEASON_SINCE,
-                              limit=20,
-                              header=f"Top Season Videos — {_scope_label}",
-                              order_by="view_count")
-    _render_top_season_videos(_scope_ids, _ch_by_id, SEASON_SINCE,
-                              limit=5,
-                              header=f"Top Liked Videos — {_scope_label}",
-                              order_by="like_count")
-    _render_top_season_videos(_scope_ids, _ch_by_id, SEASON_SINCE,
-                              limit=5,
-                              header=f"Top Commented Videos — {_scope_label}",
-                              order_by="comment_count")
+    # Top Season Videos lists moved to the Season Top Videos page.
 
 else:
     # ══════════════════════════════════════════════════════════════
@@ -2822,10 +2795,4 @@ else:
         # Header: ~32px. iframe chrome: ~16px buffer.
         """, height=video_table_height(len(ranked)), scrolling=False)
 
-    top_views = sorted(vids, key=lambda v: v.get("view_count", 0) or 0, reverse=True)[:20]
-    top_likes = sorted(vids, key=lambda v: v.get("like_count", 0) or 0, reverse=True)[:5]
-    top_comments = sorted(vids, key=lambda v: v.get("comment_count", 0) or 0, reverse=True)[:5]
-
-    _render_top_table("Top Season Videos", top_views)
-    _render_top_table("Top Liked Videos", top_likes)
-    _render_top_table("Top Commented Videos", top_comments)
+    # Top Season Videos lists moved to the Season Top Videos page.
