@@ -997,6 +997,13 @@ if league is None and _scope == "Overall":
     # Players / Federations / Other / Women excluded). Shows the
     # day-by-day pulse — match-day spikes, deadline-day chatter,
     # international-break valleys.
+    #
+    # TODO(perf): cache this + the zero-day-counts in dashboard_cache,
+    # refreshed by daily_refresh.py. Today both Z1/Z2 charts re-query
+    # videos.published_at on every page load (paginated; ~5–25KB), which
+    # is fine for the audience size but trivially cacheable since the
+    # data only changes after the daily snapshot run. Z3 reuses df_vids
+    # so it's already free.
     try:
         from src.database import _fetch_all as _fa_vpd
         _vpd_clubs = [c for c in all_channels
@@ -1968,6 +1975,72 @@ if club is None:
         except Exception as _e:
             st.caption(f"(cadence chart unavailable: {_e})")
 
+    # ── Videos per day for the picked league ──────────────────────────
+    if league:
+        try:
+            from src.database import _fetch_all as _fa_vpd_lg
+            _vpd_clubs_lg = [c for c in clubs_only if c.get("id")]
+            _vpd_ids_lg = [c["id"] for c in _vpd_clubs_lg]
+            if _vpd_ids_lg:
+                _vpd_rows_lg = _fa_vpd_lg(
+                    db.client.table("videos")
+                      .select("published_at")
+                      .gte("published_at", SEASON_SINCE)
+                      .in_("channel_id", _vpd_ids_lg)
+                )
+                from collections import Counter as _Counter_lg
+                _vpd_counts_lg = _Counter_lg()
+                for _r in _vpd_rows_lg:
+                    _pa = _r.get("published_at") or ""
+                    if not _pa:
+                        continue
+                    try:
+                        _d = pd.to_datetime(_pa, utc=True).date()
+                    except Exception:
+                        continue
+                    _vpd_counts_lg[_d] += 1
+                if _vpd_counts_lg:
+                    import plotly.graph_objects as _go_vpd_lg
+                    _dates_lg = sorted(_vpd_counts_lg.keys())
+                    _vals_lg = [_vpd_counts_lg[d] for d in _dates_lg]
+                    _avg_lg = sum(_vals_lg) / len(_vals_lg) if _vals_lg else 0
+                    _bar_colors_vpd_lg = [
+                        "#FFA15A" if d.weekday() >= 5 else "#636EFA"
+                        for d in _dates_lg
+                    ]
+                    st.subheader(f"📈 Videos per day — {league}")
+                    st.caption(
+                        f"{sum(_vals_lg):,} videos across {len(_dates_lg)} "
+                        f"days (avg {_avg_lg:.1f}/day). Weekends in orange."
+                    )
+                    fig_vpd_lg = _go_vpd_lg.Figure()
+                    fig_vpd_lg.add_trace(_go_vpd_lg.Bar(
+                        x=_dates_lg, y=_vals_lg,
+                        marker_color=_bar_colors_vpd_lg,
+                        hovertemplate="<b>%{x|%a %b %d, %Y}</b><br>"
+                                      "%{y} video(s)<extra></extra>",
+                    ))
+                    fig_vpd_lg.add_hline(y=_avg_lg, line_dash="dash",
+                                         line_color="rgba(255,255,255,0.35)",
+                                         annotation_text=f"avg {_avg_lg:.1f}",
+                                         annotation_position="top right",
+                                         annotation_font_color="rgba(255,255,255,0.55)")
+                    fig_vpd_lg.update_layout(
+                        height=320,
+                        xaxis=dict(title="", showgrid=False),
+                        yaxis=dict(title="Videos published",
+                                   showgrid=True,
+                                   gridcolor="rgba(255,255,255,0.08)"),
+                        margin=dict(t=30, b=40, l=60, r=20),
+                        paper_bgcolor="rgba(0,0,0,0)",
+                        plot_bgcolor="rgba(0,0,0,0)",
+                        font=dict(color="#FAFAFA"),
+                        showlegend=False, bargap=0.15,
+                    )
+                    st.plotly_chart(fig_vpd_lg, use_container_width=True)
+        except Exception as _e:
+            st.caption(f"(videos-per-day chart unavailable: {_e})")
+
     # ── Publishing heatmap (one league) ───────────────────────────────
     if league:
         try:
@@ -2451,6 +2524,49 @@ else:
     except Exception as _e:
         st.caption(f"(48h timeline unavailable: {_e})")
 
+    # ── Videos per day (this club, full season) ──────────────
+    # Reuses df_vids — no extra DB query needed at Z3.
+    try:
+        _vpd_dates_c = df_vids["published_at"].dt.tz_convert(None).dt.date
+        _vpd_counts_c = _vpd_dates_c.value_counts().sort_index()
+        if len(_vpd_counts_c):
+            _dates_c = list(_vpd_counts_c.index)
+            _vals_c = list(_vpd_counts_c.values)
+            _avg_c = float(_vpd_counts_c.mean())
+            _bar_colors_vpd_c = [
+                "#FFA15A" if d.weekday() >= 5 else "#636EFA" for d in _dates_c
+            ]
+            st.subheader(f"📈 Videos per day — {club['name']}")
+            st.caption(
+                f"{int(sum(_vals_c)):,} videos across {len(_dates_c)} "
+                f"days with at least one upload (avg {_avg_c:.1f}/day "
+                f"on active days). Weekends in orange."
+            )
+            fig_vpd_c = go.Figure()
+            fig_vpd_c.add_trace(go.Bar(
+                x=_dates_c, y=_vals_c,
+                marker_color=_bar_colors_vpd_c,
+                hovertemplate="<b>%{x|%a %b %d, %Y}</b><br>"
+                              "%{y} video(s)<extra></extra>",
+            ))
+            fig_vpd_c.add_hline(y=_avg_c, line_dash="dash",
+                                line_color="rgba(255,255,255,0.35)",
+                                annotation_text=f"avg {_avg_c:.1f}",
+                                annotation_position="top right",
+                                annotation_font_color="rgba(255,255,255,0.55)")
+            fig_vpd_c.update_layout(
+                height=320,
+                xaxis=dict(title="", showgrid=False),
+                yaxis=dict(title="Videos published", showgrid=True,
+                           gridcolor="rgba(255,255,255,0.08)"),
+                margin=dict(t=30, b=40, l=60, r=20),
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#FAFAFA"),
+                showlegend=False, bargap=0.15,
+            )
+            st.plotly_chart(fig_vpd_c, use_container_width=True)
+    except Exception as _e:
+        st.caption(f"(videos-per-day chart unavailable: {_e})")
 
     st.subheader("Monthly output")
     col_m1, col_m2 = st.columns(2)
