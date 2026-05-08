@@ -250,10 +250,17 @@ elif g_league:
         def _ch_badge(v):
             ch = ch_by_id.get(v.get("channel_id")) or {}
             return channel_badge(ch, color_map, dual, 12)
+        # League roster — every club + (optionally) the league channel
+        # itself in the picked league. Passed in so the timeline can list
+        # silent clubs at the bottom even when they didn't post in the
+        # last 24h.
+        _league_roster = [c for c in all_channels
+                          if get_league_for_channel(c) == g_league]
         render_48h_dots(latest_raw_unscheduled,
                         channel_resolver=_ch_name,
                         color_resolver=_ch_color,
-                        badge_resolver=_ch_badge)
+                        badge_resolver=_ch_badge,
+                        all_channels=_league_roster)
     except Exception as _e:
         st.caption(f"(48h timeline unavailable: {_e})")
 else:

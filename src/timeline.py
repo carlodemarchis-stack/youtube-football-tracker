@@ -189,6 +189,7 @@ def render_48h_dots(
     badge_resolver=None,
     group_resolver=None,
     row_label: str = "club",
+    all_channels: list[dict] | None = None,
 ) -> bool:
     """Compact dot version of the 48h timeline.
 
@@ -234,7 +235,28 @@ def render_48h_dots(
                 ch_label[cid] = v.get("channel_name") or cid
             if cid not in ch_last or ts > ch_last[cid]:
                 ch_last[cid] = ts
+        # Optionally back-fill rows for channels that had ZERO videos in the
+        # window — keeps the league roster complete at Z2 so the user can
+        # see "who didn't post" alongside who did. Uses the channel dict
+        # itself as the sample for the resolvers, which already handle a
+        # video-less {channel_id, name} shape.
+        if all_channels:
+            from datetime import datetime as _dt0, timezone as _tz0
+            sentinel = _dt0(1970, 1, 1, tzinfo=_tz0.utc)
+            for ch in all_channels:
+                cid = ch.get("id")
+                if not cid or cid in by_ch:
+                    continue
+                # Group key may differ from channel_id when group_resolver is
+                # set. We only back-fill when grouping by channel (default).
+                if group_resolver is not None:
+                    continue
+                by_ch[cid] = []
+                ch_label[cid] = ch.get("name") or cid
+                ch_last[cid] = sentinel
+
         # Order rows by video count desc (then by most-recent as tiebreaker).
+        # Channels with 0 videos sink to the bottom by construction.
         rows = sorted(by_ch.keys(),
                       key=lambda c: (len(by_ch[c]), ch_last[c]),
                       reverse=True)
@@ -278,17 +300,26 @@ def render_48h_dots(
             badge_html = ""
             if badge_resolver is not None:
                 try:
-                    sample_v = by_ch[cid][0][0]
+                    # Empty rows (back-filled from all_channels) have no
+                    # video to sample — synthesize a {channel_id} stub so
+                    # the existing resolver (which looks up the channel
+                    # by id) still returns the right badge.
+                    sample_v = (by_ch[cid][0][0] if by_ch[cid]
+                                else {"channel_id": cid})
                     badge_html = badge_resolver(sample_v) or ""
                 except Exception:
                     badge_html = ""
             count = len(by_ch[cid])
+            # Visually de-emphasize rows with zero videos so the eye
+            # focuses on who actually posted.
+            row_cls = "dt-rowlabel" + (" dt-row-empty" if count == 0 else "")
+            count_text = "0" if count == 0 else str(count)
             rows_html += (
                 f'<div class="dt-rowline" style="top:{top_px + ROW_H // 2}px"></div>'
-                f'<div class="dt-rowlabel" style="top:{top_px}px;height:{ROW_H}px">'
+                f'<div class="{row_cls}" style="top:{top_px}px;height:{ROW_H}px">'
                 f'<span class="dt-badge">{badge_html}</span>'
                 f'<span class="dt-name">{label}</span>'
-                f'<span class="dt-count">{count}</span>'
+                f'<span class="dt-count">{count_text}</span>'
                 f'</div>'
             )
             for v, ts in by_ch[cid]:
@@ -342,6 +373,10 @@ def render_48h_dots(
           .dt-count {{ flex-shrink:0; font-size:10px; color:#888;
                        background:#1a1c24; border-radius:8px;
                        padding:1px 6px; min-width:20px; text-align:center; }}
+          /* Rows with 0 videos in the window — keep the channel visible
+             but visually quieter so they don't compete with active rows. */
+          .dt-row-empty .dt-name {{ color:#666; }}
+          .dt-row-empty .dt-count {{ color:#555; background:transparent; }}
           .dt-dot {{ position:absolute; transform:translate(-50%,-50%);
                      border:1px solid rgba(0,0,0,0.5); cursor:pointer;
                      transition:transform 0.1s ease; }}
