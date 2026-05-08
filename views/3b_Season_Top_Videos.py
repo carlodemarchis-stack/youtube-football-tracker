@@ -18,6 +18,7 @@ from src.filters import (
     get_global_filter, get_global_channels, get_channels_for_filter,
     get_league_for_channel, get_include_league, get_all_leagues_scope,
     render_page_subtitle, render_club_header, render_league_header,
+    get_global_color_map,
 )
 from src.channels import get_season_since
 from src.auth import require_login
@@ -249,8 +250,57 @@ if top_views:
         col_fmt.plotly_chart(fig_fmt, use_container_width=True)
         col_lg_n.plotly_chart(fig_lg_n, use_container_width=True)
         col_lg_v.plotly_chart(fig_lg_v, use_container_width=True)
+    elif league is not None and club is None:
+        # Z2: format pie + same count/views breakdown but grouped by
+        # channel within the league (instead of by league).
+        ch_counts: dict[str, int] = {}
+        ch_views: dict[str, int] = {}
+        for v in top_views:
+            ch = ch_by_id.get(v.get("channel_id")) or {}
+            ch_name = ch.get("name") or v.get("channel_name") or "Unknown"
+            ch_counts[ch_name] = ch_counts.get(ch_name, 0) + 1
+            ch_views[ch_name] = ch_views.get(ch_name, 0) + int(v.get("view_count") or 0)
+
+        _color_map_local = get_global_color_map() or {}
+
+        def _ch_pie(values_by_ch: dict[str, int], title: str,
+                     hover_unit: str) -> "_go_pie.Figure":
+            sorted_items = sorted(values_by_ch.items(),
+                                  key=lambda kv: kv[1], reverse=True)
+            labels = [k for k, _ in sorted_items]
+            vals = [v for _, v in sorted_items]
+            colors = [_color_map_local.get(k, "#888") for k in labels]
+            f = _go_pie.Figure()
+            f.add_trace(_go_pie.Pie(
+                labels=labels, values=vals,
+                marker=dict(colors=colors, line=dict(color="#0E1117", width=2)),
+                hole=0.45, textinfo="label+percent", sort=False,
+                hovertemplate=("<b>%{label}</b><br>%{value:,} "
+                               + hover_unit + " · %{percent}<extra></extra>"),
+            ))
+            f.update_layout(
+                title=dict(text=title, x=0.5,
+                           font=dict(color="#FAFAFA", size=14)),
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#FAFAFA"),
+                margin=dict(t=40, b=10, l=10, r=10),
+                height=320, showlegend=False,
+            )
+            return f
+
+        fig_ch_n = _ch_pie(ch_counts,
+                           f"Club mix — by count (top {len(top_views)})",
+                           "videos")
+        fig_ch_v = _ch_pie(ch_views,
+                           f"Club mix — by views (top {len(top_views)})",
+                           "views")
+
+        col_fmt, col_ch_n, col_ch_v = st.columns(3)
+        col_fmt.plotly_chart(fig_fmt, use_container_width=True)
+        col_ch_n.plotly_chart(fig_ch_n, use_container_width=True)
+        col_ch_v.plotly_chart(fig_ch_v, use_container_width=True)
     else:
-        # Z2 / Z3: format pie only — narrower so it doesn't dominate.
+        # Z3 (single club): format pie only — narrower so it doesn't dominate.
         col_pie, _ = st.columns([1, 1])
         col_pie.plotly_chart(fig_fmt, use_container_width=True)
 
