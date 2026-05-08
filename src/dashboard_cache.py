@@ -259,6 +259,14 @@ def rebuild_all(db, log=print) -> None:
     #    a 14-day snapshot scan + 7-day video pagination per cold pageview.
     refresh_home_top(db, log=log, channels=chans)
 
+    # 10. publishing_pulse — Season videos-per-day + zero-day-counts per
+    #     scope. Powers the column charts on the Season page (Z1 + Z2).
+    #     Z3 reuses df_vids client-side, no entry needed.
+    try:
+        refresh_publishing_pulse(db, log=log, channels=chans)
+    except Exception as e:
+        log(f"[dashboard_cache] publishing_pulse failed (non-fatal): {e}")
+
     log("[dashboard_cache] rebuild done")
 
 
@@ -810,3 +818,123 @@ def refresh_latest_vibe(db, log=print, channels: list[dict] | None = None) -> No
             log(f"[dashboard_cache] latest_vibe skipped — generator returned empty")
     except Exception as e:
         log(f"[dashboard_cache] latest_vibe failed (non-fatal): {e}")
+
+
+# ── publishing_pulse: videos-per-day + zero-day-counts per scope ─────────
+# Single paginated query → both metrics derived in Python. Z3 (single
+# club) reuses df_vids client-side, so no per-club cache entry is written
+# here — Z1 (All Leagues) and Z2 (per-league) only.
+PUBLISHING_PULSE_SINCE = DURATION_SEASON_SINCE
+
+
+def _compute_publishing_pulse(db, scope_ids: list[str]):
+    """Returns (date_iso_strings, daily_counts, days_by_channel_id_map)."""
+    if not scope_ids:
+        return [], [], {}
+    from src.database import _fetch_all
+    import pandas as _pd
+    from collections import Counter as _Counter
+    rows = _fetch_all(
+        db.client.table("videos")
+          .select("channel_id,published_at")
+          .gte("published_at", PUBLISHING_PULSE_SINCE)
+          .in_("channel_id", scope_ids)
+    )
+    counts: _Counter = _Counter()
+    days_by_ch: dict[str, set] = {}
+    for r in rows:
+        cid = r.get("channel_id")
+        pa = r.get("published_at") or ""
+        if not cid or not pa:
+            continue
+        try:
+            d = _pd.to_datetime(pa, utc=True).date()
+        except Exception:
+            continue
+        counts[d] += 1
+        days_by_ch.setdefault(cid, set()).add(d)
+    keys = sorted(counts.keys())
+    return ([d.isoformat() for d in keys],
+            [counts[d] for d in keys],
+            days_by_ch)
+
+
+def refresh_publishing_pulse(db, log=print, channels: list[dict] | None = None) -> None:
+    """Compute videos-per-day + zero-day counts for All Leagues (Z1) and
+    each league (Z2). Writes two cache entries per scope:
+
+        videos_per_day  → {"days": ["YYYY-MM-DD",...], "counts": [int,...],
+                           "since": "YYYY-MM-DD", "total_days": int}
+        zero_day_counts → {"rows": [{"channel_id":..., "name":...,
+                                     "zero_days":..., "published_days":...}],
+                           "since": "YYYY-MM-DD", "total_days": int}
+
+    Z3 (single-club) data is derived from df_vids on the page — no cache
+    needed there.
+    """
+    from src.channels import COUNTRY_TO_LEAGUE
+    chans = channels if channels is not None else db.get_all_channels()
+    scope_chans = [c for c in chans
+                   if c.get("entity_type") not in
+                      ("Player", "Federation", "OtherClub", "WomenClub")]
+    if not scope_chans:
+        log("[dashboard_cache] publishing_pulse skipped — no channels in scope")
+        return
+
+    today = datetime.now(timezone.utc).date()
+    import pandas as _pd
+    since_date = _pd.to_datetime(PUBLISHING_PULSE_SINCE).date()
+    total_days = (today - since_date).days + 1
+
+    def _zd_rows(scope_chans_local: list[dict], days_by_ch: dict[str, set]) -> list[dict]:
+        out = []
+        for ch in scope_chans_local:
+            cid = ch.get("id")
+            if not cid:
+                continue
+            pub_days = len(days_by_ch.get(cid, set()))
+            out.append({
+                "channel_id": cid,
+                "name": ch.get("name") or cid,
+                "zero_days": max(0, total_days - pub_days),
+                "published_days": pub_days,
+            })
+        return out
+
+    # ── Z1: all-leagues scope ────────────────────────────────
+    z1_ids = [c["id"] for c in scope_chans if c.get("id")]
+    log(f"[dashboard_cache] publishing_pulse / all ({len(z1_ids)} channels)")
+    z1_dates, z1_counts, z1_days_by_ch = _compute_publishing_pulse(db, z1_ids)
+    write(db, "videos_per_day", scope_all(), {
+        "days": z1_dates, "counts": z1_counts,
+        "since": PUBLISHING_PULSE_SINCE, "total_days": total_days,
+    })
+    write(db, "zero_day_counts", scope_all(), {
+        "rows": _zd_rows(scope_chans, z1_days_by_ch),
+        "since": PUBLISHING_PULSE_SINCE, "total_days": total_days,
+    })
+
+    # ── Z2: per-league ───────────────────────────────────────
+    leagues_to_chans: dict[str, list[dict]] = {}
+    for c in scope_chans:
+        country = (c.get("country") or "").upper()
+        lg = COUNTRY_TO_LEAGUE.get(country)
+        if lg:
+            leagues_to_chans.setdefault(lg, []).append(c)
+
+    for lg, lg_chans in leagues_to_chans.items():
+        lg_ids = [c["id"] for c in lg_chans if c.get("id")]
+        if not lg_ids:
+            continue
+        log(f"[dashboard_cache] publishing_pulse / league:{lg} ({len(lg_ids)} channels)")
+        lg_dates, lg_counts, lg_days_by_ch = _compute_publishing_pulse(db, lg_ids)
+        write(db, "videos_per_day", scope_league(lg), {
+            "days": lg_dates, "counts": lg_counts,
+            "since": PUBLISHING_PULSE_SINCE, "total_days": total_days,
+        })
+        write(db, "zero_day_counts", scope_league(lg), {
+            "rows": _zd_rows(lg_chans, lg_days_by_ch),
+            "since": PUBLISHING_PULSE_SINCE, "total_days": total_days,
+        })
+
+    log("[dashboard_cache] publishing_pulse done")

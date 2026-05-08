@@ -992,32 +992,30 @@ if league is None and _scope == "Overall":
         st.altair_chart(cadence_chart, use_container_width=True)
 
     # ── Videos per day across the whole ecosystem ─────────────────────
-    # One column per calendar day since SEASON_SINCE: total videos
-    # published by every in-scope channel (clubs + league channels,
-    # Players / Federations / Other / Women excluded). Shows the
-    # day-by-day pulse — match-day spikes, deadline-day chatter,
-    # international-break valleys.
-    #
-    # TODO(perf): cache this + the zero-day-counts in dashboard_cache,
-    # refreshed by daily_refresh.py. Today both Z1/Z2 charts re-query
-    # videos.published_at on every page load (paginated; ~5–25KB), which
-    # is fine for the audience size but trivially cacheable since the
-    # data only changes after the daily snapshot run. Z3 reuses df_vids
-    # so it's already free.
+    # Reads precomputed payload from dashboard_cache (rebuilt by
+    # daily_refresh / hourly_rss). Falls back to inline aggregation if
+    # the cache row is empty (first deploy before the next cron run).
     try:
-        from src.database import _fetch_all as _fa_vpd
-        _vpd_clubs = [c for c in all_channels
-                      if c.get("entity_type") not in
-                         ("Player", "Federation", "OtherClub", "WomenClub")]
-        _vpd_ids = [c["id"] for c in _vpd_clubs if c.get("id")]
-        if _vpd_ids:
+        from src import dashboard_cache as _dc_vpd
+        _vpd_payload = _cached_dc_read(db, "videos_per_day", _dc_vpd.scope_all())
+        _vpd_payload = (_vpd_payload or {}).get("payload") or {}
+        _dates = [pd.to_datetime(d).date()
+                  for d in (_vpd_payload.get("days") or [])]
+        _vals = list(_vpd_payload.get("counts") or [])
+        if not _vals:
+            # Cache miss — compute inline (paginated query, ~one-shot).
+            from src.database import _fetch_all as _fa_vpd
+            from collections import Counter as _Counter
+            _vpd_clubs = [c for c in all_channels
+                          if c.get("entity_type") not in
+                             ("Player", "Federation", "OtherClub", "WomenClub")]
+            _vpd_ids = [c["id"] for c in _vpd_clubs if c.get("id")]
             _vpd_rows = _fa_vpd(
                 db.client.table("videos")
                   .select("published_at")
                   .gte("published_at", SEASON_SINCE)
                   .in_("channel_id", _vpd_ids)
-            )
-            from collections import Counter as _Counter
+            ) if _vpd_ids else []
             _vpd_counts = _Counter()
             for _r in _vpd_rows:
                 _pa = _r.get("published_at") or ""
@@ -1028,46 +1026,46 @@ if league is None and _scope == "Overall":
                 except Exception:
                     continue
                 _vpd_counts[_d] += 1
-            if _vpd_counts:
-                import plotly.graph_objects as _go_vpd
-                _dates = sorted(_vpd_counts.keys())
-                _vals = [_vpd_counts[d] for d in _dates]
+            _dates = sorted(_vpd_counts.keys())
+            _vals = [_vpd_counts[d] for d in _dates]
+        if _vals:
+            import plotly.graph_objects as _go_vpd
                 # Highlight weekends with a slightly warmer color so the
                 # match-day rhythm reads at a glance.
-                _bar_colors_vpd = [
-                    "#FFA15A" if d.weekday() >= 5 else "#636EFA"
-                    for d in _dates
-                ]
-                _avg = sum(_vals) / len(_vals) if _vals else 0
-                st.subheader("📈 Videos per day — All Leagues")
-                st.caption(
-                    f"{sum(_vals):,} videos across {len(_dates)} days "
-                    f"(avg {_avg:.0f}/day). Weekends in orange — useful "
-                    f"to spot match-day spikes vs midweek baseline."
-                )
-                fig_vpd = _go_vpd.Figure()
-                fig_vpd.add_trace(_go_vpd.Bar(
-                    x=_dates, y=_vals,
-                    marker_color=_bar_colors_vpd,
-                    hovertemplate="<b>%{x|%a %b %d, %Y}</b><br>"
-                                  "%{y} video(s)<extra></extra>",
-                ))
-                fig_vpd.add_hline(y=_avg, line_dash="dash",
-                                  line_color="rgba(255,255,255,0.35)",
-                                  annotation_text=f"avg {_avg:.0f}",
-                                  annotation_position="top right",
-                                  annotation_font_color="rgba(255,255,255,0.55)")
-                fig_vpd.update_layout(
-                    height=320,
-                    xaxis=dict(title="", showgrid=False),
-                    yaxis=dict(title="Videos published", showgrid=True,
-                               gridcolor="rgba(255,255,255,0.08)"),
-                    margin=dict(t=30, b=40, l=60, r=20),
-                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                    font=dict(color="#FAFAFA"),
-                    showlegend=False, bargap=0.15,
-                )
-                st.plotly_chart(fig_vpd, use_container_width=True)
+            _bar_colors_vpd = [
+                "#FFA15A" if d.weekday() >= 5 else "#636EFA"
+                for d in _dates
+            ]
+            _avg = sum(_vals) / len(_vals) if _vals else 0
+            st.subheader("📈 Videos per day — All Leagues")
+            st.caption(
+                f"{sum(_vals):,} videos across {len(_dates)} days "
+                f"(avg {_avg:.0f}/day). Weekends in orange — useful "
+                f"to spot match-day spikes vs midweek baseline."
+            )
+            fig_vpd = _go_vpd.Figure()
+            fig_vpd.add_trace(_go_vpd.Bar(
+                x=_dates, y=_vals,
+                marker_color=_bar_colors_vpd,
+                hovertemplate="<b>%{x|%a %b %d, %Y}</b><br>"
+                              "%{y} video(s)<extra></extra>",
+            ))
+            fig_vpd.add_hline(y=_avg, line_dash="dash",
+                              line_color="rgba(255,255,255,0.35)",
+                              annotation_text=f"avg {_avg:.0f}",
+                              annotation_position="top right",
+                              annotation_font_color="rgba(255,255,255,0.55)")
+            fig_vpd.update_layout(
+                height=320,
+                xaxis=dict(title="", showgrid=False),
+                yaxis=dict(title="Videos published", showgrid=True,
+                           gridcolor="rgba(255,255,255,0.08)"),
+                margin=dict(t=30, b=40, l=60, r=20),
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#FAFAFA"),
+                showlegend=False, bargap=0.15,
+            )
+            st.plotly_chart(fig_vpd, use_container_width=True)
     except Exception as _e:
         st.caption(f"(videos-per-day chart unavailable: {_e})")
 
@@ -1147,27 +1145,32 @@ if league is None and _scope == "Overall":
         st.caption(f"(concentration chart unavailable: {_e})")
 
     # ── Z1: worst-25 zero-video-days, all leagues ──────────────────────
-    # Highlights the channels with the longest stretches of silence this
-    # season. Pulled across every channel currently in scope (Players /
-    # Federations / Other / Women excluded — they have their own pages).
+    # Reads precomputed `zero_day_counts` from dashboard_cache and trims
+    # client-side to the worst 25. Falls back to inline aggregation on
+    # cache miss (first deploy before the next cron run).
     try:
-        from src.database import _fetch_all as _fa_z1
+        from src import dashboard_cache as _dc_z1
         from datetime import date as _date_z1
-        _z1_clubs = [c for c in all_channels
-                     if c.get("entity_type") not in
-                        ("Player", "Federation", "OtherClub", "WomenClub")]
-        _z1_ids = [c["id"] for c in _z1_clubs if c.get("id")]
-        if _z1_ids:
+        _z1_payload = _cached_dc_read(db, "zero_day_counts", _dc_z1.scope_all())
+        _z1_payload = (_z1_payload or {}).get("payload") or {}
+        _z1_zd_rows = list(_z1_payload.get("rows") or [])
+        _total_days_z1 = int(_z1_payload.get("total_days") or 0)
+        _start_z1 = pd.to_datetime(_z1_payload.get("since") or SEASON_SINCE).date()
+        if not _z1_zd_rows:
+            from src.database import _fetch_all as _fa_z1
+            _z1_clubs = [c for c in all_channels
+                         if c.get("entity_type") not in
+                            ("Player", "Federation", "OtherClub", "WomenClub")]
+            _z1_ids = [c["id"] for c in _z1_clubs if c.get("id")]
             _z1_rows = _fa_z1(
                 db.client.table("videos")
                   .select("channel_id,published_at")
                   .gte("published_at", SEASON_SINCE)
                   .in_("channel_id", _z1_ids)
-            )
+            ) if _z1_ids else []
             _today_z1 = _date_z1.today()
             _start_z1 = pd.to_datetime(SEASON_SINCE).date()
             _total_days_z1 = (_today_z1 - _start_z1).days + 1
-
             _days_by_ch_z1: dict[str, set] = {}
             for _r in _z1_rows:
                 _cid = _r.get("channel_id")
@@ -1179,64 +1182,64 @@ if league is None and _scope == "Overall":
                 except Exception:
                     continue
                 _days_by_ch_z1.setdefault(_cid, set()).add(_d)
-
             _ch_by_id_z1 = {c["id"]: c for c in _z1_clubs}
-            _z1_zd_rows = []
             for _cid in _z1_ids:
                 _ch = _ch_by_id_z1.get(_cid) or {}
                 _published_days = len(_days_by_ch_z1.get(_cid, set()))
-                _zero_days = max(0, _total_days_z1 - _published_days)
                 _z1_zd_rows.append({
                     "name": _ch.get("name") or _cid,
-                    "zero_days": _zero_days,
+                    "zero_days": max(0, _total_days_z1 - _published_days),
                     "published_days": _published_days,
-                    "total_days": _total_days_z1,
                 })
-            # Sort desc and take top 25 — the quietest publishers.
-            _z1_zd_rows.sort(key=lambda r: r["zero_days"], reverse=True)
-            _z1_zd_rows = _z1_zd_rows[:25]
+        # Trim to worst-25 desc.
+        _z1_zd_rows = sorted(_z1_zd_rows,
+                             key=lambda r: r.get("zero_days", 0),
+                             reverse=True)[:25]
+        # Re-attach total_days to every row for the hover tooltip below.
+        for _r in _z1_zd_rows:
+            _r.setdefault("total_days", _total_days_z1)
 
-            if _z1_zd_rows:
-                import plotly.graph_objects as _go_z1
-                st.subheader("📅 Days with zero videos — worst 25 channels")
-                st.caption(
-                    f"Out of {_total_days_z1} season days "
-                    f"(since {_start_z1.strftime('%b %d, %Y')}), the 25 "
-                    f"channels with the most days without any new video. "
-                    f"Higher bar = quieter publisher."
-                )
-                _color_map_z1 = get_global_color_map() or {}
-                _z1_names = [r["name"] for r in _z1_zd_rows]
-                _z1_vals = [r["zero_days"] for r in _z1_zd_rows]
-                _z1_colors = [_color_map_z1.get(n, "#888") for n in _z1_names]
-                _z1_custom = [
-                    [r["published_days"], r["total_days"],
-                     (r["published_days"] / r["total_days"] * 100) if r["total_days"] else 0]
-                    for r in _z1_zd_rows
-                ]
-                fig_z1zd = _go_z1.Figure()
-                fig_z1zd.add_trace(_go_z1.Bar(
-                    x=_z1_names, y=_z1_vals,
-                    marker_color=_z1_colors,
-                    customdata=_z1_custom,
-                    hovertemplate=(
-                        "<b>%{x}</b><br>"
-                        "Zero-video days: %{y}<br>"
-                        "Days with at least 1 video: %{customdata[0]} of %{customdata[1]} "
-                        "(%{customdata[2]:.0f}%)<extra></extra>"
-                    ),
-                ))
-                fig_z1zd.update_layout(
-                    height=440,
-                    xaxis=dict(title="", tickangle=-35, showgrid=False),
-                    yaxis=dict(title="Days without any new video this season",
-                               showgrid=True, gridcolor="rgba(255,255,255,0.08)"),
-                    margin=dict(t=30, b=140, l=60),
-                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                    font=dict(color="#FAFAFA"),
-                    showlegend=False,
-                )
-                st.plotly_chart(fig_z1zd, use_container_width=True)
+        if _z1_zd_rows:
+            import plotly.graph_objects as _go_z1
+            st.subheader("📅 Days with zero videos — worst 25 channels")
+            st.caption(
+                f"Out of {_total_days_z1} season days "
+                f"(since {_start_z1.strftime('%b %d, %Y')}), the 25 "
+                f"channels with the most days without any new video. "
+                f"Higher bar = quieter publisher."
+            )
+            _color_map_z1 = get_global_color_map() or {}
+            _z1_names = [r["name"] for r in _z1_zd_rows]
+            _z1_vals = [r["zero_days"] for r in _z1_zd_rows]
+            _z1_colors = [_color_map_z1.get(n, "#888") for n in _z1_names]
+            _z1_custom = [
+                [r["published_days"], r["total_days"],
+                 (r["published_days"] / r["total_days"] * 100) if r["total_days"] else 0]
+                for r in _z1_zd_rows
+            ]
+            fig_z1zd = _go_z1.Figure()
+            fig_z1zd.add_trace(_go_z1.Bar(
+                x=_z1_names, y=_z1_vals,
+                marker_color=_z1_colors,
+                customdata=_z1_custom,
+                hovertemplate=(
+                    "<b>%{x}</b><br>"
+                    "Zero-video days: %{y}<br>"
+                    "Days with at least 1 video: %{customdata[0]} of %{customdata[1]} "
+                    "(%{customdata[2]:.0f}%)<extra></extra>"
+                ),
+            ))
+            fig_z1zd.update_layout(
+                height=440,
+                xaxis=dict(title="", tickangle=-35, showgrid=False),
+                yaxis=dict(title="Days without any new video this season",
+                           showgrid=True, gridcolor="rgba(255,255,255,0.08)"),
+                margin=dict(t=30, b=140, l=60),
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#FAFAFA"),
+                showlegend=False,
+            )
+            st.plotly_chart(fig_z1zd, use_container_width=True)
     except Exception as _e:
         st.caption(f"(zero-day chart unavailable: {_e})")
 
@@ -1976,19 +1979,29 @@ if club is None:
             st.caption(f"(cadence chart unavailable: {_e})")
 
     # ── Videos per day for the picked league ──────────────────────────
+    # Reads precomputed payload from dashboard_cache (rebuilt by
+    # daily_refresh / hourly_rss). Falls back to inline aggregation if
+    # the cache row hasn't been populated yet.
     if league:
         try:
-            from src.database import _fetch_all as _fa_vpd_lg
-            _vpd_clubs_lg = [c for c in clubs_only if c.get("id")]
-            _vpd_ids_lg = [c["id"] for c in _vpd_clubs_lg]
-            if _vpd_ids_lg:
+            from src import dashboard_cache as _dc_vpd_lg
+            _vpd_payload_lg = _cached_dc_read(db, "videos_per_day",
+                                              _dc_vpd_lg.scope_league(league))
+            _vpd_payload_lg = (_vpd_payload_lg or {}).get("payload") or {}
+            _dates_lg = [pd.to_datetime(d).date()
+                         for d in (_vpd_payload_lg.get("days") or [])]
+            _vals_lg = list(_vpd_payload_lg.get("counts") or [])
+            if not _vals_lg:
+                from src.database import _fetch_all as _fa_vpd_lg
+                from collections import Counter as _Counter_lg
+                _vpd_clubs_lg = [c for c in clubs_only if c.get("id")]
+                _vpd_ids_lg = [c["id"] for c in _vpd_clubs_lg]
                 _vpd_rows_lg = _fa_vpd_lg(
                     db.client.table("videos")
                       .select("published_at")
                       .gte("published_at", SEASON_SINCE)
                       .in_("channel_id", _vpd_ids_lg)
-                )
-                from collections import Counter as _Counter_lg
+                ) if _vpd_ids_lg else []
                 _vpd_counts_lg = _Counter_lg()
                 for _r in _vpd_rows_lg:
                     _pa = _r.get("published_at") or ""
@@ -1999,45 +2012,45 @@ if club is None:
                     except Exception:
                         continue
                     _vpd_counts_lg[_d] += 1
-                if _vpd_counts_lg:
-                    import plotly.graph_objects as _go_vpd_lg
-                    _dates_lg = sorted(_vpd_counts_lg.keys())
-                    _vals_lg = [_vpd_counts_lg[d] for d in _dates_lg]
-                    _avg_lg = sum(_vals_lg) / len(_vals_lg) if _vals_lg else 0
-                    _bar_colors_vpd_lg = [
-                        "#FFA15A" if d.weekday() >= 5 else "#636EFA"
-                        for d in _dates_lg
-                    ]
-                    st.subheader(f"📈 Videos per day — {league}")
-                    st.caption(
-                        f"{sum(_vals_lg):,} videos across {len(_dates_lg)} "
-                        f"days (avg {_avg_lg:.1f}/day). Weekends in orange."
-                    )
-                    fig_vpd_lg = _go_vpd_lg.Figure()
-                    fig_vpd_lg.add_trace(_go_vpd_lg.Bar(
-                        x=_dates_lg, y=_vals_lg,
-                        marker_color=_bar_colors_vpd_lg,
-                        hovertemplate="<b>%{x|%a %b %d, %Y}</b><br>"
-                                      "%{y} video(s)<extra></extra>",
-                    ))
-                    fig_vpd_lg.add_hline(y=_avg_lg, line_dash="dash",
-                                         line_color="rgba(255,255,255,0.35)",
-                                         annotation_text=f"avg {_avg_lg:.1f}",
-                                         annotation_position="top right",
-                                         annotation_font_color="rgba(255,255,255,0.55)")
-                    fig_vpd_lg.update_layout(
-                        height=320,
-                        xaxis=dict(title="", showgrid=False),
-                        yaxis=dict(title="Videos published",
-                                   showgrid=True,
-                                   gridcolor="rgba(255,255,255,0.08)"),
-                        margin=dict(t=30, b=40, l=60, r=20),
-                        paper_bgcolor="rgba(0,0,0,0)",
-                        plot_bgcolor="rgba(0,0,0,0)",
-                        font=dict(color="#FAFAFA"),
-                        showlegend=False, bargap=0.15,
-                    )
-                    st.plotly_chart(fig_vpd_lg, use_container_width=True)
+                _dates_lg = sorted(_vpd_counts_lg.keys())
+                _vals_lg = [_vpd_counts_lg[d] for d in _dates_lg]
+            if _vals_lg:
+                import plotly.graph_objects as _go_vpd_lg
+                _avg_lg = sum(_vals_lg) / len(_vals_lg) if _vals_lg else 0
+                _bar_colors_vpd_lg = [
+                    "#FFA15A" if d.weekday() >= 5 else "#636EFA"
+                    for d in _dates_lg
+                ]
+                st.subheader(f"📈 Videos per day — {league}")
+                st.caption(
+                    f"{sum(_vals_lg):,} videos across {len(_dates_lg)} "
+                    f"days (avg {_avg_lg:.1f}/day). Weekends in orange."
+                )
+                fig_vpd_lg = _go_vpd_lg.Figure()
+                fig_vpd_lg.add_trace(_go_vpd_lg.Bar(
+                    x=_dates_lg, y=_vals_lg,
+                    marker_color=_bar_colors_vpd_lg,
+                    hovertemplate="<b>%{x|%a %b %d, %Y}</b><br>"
+                                  "%{y} video(s)<extra></extra>",
+                ))
+                fig_vpd_lg.add_hline(y=_avg_lg, line_dash="dash",
+                                     line_color="rgba(255,255,255,0.35)",
+                                     annotation_text=f"avg {_avg_lg:.1f}",
+                                     annotation_position="top right",
+                                     annotation_font_color="rgba(255,255,255,0.55)")
+                fig_vpd_lg.update_layout(
+                    height=320,
+                    xaxis=dict(title="", showgrid=False),
+                    yaxis=dict(title="Videos published",
+                               showgrid=True,
+                               gridcolor="rgba(255,255,255,0.08)"),
+                    margin=dict(t=30, b=40, l=60, r=20),
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    font=dict(color="#FAFAFA"),
+                    showlegend=False, bargap=0.15,
+                )
+                st.plotly_chart(fig_vpd_lg, use_container_width=True)
         except Exception as _e:
             st.caption(f"(videos-per-day chart unavailable: {_e})")
 
@@ -2127,28 +2140,30 @@ if club is None:
             st.caption(f"(concentration chart unavailable: {_e})")
 
     # ── Posting cadence: zero-video days per club (one league only) ────
-    # How many calendar days since the season started has each club gone
-    # WITHOUT publishing? Lower = more consistent rhythm; higher = bursty
-    # or genuinely quiet. Computed from a single paginated SELECT against
-    # the videos table — Supabase handles ~600-row payloads cheaply.
+    # Reads precomputed `zero_day_counts` from dashboard_cache. Falls
+    # back to inline aggregation on cache miss.
     if league:
         try:
-            from src.database import _fetch_all as _fa
+            from src import dashboard_cache as _dc_zd
             from datetime import date as _date
-            _scope_ids_zd = [c["id"] for c in clubs_only if c.get("id")]
-            if _scope_ids_zd:
+            _zd_payload = _cached_dc_read(db, "zero_day_counts",
+                                          _dc_zd.scope_league(league))
+            _zd_payload = (_zd_payload or {}).get("payload") or {}
+            _zd_rows = list(_zd_payload.get("rows") or [])
+            _total_days = int(_zd_payload.get("total_days") or 0)
+            _start = pd.to_datetime(_zd_payload.get("since") or SEASON_SINCE).date()
+            if not _zd_rows:
+                from src.database import _fetch_all as _fa
+                _scope_ids_zd = [c["id"] for c in clubs_only if c.get("id")]
                 _vid_rows = _fa(
                     db.client.table("videos")
                       .select("channel_id,published_at")
                       .gte("published_at", SEASON_SINCE)
                       .in_("channel_id", _scope_ids_zd)
-                )
-                # Total days the season has been running today (inclusive).
+                ) if _scope_ids_zd else []
                 _today = _date.today()
                 _start = pd.to_datetime(SEASON_SINCE).date()
                 _total_days = (_today - _start).days + 1
-
-                # Distinct publish dates per channel.
                 _days_by_ch: dict[str, set] = {}
                 for _r in _vid_rows:
                     _cid = _r.get("channel_id")
@@ -2160,23 +2175,20 @@ if club is None:
                     except Exception:
                         continue
                     _days_by_ch.setdefault(_cid, set()).add(_d)
-
                 _ch_by_id_zd = {c["id"]: c for c in clubs_only}
-                _zd_rows = []
                 for _cid in _scope_ids_zd:
                     _ch = _ch_by_id_zd.get(_cid) or {}
-                    _name = _ch.get("name") or _cid
                     _published_days = len(_days_by_ch.get(_cid, set()))
-                    _zero_days = max(0, _total_days - _published_days)
                     _zd_rows.append({
-                        "name": _name,
-                        "zero_days": _zero_days,
+                        "name": _ch.get("name") or _cid,
+                        "zero_days": max(0, _total_days - _published_days),
                         "published_days": _published_days,
-                        "total_days": _total_days,
                     })
-                # Sort by zero-day count descending (quietest at top).
-                _zd_rows.sort(key=lambda r: r["zero_days"], reverse=True)
-
+            # Re-attach total_days for tooltip + sort desc.
+            for _r in _zd_rows:
+                _r.setdefault("total_days", _total_days)
+            _zd_rows.sort(key=lambda r: r.get("zero_days", 0), reverse=True)
+            if _zd_rows:
                 st.subheader(f"📅 Days with zero videos — {league}")
                 st.caption(
                     f"Out of {_total_days} season days "
