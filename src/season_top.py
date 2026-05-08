@@ -58,10 +58,16 @@ def render_top_season_videos_table(
     channels_by_id: dict,
     *,
     header: str,
+    max_height: int | None = None,
 ) -> int:
     """Renderer-only path. Takes a pre-fetched video list so callers
     that also need the same data for KPIs aren't paying for the query
-    twice."""
+    twice.
+
+    max_height: cap the iframe height in pixels and enable inner
+    scrolling. Useful for long lists (100 rows) where letting the
+    table take its natural height makes the page unmanageable.
+    """
     if not vids:
         return 0
     st.subheader(header)
@@ -121,25 +127,53 @@ def render_top_season_videos_table(
             <td style="padding:6px 12px;text-align:right">{fmt_num(int(v.get('like_count') or 0))}</td>
             <td style="padding:6px 12px;text-align:right">{fmt_num(int(v.get('comment_count') or 0))}</td>
         </tr>"""
+    natural = video_table_height(len(vids))
+    if max_height is not None and natural > max_height:
+        # Wrap the table in a scrollable container; keep the header
+        # sticky so the user can scroll without losing context.
+        body_html = (
+            '<div style="max-height:{cap}px;overflow-y:auto">'
+            '<table class="top-vids">'
+            '<thead><tr>'
+            '<th style="text-align:right">#</th>'
+            '<th></th>'
+            '<th>Video</th>'
+            '<th style="text-align:right">Views</th>'
+            '<th style="text-align:right">Likes</th>'
+            '<th style="text-align:right">Comments</th>'
+            '</tr></thead>'
+            f'<tbody>{rows}</tbody>'
+            '</table></div>'
+        ).format(cap=max_height - 16)  # leave room for the iframe chrome
+        height_used = max_height
+        scrolling = False
+    else:
+        body_html = (
+            '<table class="top-vids">'
+            '<thead><tr>'
+            '<th style="text-align:right">#</th>'
+            '<th></th>'
+            '<th>Video</th>'
+            '<th style="text-align:right">Views</th>'
+            '<th style="text-align:right">Likes</th>'
+            '<th style="text-align:right">Comments</th>'
+            '</tr></thead>'
+            f'<tbody>{rows}</tbody>'
+            '</table>'
+        )
+        height_used = natural
+        scrolling = False
+
     components.html(f"""
     <style>
         .top-vids {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
                      font-family:"Source Sans Pro",sans-serif; }}
-        .top-vids th {{ padding:6px 12px; border-bottom:2px solid #444; text-align:left; }}
+        .top-vids th {{ padding:6px 12px; border-bottom:2px solid #444; text-align:left;
+                        background:#0E1117; position:sticky; top:0; z-index:1; }}
         .top-vids td {{ border-bottom:1px solid #262730; }}
         .top-vids tr:hover td {{ background:#1a1c24; }}
     </style>
-    <table class="top-vids">
-    <thead><tr>
-        <th style="text-align:right">#</th>
-        <th></th>
-        <th>Video</th>
-        <th style="text-align:right">Views</th>
-        <th style="text-align:right">Likes</th>
-        <th style="text-align:right">Comments</th>
-    </tr></thead>
-    <tbody>{rows}</tbody>
-    </table>
+    {body_html}
     {yt_popup_js()}
-    """, height=video_table_height(len(vids)), scrolling=False)
+    """, height=height_used, scrolling=scrolling)
     return len(vids)

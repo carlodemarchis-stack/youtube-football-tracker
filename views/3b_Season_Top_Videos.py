@@ -109,7 +109,7 @@ if not _ids:
 # same top-20 set the ranked table renders below — no duplicate
 # query.
 top_views = fetch_top_season_videos(db, _ids, SEASON_SINCE,
-                                    limit=20, order_by="view_count")
+                                    limit=100, order_by="view_count")
 top_likes = fetch_top_season_videos(db, _ids, SEASON_SINCE,
                                     limit=5, order_by="like_count")
 top_comments = fetch_top_season_videos(db, _ids, SEASON_SINCE,
@@ -144,15 +144,15 @@ if top_views:
                 f'margin-top:2px">{value}</div></div>')
 
     cards = [
-        _card("Total views (top 20)", fmt_num(_total),       "#58A6FF"),
-        _card("Avg views / video",    fmt_num(_avg),         "#FFA15A"),
-        _card("Top 1 share",          f"{_top1_share:.1f}%", "#00CC96"),
-        _card("Avg age",              f"{_avg_age_days:.0f}d", "#EF553B"),
+        _card(f"Total views (top {_n})", fmt_num(_total),       "#58A6FF"),
+        _card("Avg views / video",       fmt_num(_avg),         "#FFA15A"),
+        _card("Top 1 share",             f"{_top1_share:.1f}%", "#00CC96"),
+        _card("Avg age",                 f"{_avg_age_days:.0f}d", "#EF553B"),
     ]
     # 5th card only at multi-channel zooms — at Z3 it always reads "1"
     # which adds no signal.
     if club is None:
-        cards.append(_card("Channels represented", str(_ch_in_top), "#AB63FA"))
+        cards.append(_card(f"Channels in top {_n}", str(_ch_in_top), "#AB63FA"))
 
     n_cols = len(cards)
     st.markdown(
@@ -163,7 +163,8 @@ if top_views:
 
 # ── Render the three ranked tables ────────────────────────────
 render_top_season_videos_table(top_views, ch_by_id,
-                               header=f"🏆 Top Season Videos — {_label}")
+                               header=f"🏆 Top Season Videos — {_label}",
+                               max_height=900)  # ~10 rows visible, scroll for the rest
 render_top_season_videos_table(top_likes, ch_by_id,
                                header=f"❤️ Top Liked Videos — {_label}")
 render_top_season_videos_table(top_comments, ch_by_id,
