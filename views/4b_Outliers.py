@@ -18,6 +18,10 @@ import streamlit.components.v1 as components
 from dotenv import load_dotenv
 
 from src.database import Database
+from src.cached_db import (
+    get_all_channels as _cached_channels,
+    get_last_fetch_time as _cached_last_fetch,
+)
 from src.analytics import fmt_num
 from src.filters import (
     get_global_filter, get_global_channels, get_global_color_map,
@@ -45,7 +49,7 @@ if not SUPABASE_URL or not SUPABASE_KEY:
     st.stop()
 
 db = Database(SUPABASE_URL, SUPABASE_KEY)
-all_channels = get_global_channels() or db.get_all_channels()
+all_channels = get_global_channels() or _cached_channels(db)
 color_map = get_global_color_map() or {}
 dual = get_global_color_map_dual() or {}
 

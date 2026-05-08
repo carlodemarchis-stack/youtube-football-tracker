@@ -12,6 +12,10 @@ import pandas as pd
 from dotenv import load_dotenv
 
 from src.database import Database
+from src.cached_db import (
+    get_all_channels as _cached_channels,
+    get_last_fetch_time as _cached_last_fetch,
+)
 from src.analytics import fmt_num, yt_popup_js, CATEGORY_COLORS
 try:
     from src.analytics import video_table_height
@@ -40,12 +44,12 @@ if not SUPABASE_URL or not SUPABASE_KEY:
     st.stop()
 
 db = Database(SUPABASE_URL, SUPABASE_KEY)
-all_channels = get_global_channels() or db.get_all_channels()
+all_channels = get_global_channels() or _cached_channels(db)
 if not all_channels:
     st.warning("No channel data yet. Run a refresh first.")
     st.stop()
 
-_daily_updated = db.get_last_fetch_time("daily")
+_daily_updated = _cached_last_fetch(db, "daily")
 render_page_subtitle("Daily activity and new videos", updated_raw=_daily_updated)
 
 ch_by_id = {c["id"]: c for c in all_channels}

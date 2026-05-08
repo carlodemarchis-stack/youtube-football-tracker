@@ -8,6 +8,12 @@ import plotly.express as px
 from dotenv import load_dotenv
 
 from src.database import Database
+from src.cached_db import (
+    get_all_channels as _cached_channels,
+    get_last_fetch_time as _cached_last_fetch,
+    get_recent_videos as _cached_recent,
+    read_dashboard_cache as _cached_dc_read,
+)
 from src.analytics import fmt_num, yt_popup_js
 from src.filters import get_global_color_map, get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel, render_page_subtitle
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, get_season_since
@@ -23,11 +29,11 @@ SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 
 db = Database(SUPABASE_URL, SUPABASE_KEY)
-all_channels = get_global_channels() or db.get_all_channels()
+all_channels = get_global_channels() or _cached_channels(db)
 
 # Apply global filter to narrow the club pool
 g_league, g_club = get_global_filter()
-_daily_updated = db.get_last_fetch_time("daily")
+_daily_updated = _cached_last_fetch(db, "daily")
 render_page_subtitle("Side-by-side club comparison", updated_raw=_daily_updated)
 if g_league:
     filtered_channels = get_channels_for_filter(all_channels, g_league)

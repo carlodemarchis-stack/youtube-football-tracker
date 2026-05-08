@@ -9,6 +9,12 @@ import pandas as pd
 from dotenv import load_dotenv
 
 from src.database import Database
+from src.cached_db import (
+    get_all_channels as _cached_channels,
+    get_last_fetch_time as _cached_last_fetch,
+    get_recent_videos as _cached_recent,
+    read_dashboard_cache as _cached_dc_read,
+)
 from src.analytics import fmt_num, yt_popup_js, CATEGORY_COLORS
 try:
     from src.analytics import video_table_height
@@ -103,7 +109,7 @@ if not SUPABASE_URL or not SUPABASE_KEY:
     st.stop()
 
 db = Database(SUPABASE_URL, SUPABASE_KEY)
-all_channels = get_global_channels() or db.get_all_channels()
+all_channels = get_global_channels() or _cached_channels(db)
 
 if not all_channels:
     st.warning("No channel data yet. Go to **Refresh Data** to fetch data first.")
@@ -112,8 +118,8 @@ if not all_channels:
 league, club = get_global_filter()
 now = datetime.now(timezone.utc)
 SEASON_SINCE = get_season_since(channel=club, league=league)
-_daily_updated = db.get_last_fetch_time("daily")
-_rss_updated = db.get_last_fetch_time("hourly_rss")
+_daily_updated = _cached_last_fetch(db, "daily")
+_rss_updated = _cached_last_fetch(db, "hourly_rss")
 _season_updated = max(filter(None, [_daily_updated, _rss_updated]), default=None)
 render_page_subtitle(
     f"Season performance since {SEASON_SINCE}",
@@ -612,7 +618,7 @@ if league is None and _scope == "Overall":
     def _load_season_shorts_buckets(since_iso: str) -> list[dict]:
         from src import dashboard_cache as _dc
         try:
-            row = _dc.read(db, "duration_buckets", "shorts")
+            row = _cached_dc_read(db, "duration_buckets", "shorts")
             cached = (row or {}).get("payload", {}).get("buckets")
             if cached:
                 return cached
@@ -722,7 +728,7 @@ if league is None and _scope == "Overall":
     def _load_season_long_buckets(since_iso: str) -> list[dict]:
         from src import dashboard_cache as _dc
         try:
-            row = _dc.read(db, "duration_buckets", "long")
+            row = _cached_dc_read(db, "duration_buckets", "long")
             cached = (row or {}).get("payload", {}).get("buckets")
             if cached:
                 return cached
@@ -837,7 +843,7 @@ if league is None and _scope == "Overall":
     def _load_publish_cadence(since_iso: str, _cache_v: int = 3) -> pd.DataFrame:
         from src import dashboard_cache as _dc
         try:
-            row = _dc.read(db, "publish_cadence", "all")
+            row = _cached_dc_read(db, "publish_cadence", "all")
             cached_rows = (row or {}).get("payload", {}).get("rows")
             if cached_rows:
                 df = pd.DataFrame(cached_rows)
@@ -1686,7 +1692,7 @@ if club is None:
                 from src import dashboard_cache as _dc
                 # Read from dashboard_cache first
                 try:
-                    row = _dc.read(db, "publish_cadence", _dc.scope_league(league_name))
+                    row = _cached_dc_read(db, "publish_cadence", _dc.scope_league(league_name))
                     cached_rows = (row or {}).get("payload", {}).get("rows")
                     if cached_rows:
                         df = pd.DataFrame(cached_rows)

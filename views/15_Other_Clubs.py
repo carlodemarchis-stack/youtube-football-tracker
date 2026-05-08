@@ -21,6 +21,12 @@ import plotly.express as px
 from dotenv import load_dotenv
 
 from src.database import Database, _fetch_all
+from src.cached_db import (
+    get_all_channels as _cached_channels,
+    get_last_fetch_time as _cached_last_fetch,
+    get_recent_videos as _cached_recent,
+    read_dashboard_cache as _cached_dc_read,
+)
 from src.analytics import fmt_num
 from src.auth import require_login
 from src.filters import (
@@ -40,10 +46,10 @@ if not SUPABASE_URL or not SUPABASE_KEY:
     st.stop()
 
 db = Database(SUPABASE_URL, SUPABASE_KEY)
-all_channels = get_global_channels() or db.get_all_channels()
+all_channels = get_global_channels() or _cached_channels(db)
 clubs_o = [c for c in all_channels if c.get("entity_type") == "OtherClub"]
 
-_oc_updated = db.get_last_fetch_time("daily_other_clubs")
+_oc_updated = _cached_last_fetch(db, "daily_other_clubs")
 render_page_subtitle(
     "Top global clubs outside the big-5 — FIFA, UEFA, national FAs",
     updated_raw=_oc_updated,

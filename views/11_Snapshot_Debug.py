@@ -9,6 +9,10 @@ import streamlit.components.v1 as components
 from dotenv import load_dotenv
 
 from src.database import Database
+from src.cached_db import (
+    get_all_channels as _cached_channels,
+    get_last_fetch_time as _cached_last_fetch,
+)
 from src.analytics import fmt_num
 from src.auth import require_login, is_admin
 from src.filters import (
@@ -34,7 +38,7 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 db = Database(SUPABASE_URL, SUPABASE_KEY)
 
 # ── Global filter ────────────────────────────────────────────
-all_channels = get_global_channels() or db.get_all_channels()
+all_channels = get_global_channels() or _cached_channels(db)
 ch_by_id = {c["id"]: c for c in all_channels}
 color_map = get_global_color_map()
 dual = get_global_color_map_dual()

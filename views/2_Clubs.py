@@ -10,6 +10,12 @@ import plotly.express as px
 from dotenv import load_dotenv
 
 from src.database import Database
+from src.cached_db import (
+    get_all_channels as _cached_channels,
+    get_last_fetch_time as _cached_last_fetch,
+    get_recent_videos as _cached_recent,
+    read_dashboard_cache as _cached_dc_read,
+)
 from src.analytics import compute_channel_comparison, fmt_num
 from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope, render_page_subtitle
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, get_season_since
@@ -185,7 +191,7 @@ if not SUPABASE_URL or not SUPABASE_KEY:
     st.stop()
 
 db = Database(SUPABASE_URL, SUPABASE_KEY)
-all_channels = get_global_channels() or db.get_all_channels()
+all_channels = get_global_channels() or _cached_channels(db)
 
 if not all_channels:
     st.warning("No channel data yet. Go to **Refresh Data** to fetch data first.")
@@ -212,7 +218,7 @@ def _subs_per_year(subs: int, launched_iso: str | None) -> int:
         return 0
 
 
-_daily_updated = db.get_last_fetch_time("daily")
+_daily_updated = _cached_last_fetch(db, "daily")
 render_page_subtitle("Channel stats and comparison", updated_raw=_daily_updated)
 
 # ══════════════════════════════════════════════════════════════
@@ -1281,7 +1287,7 @@ else:
     except Exception:
         _top_v = None
     try:
-        _latest_v = db.get_recent_videos(limit=1, channel_ids=[channel["id"]])
+        _latest_v = _cached_recent(db, limit=1, channel_ids=(channel["id"],))
         _latest_v = _latest_v[0] if _latest_v else None
     except Exception:
         _latest_v = None
