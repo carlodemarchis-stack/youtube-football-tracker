@@ -161,6 +161,83 @@ if top_views:
         unsafe_allow_html=True,
     )
 
+# ── Pie charts: format mix (always) + league mix (Z1 only) ────
+if top_views:
+    import plotly.graph_objects as _go_pie
+    from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_COLOR
+
+    def _fmt_of(v):
+        f = (v.get("format") or "").lower()
+        if f in ("long", "short", "live"):
+            return f
+        return "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
+
+    _FMT_COLOR = {"long": "#636EFA", "short": "#00CC96", "live": "#FFA15A"}
+    _FMT_LABEL = {"long": "Long", "short": "Shorts", "live": "Live"}
+
+    fmt_counts: dict[str, int] = {}
+    for v in top_views:
+        f = _fmt_of(v)
+        fmt_counts[f] = fmt_counts.get(f, 0) + 1
+    fmt_labels = [_FMT_LABEL[f] for f in fmt_counts]
+    fmt_values = list(fmt_counts.values())
+    fmt_colors = [_FMT_COLOR[f] for f in fmt_counts]
+
+    fig_fmt = _go_pie.Figure()
+    fig_fmt.add_trace(_go_pie.Pie(
+        labels=fmt_labels, values=fmt_values,
+        marker=dict(colors=fmt_colors, line=dict(color="#0E1117", width=2)),
+        hole=0.45, textinfo="label+percent",
+        hovertemplate="<b>%{label}</b><br>%{value} videos · %{percent}<extra></extra>",
+    ))
+    fig_fmt.update_layout(
+        title=dict(text=f"Format mix (top {len(top_views)})", x=0.5,
+                   font=dict(color="#FAFAFA", size=14)),
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#FAFAFA"),
+        margin=dict(t=40, b=10, l=10, r=10),
+        height=320, showlegend=False,
+    )
+
+    if club is None and league is None:
+        # Z1: also break down by which league each top-100 video comes from.
+        lg_counts: dict[str, int] = {}
+        for v in top_views:
+            ch = ch_by_id.get(v.get("channel_id")) or {}
+            country = (ch.get("country") or "").upper()
+            lg = COUNTRY_TO_LEAGUE.get(country) or "Other"
+            lg_counts[lg] = lg_counts.get(lg, 0) + 1
+        # Sort biggest slice first so the pie reads top-down.
+        lg_sorted = sorted(lg_counts.items(), key=lambda kv: kv[1], reverse=True)
+        lg_labels = [k for k, _ in lg_sorted]
+        lg_values = [v for _, v in lg_sorted]
+        lg_colors = [LEAGUE_COLOR.get(k, "#888") for k in lg_labels]
+
+        fig_lg = _go_pie.Figure()
+        fig_lg.add_trace(_go_pie.Pie(
+            labels=lg_labels, values=lg_values,
+            marker=dict(colors=lg_colors, line=dict(color="#0E1117", width=2)),
+            hole=0.45, textinfo="label+percent",
+            sort=False,  # respect our pre-sort
+            hovertemplate="<b>%{label}</b><br>%{value} videos · %{percent}<extra></extra>",
+        ))
+        fig_lg.update_layout(
+            title=dict(text=f"League mix (top {len(top_views)})", x=0.5,
+                       font=dict(color="#FAFAFA", size=14)),
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#FAFAFA"),
+            margin=dict(t=40, b=10, l=10, r=10),
+            height=320, showlegend=False,
+        )
+
+        col_fmt, col_lg = st.columns(2)
+        col_fmt.plotly_chart(fig_fmt, use_container_width=True)
+        col_lg.plotly_chart(fig_lg, use_container_width=True)
+    else:
+        # Z2 / Z3: format pie only — narrower so it doesn't dominate.
+        col_pie, _ = st.columns([1, 1])
+        col_pie.plotly_chart(fig_fmt, use_container_width=True)
+
 # ── Render the three ranked tables ────────────────────────────
 render_top_season_videos_table(top_views, ch_by_id,
                                header=f"🏆 Top Season Videos — {_label}",
