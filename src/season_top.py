@@ -17,6 +17,22 @@ from src.dot import channel_badge
 from src.filters import get_global_color_map, get_global_color_map_dual
 
 
+def fetch_top_season_videos(
+    db,
+    channel_ids: list[str],
+    since: str,
+    *,
+    limit: int = 20,
+    order_by: str = "view_count",
+) -> list[dict]:
+    """Same query the renderer used to do internally — exposed so the
+    KPI bar can compute aggregates without re-fetching."""
+    return db.get_top_season_videos(
+        channel_ids=channel_ids, since=since,
+        limit=limit, order_by=order_by,
+    ) or []
+
+
 def render_top_season_videos(
     db,
     channel_ids: list[str],
@@ -27,11 +43,25 @@ def render_top_season_videos(
     header: str = "Top Season Videos",
     order_by: str = "view_count",
 ) -> int:
-    """Render one Top-N season-videos table. Returns the row count."""
-    vids = db.get_top_season_videos(
-        channel_ids=channel_ids, since=since,
-        limit=limit, order_by=order_by,
-    )
+    """Render one Top-N season-videos table. Returns the row count.
+    Convenience wrapper — fetches via fetch_top_season_videos and hands
+    off to render_top_season_videos_table."""
+    vids = fetch_top_season_videos(db, channel_ids, since,
+                                   limit=limit, order_by=order_by)
+    if not vids:
+        return 0
+    return render_top_season_videos_table(vids, channels_by_id, header=header)
+
+
+def render_top_season_videos_table(
+    vids: list[dict],
+    channels_by_id: dict,
+    *,
+    header: str,
+) -> int:
+    """Renderer-only path. Takes a pre-fetched video list so callers
+    that also need the same data for KPIs aren't paying for the query
+    twice."""
     if not vids:
         return 0
     st.subheader(header)

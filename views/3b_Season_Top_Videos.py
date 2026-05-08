@@ -21,7 +21,11 @@ from src.filters import (
 )
 from src.channels import get_season_since
 from src.auth import require_login
-from src.season_top import render_top_season_videos
+from src.season_top import (
+    fetch_top_season_videos,
+    render_top_season_videos_table,
+)
+from src.analytics import fmt_num
 
 load_dotenv()
 require_login()
@@ -100,13 +104,67 @@ if not _ids:
     st.caption("No channels in scope.")
     st.stop()
 
+# ── Fetch the three datasets up front ─────────────────────────
+# Done once here so the KPI bar can compute aggregates from the
+# same top-20 set the ranked table renders below — no duplicate
+# query.
+top_views = fetch_top_season_videos(db, _ids, SEASON_SINCE,
+                                    limit=20, order_by="view_count")
+top_likes = fetch_top_season_videos(db, _ids, SEASON_SINCE,
+                                    limit=5, order_by="like_count")
+top_comments = fetch_top_season_videos(db, _ids, SEASON_SINCE,
+                                       limit=5, order_by="comment_count")
+
+# ── KPI bar (computed from the top-20-by-views set) ───────────
+if top_views:
+    import pandas as _pd
+    _total = sum(int(v.get("view_count") or 0) for v in top_views)
+    _n = len(top_views)
+    _avg = _total // _n if _n else 0
+    _top1 = int(top_views[0].get("view_count") or 0)
+    _top1_share = (_top1 / _total * 100) if _total else 0.0
+    _now_utc = _pd.Timestamp.now(tz="UTC")
+    _ages = (_now_utc - _pd.to_datetime(
+        [v.get("published_at") for v in top_views],
+        utc=True, errors="coerce",
+    )).total_seconds() / 86400.0
+    _ages = [a for a in _ages.tolist() if not _pd.isna(a)]
+    _avg_age_days = (sum(_ages) / len(_ages)) if _ages else 0.0
+    # # of clubs represented in the top 20 — concentration signal at
+    # Z1/Z2; collapses to 1 at Z3 so we hide the card there.
+    _ch_in_top = len({v.get("channel_id") for v in top_views
+                      if v.get("channel_id")})
+
+    def _card(label, value, color):
+        return (f'<div style="background:#1a1c24;border-radius:6px;padding:10px 14px;'
+                f'border-left:3px solid {color}">'
+                f'<div style="color:#888;font-size:11px;font-weight:600;'
+                f'text-transform:uppercase;letter-spacing:0.5px">{label}</div>'
+                f'<div style="color:#FAFAFA;font-size:22px;font-weight:700;'
+                f'margin-top:2px">{value}</div></div>')
+
+    cards = [
+        _card("Total views (top 20)", fmt_num(_total),       "#58A6FF"),
+        _card("Avg views / video",    fmt_num(_avg),         "#FFA15A"),
+        _card("Top 1 share",          f"{_top1_share:.1f}%", "#00CC96"),
+        _card("Avg age",              f"{_avg_age_days:.0f}d", "#EF553B"),
+    ]
+    # 5th card only at multi-channel zooms — at Z3 it always reads "1"
+    # which adds no signal.
+    if club is None:
+        cards.append(_card("Channels represented", str(_ch_in_top), "#AB63FA"))
+
+    n_cols = len(cards)
+    st.markdown(
+        f'<div style="display:grid;grid-template-columns:repeat({n_cols},1fr);'
+        f'gap:10px;margin:4px 0 14px 0">{"".join(cards)}</div>',
+        unsafe_allow_html=True,
+    )
+
 # ── Render the three ranked tables ────────────────────────────
-render_top_season_videos(db, _ids, ch_by_id, SEASON_SINCE,
-                         limit=20, header=f"🏆 Top Season Videos — {_label}",
-                         order_by="view_count")
-render_top_season_videos(db, _ids, ch_by_id, SEASON_SINCE,
-                         limit=5, header=f"❤️ Top Liked Videos — {_label}",
-                         order_by="like_count")
-render_top_season_videos(db, _ids, ch_by_id, SEASON_SINCE,
-                         limit=5, header=f"💬 Top Commented Videos — {_label}",
-                         order_by="comment_count")
+render_top_season_videos_table(top_views, ch_by_id,
+                               header=f"🏆 Top Season Videos — {_label}")
+render_top_season_videos_table(top_likes, ch_by_id,
+                               header=f"❤️ Top Liked Videos — {_label}")
+render_top_season_videos_table(top_comments, ch_by_id,
+                               header=f"💬 Top Commented Videos — {_label}")
