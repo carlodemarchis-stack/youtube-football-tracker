@@ -396,42 +396,62 @@ st.markdown(
     ### Pages (require login)
 
     **Daily Recap** — what happened yesterday: view and subscriber
-    gains, leaderboards, most watched videos, new uploads, and 14-day
+    gains, leaderboards, new uploads, most-watched videos, and 14-day
     trend charts. Adapts from league-level summaries down to single-club detail.
 
     **Latest Videos** — the most recently published videos across all
     tracked channels. Sortable by views, likes, comments, duration, and
-    age. Live-now videos appear in a banner at the top.
+    age. Includes a 24h timeline strip and a live-now banner at the top.
 
-    **Channels** — league and club rankings: subscribers, views, video
-    counts (long vs shorts), views/sub, views/video. Sortable tables and
-    bar charts at every zoom level.
+    **Season (25/26)** — current-season rhythm and cadence (videos
+    published since Aug 2025): videos-per-day, publishing heatmap,
+    monthly output by format (long / Shorts / Live), view concentration
+    per league or club, and zero-publish-day counts.
 
-    **Season 25/26** — current-season stats (videos published since
-    Aug 2025): views, videos, views/video, engagement rate — split by
-    long-form, Shorts, and Live. Monthly output charts and category
-    breakdowns at the club level.
+    **Season Top** — the season's hits in three ranked tables — top
+    videos by views, by likes, and by comments — for whatever scope the
+    global filter is set to (all leagues / one league / one club).
 
-    **Top Videos** — the 100 most-viewed videos for your selection with
-    rank-by-views chart, rank-vs-year scatter, year distribution, theme
-    pie, and a sortable video list.
+    **All Channels** — league and club rankings: subscribers, views,
+    video counts (long vs shorts), views/sub, views/video. Sortable
+    tables and bar charts at every zoom level.
+
+    **All-Time Top** — the 100 most-viewed videos *ever* for your
+    selection: rank-by-views chart, rank-vs-year scatter, year
+    distribution, theme pie, and a sortable video list. Different lens
+    from Season Top (lifetime, not just this season).
+
+    ---
+
+    ### The Lab — experimental views
+
+    **Outliers** — channels whose profile sits unusually far from their
+    peers on key metrics. Surfaces "interesting" channels worth a look.
 
     **Other Social** — beyond YouTube: each club's footprint across
     Instagram, X, Facebook, TikTok, Threads, LinkedIn (and more). Badge
     grid linking to every account, plus a sortable follower-count
     leaderboard with one column per platform.
 
-    **Players** — top football players' personal YouTube channels (Cristiano,
-    Messi, Neymar, Mbappé, Haaland…). Standalone leaderboard with subs,
-    views, posting activity, and career status. Isolated from clubs/leagues.
+    ---
 
-    **Federations** — FIFA, UEFA, the five confederations and major national
-    associations. Same shape as Players: leaderboard, subs/year, posting
-    activity, season video mix.
+    ### Others — isolated entity types
 
-    **Other Clubs** — top global clubs *outside* the big-5 European leagues
-    (Brazil, Argentina, Turkey, Portugal, Netherlands, Scotland, Saudi
-    Arabia, MLS, Liga MX). Standalone leaderboard + posting activity.
+    These are tracked but deliberately excluded from every league/club
+    view, leaderboard, and aggregate above. They live on their own
+    pages so they don't compete with the big-5 clubs in rankings.
+
+    **Players** — top football players' personal YouTube channels
+    (Cristiano, Messi, Neymar, Mbappé, Haaland…). Standalone
+    leaderboard with subs, views, posting activity, and career status.
+
+    **Federations** — FIFA, UEFA, the five confederations and major
+    national associations. Same shape as Players.
+
+    **Other Clubs** — top global clubs *outside* the big-5 European
+    leagues (Brazil, Argentina, Turkey, Portugal, Netherlands,
+    Scotland, Saudi Arabia, MLS, Liga MX). Standalone leaderboard +
+    posting activity.
 
     **Women** — top women's football clubs (Barça Femení, Lyon Féminin,
     Chelsea Women, Arsenal Women…). Standalone leaderboard, isolated
@@ -493,8 +513,8 @@ st.caption(
     "features can be paused or killed independently of the main pipeline.\n\n"
     "**Players, Federations, Other Clubs and Women's clubs are isolated.** They live on their "
     "own pages and are deliberately excluded from every league/club view, leaderboard, and "
-    "aggregate — they don't compete with the big-5 clubs in rankings, don't appear in Top "
-    "Videos, Latest Videos, or Compare. Treat them as separate lenses.\n\n"
+    "aggregate — they don't compete with the big-5 clubs in rankings, don't appear in "
+    "All-Time Top, Latest Videos, Season Top, or Compare. Treat them as separate lenses.\n\n"
     "**Work in progress.** This is a research project. Expect it to evolve constantly — "
     "new metrics, new leagues, new views, occasional bugs, and the odd late-night experiment."
 )
