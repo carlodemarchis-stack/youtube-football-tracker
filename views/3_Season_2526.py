@@ -1066,6 +1066,100 @@ if league is None and _scope == "Overall":
     except Exception as _e:
         st.caption(f"(concentration chart unavailable: {_e})")
 
+    # ── Z1: worst-25 zero-video-days, all leagues ──────────────────────
+    # Highlights the channels with the longest stretches of silence this
+    # season. Pulled across every channel currently in scope (Players /
+    # Federations / Other / Women excluded — they have their own pages).
+    try:
+        from src.database import _fetch_all as _fa_z1
+        from datetime import date as _date_z1
+        _z1_clubs = [c for c in all_channels
+                     if c.get("entity_type") not in
+                        ("Player", "Federation", "OtherClub", "WomenClub")]
+        _z1_ids = [c["id"] for c in _z1_clubs if c.get("id")]
+        if _z1_ids:
+            _z1_rows = _fa_z1(
+                db.client.table("videos")
+                  .select("channel_id,published_at")
+                  .gte("published_at", SEASON_SINCE)
+                  .in_("channel_id", _z1_ids)
+            )
+            _today_z1 = _date_z1.today()
+            _start_z1 = pd.to_datetime(SEASON_SINCE).date()
+            _total_days_z1 = (_today_z1 - _start_z1).days + 1
+
+            _days_by_ch_z1: dict[str, set] = {}
+            for _r in _z1_rows:
+                _cid = _r.get("channel_id")
+                _pa = _r.get("published_at") or ""
+                if not _cid or not _pa:
+                    continue
+                try:
+                    _d = pd.to_datetime(_pa, utc=True).date()
+                except Exception:
+                    continue
+                _days_by_ch_z1.setdefault(_cid, set()).add(_d)
+
+            _ch_by_id_z1 = {c["id"]: c for c in _z1_clubs}
+            _z1_zd_rows = []
+            for _cid in _z1_ids:
+                _ch = _ch_by_id_z1.get(_cid) or {}
+                _published_days = len(_days_by_ch_z1.get(_cid, set()))
+                _zero_days = max(0, _total_days_z1 - _published_days)
+                _z1_zd_rows.append({
+                    "name": _ch.get("name") or _cid,
+                    "zero_days": _zero_days,
+                    "published_days": _published_days,
+                    "total_days": _total_days_z1,
+                })
+            # Sort desc and take top 25 — the quietest publishers.
+            _z1_zd_rows.sort(key=lambda r: r["zero_days"], reverse=True)
+            _z1_zd_rows = _z1_zd_rows[:25]
+
+            if _z1_zd_rows:
+                import plotly.graph_objects as _go_z1
+                st.subheader("📅 Days with zero videos — worst 25 channels")
+                st.caption(
+                    f"Out of {_total_days_z1} season days "
+                    f"(since {_start_z1.strftime('%b %d, %Y')}), the 25 "
+                    f"channels with the most days without any new video. "
+                    f"Higher bar = quieter publisher."
+                )
+                _color_map_z1 = get_global_color_map() or {}
+                _z1_names = [r["name"] for r in _z1_zd_rows]
+                _z1_vals = [r["zero_days"] for r in _z1_zd_rows]
+                _z1_colors = [_color_map_z1.get(n, "#888") for n in _z1_names]
+                _z1_custom = [
+                    [r["published_days"], r["total_days"],
+                     (r["published_days"] / r["total_days"] * 100) if r["total_days"] else 0]
+                    for r in _z1_zd_rows
+                ]
+                fig_z1zd = _go_z1.Figure()
+                fig_z1zd.add_trace(_go_z1.Bar(
+                    x=_z1_names, y=_z1_vals,
+                    marker_color=_z1_colors,
+                    customdata=_z1_custom,
+                    hovertemplate=(
+                        "<b>%{x}</b><br>"
+                        "Zero-video days: %{y}<br>"
+                        "Days with at least 1 video: %{customdata[0]} of %{customdata[1]} "
+                        "(%{customdata[2]:.0f}%)<extra></extra>"
+                    ),
+                ))
+                fig_z1zd.update_layout(
+                    height=440,
+                    xaxis=dict(title="", tickangle=-35, showgrid=False),
+                    yaxis=dict(title="Days without any new video this season",
+                               showgrid=True, gridcolor="rgba(255,255,255,0.08)"),
+                    margin=dict(t=30, b=140, l=60),
+                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                    font=dict(color="#FAFAFA"),
+                    showlegend=False,
+                )
+                st.plotly_chart(fig_z1zd, use_container_width=True)
+    except Exception as _e:
+        st.caption(f"(zero-day chart unavailable: {_e})")
+
     # ── All channels table — precomputed columns (zero video queries) ───
     st.subheader("All Channels — Season")
     color_map = get_global_color_map()
@@ -1956,22 +2050,23 @@ if club is None:
 
                 fig_zd = go.Figure()
                 fig_zd.add_trace(go.Bar(
-                    x=_zd_vals, y=_zd_names, orientation="h",
+                    x=_zd_names, y=_zd_vals,
                     marker_color=_zd_colors,
                     customdata=_zd_custom,
                     hovertemplate=(
-                        "<b>%{y}</b><br>"
-                        "Zero-video days: %{x}<br>"
+                        "<b>%{x}</b><br>"
+                        "Zero-video days: %{y}<br>"
                         "Days with at least 1 video: %{customdata[0]} of %{customdata[1]} "
                         "(%{customdata[2]:.0f}%)<extra></extra>"
                     ),
                 ))
                 fig_zd.update_layout(
-                    height=max(300, 28 * len(_zd_names) + 80),
-                    xaxis=dict(title="Days without any new video this season",
+                    height=420,
+                    xaxis=dict(title="", tickangle=-35,
+                               showgrid=False),
+                    yaxis=dict(title="Days without any new video this season",
                                showgrid=True, gridcolor="rgba(255,255,255,0.08)"),
-                    yaxis=dict(title="", autorange="reversed"),
-                    margin=dict(t=30, b=50, l=160),
+                    margin=dict(t=30, b=120, l=60),
                     paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                     font=dict(color="#FAFAFA"),
                     showlegend=False,
