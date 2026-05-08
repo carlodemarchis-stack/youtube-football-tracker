@@ -300,9 +300,32 @@ if top_views:
         col_ch_n.plotly_chart(fig_ch_n, use_container_width=True)
         col_ch_v.plotly_chart(fig_ch_v, use_container_width=True)
     else:
-        # Z3 (single club): format pie only — narrower so it doesn't dominate.
-        col_pie, _ = st.columns([1, 1])
-        col_pie.plotly_chart(fig_fmt, use_container_width=True)
+        # Z3 (single club): no pie. The format breakdown is shown as
+        # three small KPI cards instead — easier to read than a pie
+        # with 2-3 slices and consistent with the rest of the bar.
+        # _card was defined inside the previous block; redefine here so
+        # this branch is self-contained.
+        def _kpi_card(label, value, color):
+            return (f'<div style="background:#1a1c24;border-radius:6px;padding:10px 14px;'
+                    f'border-left:3px solid {color}">'
+                    f'<div style="color:#888;font-size:11px;font-weight:600;'
+                    f'text-transform:uppercase;letter-spacing:0.5px">{label}</div>'
+                    f'<div style="color:#FAFAFA;font-size:22px;font-weight:700;'
+                    f'margin-top:2px">{value}</div></div>')
+        _long_n = fmt_counts.get("long", 0)
+        _short_n = fmt_counts.get("short", 0)
+        _live_n = fmt_counts.get("live", 0)
+        _N = len(top_views)
+        fmt_cards = [
+            _kpi_card(f"Long (top {_N})",   str(_long_n),  "#636EFA"),
+            _kpi_card(f"Shorts (top {_N})", str(_short_n), "#00CC96"),
+            _kpi_card(f"Live (top {_N})",   str(_live_n),  "#FFA15A"),
+        ]
+        st.markdown(
+            f'<div style="display:grid;grid-template-columns:repeat(3,1fr);'
+            f'gap:10px;margin:0 0 14px 0">{"".join(fmt_cards)}</div>',
+            unsafe_allow_html=True,
+        )
 
 # ── Render the three ranked tables ────────────────────────────
 render_top_season_videos_table(top_views, ch_by_id,
