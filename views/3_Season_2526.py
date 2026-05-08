@@ -1886,6 +1886,100 @@ if club is None:
         except Exception as _e:
             st.caption(f"(concentration chart unavailable: {_e})")
 
+    # ── Posting cadence: zero-video days per club (one league only) ────
+    # How many calendar days since the season started has each club gone
+    # WITHOUT publishing? Lower = more consistent rhythm; higher = bursty
+    # or genuinely quiet. Computed from a single paginated SELECT against
+    # the videos table — Supabase handles ~600-row payloads cheaply.
+    if league:
+        try:
+            from src.database import _fetch_all as _fa
+            from datetime import date as _date
+            _scope_ids_zd = [c["id"] for c in clubs_only if c.get("id")]
+            if _scope_ids_zd:
+                _vid_rows = _fa(
+                    db.client.table("videos")
+                      .select("channel_id,published_at")
+                      .gte("published_at", SEASON_SINCE)
+                      .in_("channel_id", _scope_ids_zd)
+                )
+                # Total days the season has been running today (inclusive).
+                _today = _date.today()
+                _start = pd.to_datetime(SEASON_SINCE).date()
+                _total_days = (_today - _start).days + 1
+
+                # Distinct publish dates per channel.
+                _days_by_ch: dict[str, set] = {}
+                for _r in _vid_rows:
+                    _cid = _r.get("channel_id")
+                    _pa = _r.get("published_at") or ""
+                    if not _cid or not _pa:
+                        continue
+                    try:
+                        _d = pd.to_datetime(_pa, utc=True).date()
+                    except Exception:
+                        continue
+                    _days_by_ch.setdefault(_cid, set()).add(_d)
+
+                _ch_by_id_zd = {c["id"]: c for c in clubs_only}
+                _zd_rows = []
+                for _cid in _scope_ids_zd:
+                    _ch = _ch_by_id_zd.get(_cid) or {}
+                    _name = _ch.get("name") or _cid
+                    _published_days = len(_days_by_ch.get(_cid, set()))
+                    _zero_days = max(0, _total_days - _published_days)
+                    _zd_rows.append({
+                        "name": _name,
+                        "zero_days": _zero_days,
+                        "published_days": _published_days,
+                        "total_days": _total_days,
+                    })
+                # Sort by zero-day count descending (quietest at top).
+                _zd_rows.sort(key=lambda r: r["zero_days"], reverse=True)
+
+                st.subheader(f"📅 Days with zero videos — {league}")
+                st.caption(
+                    f"Out of {_total_days} season days "
+                    f"(since {_start.strftime('%b %d, %Y')}), how many "
+                    f"each club went a full day without publishing. "
+                    f"Lower = more consistent rhythm."
+                )
+                _color_map_zd = get_global_color_map() or {}
+                _zd_names = [r["name"] for r in _zd_rows]
+                _zd_vals = [r["zero_days"] for r in _zd_rows]
+                _zd_colors = [_color_map_zd.get(n, "#888") for n in _zd_names]
+                _zd_custom = [
+                    [r["published_days"], r["total_days"],
+                     (r["published_days"] / r["total_days"] * 100) if r["total_days"] else 0]
+                    for r in _zd_rows
+                ]
+
+                fig_zd = go.Figure()
+                fig_zd.add_trace(go.Bar(
+                    x=_zd_vals, y=_zd_names, orientation="h",
+                    marker_color=_zd_colors,
+                    customdata=_zd_custom,
+                    hovertemplate=(
+                        "<b>%{y}</b><br>"
+                        "Zero-video days: %{x}<br>"
+                        "Days with at least 1 video: %{customdata[0]} of %{customdata[1]} "
+                        "(%{customdata[2]:.0f}%)<extra></extra>"
+                    ),
+                ))
+                fig_zd.update_layout(
+                    height=max(300, 28 * len(_zd_names) + 80),
+                    xaxis=dict(title="Days without any new video this season",
+                               showgrid=True, gridcolor="rgba(255,255,255,0.08)"),
+                    yaxis=dict(title="", autorange="reversed"),
+                    margin=dict(t=30, b=50, l=160),
+                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                    font=dict(color="#FAFAFA"),
+                    showlegend=False,
+                )
+                st.plotly_chart(fig_zd, use_container_width=True)
+        except Exception as _e:
+            st.caption(f"(zero-day chart unavailable: {_e})")
+
     # ── Top season videos for this scope (whole filter or one league) ──
     _scope_ids = [c["id"] for c in clubs_only]
     _ch_by_id = {c["id"]: c for c in all_channels}
