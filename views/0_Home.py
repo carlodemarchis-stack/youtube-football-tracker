@@ -9,6 +9,7 @@ import pandas as pd
 from dotenv import load_dotenv
 
 from src.database import Database
+from src.cached_db import get_all_channels as _cached_channels, get_recent_videos as _cached_recent, read_dashboard_cache as _cached_dc_read
 from src.analytics import fmt_num, yt_popup_js
 from src.growth import group_by_channel, delta
 from src.filters import get_global_color_map, get_global_color_map_dual
@@ -28,7 +29,7 @@ if st.session_state.get("_feed_mode"):
         st.stop()
 
     db = Database(SUPABASE_URL, SUPABASE_KEY)
-    all_channels = get_global_channels() or db.get_all_channels()
+    all_channels = get_global_channels() or _cached_channels(db)
     # Players are isolated — never show in the public feed
     all_channels = [c for c in all_channels if c.get("entity_type") not in ("Player", "Federation", "OtherClub", "WomenClub")]
     color_map = get_global_color_map() or {}
@@ -48,7 +49,7 @@ if st.session_state.get("_feed_mode"):
     fmt_options = ["All", "Long", "Shorts", "Live"]
     fmt_pick = st.segmented_control("Format", fmt_options, default="All")
 
-    latest_raw = db.get_recent_videos(limit=200, channel_ids=ch_ids)
+    latest_raw = _cached_recent(db, limit=200, channel_ids=tuple(ch_ids))
 
     # Filter out scheduled
     _now_utc = datetime.now(timezone.utc)
@@ -162,7 +163,7 @@ try:
         SUPABASE_URL = os.getenv("SUPABASE_URL", "")
         SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
         if SUPABASE_URL and SUPABASE_KEY:
-            _chs = Database(SUPABASE_URL, SUPABASE_KEY).get_all_channels()
+            _chs = _cached_channels(Database(SUPABASE_URL, SUPABASE_KEY))
     _league_counts: dict[str, int] = {}
     _league_has_channel: dict[str, bool] = {}
     for _c in _chs:
@@ -261,7 +262,7 @@ try:
     if SUPABASE_URL and SUPABASE_KEY:
         _db_note = Database(SUPABASE_URL, SUPABASE_KEY)
         _y = (datetime.now(_ZI("Europe/Rome")).date() - _td(days=1))
-        _note_row = _dc.read(_db_note, "daily_note", _y.isoformat())
+        _note_row = _cached_dc_read(_db_note, "daily_note", _y.isoformat())
         if _note_row and _note_row.get("payload"):
             _p = _note_row["payload"]
             # Prefer pre-decorated HTML (with badge injection); fall back
@@ -289,14 +290,17 @@ try:
     SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
     if SUPABASE_URL and SUPABASE_KEY:
         _db = Database(SUPABASE_URL, SUPABASE_KEY)
-        _channels = _db.get_all_channels()
+        # Reuse the global channel list when available — saves a duplicate
+        # fetch on every Home page load.
+        _channels = (st.session_state.get("_global_channels")
+                     or _cached_channels(_db))
         _ch_by_id = {c["id"]: c for c in _channels}
 
         # Read pre-computed leaderboards. Cache is refreshed nightly by
         # daily_refresh and on every new-video pull by hourly_rss, so the
         # numbers are at most 1 hour stale.
         from src import dashboard_cache as _dc_home
-        _home = _dc_home.read(_db, "home_top", _dc_home.scope_all())
+        _home = _cached_dc_read(_db, "home_top", _dc_home.scope_all())
         _home_payload = (_home or {}).get("payload") or {}
         top5_views = _home_payload.get("top5_views") or []
         top5_pubs = _home_payload.get("top5_pubs") or []

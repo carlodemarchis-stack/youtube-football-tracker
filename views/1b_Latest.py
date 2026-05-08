@@ -36,7 +36,13 @@ if not SUPABASE_URL or not SUPABASE_KEY:
     st.stop()
 
 db = Database(SUPABASE_URL, SUPABASE_KEY)
-all_channels = get_global_channels() or db.get_all_channels()
+from src.cached_db import (
+    get_all_channels as _cached_channels,
+    get_recent_videos as _cached_recent,
+    read_dashboard_cache as _cached_dc_read,
+    get_last_fetch_time as _cached_last_fetch,
+)
+all_channels = get_global_channels() or _cached_channels(db)
 # Players are isolated — never show in Latest Videos (they have their own page)
 all_channels = [c for c in all_channels if c.get("entity_type") not in ("Player", "Federation", "OtherClub", "WomenClub")]
 
@@ -59,7 +65,7 @@ try:
 except Exception:
     pass
 render_page_subtitle("Most recently published videos",
-                     updated_raw=_latest_pub or db.get_last_fetch_time("hourly_rss"))
+                     updated_raw=_latest_pub or _cached_last_fetch(db, "hourly_rss"))
 
 
 if g_club:
@@ -80,8 +86,8 @@ else:
 # generate per-league/per-club versions to keep LLM cost bounded.
 if g_league is None and g_club is None:
     try:
-        from src.dashboard_cache import read as _dc_read, scope_all as _dc_scope_all
-        _vibe_row = _dc_read(db, "latest_vibe", _dc_scope_all())
+        from src.dashboard_cache import scope_all as _dc_scope_all
+        _vibe_row = _cached_dc_read(db, "latest_vibe", _dc_scope_all())
         _vibe_html = (_vibe_row or {}).get("payload", {}).get("html") or ""
     except Exception:
         _vibe_html = ""
@@ -97,7 +103,7 @@ if g_league is None and g_club is None:
         )
 
 with st.spinner("Loading latest videos…"):
-    latest_raw = db.get_recent_videos(limit=300, channel_ids=ch_ids)
+    latest_raw = _cached_recent(db, limit=300, channel_ids=tuple(ch_ids))
 
 # Filter out scheduled/premiere videos (future actual_start_time) unless checkbox is on
 _now_utc = datetime.now(timezone.utc)
