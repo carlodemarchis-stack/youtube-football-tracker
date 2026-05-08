@@ -3,6 +3,10 @@
 Companion to `notes/custom_domain_migration.md`. Run sequentially.
 **[you]** = Carlo only. **[me]** = can be done via Railway CLI / code.
 
+**Target domain (decided May 2026):** `ytft.aguywithascarf.com`
+(subdomain of an existing domain — DNS managed wherever
+`aguywithascarf.com` lives).
+
 ---
 
 ## Phase 0 — Prep (5 min)
@@ -83,7 +87,7 @@ If anything breaks → ping me, I read Railway logs, fix, redeploy.
 ## Phase 4 — Add the custom domain (15 min)
 
 **[you]** Railway → Web service → **Settings** → **Domains** →
-**+ Custom Domain** → enter `app.<yourdomain>.com`.
+**+ Custom Domain** → enter `ytft.aguywithascarf.com`.
 
 Railway shows a CNAME target like `xyz.up.railway.app`.
 
@@ -101,11 +105,11 @@ Railway UI shows ✅ when ready.
 
 **[you]** Google Cloud Console → Credentials → OAuth client →
 Authorized redirect URIs:
-- Add `https://app.<yourdomain>.com/oauth2callback`
+- Add `https://ytft.aguywithascarf.com/oauth2callback`
 - Keep the Railway URL one as fallback for now.
 
 **[me]** Update `STREAMLIT_AUTH_REDIRECT_URI` on Railway →
-`https://app.<yourdomain>.com/oauth2callback`.
+`https://ytft.aguywithascarf.com/oauth2callback`.
 
 **[me]** Trigger redeploy so the new value is picked up.
 
@@ -113,7 +117,7 @@ Authorized redirect URIs:
 
 ## Phase 6 — Final smoke test on the real domain (10 min)
 
-**[you]** From a fresh browser tab — `https://app.<yourdomain>.com`:
+**[you]** From a fresh browser tab — `https://ytft.aguywithascarf.com`:
 - [ ] Public Home loads (vibe note + leaderboards visible)
 - [ ] Sign in with Google → onboarding → admin sees admin pages
 - [ ] Latest video popup opens (yt_popup_js works through the proxy)
