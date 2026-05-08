@@ -281,7 +281,7 @@ for i, r in enumerate(filtered.itertuples(index=False), 1):
     _likes = int(getattr(r, 'like_count', 0) or 0)
     _comments = int(getattr(r, 'comment_count', 0) or 0)
     _age_days = round((_now - pub).total_seconds() / 86400, 2) if pub is not None else 0
-    _rows_html += f"""<tr {row_attrs} data-views="{_views}" data-likes="{_likes}" data-comments="{_comments}" data-age="{_age_days}" data-dur="{dur}">
+    _rows_html += f"""<tr {row_attrs} data-fmt="{fmt_raw}" data-views="{_views}" data-likes="{_likes}" data-comments="{_comments}" data-age="{_age_days}" data-dur="{dur}">
         <td style="padding:6px 12px;text-align:right;color:#888;vertical-align:top">{i}</td>
         <td style="padding:6px 12px;vertical-align:top">
           <div>{title_cell}</div>

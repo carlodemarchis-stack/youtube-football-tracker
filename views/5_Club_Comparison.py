@@ -204,7 +204,7 @@ if all_vids:
         _cat_span = f' · <span style="color:#666">{_cat}</span>' if _cat and _cat != "Other" else ""
         _meta = f'{_flag} {dot} <span style="color:#AAA">{club}</span> · <span style="color:{_fmt_color}">{_fmt_label}</span>{_cat_span}'
         row_click = f'onclick="window.open(\'{url}\',\'_blank\',\'noopener\')" style="cursor:pointer"' if url else ''
-        _rows += f"""<tr {row_click} data-views="{_views}" data-likes="{_likes}">
+        _rows += f"""<tr {row_click} data-fmt="{_fmt_raw}" data-views="{_views}" data-likes="{_likes}">
             <td style="padding:6px 10px;color:#888">{i}</td>
             <td style="padding:6px 10px">
               <div style="font-size:12px;margin-bottom:2px;white-space:nowrap">{_meta}</div>

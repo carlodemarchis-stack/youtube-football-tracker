@@ -108,7 +108,10 @@ if st.session_state.get("_feed_mode"):
         dur_s = f"{dur // 60}:{dur % 60:02d}" if dur else ""
         c1, c2 = dual.get(ch_name, (color_map.get(ch_name, "#636EFA"), "#FFFFFF"))
 
-        cards_html += f"""<a href="{url}" target="_blank" rel="noopener" class="card">
+        _data_fmt_h = (v.get("format") or "").lower()
+        if _data_fmt_h not in ("long", "short", "live"):
+            _data_fmt_h = "long" if dur >= 60 else "short"
+        cards_html += f"""<a href="{url}" target="_blank" rel="noopener" data-fmt="{_data_fmt_h}" class="card">
           <div class="card-thumb">
             <img src="{thumb}" alt="" loading="lazy">
             {'<span class="card-dur">' + dur_s + '</span>' if dur_s else ''}

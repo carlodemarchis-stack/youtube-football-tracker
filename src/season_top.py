@@ -114,7 +114,7 @@ def render_top_season_videos_table(
             f' · <span style="color:#888">{pub}</span>'
             f'{_cat_span}'
         )
-        rows += f"""<tr onclick="window.open('{yt_url}','_blank','noopener')" style="cursor:pointer">
+        rows += f"""<tr data-fmt="{_f}" onclick="window.open('{yt_url}','_blank','noopener')" style="cursor:pointer">
             <td style="padding:6px 12px;text-align:right;color:#888">{i}</td>
             <td style="padding:6px 12px;vertical-align:top"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px;display:block"></td>
             <td style="padding:6px 12px;vertical-align:top">

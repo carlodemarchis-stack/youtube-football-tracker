@@ -788,7 +788,7 @@ if ONE_CLUB:
                 pub_time = datetime.fromisoformat(_pub_raw.replace("Z", "+00:00")).astimezone(CET).strftime("%H:%M")
             except Exception:
                 pub_time = _pub_raw[11:16]
-            rows += f"""<tr onclick="window.open('{yt_url}','_blank','noopener')" style="cursor:pointer">
+            rows += f"""<tr data-fmt="{fmt}" onclick="window.open('{yt_url}','_blank','noopener')" style="cursor:pointer">
                 <td style="padding:6px 12px"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px"></td>
                 <td style="padding:6px 12px"><a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none">{title}</a></td>
                 <td style="padding:6px 12px"><span style="color:{fmt_color}">{fmt_label}</span></td>
@@ -1016,7 +1016,7 @@ if new_video_rows and not ONE_CLUB:
         views = int(v.get("view_count") or 0)
         likes = int(v.get("like_count") or 0)
         comments = int(v.get("comment_count") or 0)
-        _mw_rows += f"""<tr>
+        _mw_rows += f"""<tr data-fmt="{fmt}">
             <td style="padding:6px 12px;text-align:right;color:#888;vertical-align:top">{i}</td>
             <td style="padding:6px 12px;vertical-align:top"><a href="{yt_url}" target="_blank"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px;display:block"></a></td>
             <td style="padding:6px 12px;vertical-align:top">
@@ -1122,7 +1122,7 @@ else:
         _cat_color_t = CATEGORY_COLORS.get(_cat_t, "#888")
         _cat_html_t = (f' · <span style="color:{_cat_color_t}">{_cat_t}</span>'
                        if _cat_t and _cat_t != "Other" else "")
-        _tv_rows += f"""<tr>
+        _tv_rows += f"""<tr data-fmt="{fmt}">
             <td style="padding:6px 12px;text-align:right;color:#888;vertical-align:top">{i}</td>
             <td style="padding:6px 12px;vertical-align:top"><a href="{yt_url}" target="_blank"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px;display:block"></a></td>
             <td style="padding:6px 12px;vertical-align:top">
