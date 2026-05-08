@@ -16,7 +16,7 @@ from src.cached_db import (
     get_recent_videos as _cached_recent,
     read_dashboard_cache as _cached_dc_read,
 )
-from src.analytics import compute_channel_comparison, fmt_num
+from src.analytics import compute_channel_comparison, fmt_num, yt_popup_js
 from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope, render_page_subtitle
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, get_season_since
 from src.auth import get_current_user, is_admin, require_login
@@ -1319,8 +1319,14 @@ else:
         # Single-line HTML — Streamlit's markdown parser treats any line
         # indented 4+ spaces as a code block, which would render an empty
         # <pre> bar above the card. Keep it on one logical line.
+        # data-fmt drives the popup overlay to render vertical (9:16) for
+        # Shorts. yt_popup_js intercepts the click and prevents the new tab.
+        _data_fmt = fmt if fmt in ("long", "short", "live") else (
+            "long" if dur >= 60 else "short"
+        )
         return (
-            f'<a href="{url}" target="_blank" rel="noopener" style="display:flex;gap:14px;'
+            f'<a href="{url}" target="_blank" rel="noopener" data-fmt="{_data_fmt}" '
+            f'style="display:flex;gap:14px;'
             f'text-decoration:none;color:#FAFAFA;background:#1a1c24;border-radius:8px;'
             f'padding:10px;margin-bottom:10px;border:1px solid #2a2d36;transition:background 0.15s;">'
             f'<div style="position:relative;flex-shrink:0;width:200px;aspect-ratio:16/9;'
@@ -1348,12 +1354,16 @@ else:
         # Render via components.html (raw iframe) to bypass Streamlit's
         # markdown post-processor — st.markdown was breaking the Top card
         # into separate stacked boxes (one card per inner div).
+        # yt_popup_js intercepts clicks → opens the video in the parent
+        # overlay player instead of a new tab (consistent with every
+        # other video list on the site).
         _cards_html = _video_row_html(_top_v, "🏆 Top Video") + _video_row_html(_latest_v, "🆕 Latest Video")
         components.html(
             f'<div style="font-family:\'Source Sans Pro\',sans-serif;color:#FAFAFA;">'
-            f'{_cards_html}</div>',
+            f'{_cards_html}</div>'
+            f'{yt_popup_js()}',
             height=300,
             scrolling=False,
         )
 
-    st.caption("See **Top Videos** for the all-time top 100 and **Season 25/26** for current-season activity.")
+    st.caption("See **All-Time Top** for the all-time top 100 and **Season (25/26)** for current-season activity.")
