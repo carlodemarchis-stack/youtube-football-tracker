@@ -26,7 +26,7 @@ from src.season_top import render_top_season_videos
 load_dotenv()
 require_login()
 
-st.title("Season Top Videos")
+st.title("Season Top")
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")

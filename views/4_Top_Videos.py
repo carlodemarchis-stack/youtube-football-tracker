@@ -26,7 +26,7 @@ from src.dot import dual_dot, channel_badge
 load_dotenv()
 require_login()
 
-st.title("Top 100 Videos")
+st.title("All-Time Top")
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")

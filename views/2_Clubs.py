@@ -27,7 +27,7 @@ require_login()
 
 _lg_flag = lambda name: LEAGUE_FLAG.get(name, "")
 
-st.title("Channels")
+st.title("All Channels")
 
 
 def _render_launch_year_chart(channels, league_filter: str | None = None):

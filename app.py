@@ -34,10 +34,10 @@ public_pages = [
 viewer_pages = [
     st.Page("views/1_Daily_Recap.py", title="Daily Recap"),
     st.Page("views/1b_Latest.py", title="Latest Videos"),
-    st.Page("views/2_Clubs.py", title="Channels"),
-    st.Page("views/3_Season_2526.py", title="Season 25/26"),
-    st.Page("views/3b_Season_Top_Videos.py", title="Season Top Videos"),
-    st.Page("views/4_Top_Videos.py", title="Top Videos"),
+    st.Page("views/3_Season_2526.py", title="Season (25/26)"),
+    st.Page("views/3b_Season_Top_Videos.py", title="Season Top"),
+    st.Page("views/2_Clubs.py", title="All Channels"),
+    st.Page("views/4_Top_Videos.py", title="All-Time Top"),
 ]
 
 # Tier 1.7 — "Others": tangential entity types we track but don't
