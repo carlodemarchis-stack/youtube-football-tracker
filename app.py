@@ -37,7 +37,6 @@ viewer_pages = [
     st.Page("views/2_Clubs.py", title="Channels"),
     st.Page("views/3_Season_2526.py", title="Season 25/26"),
     st.Page("views/4_Top_Videos.py", title="Top Videos"),
-    st.Page("views/16_Socials.py", title="Other Social"),
 ]
 
 # Tier 1.7 — "Others": tangential entity types we track but don't
@@ -55,6 +54,7 @@ other_pages = [
 # know these are exploratory features, not core data.
 lab_pages = [
     st.Page("views/4b_Outliers.py", title="Outliers"),
+    st.Page("views/16_Socials.py", title="Other Social"),
 ]
 
 # Tier 2 — premium (promote users via User Management)
