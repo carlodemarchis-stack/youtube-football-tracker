@@ -22,21 +22,49 @@ Companion to `notes/custom_domain_migration.md`. Run sequentially.
 
 ## Phase 1 — Create the Railway web service (15 min)
 
-**[you]** Railway dashboard → YTFT project → **+ New** → **GitHub Repo** →
-`youtube-football-tracker` → branch `main`. Name it **"Web"**.
+### 1.1 — [you] Create the service in the dashboard
 
-**[me]** Configure the new service:
-- Start command: `streamlit run app.py --server.port=$PORT --server.address=0.0.0.0 --server.headless=true`
-- Watch paths: `views/**, src/**, app.py, requirements.txt`
-- Healthcheck path: `/_stcore/health`
+Railway → YTFT project → **+ New** → **GitHub Repo** →
+`carlodemarchis-stack/youtube-football-tracker` → branch `main`.
 
-**[me]** Copy env vars from a cron service:
-- `SUPABASE_URL`
-- `SUPABASE_KEY` ← **set to anon** on Web (cron services keep service_role)
-- `SUPABASE_SERVICE_KEY`
-- `YOUTUBE_API_KEY`
-- `ANTHROPIC_API_KEY`
-- `NTFY_TOPIC` (optional)
+Name the service **"Web"**.
+
+Don't worry about settings yet — Railway will fail its first build
+attempt because no start command is configured. That's fine; I fix it
+in 1.2.
+
+### 1.2 — [me] Configure the service via CLI
+
+After 1.1, ping me. I'll set:
+
+- **Start command**: `streamlit run app.py --server.port=$PORT --server.address=0.0.0.0 --server.headless=true`
+- **Healthcheck path**: `/_stcore/health` (Streamlit's built-in liveness endpoint)
+- **Restart policy**: on failure, max 5 retries
+
+### 1.3 — [me] Set environment variables on Web
+
+I'll copy from one of the existing cron services and override where
+needed. End state on Web:
+
+| Var | Value | Source |
+|---|---|---|
+| `SUPABASE_URL` | (same) | Copy from cron |
+| `SUPABASE_KEY` | **anon** | Read from local `.env` (`SUPABASE_KEY` post‑Phase‑3 split is anon) |
+| `SUPABASE_SERVICE_KEY` | service_role | Copy from cron |
+| `YOUTUBE_API_KEY` | (same) | Copy from cron |
+| `ANTHROPIC_API_KEY` | (same) | Copy from cron |
+| `NTFY_TOPIC` | `ytft` | Copy from cron (optional) |
+
+**Cron services stay unchanged** — they keep `SUPABASE_KEY=service_role`
+because they need to write. Only the Web service uses anon for
+public‑facing reads under RLS.
+
+### 1.4 — [me] Trigger first deploy
+
+After 1.2 + 1.3 land. Build + boot logs in Railway dashboard. If the
+container starts and `/_stcore/health` returns 200, Phase 1 is done.
+
+If anything errors, I read logs, fix, redeploy.
 
 ---
 
