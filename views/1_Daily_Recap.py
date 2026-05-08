@@ -984,6 +984,68 @@ if not ONE_CLUB:
         else:
             st.caption("No clubs published videos on this day.")
 
+# ── New videos published on this day (skip for single club — already shown above) ──
+if new_video_rows and not ONE_CLUB:
+    st.markdown("---")
+    st.subheader(f"🎬 {_mw_scope}New videos published on {day.strftime('%b %d, %Y')}")
+    _mw_sorted = sorted(new_video_rows, key=lambda v: int(v.get("view_count") or 0), reverse=True)
+    _mw_top_n = 10 if ONE_CLUB else 20
+    _mw_rows = ""
+    for i, v in enumerate(_mw_sorted[:_mw_top_n], 1):
+        ch = ch_by_id.get(v["channel_id"]) or {}
+        ch_dot = channel_badge(ch, color_map, dual, 12)
+        yt_url = f"https://www.youtube.com/watch?v={v['youtube_video_id']}"
+        thumb = v.get("thumbnail_url") or ""
+        title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;")
+        fmt = (v.get("format") or "").lower()
+        if fmt not in ("long", "short", "live"):
+            fmt = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
+        fmt_color = {"long": "#636EFA", "short": "#00CC96", "live": "#FFA15A"}.get(fmt, "#AAAAAA")
+        fmt_label = {"long": "Long", "short": "Shorts", "live": "Live"}.get(fmt, fmt.title())
+        cat = v.get("category") or ""
+        _cat_color_n = CATEGORY_COLORS.get(cat, "#888")
+        cat_span = f' · <span style="color:{_cat_color_n}">{cat}</span>' if cat and cat != "Other" else ""
+        views = int(v.get("view_count") or 0)
+        likes = int(v.get("like_count") or 0)
+        comments = int(v.get("comment_count") or 0)
+        _mw_rows += f"""<tr>
+            <td style="padding:6px 12px;text-align:right;color:#888;vertical-align:top">{i}</td>
+            <td style="padding:6px 12px;vertical-align:top"><a href="{yt_url}" target="_blank"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px;display:block"></a></td>
+            <td style="padding:6px 12px;vertical-align:top">
+                <div style="display:flex;flex-direction:column;justify-content:space-between;height:62px">
+                  <a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none;font-weight:700"><br>{title}</a>
+                  <div style="color:#AAA;font-size:12px;display:flex;align-items:center;gap:6px">
+                    {ch_dot}<span>{ch.get('name', '?')} · <span style="color:{fmt_color}">{fmt_label}</span>{cat_span}</span>
+                  </div>
+                </div>
+            </td>
+            <td style="padding:6px 12px;text-align:right;font-weight:600">{fmt_num(views)}</td>
+            <td style="padding:6px 12px;text-align:right">{fmt_num(likes)}</td>
+            <td style="padding:6px 12px;text-align:right">{fmt_num(comments)}</td>
+        </tr>"""
+
+    components.html(f"""
+    <style>
+      .mw {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
+             font-family:"Source Sans Pro",sans-serif; }}
+      .mw th {{ padding:6px 12px; border-bottom:2px solid #444; text-align:left; }}
+      .mw td {{ border-bottom:1px solid #262730; vertical-align:middle; }}
+      .mw tr:hover td {{ background:#1a1c24; }}
+    </style>
+    <table class="mw">
+      <thead><tr>
+        <th style="text-align:right">#</th>
+        <th></th>
+        <th>Video</th>
+        <th style="text-align:right">Views</th>
+        <th style="text-align:right">Likes</th>
+        <th style="text-align:right">Comments</th>
+      </tr></thead>
+      <tbody>{_mw_rows}</tbody>
+    </table>
+    {yt_popup_js()}
+    """, height=video_table_height(min(_mw_top_n, len(_mw_sorted))), scrolling=True)
+
 # ── Most watched videos yesterday (by Δ views from snapshots) ──
 st.markdown("---")
 _mw_scope = ""
@@ -1087,65 +1149,3 @@ else:
     </table>
     {yt_popup_js()}
     """, height=video_table_height(min(_top_n, len(trending))), scrolling=True)
-
-# ── New videos published on this day (skip for single club — already shown above) ──
-if new_video_rows and not ONE_CLUB:
-    st.markdown("---")
-    st.subheader(f"🎬 {_mw_scope}New videos published on {day.strftime('%b %d, %Y')}")
-    _mw_sorted = sorted(new_video_rows, key=lambda v: int(v.get("view_count") or 0), reverse=True)
-    _mw_top_n = 10 if ONE_CLUB else 20
-    _mw_rows = ""
-    for i, v in enumerate(_mw_sorted[:_mw_top_n], 1):
-        ch = ch_by_id.get(v["channel_id"]) or {}
-        ch_dot = channel_badge(ch, color_map, dual, 12)
-        yt_url = f"https://www.youtube.com/watch?v={v['youtube_video_id']}"
-        thumb = v.get("thumbnail_url") or ""
-        title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;")
-        fmt = (v.get("format") or "").lower()
-        if fmt not in ("long", "short", "live"):
-            fmt = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
-        fmt_color = {"long": "#636EFA", "short": "#00CC96", "live": "#FFA15A"}.get(fmt, "#AAAAAA")
-        fmt_label = {"long": "Long", "short": "Shorts", "live": "Live"}.get(fmt, fmt.title())
-        cat = v.get("category") or ""
-        _cat_color_n = CATEGORY_COLORS.get(cat, "#888")
-        cat_span = f' · <span style="color:{_cat_color_n}">{cat}</span>' if cat and cat != "Other" else ""
-        views = int(v.get("view_count") or 0)
-        likes = int(v.get("like_count") or 0)
-        comments = int(v.get("comment_count") or 0)
-        _mw_rows += f"""<tr>
-            <td style="padding:6px 12px;text-align:right;color:#888;vertical-align:top">{i}</td>
-            <td style="padding:6px 12px;vertical-align:top"><a href="{yt_url}" target="_blank"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px;display:block"></a></td>
-            <td style="padding:6px 12px;vertical-align:top">
-                <div style="display:flex;flex-direction:column;justify-content:space-between;height:62px">
-                  <a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none;font-weight:700"><br>{title}</a>
-                  <div style="color:#AAA;font-size:12px;display:flex;align-items:center;gap:6px">
-                    {ch_dot}<span>{ch.get('name', '?')} · <span style="color:{fmt_color}">{fmt_label}</span>{cat_span}</span>
-                  </div>
-                </div>
-            </td>
-            <td style="padding:6px 12px;text-align:right;font-weight:600">{fmt_num(views)}</td>
-            <td style="padding:6px 12px;text-align:right">{fmt_num(likes)}</td>
-            <td style="padding:6px 12px;text-align:right">{fmt_num(comments)}</td>
-        </tr>"""
-
-    components.html(f"""
-    <style>
-      .mw {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
-             font-family:"Source Sans Pro",sans-serif; }}
-      .mw th {{ padding:6px 12px; border-bottom:2px solid #444; text-align:left; }}
-      .mw td {{ border-bottom:1px solid #262730; vertical-align:middle; }}
-      .mw tr:hover td {{ background:#1a1c24; }}
-    </style>
-    <table class="mw">
-      <thead><tr>
-        <th style="text-align:right">#</th>
-        <th></th>
-        <th>Video</th>
-        <th style="text-align:right">Views</th>
-        <th style="text-align:right">Likes</th>
-        <th style="text-align:right">Comments</th>
-      </tr></thead>
-      <tbody>{_mw_rows}</tbody>
-    </table>
-    {yt_popup_js()}
-    """, height=video_table_height(min(_mw_top_n, len(_mw_sorted))), scrolling=True)
