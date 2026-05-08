@@ -33,8 +33,17 @@ _COOKIE_SECURE = os.getenv("APP_HTTPS", "").lower() in ("1", "true", "yes")
 
 
 def _get_db():
-    from src.database import Database
-    return Database(os.getenv("SUPABASE_URL", ""), os.getenv("SUPABASE_KEY", ""))
+    """Auth-internal Database client, using the service-role key.
+
+    Auth operations need to read/write `user_profiles`, which is locked
+    down to admin-only by RLS (no anon policy). The service-role key
+    bypasses RLS — safe here because every callsite is server-side
+    Streamlit code that's either already gated by `require_admin()` /
+    `require_login()`, or executing the login flow itself for the
+    currently-authenticating user.
+    """
+    from src.database import admin_db
+    return admin_db()
 
 
 def _cookies():
