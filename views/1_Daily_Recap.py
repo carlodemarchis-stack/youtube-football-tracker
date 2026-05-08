@@ -989,6 +989,10 @@ if not ONE_CLUB:
             st.caption("No clubs published videos on this day.")
 
 # ── New videos published on this day (skip for single club — already shown above) ──
+# `_mw_scope` is reused by the Most-watched block below — define it once here
+# so both subheaders can share the same prefix (was defined inside the
+# Most-watched block; got out of scope when the two blocks were swapped).
+_mw_scope = ""
 if new_video_rows and not ONE_CLUB:
     st.markdown("---")
     st.subheader(f"🎬 {_mw_scope}New videos published on {day.strftime('%b %d, %Y')}")
@@ -1052,7 +1056,7 @@ if new_video_rows and not ONE_CLUB:
 
 # ── Most watched videos yesterday (by Δ views from snapshots) ──
 st.markdown("---")
-_mw_scope = ""
+# _mw_scope is set above so both subheaders share the same prefix.
 _top_n = 10 if ONE_CLUB else 20
 
 # Prefer the pre-computed video_daily_deltas table (single indexed query,
