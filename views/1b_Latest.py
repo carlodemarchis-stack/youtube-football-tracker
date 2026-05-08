@@ -103,7 +103,17 @@ if g_league is None and g_club is None:
         )
 
 with st.spinner("Loading latest videos…"):
-    latest_raw = _cached_recent(db, limit=300, channel_ids=tuple(ch_ids))
+    try:
+        latest_raw = _cached_recent(db, limit=300, channel_ids=tuple(ch_ids))
+    except Exception as _e:
+        # Streamlit redacts page-level tracebacks in prod. Surface the
+        # underlying message here so we can debug without diving into
+        # the Manage-app log feed.
+        st.error(f"Could not load videos: {type(_e).__name__}: {_e}")
+        st.caption(f"Filter context: g_league={g_league!r}, "
+                   f"g_club={(g_club or {}).get('name')!r}, "
+                   f"#channel_ids={len(ch_ids)}")
+        st.stop()
 
 # Filter out scheduled/premiere videos (future actual_start_time) unless checkbox is on
 _now_utc = datetime.now(timezone.utc)
