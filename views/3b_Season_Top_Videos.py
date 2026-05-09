@@ -13,7 +13,10 @@ import streamlit as st
 from dotenv import load_dotenv
 
 from src.database import Database
-from src.cached_db import get_all_channels as _cached_channels
+from src.cached_db import (
+    get_all_channels as _cached_channels,
+    read_dashboard_cache as _cached_dc_read,
+)
 from src.filters import (
     get_global_filter, get_global_channels, get_channels_for_filter,
     get_league_for_channel, get_include_league, get_all_leagues_scope,
@@ -107,14 +110,14 @@ if not _ids:
 
 # ── Fetch the three datasets up front ─────────────────────────
 # Done once here so the KPI bar can compute aggregates from the
-# same top-20 set the ranked table renders below — no duplicate
+# same top-100 set the ranked table renders below — no duplicate
 # query.
 #
-# Z1 perf note: the all-leagues path puts ~100 channel_ids into a
-# WHERE channel_id IN (...) clause, which (combined with an ORDER BY
-# like_count/comment_count under anon's strict statement_timeout) was
-# hitting Postgres timeouts from Railway. Switch Z1 to a global query
-# with a small server-side excludes list — same scope, way faster.
+# Cache-first read: dashboard_cache holds precomputed payloads for
+# Z1 + Z2, refreshed by daily_refresh / hourly_rss. Read path becomes
+# one ~80KB JSON pull from dashboard_cache — no live aggregation.
+# On cache miss (Z3, or first deploy before the next cron) we fall
+# back to the live query path.
 _z1 = (club is None and league is None)
 _excluded = None
 if _z1:
@@ -122,15 +125,31 @@ if _z1:
                  if c.get("entity_type") in
                     ("Player", "Federation", "OtherClub", "WomenClub")]
 
-top_views = fetch_top_season_videos(db, _ids, SEASON_SINCE,
-                                    limit=100, order_by="view_count",
-                                    excluded_channel_ids=_excluded)
-top_likes = fetch_top_season_videos(db, _ids, SEASON_SINCE,
-                                    limit=5, order_by="like_count",
-                                    excluded_channel_ids=_excluded)
-top_comments = fetch_top_season_videos(db, _ids, SEASON_SINCE,
-                                       limit=5, order_by="comment_count",
-                                       excluded_channel_ids=_excluded)
+top_views = top_likes = top_comments = None
+
+# Try cache for Z1 / Z2. Z3 (single club) doesn't have a cache entry —
+# the per-club query is already fast (1-element IN), so live is fine.
+if club is None:
+    from src import dashboard_cache as _dc
+    _scope_key = _dc.scope_league(league) if league else _dc.scope_all()
+    _cached = _cached_dc_read(db, "season_top", _scope_key)
+    _payload = (_cached or {}).get("payload") or {}
+    if _payload.get("top_views"):
+        top_views = _payload.get("top_views") or []
+        top_likes = _payload.get("top_likes") or []
+        top_comments = _payload.get("top_comments") or []
+
+# Cache miss → live query (Z3, or first deploy / new scope).
+if top_views is None:
+    top_views = fetch_top_season_videos(db, _ids, SEASON_SINCE,
+                                        limit=100, order_by="view_count",
+                                        excluded_channel_ids=_excluded)
+    top_likes = fetch_top_season_videos(db, _ids, SEASON_SINCE,
+                                        limit=5, order_by="like_count",
+                                        excluded_channel_ids=_excluded)
+    top_comments = fetch_top_season_videos(db, _ids, SEASON_SINCE,
+                                           limit=5, order_by="comment_count",
+                                           excluded_channel_ids=_excluded)
 
 # ── KPI bar (computed from the top-20-by-views set) ───────────
 if top_views:

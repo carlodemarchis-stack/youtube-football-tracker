@@ -267,6 +267,15 @@ def rebuild_all(db, log=print) -> None:
     except Exception as e:
         log(f"[dashboard_cache] publishing_pulse failed (non-fatal): {e}")
 
+    # 11. season_top — Three ranked tables (top 100 by views, top 5 by
+    #     likes, top 5 by comments) per scope. Powers Season Top page
+    #     for Z1 + Z2 — read path becomes a single dashboard_cache row.
+    #     Z3 (single club) skipped — those queries are fast enough live.
+    try:
+        refresh_season_top(db, log=log, channels=chans)
+    except Exception as e:
+        log(f"[dashboard_cache] season_top failed (non-fatal): {e}")
+
     log("[dashboard_cache] rebuild done")
 
 
@@ -938,3 +947,85 @@ def refresh_publishing_pulse(db, log=print, channels: list[dict] | None = None) 
         })
 
     log("[dashboard_cache] publishing_pulse done")
+
+
+# ── season_top: Top-100 by views + Top-5 by likes / comments per scope ──
+# Powers views/3b_Season_Top_Videos.py at all zoom levels.
+# Read path: 1 dashboard_cache row, ~80KB JSON, zero query work.
+
+SEASON_TOP_SINCE = DURATION_SEASON_SINCE  # same season window as everything else
+
+
+def _fetch_season_top_payload(db, channel_ids: list[str] | None,
+                              excluded_ids: list[str] | None = None) -> dict:
+    """Run the three ranked-table queries once, return the payload dict.
+
+    Mirrors the Z1 perf trick from src/season_top.py: when an exclusion
+    list is provided, fetch globally + filter client-side. Otherwise
+    pass channel_ids directly (used at Z2 — small leagues are fine
+    with a 20-element IN clause)."""
+    ex = set(excluded_ids or [])
+
+    def _fetch(order_by: str, limit: int) -> list[dict]:
+        if ex:
+            rows = db.get_top_season_videos(
+                channel_ids=None, since=SEASON_TOP_SINCE,
+                limit=max(limit * 4, 50), order_by=order_by,
+            ) or []
+            return [r for r in rows if r.get("channel_id") not in ex][:limit]
+        return db.get_top_season_videos(
+            channel_ids=channel_ids, since=SEASON_TOP_SINCE,
+            limit=limit, order_by=order_by,
+        ) or []
+
+    return {
+        "top_views":    _fetch("view_count", 100),
+        "top_likes":    _fetch("like_count", 5),
+        "top_comments": _fetch("comment_count", 5),
+        "since":        SEASON_TOP_SINCE,
+    }
+
+
+def refresh_season_top(db, log=print, channels: list[dict] | None = None) -> None:
+    """Compute and persist the three season-top tables for All Leagues
+    (Z1) and each league (Z2). Z3 (single-club) skipped — single-channel
+    queries are already fast (no IN list).
+
+        season_top → {"top_views": [...100], "top_likes": [...5],
+                      "top_comments": [...5], "since": "YYYY-MM-DD"}
+    """
+    from src.channels import COUNTRY_TO_LEAGUE
+    chans = channels if channels is not None else db.get_all_channels()
+    isolated_ids = [c["id"] for c in chans
+                    if c.get("entity_type") in
+                       ("Player", "Federation", "OtherClub", "WomenClub")]
+    included = [c for c in chans
+                if c.get("entity_type") not in
+                   ("Player", "Federation", "OtherClub", "WomenClub")]
+    if not included:
+        log("[dashboard_cache] season_top skipped — no channels in scope")
+        return
+
+    # ── Z1 (all leagues): global query + client-side exclude ─────────
+    z1_ids = [c["id"] for c in included if c.get("id")]
+    log(f"[dashboard_cache] season_top / all ({len(z1_ids)} channels)")
+    write(db, "season_top", scope_all(),
+          _fetch_season_top_payload(db, z1_ids, excluded_ids=isolated_ids))
+
+    # ── Z2 (per-league): direct IN filter, small enough to be fast ──
+    leagues_to_chans: dict[str, list[dict]] = {}
+    for c in included:
+        country = (c.get("country") or "").upper()
+        lg = COUNTRY_TO_LEAGUE.get(country)
+        if lg:
+            leagues_to_chans.setdefault(lg, []).append(c)
+
+    for lg, lg_chans in leagues_to_chans.items():
+        lg_ids = [c["id"] for c in lg_chans if c.get("id")]
+        if not lg_ids:
+            continue
+        log(f"[dashboard_cache] season_top / league:{lg} ({len(lg_ids)} channels)")
+        write(db, "season_top", scope_league(lg),
+              _fetch_season_top_payload(db, lg_ids))
+
+    log("[dashboard_cache] season_top done")
