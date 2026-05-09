@@ -24,9 +24,28 @@ def fetch_top_season_videos(
     *,
     limit: int = 20,
     order_by: str = "view_count",
+    excluded_channel_ids: list[str] | None = None,
 ) -> list[dict]:
     """Same query the renderer used to do internally — exposed so the
-    KPI bar can compute aggregates without re-fetching."""
+    KPI bar can compute aggregates without re-fetching.
+
+    Z1 hint: when `channel_ids` covers ~all of the videos table (i.e.,
+    "everything except a few isolated entity types"), pass the small
+    exclusion list as `excluded_channel_ids` instead. We then issue a
+    global query with no `IN` filter and post-filter Python-side —
+    avoids the 100-element `IN` clause that has been timing out under
+    anon connections from Railway → Supabase. Over-fetches by 4× to
+    leave room for excluded rows in the head of the result.
+    """
+    if excluded_channel_ids:
+        # Global query, server-side over-fetch, client-side exclude.
+        ex = set(excluded_channel_ids)
+        rows = db.get_top_season_videos(
+            channel_ids=None, since=since,
+            limit=max(limit * 4, 50), order_by=order_by,
+        ) or []
+        return [r for r in rows if r.get("channel_id") not in ex][:limit]
+
     return db.get_top_season_videos(
         channel_ids=channel_ids, since=since,
         limit=limit, order_by=order_by,

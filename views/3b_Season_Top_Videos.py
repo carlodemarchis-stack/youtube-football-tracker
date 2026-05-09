@@ -109,12 +109,28 @@ if not _ids:
 # Done once here so the KPI bar can compute aggregates from the
 # same top-20 set the ranked table renders below — no duplicate
 # query.
+#
+# Z1 perf note: the all-leagues path puts ~100 channel_ids into a
+# WHERE channel_id IN (...) clause, which (combined with an ORDER BY
+# like_count/comment_count under anon's strict statement_timeout) was
+# hitting Postgres timeouts from Railway. Switch Z1 to a global query
+# with a small server-side excludes list — same scope, way faster.
+_z1 = (club is None and league is None)
+_excluded = None
+if _z1:
+    _excluded = [c["id"] for c in all_channels
+                 if c.get("entity_type") in
+                    ("Player", "Federation", "OtherClub", "WomenClub")]
+
 top_views = fetch_top_season_videos(db, _ids, SEASON_SINCE,
-                                    limit=100, order_by="view_count")
+                                    limit=100, order_by="view_count",
+                                    excluded_channel_ids=_excluded)
 top_likes = fetch_top_season_videos(db, _ids, SEASON_SINCE,
-                                    limit=5, order_by="like_count")
+                                    limit=5, order_by="like_count",
+                                    excluded_channel_ids=_excluded)
 top_comments = fetch_top_season_videos(db, _ids, SEASON_SINCE,
-                                       limit=5, order_by="comment_count")
+                                       limit=5, order_by="comment_count",
+                                       excluded_channel_ids=_excluded)
 
 # ── KPI bar (computed from the top-20-by-views set) ───────────
 if top_views:
