@@ -169,24 +169,38 @@ def main() -> int:
         season_rows = db.get_season_video_rows(window_cutoff)
         log(f"  {len(season_rows)} videos in window")
         if season_rows:
-            # Refresh stats for all of them in batches
-            id_to_dbid = {r["youtube_video_id"]: r["id"] for r in season_rows}
+            # Build both yt_id → dbid AND yt_id → channel_id maps. The
+            # channel_id is needed in the freshness upsert payload (videos.channel_id
+            # is NOT NULL — without it, a stray INSERT path on the upsert would
+            # blow up the same way youtube_video_id used to).
+            id_to_dbid: dict[str, str] = {}
+            id_to_cid: dict[str, str] = {}
+            for r in season_rows:
+                yt_id_db = (r.get("youtube_video_id") or "").strip()
+                if not yt_id_db:
+                    continue
+                id_to_dbid[yt_id_db] = r["id"]
+                id_to_cid[yt_id_db] = r.get("channel_id") or ""
             yt_ids = list(id_to_dbid.keys())
             snap_rows: list[dict] = []
             for b in range(0, len(yt_ids), 50):
                 batch = yt_ids[b:b+50]
                 details = yt.get_video_details(batch)
                 for v in details:
-                    dbid = id_to_dbid.get(v["youtube_video_id"])
+                    yt_id = (v.get("youtube_video_id") or "").strip()
+                    if not yt_id:
+                        continue
+                    dbid = id_to_dbid.get(yt_id)
                     if not dbid:
                         continue
                     snap_rows.append({
                         "video_id": dbid,
-                        # carry yt_id so the freshness upsert satisfies the
-                        # NOT NULL constraint on youtube_video_id (Postgres
-                        # validates the proposed INSERT row even when ON
-                        # CONFLICT will resolve to UPDATE).
-                        "youtube_video_id": v["youtube_video_id"],
+                        # Carry yt_id + channel_id so the freshness upsert
+                        # can satisfy both NOT NULL constraints — Postgres
+                        # validates the proposed INSERT row even when
+                        # ON CONFLICT will resolve to UPDATE.
+                        "youtube_video_id": yt_id,
+                        "channel_id": id_to_cid.get(yt_id) or "",
                         "view_count": v.get("view_count", 0),
                         "like_count": v.get("like_count", 0),
                         "comment_count": v.get("comment_count", 0),
@@ -209,23 +223,28 @@ def main() -> int:
             # ALSO update the videos table so Streamlit sees fresh view counts
             # (upsert view/like/comment on existing rows; keeps title/thumbnail too)
             try:
-                update_rows = []
-                now = datetime.now(timezone.utc).isoformat()
+                # Dedupe by `id` first — Supabase batch upsert with duplicate
+                # ids has been observed to produce odd merged payloads where
+                # individual columns vanish, including youtube_video_id, which
+                # then trips the NOT NULL check on the proposed INSERT row.
+                by_id: dict[str, dict] = {}
                 for v in snap_rows:
-                    # Skip rows missing youtube_video_id — would fail
-                    # NOT NULL on the proposed INSERT and abort the batch.
-                    if not v.get("youtube_video_id"):
+                    yt = (v.get("youtube_video_id") or "").strip()
+                    cid_v = (v.get("channel_id") or "").strip()
+                    if not yt or not cid_v:
                         continue
-                    update_rows.append({
+                    by_id[v["video_id"]] = {
                         "id": v["video_id"],
-                        "youtube_video_id": v["youtube_video_id"],
+                        "youtube_video_id": yt,
+                        "channel_id": cid_v,  # NOT NULL — keep upsert safe even if Postgres tries the INSERT path
                         "view_count": v["view_count"],
                         "like_count": v["like_count"],
                         "comment_count": v["comment_count"],
-                    })
+                    }
+                update_rows = list(by_id.values())
                 skipped = len(snap_rows) - len(update_rows)
                 if skipped:
-                    log(f"  videos freshness: dropped {skipped} row(s) without youtube_video_id")
+                    log(f"  videos freshness: dropped {skipped} row(s) (missing yt_id/channel_id or dup)")
                 for b in range(0, len(update_rows), 500):
                     db.client.table("videos").upsert(update_rows[b:b+500], on_conflict="id").execute()
             except Exception as e:
