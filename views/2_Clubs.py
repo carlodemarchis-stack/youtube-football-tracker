@@ -136,15 +136,12 @@ def _render_subs_rank_chart(channels, league_filter: str | None = None):
     if league_filter:
         st.subheader(f"📊 Subscribers by channel — {_LF.get(league_filter, '')} {league_filter}")
         st.caption("All channels in scope, ranked by subscriber count "
-                   "(highest left). Top row: ≥ 1M subs · bottom row: < 1M.")
+                   "(highest left).")
     else:
         st.subheader("📊 Subscribers by channel — Top-5 leagues")
         st.caption("All clubs and league channels across the Top-5 leagues, "
                    "ranked by subscriber count. Bar color = league. "
                    "Top row: ≥ 1M subs · bottom row: < 1M (the long tail).")
-
-    big = [r for r in rows if r["subs"] >= 1_000_000]
-    small = [r for r in rows if r["subs"] < 1_000_000]
 
     def _build_bar(subset, height_floor: int = 360):
         names = [r["name"] for r in subset]
@@ -172,15 +169,25 @@ def _render_subs_rank_chart(channels, league_filter: str | None = None):
         )
         return fig
 
-    if big:
-        st.markdown("**≥ 1M subscribers**")
-        st.plotly_chart(_build_bar(big), use_container_width=True)
-    if small:
-        st.markdown("**< 1M subscribers**")
-        st.plotly_chart(_build_bar(small), use_container_width=True)
-    if not big and not small:
-        # Fallback (shouldn't happen given filter above)
+    if league_filter:
+        # Z2: single league, ~20 channels. One chart reads cleanly even with
+        # the mega-channel-vs-long-tail spread because there are few enough
+        # bars that the small ones still register visually.
         st.plotly_chart(_build_bar(rows), use_container_width=True)
+    else:
+        # Z1: 100+ channels across 5 leagues. The mega-channels (FC Bayern,
+        # Manchester United, Real Madrid…) dwarf clubs in the 100k range, so
+        # split into ≥ 1M and < 1M to keep the long tail readable.
+        big = [r for r in rows if r["subs"] >= 1_000_000]
+        small = [r for r in rows if r["subs"] < 1_000_000]
+        if big:
+            st.markdown("**≥ 1M subscribers**")
+            st.plotly_chart(_build_bar(big), use_container_width=True)
+        if small:
+            st.markdown("**< 1M subscribers**")
+            st.plotly_chart(_build_bar(small), use_container_width=True)
+        if not big and not small:
+            st.plotly_chart(_build_bar(rows), use_container_width=True)
 
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
