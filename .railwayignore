@@ -1,0 +1,23 @@
+# Files NOT to upload via `railway up`. Mirrors .gitignore for items
+# that are sensitive when shipped via the CLI uploader (which doesn't
+# honor .gitignore the way git does).
+
+# Local secrets — Railway uses env vars + the runtime bootstrap in
+# app.py to materialize .streamlit/secrets.toml. Don't let a local
+# copy override the env-driven config.
+.env
+.env.*
+.streamlit/secrets.toml
+
+# Local Python artifacts
+__pycache__/
+*.pyc
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
