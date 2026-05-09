@@ -2502,12 +2502,8 @@ else:
             d[r["month"]] = r[metric]
         return [d[m] for m in months]
 
-    # ── Last 48h timeline (visual strip with thumbnails) ─────
-    try:
-        from src.timeline import render_48h_timeline
-        render_48h_timeline(vids)
-    except Exception as _e:
-        st.caption(f"(48h timeline unavailable: {_e})")
+    # 24h published-timeline strip moved to Latest Videos only — Season is
+    # the long-horizon view, not the right place for "right now" cards.
 
     # ── Videos per day (this club, full season) ──────────────
     # Reuses df_vids — no extra DB query needed at Z3.
