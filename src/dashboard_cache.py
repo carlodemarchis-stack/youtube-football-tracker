@@ -276,12 +276,20 @@ def rebuild_all(db, log=print) -> None:
     except Exception as e:
         log(f"[dashboard_cache] season_top failed (non-fatal): {e}")
 
-    # 12. top_no1_videos — Each core channel's #1 most-viewed video,
-    #     sorted by views. Powers the No. 1 Videos page.
+    # 12. top_no1_videos — Each core channel's all-time #1 most-viewed
+    #     video, sorted by views. Powers the No. 1 Videos page (top table).
     try:
         refresh_top_no1_videos(db, log=log, channels=chans)
     except Exception as e:
         log(f"[dashboard_cache] top_no1_videos failed (non-fatal): {e}")
+
+    # 13. season_top_no1_videos — Same shape as top_no1_videos but
+    #     restricted to the current season. Powers No. 1 Videos page
+    #     (bottom table).
+    try:
+        refresh_season_top_no1_videos(db, log=log, channels=chans)
+    except Exception as e:
+        log(f"[dashboard_cache] season_top_no1_videos failed (non-fatal): {e}")
 
     log("[dashboard_cache] rebuild done")
 
@@ -1042,15 +1050,20 @@ def refresh_season_top(db, log=print, channels: list[dict] | None = None) -> Non
 # Powers views/4c_No1_Videos.py. Single dashboard_cache row at scope_all.
 # Read path: 1 row, ~100KB JSON.
 
-def refresh_top_no1_videos(db, log=print, channels: list[dict] | None = None) -> None:
-    """For every core channel (clubs + leagues; Players / Federations /
-    OtherClub / WomenClub excluded), find its #1 most-viewed video and
-    write the list to dashboard_cache, sorted by view_count desc.
+def _refresh_no1_per_channel(
+    db,
+    cache_name: str,
+    log,
+    channels: list[dict] | None,
+    *,
+    since: str | None = None,
+    global_probe: int = 5000,
+) -> None:
+    """Shared engine for `top_no1_videos` (all-time) and
+    `season_top_no1_videos` (season). Pulls each core channel's #1
+    video — by view_count — within the optional season window.
 
-    Strategy: pull top-N globally via the view_count index, dedupe by
-    channel_id (highest-views entry per channel survives). For any core
-    channel missing from the top-N (long tail), fall back to a per-channel
-    query — capped to keep the rebuild bounded.
+    `since` = ISO date filter on published_at (None = all-time).
     """
     chans = channels if channels is not None else db.get_all_channels()
     core = [c for c in chans
@@ -1059,20 +1072,23 @@ def refresh_top_no1_videos(db, log=print, channels: list[dict] | None = None) ->
             and c.get("id")]
     core_ids = {c["id"] for c in core}
     if not core_ids:
-        log("[dashboard_cache] top_no1_videos skipped — no core channels")
+        log(f"[dashboard_cache] {cache_name} skipped — no core channels")
         return
 
-    # ── Pass 1: global top 5000, dedupe by channel ──────────────────
-    GLOBAL_PROBE = 5000
-    log(f"[dashboard_cache] top_no1_videos / probing top {GLOBAL_PROBE}")
-    rows = (db.client.table("videos")
-            .select("id,youtube_video_id,channel_id,title,published_at,"
-                    "duration_seconds,format,category,view_count,"
-                    "like_count,comment_count,thumbnail_url,"
-                    "channels(name,handle)")
-            .order("view_count", desc=True)
-            .limit(GLOBAL_PROBE)
-            .execute().data) or []
+    SELECT = ("id,youtube_video_id,channel_id,title,published_at,"
+              "duration_seconds,format,category,view_count,"
+              "like_count,comment_count,thumbnail_url,"
+              "channels(name,handle)")
+
+    # ── Pass 1: global top probe, dedupe by channel ─────────────────
+    log(f"[dashboard_cache] {cache_name} / probing top {global_probe}")
+    q = (db.client.table("videos")
+         .select(SELECT)
+         .order("view_count", desc=True)
+         .limit(global_probe))
+    if since:
+        q = q.gte("published_at", since)
+    rows = q.execute().data or []
 
     by_channel: dict[str, dict] = {}
     for v in rows:
@@ -1080,30 +1096,39 @@ def refresh_top_no1_videos(db, log=print, channels: list[dict] | None = None) ->
         if cid in core_ids and cid not in by_channel:
             by_channel[cid] = v
 
-    # ── Pass 2: per-channel fallback for core channels not yet seen ─
+    # ── Pass 2: per-channel fallback for any core channel not seen ──
     missing = [c for c in core if c["id"] not in by_channel]
     if missing:
-        log(f"[dashboard_cache] top_no1_videos / fallback for {len(missing)} long-tail channels")
+        log(f"[dashboard_cache] {cache_name} / fallback for {len(missing)} long-tail channels")
         for c in missing:
             try:
-                resp = (db.client.table("videos")
-                        .select("id,youtube_video_id,channel_id,title,published_at,"
-                                "duration_seconds,format,category,view_count,"
-                                "like_count,comment_count,thumbnail_url,"
-                                "channels(name,handle)")
-                        .eq("channel_id", c["id"])
-                        .order("view_count", desc=True)
-                        .limit(1)
-                        .execute().data) or []
+                fq = (db.client.table("videos")
+                      .select(SELECT)
+                      .eq("channel_id", c["id"])
+                      .order("view_count", desc=True)
+                      .limit(1))
+                if since:
+                    fq = fq.gte("published_at", since)
+                resp = fq.execute().data or []
                 if resp:
                     by_channel[c["id"]] = resp[0]
             except Exception as e:
                 log(f"  fallback failed for {c.get('name','?')}: {e}")
 
-    # ── Sort by view_count desc, write payload ──────────────────────
     out = sorted(by_channel.values(),
                  key=lambda v: int(v.get("view_count") or 0),
                  reverse=True)
-    write(db, "top_no1_videos", scope_all(),
-          {"rows": out, "count": len(out)})
-    log(f"[dashboard_cache] top_no1_videos done — {len(out)} channels")
+    write(db, cache_name, scope_all(),
+          {"rows": out, "count": len(out), "since": since})
+    log(f"[dashboard_cache] {cache_name} done — {len(out)} channels")
+
+
+def refresh_top_no1_videos(db, log=print, channels: list[dict] | None = None) -> None:
+    """All-time #1 video per core channel (no time filter)."""
+    _refresh_no1_per_channel(db, "top_no1_videos", log, channels, since=None)
+
+
+def refresh_season_top_no1_videos(db, log=print, channels: list[dict] | None = None) -> None:
+    """Current-season #1 video per core channel (published >= SEASON_TOP_SINCE)."""
+    _refresh_no1_per_channel(db, "season_top_no1_videos", log, channels,
+                             since=SEASON_TOP_SINCE)

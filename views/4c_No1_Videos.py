@@ -1,11 +1,17 @@
-"""No. 1 Videos — each core channel's all-time #1 video, ranked by views.
+"""No. 1 Videos — each core channel's #1 video, ranked by views.
 
-One row per channel (clubs + league channels; Players / Federations /
-Other Clubs / Women excluded — they live on their own pages). Same
-table layout as Season Top / All-Time Top so the rendering is shared.
+Two tables:
+  1. All-time #1 per channel
+  2. Season #1 per channel (videos published since SEASON start)
 
-Read path is single dashboard_cache row (`top_no1_videos`/scope_all),
-populated by refresh_top_no1_videos in the daily/hourly rebuild.
+Both have one row per channel (clubs + league channels; Players /
+Federations / Other Clubs / Women excluded). Same table layout as
+Season Top / All-Time Top so the rendering is shared.
+
+Read path is two single dashboard_cache reads
+(`top_no1_videos`/scope_all and `season_top_no1_videos`/scope_all),
+populated by the daily/hourly rebuild. No global filter on this
+page — the entire core roster is always shown.
 """
 from __future__ import annotations
 
@@ -44,59 +50,83 @@ if not all_channels:
 
 ch_by_id = {c["id"]: c for c in all_channels}
 
-# ── Read precomputed list from dashboard_cache (refreshed by rebuild_all) ─
 from src import dashboard_cache as _dc
-_cached = _cached_dc_read(db, "top_no1_videos", _dc.scope_all())
-_payload = (_cached or {}).get("payload") or {}
-rows = list(_payload.get("rows") or [])
+from src.channels import get_season_since
 
-# Cache-miss fallback: compute inline. First deploy, or new core channels
-# added since the last rebuild. Reuses the same global-probe + dedupe
-# pattern as the cache builder, with a smaller probe size since this is
-# a "best effort while the cron catches up" path.
-if not rows:
+
+def _live_top1_per_channel(since: str | None) -> list[dict]:
+    """Cache-miss fallback path. Smaller probe than the rebuild's 5000;
+    if a long-tail channel's #1 isn't in the top 2000 globally it just
+    won't appear until the next cron tick."""
     core_ids = {
         c["id"] for c in all_channels
         if c.get("entity_type") not in
            ("Player", "Federation", "OtherClub", "WomenClub")
         and c.get("id")
     }
-    try:
-        _live = (db.client.table("videos")
-                 .select("id,youtube_video_id,channel_id,title,published_at,"
-                         "duration_seconds,format,category,view_count,"
-                         "like_count,comment_count,thumbnail_url,"
-                         "channels(name,handle)")
-                 .order("view_count", desc=True)
-                 .limit(2000)
-                 .execute().data) or []
-    except Exception as _e:
-        st.error(f"Couldn't load videos: {_e}")
-        st.stop()
+    q = (db.client.table("videos")
+         .select("id,youtube_video_id,channel_id,title,published_at,"
+                 "duration_seconds,format,category,view_count,"
+                 "like_count,comment_count,thumbnail_url,"
+                 "channels(name,handle)")
+         .order("view_count", desc=True)
+         .limit(2000))
+    if since:
+        q = q.gte("published_at", since)
+    rows = q.execute().data or []
     seen: dict[str, dict] = {}
-    for v in _live:
+    for v in rows:
         cid = v.get("channel_id")
         if cid in core_ids and cid not in seen:
             seen[cid] = v
-    rows = sorted(seen.values(),
+    return sorted(seen.values(),
                   key=lambda v: int(v.get("view_count") or 0),
                   reverse=True)
 
-if not rows:
-    st.caption("No videos yet.")
-    st.stop()
+
+def _load(cache_name: str, since: str | None) -> tuple[list[dict], str | None]:
+    """Read from dashboard_cache, fall back to live probe on miss.
+    Returns (rows, computed_at)."""
+    cached = _cached_dc_read(db, cache_name, _dc.scope_all())
+    payload = (cached or {}).get("payload") or {}
+    rows = list(payload.get("rows") or [])
+    if rows:
+        return rows, (cached or {}).get("computed_at")
+    try:
+        return _live_top1_per_channel(since), None
+    except Exception as e:
+        st.error(f"Couldn't load videos: {e}")
+        return [], None
+
+
+# ── Page subtitle (uses the all-time cache's computed_at) ─────
+allt_rows, allt_when = _load("top_no1_videos", None)
+SEASON_SINCE = get_season_since()
+season_rows, season_when = _load("season_top_no1_videos", SEASON_SINCE)
 
 render_page_subtitle(
-    f"All-time #1 video of each channel · {len(rows)} channels · "
-    f"ranked by views",
-    updated_raw=(_cached or {}).get("computed_at"),
+    f"#1 video of each channel · {len(allt_rows)} channels · "
+    f"all-time and current-season views",
+    updated_raw=allt_when,
 )
 
-# ── Render ────────────────────────────────────────────────────
-# Cap iframe height with inner scroll so the page stays manageable
-# even with ~100 entries.
-render_top_season_videos_table(
-    rows, ch_by_id,
-    header="🥇 No. 1 Video by Channel",
-    max_height=1100,
-)
+# ── Render — two tables, all-time first, season below ────────
+if allt_rows:
+    render_top_season_videos_table(
+        allt_rows, ch_by_id,
+        header="🥇 All-Time No. 1 Video by Channel",
+        max_height=1100,
+    )
+else:
+    st.caption("All-time #1 list not available yet.")
+
+st.markdown("---")
+
+if season_rows:
+    render_top_season_videos_table(
+        season_rows, ch_by_id,
+        header="🌟 Season No. 1 Video by Channel",
+        max_height=1100,
+    )
+else:
+    st.caption("Season #1 list not available yet.")
