@@ -98,6 +98,7 @@ viewer_pages = [
     st.Page("views/3b_Season_Top_Videos.py", title="Season Top"),
     st.Page("views/2_Clubs.py", title="All Channels"),
     st.Page("views/4_Top_Videos.py", title="All-Time Top"),
+    st.Page("views/4c_No1_Videos.py", title="No. 1 Videos"),
 ]
 
 # Tier 1.7 — "Others": tangential entity types we track but don't

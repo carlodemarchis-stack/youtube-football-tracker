@@ -276,6 +276,13 @@ def rebuild_all(db, log=print) -> None:
     except Exception as e:
         log(f"[dashboard_cache] season_top failed (non-fatal): {e}")
 
+    # 12. top_no1_videos — Each core channel's #1 most-viewed video,
+    #     sorted by views. Powers the No. 1 Videos page.
+    try:
+        refresh_top_no1_videos(db, log=log, channels=chans)
+    except Exception as e:
+        log(f"[dashboard_cache] top_no1_videos failed (non-fatal): {e}")
+
     log("[dashboard_cache] rebuild done")
 
 
@@ -1029,3 +1036,74 @@ def refresh_season_top(db, log=print, channels: list[dict] | None = None) -> Non
               _fetch_season_top_payload(db, lg_ids))
 
     log("[dashboard_cache] season_top done")
+
+
+# ── top_no1_videos: each core channel's #1 video, sorted by views ────────
+# Powers views/4c_No1_Videos.py. Single dashboard_cache row at scope_all.
+# Read path: 1 row, ~100KB JSON.
+
+def refresh_top_no1_videos(db, log=print, channels: list[dict] | None = None) -> None:
+    """For every core channel (clubs + leagues; Players / Federations /
+    OtherClub / WomenClub excluded), find its #1 most-viewed video and
+    write the list to dashboard_cache, sorted by view_count desc.
+
+    Strategy: pull top-N globally via the view_count index, dedupe by
+    channel_id (highest-views entry per channel survives). For any core
+    channel missing from the top-N (long tail), fall back to a per-channel
+    query — capped to keep the rebuild bounded.
+    """
+    chans = channels if channels is not None else db.get_all_channels()
+    core = [c for c in chans
+            if c.get("entity_type") not in
+               ("Player", "Federation", "OtherClub", "WomenClub")
+            and c.get("id")]
+    core_ids = {c["id"] for c in core}
+    if not core_ids:
+        log("[dashboard_cache] top_no1_videos skipped — no core channels")
+        return
+
+    # ── Pass 1: global top 5000, dedupe by channel ──────────────────
+    GLOBAL_PROBE = 5000
+    log(f"[dashboard_cache] top_no1_videos / probing top {GLOBAL_PROBE}")
+    rows = (db.client.table("videos")
+            .select("id,youtube_video_id,channel_id,title,published_at,"
+                    "duration_seconds,format,category,view_count,"
+                    "like_count,comment_count,thumbnail_url,"
+                    "channels(name,handle)")
+            .order("view_count", desc=True)
+            .limit(GLOBAL_PROBE)
+            .execute().data) or []
+
+    by_channel: dict[str, dict] = {}
+    for v in rows:
+        cid = v.get("channel_id")
+        if cid in core_ids and cid not in by_channel:
+            by_channel[cid] = v
+
+    # ── Pass 2: per-channel fallback for core channels not yet seen ─
+    missing = [c for c in core if c["id"] not in by_channel]
+    if missing:
+        log(f"[dashboard_cache] top_no1_videos / fallback for {len(missing)} long-tail channels")
+        for c in missing:
+            try:
+                resp = (db.client.table("videos")
+                        .select("id,youtube_video_id,channel_id,title,published_at,"
+                                "duration_seconds,format,category,view_count,"
+                                "like_count,comment_count,thumbnail_url,"
+                                "channels(name,handle)")
+                        .eq("channel_id", c["id"])
+                        .order("view_count", desc=True)
+                        .limit(1)
+                        .execute().data) or []
+                if resp:
+                    by_channel[c["id"]] = resp[0]
+            except Exception as e:
+                log(f"  fallback failed for {c.get('name','?')}: {e}")
+
+    # ── Sort by view_count desc, write payload ──────────────────────
+    out = sorted(by_channel.values(),
+                 key=lambda v: int(v.get("view_count") or 0),
+                 reverse=True)
+    write(db, "top_no1_videos", scope_all(),
+          {"rows": out, "count": len(out)})
+    log(f"[dashboard_cache] top_no1_videos done — {len(out)} channels")
