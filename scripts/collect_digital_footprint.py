@@ -99,6 +99,10 @@ TECH_PATTERNS = [
     # with Cortex (data-feed sister company); grouping under same
     # vendor since they're one entity now.
     ("InCrowd",       _re.compile(r"incrowdsports\.com|incrowd\.io|cortextech\.io|cortex\.io", _re.I), "vendor"),
+    # Hiway Media — Italian sport-tech (SS Lazio uses
+    # mediaverse.sslazio.hiway.media). Accept both Hyway/Hiway
+    # spellings to be safe against future rebrands.
+    ("Hiway Media",   _re.compile(r"hiway\.media|hyway\.media|hiwaymedia|hywaymedia", _re.I), "vendor"),
     ("Contentful",    _re.compile(r"contentful\.com|images\.ctfassets\.net|videos\.ctfassets\.net|assets\.ctfassets\.net|downloads\.ctfassets\.net", _re.I), "vendor"),
     # ── CMS / DXP ──────────────────────────────────────────
     ("AEM",           _re.compile(r"data-sly-|/etc\.clientlibs/|/content/dam/", _re.I),                       "cms"),
