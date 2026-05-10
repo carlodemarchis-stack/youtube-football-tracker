@@ -68,6 +68,13 @@
         "a11y": 68,
         "best_practices": 96,
         "seo": 36
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -128,6 +135,15 @@
         "a11y": 75,
         "best_practices": 100,
         "seo": 92
+      },
+      "tech": {
+        "vendor": null,
+        "cms": "WordPress",
+        "framework": null,
+        "extras": [],
+        "evidence": [
+          "WordPress: …e.it/wp-content/themes/uslecce/…"
+        ]
       }
     },
     {
@@ -174,6 +190,16 @@
         "a11y": 89,
         "best_practices": 100,
         "seo": 92
+      },
+      "tech": {
+        "vendor": null,
+        "cms": "WordPress",
+        "framework": null,
+        "extras": [],
+        "evidence": [
+          "<meta generator>: WordPress 6.9.4",
+          "WordPress: …ef=\"/wp-content/uploads/2024/08…"
+        ]
       }
     },
     {
@@ -246,6 +272,16 @@
         "a11y": 91,
         "best_practices": 100,
         "seo": 100
+      },
+      "tech": {
+        "vendor": null,
+        "cms": "WordPress",
+        "framework": null,
+        "extras": [],
+        "evidence": [
+          "<meta generator>: WP Rocket 3.19.0.1",
+          "WordPress: …a.fr/wp-content/themes/webqam/d…"
+        ]
       }
     },
     {
@@ -318,6 +354,15 @@
         "a11y": 86,
         "best_practices": 96,
         "seo": 85
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": [
+          "<meta generator>: TYPO3 CMS"
+        ]
       }
     },
     {
@@ -394,6 +439,13 @@
         "a11y": 86,
         "best_practices": 92,
         "seo": 85
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -469,6 +521,13 @@
         "a11y": 93,
         "best_practices": 100,
         "seo": 85
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -553,6 +612,15 @@
         "a11y": 96,
         "best_practices": 96,
         "seo": 92
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": "Next.js",
+        "extras": [],
+        "evidence": [
+          "Next.js: …ref=\"/_next/static/chunks/0db9epy…"
+        ]
       }
     },
     {
@@ -625,6 +693,13 @@
         "a11y": 69,
         "best_practices": 100,
         "seo": 75
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -697,6 +772,13 @@
         "a11y": 96,
         "best_practices": 73,
         "seo": 91
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -773,6 +855,13 @@
         "a11y": 93,
         "best_practices": 100,
         "seo": 92
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -845,6 +934,13 @@
         "a11y": 71,
         "best_practices": 96,
         "seo": 77
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -922,6 +1018,15 @@
         "a11y": 87,
         "best_practices": 96,
         "seo": 92
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": "Next.js",
+        "extras": [],
+        "evidence": [
+          "Next.js: …ref=\"/_next/static/css/2c07b34c6d…"
+        ]
       }
     },
     {
@@ -996,6 +1101,15 @@
         "a11y": 87,
         "best_practices": 96,
         "seo": 85
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": "Next.js",
+        "extras": [],
+        "evidence": [
+          "Next.js: …ref=\"/_next/static/css/2c07b34c6d…"
+        ]
       }
     },
     {
@@ -1069,6 +1183,15 @@
         "a11y": 82,
         "best_practices": 96,
         "seo": 100
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": [
+          "<meta generator>: Gatsby 4.25.9"
+        ]
       }
     },
     {
@@ -1143,6 +1266,18 @@
         "a11y": 93,
         "best_practices": 92,
         "seo": 100
+      },
+      "tech": {
+        "vendor": "Stadion",
+        "cms": null,
+        "framework": null,
+        "extras": [
+          "Cloudinary"
+        ],
+        "evidence": [
+          "Stadion: …ogos.stadion.io/assets/ClubLog…",
+          "Cloudinary: …tp://res.cloudinary.com/chelsea-produc…"
+        ]
       }
     },
     {
@@ -1222,6 +1357,13 @@
         "a11y": 81,
         "best_practices": 92,
         "seo": 85
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -1296,6 +1438,16 @@
         "a11y": 80,
         "best_practices": 100,
         "seo": 69
+      },
+      "tech": {
+        "vendor": null,
+        "cms": "WordPress",
+        "framework": null,
+        "extras": [],
+        "evidence": [
+          "<meta generator>: WPML ver:4.7.6 stt:1,4;",
+          "WordPress: …c.fr/wp-content/themes/fc-paris…"
+        ]
       }
     },
     {
@@ -1369,6 +1521,15 @@
         "a11y": 95,
         "best_practices": 77,
         "seo": 100
+      },
+      "tech": {
+        "vendor": null,
+        "cms": "AEM",
+        "framework": null,
+        "extras": [],
+        "evidence": [
+          "AEM: …ref=\"/etc.clientlibs/bvbweb/clientli…"
+        ]
       }
     },
     {
@@ -1443,6 +1604,17 @@
         "a11y": 95,
         "best_practices": 77,
         "seo": 92
+      },
+      "tech": {
+        "vendor": "Stadion",
+        "cms": "Contentful",
+        "framework": "Next.js",
+        "extras": [],
+        "evidence": [
+          "Stadion: …ps://contentfulproxy.stadion.io/zl2jjr3puak…",
+          "Contentful: …ps://images.ctfassets.net/zl2jjr3puakk/1…",
+          "Next.js: …ref=\"/_next/static/css/022695aea3…"
+        ]
       }
     },
     {
@@ -1519,6 +1691,13 @@
         "a11y": 87,
         "best_practices": 96,
         "seo": 85
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -1594,6 +1773,13 @@
         "a11y": 84,
         "best_practices": 69,
         "seo": 83
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -1668,6 +1854,15 @@
         "a11y": 100,
         "best_practices": 96,
         "seo": 100
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": "Next.js",
+        "extras": [],
+        "evidence": [
+          "Next.js: …ref=\"/_next/static/css/55b8650486…"
+        ]
       }
     },
     {
@@ -1740,6 +1935,13 @@
         "a11y": 86,
         "best_practices": 100,
         "seo": 100
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -1814,6 +2016,17 @@
         "a11y": 91,
         "best_practices": 96,
         "seo": 92
+      },
+      "tech": {
+        "vendor": "Stadion",
+        "cms": "Contentful",
+        "framework": "Next.js",
+        "extras": [],
+        "evidence": [
+          "Stadion: …ps://contentfulproxy.stadion.io/9ec6988xevc…",
+          "Contentful: …2F%2Fimages.ctfassets.net%2F9ec6988xevcz…",
+          "Next.js: …ref=\"/_next/static/css/dd831aef0a…"
+        ]
       }
     },
     {
@@ -1898,6 +2111,13 @@
         "a11y": 55,
         "best_practices": 100,
         "seo": 92
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -1958,6 +2178,15 @@
         "a11y": 73,
         "best_practices": 88,
         "seo": 92
+      },
+      "tech": {
+        "vendor": null,
+        "cms": "WordPress",
+        "framework": null,
+        "extras": [],
+        "evidence": [
+          "WordPress: …o.fr/wp-content/themes/sco/styl…"
+        ]
       }
     },
     {
@@ -2016,7 +2245,8 @@
         "a11y": 94,
         "best_practices": 50,
         "seo": 77
-      }
+      },
+      "tech": {}
     },
     {
       "youtube_channel_id": "UCQsH5XtIc9hONE1BQjucM0g",
@@ -2077,6 +2307,15 @@
         "a11y": 86,
         "best_practices": 92,
         "seo": 100
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": "Next.js",
+        "extras": [],
+        "evidence": [
+          "Next.js: …ref=\"/_next/static/css/f32f9225cd…"
+        ]
       }
     },
     {
@@ -2149,6 +2388,13 @@
         "a11y": 73,
         "best_practices": 77,
         "seo": 77
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -2207,6 +2453,15 @@
         "a11y": 83,
         "best_practices": 96,
         "seo": 100
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": "Next.js",
+        "extras": [],
+        "evidence": [
+          "Next.js: …ref=\"/_next/static/css/2c07b34c6d…"
+        ]
       }
     },
     {
@@ -2279,6 +2534,13 @@
         "a11y": 87,
         "best_practices": 96,
         "seo": 83
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -2337,6 +2599,15 @@
         "a11y": 97,
         "best_practices": 96,
         "seo": 92
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": [
+          "<meta generator>: TYPO3 CMS"
+        ]
       }
     },
     {
@@ -2409,6 +2680,15 @@
         "a11y": 71,
         "best_practices": 77,
         "seo": 75
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": "Nuxt",
+        "extras": [],
+        "evidence": [
+          "Nuxt: …html data-n-head-ssr>   <head> …"
+        ]
       }
     },
     {
@@ -2486,6 +2766,15 @@
         "a11y": 72,
         "best_practices": 73,
         "seo": 92
+      },
+      "tech": {
+        "vendor": "Pulselive",
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": [
+          "Pulselive: …form.pulselive.com/fcbarcelona/en…"
+        ]
       }
     },
     {
@@ -2547,6 +2836,15 @@
         "a11y": 89,
         "best_practices": 96,
         "seo": 100
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": "Next.js",
+        "extras": [],
+        "evidence": [
+          "Next.js: …ref=\"/_next/static/css/2ea687dacf…"
+        ]
       }
     },
     {
@@ -2611,6 +2909,15 @@
         "a11y": 88,
         "best_practices": 92,
         "seo": 92
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": "Next.js",
+        "extras": [],
+        "evidence": [
+          "Next.js: …ref=\"/_next/static/css/4765cf3454…"
+        ]
       }
     },
     {
@@ -2685,6 +2992,15 @@
         "a11y": 82,
         "best_practices": 96,
         "seo": 92
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": "Next.js",
+        "extras": [],
+        "evidence": [
+          "Next.js: …ref=\"/_next/static/css/d48c19d0e4…"
+        ]
       }
     },
     {
@@ -2758,6 +3074,15 @@
         "a11y": 77,
         "best_practices": 96,
         "seo": 92
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": "Angular",
+        "extras": [],
+        "evidence": [
+          "Angular: …ng\">[_nghost-ng-c3519508287]{di…"
+        ]
       }
     },
     {
@@ -2842,6 +3167,13 @@
         "a11y": 88,
         "best_practices": 77,
         "seo": 92
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -2918,6 +3250,13 @@
         "a11y": 72,
         "best_practices": 92,
         "seo": 92
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -2989,6 +3328,15 @@
       },
       "psi": {
         "error": "Lighthouse returned error: Something went wrong."
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": "Next.js",
+        "extras": [],
+        "evidence": [
+          "Next.js: …ref=\"/_next/static/chunks/webpack…"
+        ]
       }
     },
     {
@@ -3049,6 +3397,16 @@
         "a11y": 78,
         "best_practices": 100,
         "seo": 85
+      },
+      "tech": {
+        "vendor": null,
+        "cms": "WordPress",
+        "framework": null,
+        "extras": [],
+        "evidence": [
+          "<meta generator>: WordPress 6.9.4",
+          "WordPress: …o.it/wp-content/uploads/2026/03…"
+        ]
       }
     },
     {
@@ -3111,6 +3469,16 @@
         "a11y": 87,
         "best_practices": 73,
         "seo": 85
+      },
+      "tech": {
+        "vendor": null,
+        "cms": "WordPress",
+        "framework": null,
+        "extras": [],
+        "evidence": [
+          "<meta generator>: WordPress 6.9.4",
+          "WordPress: ….com/wp-content/uploads/2020/03…"
+        ]
       }
     },
     {
@@ -3185,6 +3553,15 @@
         "a11y": 85,
         "best_practices": 96,
         "seo": 92
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": "Next.js",
+        "extras": [],
+        "evidence": [
+          "Next.js: …ref=\"/_next/static/css/c8982e7ee3…"
+        ]
       }
     },
     {
@@ -3260,6 +3637,15 @@
         "a11y": 84,
         "best_practices": 96,
         "seo": 73
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": "Nuxt",
+        "extras": [],
+        "evidence": [
+          "Nuxt: …html data-n-head-ssr>   <head >…"
+        ]
       }
     },
     {
@@ -3335,6 +3721,15 @@
         "a11y": 92,
         "best_practices": 77,
         "seo": 100
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": "Angular",
+        "extras": [],
+        "evidence": [
+          "Angular: …pper[_ngcontent-ng-c1749368904]…"
+        ]
       }
     },
     {
@@ -3408,6 +3803,16 @@
         "a11y": 96,
         "best_practices": 100,
         "seo": 100
+      },
+      "tech": {
+        "vendor": "Deltatre",
+        "cms": null,
+        "framework": "Next.js",
+        "extras": [],
+        "evidence": [
+          "Deltatre: …d-ff.deltatre.digital\\\",\\\"LA…",
+          "Next.js: …ref=\"/_next/static/media/61d96c48…"
+        ]
       }
     },
     {
@@ -3501,6 +3906,13 @@
         "a11y": 86,
         "best_practices": 100,
         "seo": 92
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -3563,6 +3975,16 @@
         "a11y": 92,
         "best_practices": 96,
         "seo": 100
+      },
+      "tech": {
+        "vendor": null,
+        "cms": "Contentful",
+        "framework": "Next.js",
+        "extras": [],
+        "evidence": [
+          "Contentful: …2F%2Fimages.ctfassets.net%2Fnurz7nsnha04…",
+          "Next.js: …ref=\"/_next/static/css/d725194c58…"
+        ]
       }
     },
     {
@@ -3609,6 +4031,16 @@
         "a11y": 93,
         "best_practices": 96,
         "seo": 92
+      },
+      "tech": {
+        "vendor": null,
+        "cms": "WordPress",
+        "framework": null,
+        "extras": [],
+        "evidence": [
+          "<meta generator>: WordPress 6.9.4",
+          "WordPress: …c.it/wp-content/themes/genoa/as…"
+        ]
       }
     },
     {
@@ -3693,6 +4125,16 @@
         "a11y": 85,
         "best_practices": 92,
         "seo": 77
+      },
+      "tech": {
+        "vendor": null,
+        "cms": "Drupal",
+        "framework": null,
+        "extras": [],
+        "evidence": [
+          "<meta generator>: Drupal 11 (https://www.drupal.org)",
+          "Drupal: …ame=\"Generator\" content=\"Drupal 11 (https://ww…"
+        ]
       }
     },
     {
@@ -3771,6 +4213,18 @@
         "a11y": 84,
         "best_practices": 96,
         "seo": 83
+      },
+      "tech": {
+        "vendor": "Stadion",
+        "cms": null,
+        "framework": null,
+        "extras": [
+          "Cloudinary"
+        ],
+        "evidence": [
+          "Stadion: …ogos.stadion.io/assets/ClubLog…",
+          "Cloudinary: …ps://res.cloudinary.com/brentford-fc/i…"
+        ]
       }
     },
     {
@@ -3843,6 +4297,15 @@
         "a11y": 91,
         "best_practices": 50,
         "seo": 92
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": "Next.js",
+        "extras": [],
+        "evidence": [
+          "Next.js: …ref=\"/_next/static/css/2c07b34c6d…"
+        ]
       }
     },
     {
@@ -3903,7 +4366,8 @@
         "a11y": 97,
         "best_practices": 100,
         "seo": 100
-      }
+      },
+      "tech": {}
     },
     {
       "youtube_channel_id": "UCeOCuVSSweaEj6oVtJZEKQw",
@@ -3975,6 +4439,13 @@
         "a11y": 75,
         "best_practices": 54,
         "seo": 77
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -4021,6 +4492,13 @@
         "a11y": 79,
         "best_practices": 92,
         "seo": 100
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -4093,6 +4571,15 @@
         "a11y": 84,
         "best_practices": 88,
         "seo": 85
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": [
+          "<meta generator>: TYPO3 CMS"
+        ]
       }
     },
     {
@@ -4165,6 +4652,16 @@
         "a11y": 91,
         "best_practices": 96,
         "seo": 92
+      },
+      "tech": {
+        "vendor": null,
+        "cms": "Drupal",
+        "framework": null,
+        "extras": [],
+        "evidence": [
+          "<meta generator>: Drupal 10 (https://www.drupal.org)",
+          "Drupal: …ame=\"Generator\" content=\"Drupal 10 (https://ww…"
+        ]
       }
     },
     {
@@ -4223,6 +4720,15 @@
         "a11y": 82,
         "best_practices": 96,
         "seo": 92
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": "Next.js",
+        "extras": [],
+        "evidence": [
+          "Next.js: …ref=\"/_next/static/css/2c07b34c6d…"
+        ]
       }
     },
     {
@@ -4300,6 +4806,15 @@
         "a11y": 74,
         "best_practices": 54,
         "seo": 69
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": [
+          "<meta generator>: Astro v4.2.0"
+        ]
       }
     },
     {
@@ -4374,6 +4889,15 @@
         "a11y": 69,
         "best_practices": 54,
         "seo": 92
+      },
+      "tech": {
+        "vendor": "Pulselive",
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": [
+          "Pulselive: …prod.pulselive.com/api'; \t\twindow…"
+        ]
       }
     },
     {
@@ -4447,6 +4971,13 @@
         "a11y": 93,
         "best_practices": 96,
         "seo": 91
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -4519,6 +5050,15 @@
         "a11y": 97,
         "best_practices": 73,
         "seo": 92
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": "Nuxt",
+        "extras": [],
+        "evidence": [
+          "Nuxt: …html data-n-head-ssr>   <head> …"
+        ]
       }
     },
     {
@@ -4591,6 +5131,13 @@
         "a11y": 72,
         "best_practices": 77,
         "seo": 85
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -4651,6 +5198,16 @@
         "a11y": 88,
         "best_practices": 88,
         "seo": 92
+      },
+      "tech": {
+        "vendor": null,
+        "cms": "Umbraco",
+        "framework": "Next.js",
+        "extras": [],
+        "evidence": [
+          "Umbraco: …g.fr/umbraco/akqa/api/v1.0/…",
+          "Next.js: …ref=\"/_next/static/media/Virage_B…"
+        ]
       }
     },
     {
@@ -4726,6 +5283,13 @@
         "a11y": 100,
         "best_practices": 96,
         "seo": 83
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -4800,6 +5364,17 @@
         "a11y": 95,
         "best_practices": 96,
         "seo": 100
+      },
+      "tech": {
+        "vendor": "Stadion",
+        "cms": "Contentful",
+        "framework": "Next.js",
+        "extras": [],
+        "evidence": [
+          "Stadion: …ps://contentfulproxy.stadion.io/phva2knh4vy…",
+          "Contentful: …ps://images.ctfassets.net/phva2knh4vy5/8…",
+          "Next.js: …ref=\"/_next/static/css/8baf404768…"
+        ]
       }
     },
     {
@@ -4874,6 +5449,13 @@
         "a11y": 90,
         "best_practices": 96,
         "seo": 46
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -4946,6 +5528,15 @@
         "a11y": 97,
         "best_practices": 100,
         "seo": 100
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": "Next.js",
+        "extras": [],
+        "evidence": [
+          "Next.js: …ref=\"/_next/static/css/d41eb9d79e…"
+        ]
       }
     },
     {
@@ -5032,6 +5623,16 @@
         "a11y": 93,
         "best_practices": 100,
         "seo": 100
+      },
+      "tech": {
+        "vendor": null,
+        "cms": "WordPress",
+        "framework": null,
+        "extras": [],
+        "evidence": [
+          "<meta generator>: WP Rocket 3.19.3",
+          "WordPress: ….bzh/wp-includes/css/dist/block-…"
+        ]
       }
     },
     {
@@ -5107,6 +5708,15 @@
         "a11y": 100,
         "best_practices": 77,
         "seo": 92
+      },
+      "tech": {
+        "vendor": "Pulselive",
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": [
+          "Pulselive: …prod.pulselive.com/thfc/en.js\" ch…"
+        ]
       }
     },
     {
@@ -5167,6 +5777,15 @@
         "a11y": 85,
         "best_practices": 96,
         "seo": 100
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": "Nuxt",
+        "extras": [],
+        "evidence": [
+          "Nuxt: …ndow.__NUXT__={};window.__NU…"
+        ]
       }
     },
     {
@@ -5241,6 +5860,13 @@
         "a11y": 80,
         "best_practices": 73,
         "seo": 92
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -5313,6 +5939,13 @@
         "a11y": 93,
         "best_practices": 96,
         "seo": 92
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -5406,6 +6039,13 @@
         "a11y": 89,
         "best_practices": 96,
         "seo": 92
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -5478,6 +6118,15 @@
         "a11y": 93,
         "best_practices": 77,
         "seo": 92
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": "Next.js",
+        "extras": [],
+        "evidence": [
+          "Next.js: …chday/_next/static/css/9b692fd3af…"
+        ]
       }
     },
     {
@@ -5551,6 +6200,13 @@
         "a11y": 82,
         "best_practices": 96,
         "seo": 92
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -5626,6 +6282,13 @@
         "a11y": 62,
         "best_practices": 96,
         "seo": 75
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -5689,6 +6352,16 @@
         "a11y": 92,
         "best_practices": 96,
         "seo": 92
+      },
+      "tech": {
+        "vendor": null,
+        "cms": "WordPress",
+        "framework": null,
+        "extras": [],
+        "evidence": [
+          "<meta generator>: WPML ver:4.9.2.1 stt:59,1,27;",
+          "WordPress: …i.it/wp-content/uploads/2024/05…"
+        ]
       }
     },
     {
@@ -5752,6 +6425,16 @@
         "a11y": 87,
         "best_practices": 92,
         "seo": 77
+      },
+      "tech": {
+        "vendor": null,
+        "cms": "WordPress",
+        "framework": null,
+        "extras": [],
+        "evidence": [
+          "<meta generator>: WPML ver:4.9.2.1 stt:1,2,66;",
+          "WordPress: …f.es/wp-content/themes/smart-ma…"
+        ]
       }
     },
     {
@@ -5824,6 +6507,16 @@
         "a11y": 85,
         "best_practices": 96,
         "seo": 92
+      },
+      "tech": {
+        "vendor": null,
+        "cms": "Drupal",
+        "framework": "Next.js",
+        "extras": [],
+        "evidence": [
+          "Drupal: …c.com/sites/default/files/styles/sm/publi…",
+          "Next.js: …src=\"/_next/static/chunks/polyfil…"
+        ]
       }
     },
     {
@@ -5898,6 +6591,15 @@
         "a11y": 88,
         "best_practices": 96,
         "seo": 45
+      },
+      "tech": {
+        "vendor": null,
+        "cms": "WordPress",
+        "framework": null,
+        "extras": [],
+        "evidence": [
+          "WordPress: …c.it/wp-content/uploads/2019/01…"
+        ]
       }
     },
     {
@@ -5975,6 +6677,17 @@
         "a11y": 99,
         "best_practices": 96,
         "seo": 92
+      },
+      "tech": {
+        "vendor": "Stadion",
+        "cms": "Contentful",
+        "framework": "Next.js",
+        "extras": [],
+        "evidence": [
+          "Stadion: …ps://contentfulproxy.stadion.io\" crossorigi…",
+          "Contentful: …ps://images.ctfassets.net/unzgbvss5tuy/7…",
+          "Next.js: …ref=\"/_next/static/css/eabc8500e9…"
+        ]
       }
     },
     {
@@ -6052,6 +6765,13 @@
       },
       "psi": {
         "error": "Lighthouse returned error: NO_FCP. The page did not paint any content. Please en"
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -6124,6 +6844,13 @@
         "a11y": 92,
         "best_practices": 77,
         "seo": 92
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -6180,7 +6907,8 @@
       },
       "psi": {
         "error": "Lighthouse returned error: FAILED_DOCUMENT_REQUEST. Lighthouse was unable to rel"
-      }
+      },
+      "tech": {}
     },
     {
       "youtube_channel_id": "UCKPvGWyCL62gKy-i_Fz_CJA",
@@ -6242,6 +6970,16 @@
         "a11y": 86,
         "best_practices": 100,
         "seo": 100
+      },
+      "tech": {
+        "vendor": null,
+        "cms": "WordPress",
+        "framework": null,
+        "extras": [],
+        "evidence": [
+          "<meta generator>: WordPress 6.9.4",
+          "WordPress: ….com/wp-content/themes/cagliari…"
+        ]
       }
     },
     {
@@ -6319,6 +7057,15 @@
         "a11y": 83,
         "best_practices": 77,
         "seo": 85
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": "Next.js",
+        "extras": [],
+        "evidence": [
+          "Next.js: …ref=\"/_next/static/css/2c07b34c6d…"
+        ]
       }
     },
     {
@@ -6391,6 +7138,15 @@
         "a11y": 100,
         "best_practices": 100,
         "seo": 100
+      },
+      "tech": {
+        "vendor": null,
+        "cms": "Drupal",
+        "framework": null,
+        "extras": [],
+        "evidence": [
+          "Drupal: …ref=\"/sites/default/files/css/css_Vru-m7F…"
+        ]
       }
     },
     {
@@ -6452,6 +7208,13 @@
         "a11y": 88,
         "best_practices": 54,
         "seo": 83
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -6526,6 +7289,15 @@
         "a11y": 81,
         "best_practices": 92,
         "seo": 92
+      },
+      "tech": {
+        "vendor": null,
+        "cms": "Drupal",
+        "framework": null,
+        "extras": [],
+        "evidence": [
+          "Drupal: …fc.it/sites/default/files/loghi-squadre/l…"
+        ]
       }
     },
     {
@@ -6598,6 +7370,15 @@
         "a11y": 91,
         "best_practices": 96,
         "seo": 92
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": [
+          "<meta generator>: TYPO3 CMS"
+        ]
       }
     },
     {
@@ -6673,6 +7454,13 @@
         "a11y": 98,
         "best_practices": 96,
         "seo": 100
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -6750,6 +7538,15 @@
         "a11y": 92,
         "best_practices": 73,
         "seo": 85
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": "Next.js",
+        "extras": [],
+        "evidence": [
+          "Next.js: …ref=\"/_next/static/css/2c07b34c6d…"
+        ]
       }
     },
     {
@@ -6826,6 +7623,15 @@
         "a11y": 83,
         "best_practices": null,
         "seo": 85
+      },
+      "tech": {
+        "vendor": null,
+        "cms": "Kentico Kontent",
+        "framework": null,
+        "extras": [],
+        "evidence": [
+          "Kentico Kontent: …u-01.kc-usercontent.com:443/1293c890-5…"
+        ]
       }
     },
     {
@@ -6901,6 +7707,16 @@
         "a11y": 80,
         "best_practices": 96,
         "seo": 69
+      },
+      "tech": {
+        "vendor": null,
+        "cms": "WordPress",
+        "framework": null,
+        "extras": [],
+        "evidence": [
+          "<meta generator>: WordPress 6.9.4",
+          "WordPress: ….com/wp-content/uploads/_ogs/pa…"
+        ]
       }
     },
     {
@@ -6977,6 +7793,13 @@
         "a11y": 87,
         "best_practices": 77,
         "seo": 62
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": null,
+        "extras": [],
+        "evidence": []
       }
     },
     {
@@ -7049,6 +7872,16 @@
         "a11y": 65,
         "best_practices": 96,
         "seo": 77
+      },
+      "tech": {
+        "vendor": null,
+        "cms": "WordPress",
+        "framework": null,
+        "extras": [],
+        "evidence": [
+          "<meta generator>: All in One SEO (AIOSEO) 4.8.9",
+          "WordPress: …8018/wp-content/themes/rcsa2022…"
+        ]
       }
     },
     {
@@ -7127,6 +7960,15 @@
         "a11y": 78,
         "best_practices": 96,
         "seo": 85
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": "Next.js",
+        "extras": [],
+        "evidence": [
+          "Next.js: …ref=\"/_next/static/css/2d2198966a…"
+        ]
       }
     },
     {
@@ -7200,6 +8042,15 @@
         "a11y": 90,
         "best_practices": 96,
         "seo": 85
+      },
+      "tech": {
+        "vendor": null,
+        "cms": null,
+        "framework": "Next.js",
+        "extras": [],
+        "evidence": [
+          "Next.js: …ref=\"/_next/static/css/aa0cf51cd8…"
+        ]
       }
     }
   ]

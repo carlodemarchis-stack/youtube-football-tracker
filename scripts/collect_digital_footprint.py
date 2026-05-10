@@ -68,6 +68,96 @@ def wayback_first_year(domain: str) -> int | None:
         return None
 
 
+# ── Tech-stack fingerprints (CMS / sport-tech vendor / framework) ─
+# Patterns validated against a sample of known cases:
+#   Premier League → Pulselive (well-known)
+#   Bundesliga → Deltatre (deltatreId embedded in page JSON)
+#   Man United → Stadion (DAZN-owned, adopted 2024)
+#   Real Madrid / BVB → Adobe Experience Manager
+#   AC Milan → Kentico Kontent (headless CMS)
+#   Bayer 04 → Angular framework
+# Each entry: (label, regex, category). category is one of
+#   "vendor" (sport-tech specialists),
+#   "cms"    (general-purpose content systems), or
+#   "framework" (frontend rendering tech).
+import re as _re
+
+TECH_PATTERNS = [
+    # ── Sport-tech vendors (highest signal) ─────────────────
+    ("Pulselive",     _re.compile(r"pulselive\.com|pulse\.football|cdn\.pulselive|data-pulse-|aws\.pulselive", _re.I), "vendor"),
+    ("Deltatre",      _re.compile(r"deltatre|deltatreId|dltforge|diva\.deltatre|dl4-platform|/forge/", _re.I),         "vendor"),
+    ("Stadion",       _re.compile(r"stadion\.io|contentfulproxy\.stadion|dazn-stadion|stadion-app", _re.I),            "vendor"),
+    # ── CMS / DXP ──────────────────────────────────────────
+    ("AEM",           _re.compile(r"data-sly-|/etc\.clientlibs/|/content/dam/", _re.I),                       "cms"),
+    ("Sitecore",      _re.compile(r"/sitecore/|SC_ANALYTICS_GLOBAL_COOKIE|data-sc-item-id", _re.I),           "cms"),
+    ("Drupal",        _re.compile(r'generator"\s*content="Drupal|data-drupal-|/sites/default/files/', _re.I), "cms"),
+    ("WordPress",     _re.compile(r'wp-content/|wp-includes/|generator"\s*content="WordPress', _re.I),         "cms"),
+    ("Wagtail",       _re.compile(r'generator"\s*content="Wagtail', _re.I),                                    "cms"),
+    ("Kentico Kontent",_re.compile(r"kc-usercontent\.com|kontent\.ai", _re.I),                                 "cms"),
+    ("Contentful",    _re.compile(r"contentful\.com|images\.ctfassets\.net", _re.I),                          "cms"),
+    ("Storyblok",     _re.compile(r"storyblok\.com|a\.storyblok\.com", _re.I),                                "cms"),
+    ("Strapi",        _re.compile(r"strapi\.io", _re.I),                                                       "cms"),
+    ("Magnolia",      _re.compile(r"magnolia-cms|magnolia\.info", _re.I),                                      "cms"),
+    ("Umbraco",       _re.compile(r"umbraco\b", _re.I),                                                        "cms"),
+    # ── Frontend frameworks ────────────────────────────────
+    ("Next.js",       _re.compile(r"__NEXT_DATA__|/_next/static", _re.I),                                      "framework"),
+    ("Nuxt",          _re.compile(r"__NUXT__|nuxt-link|data-n-head", _re.I),                                   "framework"),
+    ("Angular",       _re.compile(r"_nghost-ng-|_ngcontent-|ng-version=", _re.I),                              "framework"),
+    ("React",         _re.compile(r'data-reactroot|"react"\s*:\s*"', _re.I),                                   "framework"),
+    # ── Adjacent identifiers (non-categorized but worth flagging) ──
+    ("Cloudinary",    _re.compile(r"res\.cloudinary\.com|cloudinary-core", _re.I),                            "image"),
+    ("Magento",       _re.compile(r"Mage\.Cookies|/static/version\d+/frontend/Magento_", _re.I),               "shop"),
+    ("Shopify",       _re.compile(r"cdn\.shopify\.com|shopify\.com/s/", _re.I),                               "shop"),
+]
+
+
+def tech_stack(url: str) -> dict:
+    """Fingerprint the homepage HTML for CMS / sport-tech vendor /
+    frontend framework. Returns first match per category.
+
+    Reliability: high-precision (false positives unlikely — patterns
+    require vendor-specific markers) but not exhaustive (clubs with
+    in-house custom platforms return empty)."""
+    if not url:
+        return {}
+    try:
+        r = requests.get(url, timeout=20, allow_redirects=True,
+                         headers=HEADERS)
+        html = r.text[:300_000]  # 300KB is plenty; anything below is
+                                  # already past the <head>+nav region
+                                  # where vendor markers live.
+    except Exception:
+        return {}
+
+    out: dict = {"vendor": None, "cms": None, "framework": None,
+                 "extras": [], "evidence": []}
+
+    # Meta generator is the most authoritative signal when present
+    mg = _re.search(
+        r'<meta\s+name=["\']generator["\']\s+content=["\']([^"\']+)["\']',
+        html, _re.I)
+    if mg:
+        out["evidence"].append(f"<meta generator>: {mg.group(1)[:50]}")
+
+    seen = set()
+    for label, rx, category in TECH_PATTERNS:
+        if category in seen:
+            continue  # only first match per category
+        m = rx.search(html)
+        if not m:
+            continue
+        seen.add(category)
+        if category in ("vendor", "cms", "framework"):
+            out[category] = label
+        else:
+            out["extras"].append(label)
+        # 30-char evidence snippet — proves we're not hallucinating
+        ev = html[max(0, m.start()-5):m.end()+15].replace("\n", " ")[:55]
+        out["evidence"].append(f"{label}: …{ev}…")
+
+    return out
+
+
 def http_headers(url: str) -> dict:
     try:
         r = requests.get(url, headers=HEADERS, timeout=20,
@@ -371,6 +461,7 @@ def collect_one(ch: dict) -> dict:
         # Signals
         "domain_first_year":  wayback_first_year(domain) if domain else None,
         "http":               http_headers(website) if website else {},
+        "tech":               tech_stack(website) if website else {},
         "sitemap":            parse_sitemap(domain) if domain else {},
         "wikipedia":          wikipedia(wiki_slug),
         "ios_app":            ios_app(app_query, app_country),

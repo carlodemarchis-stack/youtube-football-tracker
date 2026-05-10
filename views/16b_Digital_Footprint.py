@@ -92,6 +92,25 @@ def _find_channel(name):
     return None
 
 
+def _tech_cell(c):
+    """Render a compact stack summary: vendor (sport-tech) > cms > framework.
+    Color-coded so sport-tech vendors stand out as the highest signal."""
+    t = c.get("tech") or {}
+    vendor = t.get("vendor")
+    cms = t.get("cms")
+    fw = t.get("framework")
+    if vendor:
+        return (f"<span style='color:#FF6B6B;font-weight:600'>{vendor}</span>"
+                + (f"<span style='color:#666'> · {cms}</span>" if cms else "")
+                + (f"<span style='color:#666'> · {fw}</span>" if fw else ""))
+    if cms:
+        return (f"<span style='color:#58A6FF'>{cms}</span>"
+                + (f"<span style='color:#666'> · {fw}</span>" if fw else ""))
+    if fw:
+        return f"<span style='color:#888'>{fw}</span>"
+    return "<span style='color:#444'>—</span>"
+
+
 def _website_link(c):
     """Render the website cell — clickable, displays the bare host."""
     url = c.get("website") or ""
@@ -161,10 +180,13 @@ def _flat_table(channels: list[dict], header: str = "") -> None:
             f"{badge}<span>{name_link}</span></div>"
         )
 
+        tech = _tech_cell(c)
+
         rows_html.append(
             "<tr>"
             f"<td>{channel_cell}</td>"
             f"<td>{web}</td>"
+            f"<td>{tech}</td>"
             f"<td style='text-align:right'>{domain_yr or '—'}</td>"
             f"<td style='text-align:right'>{cdn}</td>"
             f"<td style='text-align:right'>{sec_s}</td>"
@@ -193,7 +215,7 @@ def _flat_table(channels: list[dict], header: str = "") -> None:
         ".df-tbl th{background:#1a1c24;color:#888;text-transform:uppercase;"
         "letter-spacing:.4px;font-size:10.5px;padding:8px 8px;text-align:right;"
         "font-weight:600;border-bottom:1px solid #2a2c34;white-space:nowrap}"
-        ".df-tbl th:nth-child(1),.df-tbl th:nth-child(2){text-align:left}"
+        ".df-tbl th:nth-child(1),.df-tbl th:nth-child(2),.df-tbl th:nth-child(3){text-align:left}"
         ".df-tbl td{padding:7px 8px;border-bottom:1px solid #20222a;color:#FAFAFA}"
         ".df-tbl tr:hover td{background:#1a1c24}"
         "</style>"
@@ -202,6 +224,7 @@ def _flat_table(channels: list[dict], header: str = "") -> None:
         "<thead><tr>"
         "<th>Channel</th>"
         "<th>Website</th>"
+        "<th>Tech</th>"
         "<th>Since</th><th>CDN</th><th>Sec</th>"
         "<th>Pages</th><th>Loc</th>"
         "<th>Real LCP</th><th>Real INP</th>"
@@ -293,6 +316,30 @@ def render_z3(c: dict) -> None:
             ("CLS", f"{cls_:.2f}" if cls_ is not None else "—", ""),
             ("TTFB", _fmt_ms(ttfb), ""),
         ]), unsafe_allow_html=True)
+
+    # Tech stack — sport-tech vendor / CMS / framework with evidence
+    t = c.get("tech") or {}
+    if t.get("vendor") or t.get("cms") or t.get("framework"):
+        st.markdown("**Tech stack** "
+                    "<span style='color:#888;font-size:0.85rem'>"
+                    "(fingerprinted from homepage HTML)</span>",
+                    unsafe_allow_html=True)
+        st.markdown(kpi_row([
+            ("Sport-tech vendor", t.get("vendor") or "—",
+                "Pulselive / Deltatre / Stadion = specialist platforms"),
+            ("CMS / DXP",         t.get("cms") or "—", ""),
+            ("Framework",         t.get("framework") or "—", ""),
+        ]), unsafe_allow_html=True)
+        ev = t.get("evidence") or []
+        if ev:
+            ev_html = "<br>".join(
+                f"<code style='color:#888;font-size:11px'>{e}</code>"
+                for e in ev[:4])
+            st.markdown(
+                f"<div style='color:#888;font-size:11px;margin:-6px 0 14px 0'>"
+                f"Evidence: {ev_html}</div>",
+                unsafe_allow_html=True,
+            )
 
     psi = c.get("psi") or {}
     if psi and "error" not in psi:
