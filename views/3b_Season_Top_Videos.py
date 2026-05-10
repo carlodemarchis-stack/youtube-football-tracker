@@ -29,7 +29,7 @@ from src.season_top import (
     fetch_top_season_videos,
     render_top_season_videos_table,
 )
-from src.analytics import fmt_num
+from src.analytics import fmt_num, kpi_row
 
 load_dotenv()
 require_login()
@@ -171,29 +171,68 @@ if top_views:
     _ch_in_top = len({v.get("channel_id") for v in top_views
                       if v.get("channel_id")})
 
-    def _card(label, value, color):
-        return (f'<div style="background:#1a1c24;border-radius:6px;padding:10px 14px;'
-                f'border-left:3px solid {color}">'
-                f'<div style="color:#888;font-size:11px;font-weight:600;'
-                f'text-transform:uppercase;letter-spacing:0.5px">{label}</div>'
-                f'<div style="color:#FAFAFA;font-size:22px;font-weight:700;'
-                f'margin-top:2px">{value}</div></div>')
+    # ── Z3 rank helper ──────────────────────────────────────────
+    # Compute rank vs league cohort + overall (core channels) on each
+    # metric. Uses precomputed per-channel fields from refresh_top100_stats
+    # (top100_views, top1_views, top100_avg_age_days), so this is just
+    # in-Python sorting — no extra DB work.
+    _rank_by: dict[str, str] = {}
+    if club is not None:
+        _core_channels = [
+            c for c in all_channels
+            if c.get("entity_type") not in
+               ("Player", "Federation", "OtherClub", "WomenClub")
+        ]
+        _ch_lg = get_league_for_channel(club)
+        _league_cohort = [c for c in _core_channels
+                          if get_league_for_channel(c) == _ch_lg]
 
-    cards = [
-        _card(f"Total views (top {_n})", fmt_num(_total),       "#58A6FF"),
-        _card("Avg views / video",       fmt_num(_avg),         "#FFA15A"),
-        _card("Top 1 share",             f"{_top1_share:.1f}%", "#00CC96"),
-        _card("Avg age",                 f"{_avg_age_days:.0f}d", "#EF553B"),
+        def _rank_of(chans, key_fn) -> tuple[int | None, int]:
+            """Return (rank, total) for `club` within `chans` by key_fn."""
+            scored = sorted(
+                ((c.get("id"), key_fn(c)) for c in chans if c.get("id")),
+                key=lambda kv: kv[1] or 0,
+                reverse=True,
+            )
+            for i, (cid, _v) in enumerate(scored, 1):
+                if cid == club.get("id"):
+                    return i, len(scored)
+            return None, len(scored)
+
+        def _rank_subtitle(key_fn, *, low_better: bool = False) -> str:
+            kf = (lambda c: -(key_fn(c) or 0)) if low_better else key_fn
+            lr, lt = _rank_of(_league_cohort, kf)
+            orr, ot = _rank_of(_core_channels, kf)
+            parts = []
+            if lr and _ch_lg:
+                parts.append(f"#{lr}/{lt} in {_ch_lg}")
+            if orr:
+                parts.append(f"#{orr}/{ot} overall")
+            return " · ".join(parts)
+
+        _rank_by["total"] = _rank_subtitle(lambda c: int(c.get("top100_views") or 0))
+        _rank_by["avg"]   = _rank_by["total"]  # same ordering as total/100
+        _rank_by["top1"]  = _rank_subtitle(
+            lambda c: ((int(c.get("top1_views") or 0) /
+                        max(int(c.get("top100_views") or 0), 1)) * 100.0))
+        # Younger top-100 catalogues get the better rank (low-better).
+        _rank_by["age"]   = _rank_subtitle(
+            lambda c: float(c.get("top100_avg_age_days") or 0),
+            low_better=True)
+
+    pairs = [
+        (f"Total views (top {_n})",  fmt_num(_total),         _rank_by.get("total", "")),
+        ("Avg views / video",        fmt_num(_avg),           _rank_by.get("avg", "")),
+        ("Top 1 share",              f"{_top1_share:.1f}%",   _rank_by.get("top1", "")),
+        ("Avg age",                  f"{_avg_age_days:.0f}d", _rank_by.get("age", "")),
     ]
     # 5th card depends on zoom:
     # - Z1/Z2: # of channels represented in the top set
     # - Z3:    inline Long/Shorts(/Live) breakdown — channels-count
     #          would always read "1" at this zoom.
     if club is None:
-        cards.append(_card(f"Channels in top {_n}", str(_ch_in_top), "#AB63FA"))
+        pairs.append((f"Channels in top {_n}", str(_ch_in_top)))
     else:
-        # Format-counts inline. Pre-compute fmt_counts here (the pie
-        # block below also computes it but only inside its own scope).
         _fmt_n = {"long": 0, "short": 0, "live": 0}
         for v in top_views:
             f = (v.get("format") or "").lower()
@@ -209,14 +248,9 @@ if top_views:
             _segs.append(f'<span style="color:#FFA15A">{_fmt_n["live"]}</span>')
             _fmt_label = f"Format L/S/Lv (top {_n})"
         _fmt_value = '<span style="color:#666"> / </span>'.join(_segs)
-        cards.append(_card(_fmt_label, _fmt_value, "#636EFA"))
+        pairs.append((_fmt_label, _fmt_value))
 
-    n_cols = len(cards)
-    st.markdown(
-        f'<div style="display:grid;grid-template-columns:repeat({n_cols},1fr);'
-        f'gap:10px;margin:4px 0 14px 0">{"".join(cards)}</div>',
-        unsafe_allow_html=True,
-    )
+    st.markdown(kpi_row(pairs), unsafe_allow_html=True)
 
 # ── Pie charts: format mix (always) + league mix (Z1 only) ────
 if top_views:

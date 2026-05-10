@@ -179,31 +179,63 @@ try:
     else:
         _ctx_label = "Top 100 across all leagues (single ranked list)"
 
-    def _kpi_card(label: str, value: str, color: str) -> str:
-        return (
-            f'<div style="background:#1a1c24;border-radius:6px;padding:10px 14px;'
-            f'border-left:3px solid {color}">'
-            f'<div style="color:#888;font-size:11px;font-weight:600;'
-            f'text-transform:uppercase;letter-spacing:0.5px">{label}</div>'
-            f'<div style="color:#FAFAFA;font-size:22px;font-weight:700;'
-            f'margin-top:2px">{value}</div></div>'
-        )
+    # Z3 rank subtitles — compute the club's rank by precomputed
+    # top100_views (proxy for "Total views"), top1_views/top100_views
+    # ratio (Top 1 share), and top100_avg_age_days (Avg age).
+    from src.filters import get_league_for_channel as _get_league_for_channel
+    _row1_subs: dict[str, str] = {}
+    if club is not None:
+        _core = [c for c in all_channels
+                 if c.get("entity_type") not in
+                    ("Player", "Federation", "OtherClub", "WomenClub")]
+        _ch_lg = _get_league_for_channel(club)
+        _league = [c for c in _core
+                   if _get_league_for_channel(c) == _ch_lg]
 
-    _row1 = "".join([
-        _kpi_card("Total views (top 100)", fmt_num(_ctx_total), "#58A6FF"),
-        _kpi_card("Share of lifetime", f"{_ctx_pct:.1f}%", "#00CC96"),
-        _kpi_card("Avg views / video", fmt_num(_ctx_avg), "#FFA15A"),
-        _kpi_card("Cutoff (rank 100)", fmt_num(_ctx_cutoff), "#AB63FA"),
-        _kpi_card("Avg age", f"{_ctx_avg_age:.1f}y", "#EF553B"),
-    ])
+        def _r(chans, key_fn):
+            scored = sorted(
+                ((c.get("id"), key_fn(c)) for c in chans if c.get("id")),
+                key=lambda kv: kv[1] or 0, reverse=True)
+            for i, (cid, _v) in enumerate(scored, 1):
+                if cid == club.get("id"):
+                    return i, len(scored)
+            return None, len(scored)
+
+        def _sub(key_fn, *, low_better: bool = False) -> str:
+            kf = (lambda c: -(key_fn(c) or 0)) if low_better else key_fn
+            lr, lt = _r(_league, kf)
+            orr, ot = _r(_core, kf)
+            parts = []
+            if lr and _ch_lg:
+                parts.append(f"#{lr}/{lt} in {_ch_lg}")
+            if orr:
+                parts.append(f"#{orr}/{ot} overall")
+            return " · ".join(parts)
+
+        _row1_subs["total"] = _sub(lambda c: int(c.get("top100_views") or 0))
+        _row1_subs["avg"]   = _row1_subs["total"]  # same ordering
+        _row1_subs["share"] = _sub(
+            lambda c: ((int(c.get("top100_views") or 0) /
+                        max(int(c.get("total_views") or 0), 1)) * 100.0))
+        _row1_subs["age"]   = _sub(
+            lambda c: float(c.get("top100_avg_age_days") or 0),
+            low_better=True)
+
+    from src.analytics import kpi_row as _kpi_row
     st.markdown(
         f'<div style="color:#999;font-size:12px;margin:4px 0 6px 2px">'
         f'<b>{_ctx_label}.</b> One merged ranked list — the same 100 '
-        f'videos shown in the table below.</div>'
-        f'<div style="display:grid;grid-template-columns:repeat(5,1fr);'
-        f'gap:10px;margin:0 0 14px 0">{_row1}</div>',
+        f'videos shown in the table below.</div>',
         unsafe_allow_html=True,
     )
+    st.markdown(_kpi_row([
+        ("Total views (top 100)", fmt_num(_ctx_total),    _row1_subs.get("total", "")),
+        ("Share of lifetime",     f"{_ctx_pct:.1f}%",     _row1_subs.get("share", "")),
+        ("Avg views / video",     fmt_num(_ctx_avg),      _row1_subs.get("avg", "")),
+        ("Cutoff (rank 100)",     fmt_num(_ctx_cutoff)),
+        ("Avg age",               f"{_ctx_avg_age:.1f}y", _row1_subs.get("age", "")),
+    ], colors=["#58A6FF", "#00CC96", "#FFA15A", "#AB63FA", "#EF553B"]),
+                unsafe_allow_html=True)
 
 except Exception as _e:
     st.caption(f"(KPIs unavailable: {_e})")
@@ -460,22 +492,22 @@ if not club:
         _ent_label = "leagues" if (not league and _scope_channels and
                                    all(c.get("entity_type") == "League"
                                        for c in _scope_channels)) else "clubs"
-        _row2 = "".join([
-            _kpi_card("Total views (sum of top 100s)", fmt_num(_agg_total), "#58A6FF"),
-            _kpi_card("Share of lifetime", f"{_agg_pct:.1f}%", "#00CC96"),
-            _kpi_card("Avg views / video", fmt_num(_agg_avg), "#FFA15A"),
-            _kpi_card(f"Avg per {_ent_label[:-1]}", fmt_num(_agg_per), "#AB63FA"),
-            _kpi_card("Avg age", f"{_agg_avg_age:.1f}y", "#EF553B"),
-        ])
+        from src.analytics import kpi_row as _kpi_row_2
         st.markdown(
             f'<div style="color:#999;font-size:12px;margin:14px 0 6px 2px">'
             f'<b>Sum of each {_ent_label[:-1]}\'s own top 100.</b> '
             f'{_agg_n} {_ent_label} × up to 100 videos each — ties to the '
-            f'channel-stats table below.</div>'
-            f'<div style="display:grid;grid-template-columns:repeat(5,1fr);'
-            f'gap:10px;margin:0 0 14px 0">{_row2}</div>',
+            f'channel-stats table below.</div>',
             unsafe_allow_html=True,
         )
+        st.markdown(_kpi_row_2([
+            ("Total views (sum of top 100s)", fmt_num(_agg_total)),
+            ("Share of lifetime",             f"{_agg_pct:.1f}%"),
+            ("Avg views / video",             fmt_num(_agg_avg)),
+            (f"Avg per {_ent_label[:-1]}",    fmt_num(_agg_per)),
+            ("Avg age",                       f"{_agg_avg_age:.1f}y"),
+        ], colors=["#58A6FF", "#00CC96", "#FFA15A", "#AB63FA", "#EF553B"]),
+                    unsafe_allow_html=True)
     except Exception as _e:
         st.caption(f"(KPI row 2 unavailable: {_e})")
 
