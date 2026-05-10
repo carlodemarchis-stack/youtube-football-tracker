@@ -2802,7 +2802,7 @@ else:
             [v for v in (vids or []) if _fmt_of(v) == "short"],
             key=lambda v: int(v.get("view_count") or 0),
             reverse=True,
-        )[:100]  # cap at top 100 — beyond that, the long tail dominates
+        )
         if _shorts:
             _xs, _ys, _custom_sd = [], [], []
             for v in _shorts:
@@ -2826,7 +2826,7 @@ else:
             ))
             fig_sd.update_layout(
                 title=dict(
-                    text=f"Season Shorts — top {len(_shorts)} by views (x = duration, y = views)",
+                    text=f"Season Shorts — {len(_shorts)} videos (x = duration, y = views)",
                     x=0, font=dict(color="#FAFAFA", size=14),
                 ),
                 xaxis=dict(
