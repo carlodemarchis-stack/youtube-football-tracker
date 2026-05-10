@@ -2792,41 +2792,42 @@ else:
 
     # Top Season Videos lists moved to the Season Top Videos page.
 
-    # ── Season Shorts: duration × views (column chart) ──────────
-    # Top 100 Shorts only, one bar per video.
-    # X = duration in seconds, Y = views (log so a viral Short doesn't
-    # squash the long tail). Quick visual answer: where on the 0-60s
-    # axis do hits actually live?
+    # ── Season Shorts: duration histogram of views (column chart) ──
+    # X = exact duration in seconds (0–60). Y = sum of view counts
+    # across every Shorts video of that duration. Bar height answers
+    # "how much total reach did N-second Shorts generate this season?".
+    # Many clubs cluster around 15s / 30s / 45s / 59s — peaks make those
+    # editorial choices visible at a glance.
     try:
-        _shorts = sorted(
-            [v for v in (vids or []) if _fmt_of(v) == "short"],
-            key=lambda v: int(v.get("view_count") or 0),
-            reverse=True,
-        )
+        _shorts = [v for v in (vids or []) if _fmt_of(v) == "short"]
         if _shorts:
-            _xs, _ys, _custom_sd = [], [], []
+            from collections import Counter as _Counter
+            _by_sec_views: dict[int, int] = {}
+            _by_sec_count: _Counter = _Counter()
             for v in _shorts:
                 _d = int(v.get("duration_seconds") or 0)
                 _vw = int(v.get("view_count") or 0)
-                _xs.append(_d)
-                _ys.append(_vw)
-                _t = (v.get("title") or "")[:80]
-                _ms = f"{_d // 60}:{_d % 60:02d}"
-                _custom_sd.append([_t, _ms])
+                _by_sec_views[_d] = _by_sec_views.get(_d, 0) + _vw
+                _by_sec_count[_d] += 1
+            _xs = sorted(_by_sec_views.keys())
+            _ys = [_by_sec_views[d] for d in _xs]
+            _customdata = [[_by_sec_count[d]] for d in _xs]
             fig_sd = go.Figure(go.Bar(
                 x=_xs, y=_ys,
                 marker_color="#00CC96",
-                customdata=_custom_sd,
+                customdata=_customdata,
                 hovertemplate=(
-                    "<b>%{customdata[0]}</b><br>"
-                    "Shorts · %{customdata[1]}<br>"
-                    "Views: %{y:,}<extra></extra>"
+                    "<b>%{x}s</b><br>"
+                    "Total views: %{y:,}<br>"
+                    "Videos: %{customdata[0]}<extra></extra>"
                 ),
                 showlegend=False,
             ))
             fig_sd.update_layout(
                 title=dict(
-                    text=f"Season Shorts — {len(_shorts)} videos (x = duration, y = views)",
+                    text=(f"Season Shorts — total views by duration "
+                          f"({len(_shorts)} videos across "
+                          f"{len(_by_sec_views)} distinct durations)"),
                     x=0, font=dict(color="#FAFAFA", size=14),
                 ),
                 xaxis=dict(
@@ -2835,8 +2836,9 @@ else:
                     rangemode="tozero",
                 ),
                 yaxis=dict(
-                    title="Views", type="log",
+                    title="Sum of views",
                     showgrid=True, gridcolor="rgba(255,255,255,0.06)",
+                    rangemode="tozero",
                 ),
                 margin=dict(t=40, b=50, l=60, r=20),
                 height=380,
@@ -2845,4 +2847,4 @@ else:
             )
             st.plotly_chart(fig_sd, use_container_width=True)
     except Exception as _e:
-        st.caption(f"(Shorts duration×views chart unavailable: {_e})")
+        st.caption(f"(Shorts duration histogram unavailable: {_e})")
