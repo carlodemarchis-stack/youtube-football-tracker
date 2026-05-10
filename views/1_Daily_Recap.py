@@ -16,7 +16,7 @@ from src.cached_db import (
     get_all_channels as _cached_channels,
     get_last_fetch_time as _cached_last_fetch,
 )
-from src.analytics import fmt_num, yt_popup_js, CATEGORY_COLORS
+from src.analytics import fmt_num, yt_popup_js, CATEGORY_COLORS, kpi_row
 try:
     from src.analytics import video_table_height
 except ImportError:
@@ -425,24 +425,33 @@ if ONE_CLUB:
         _tv_delta = int(_tv.get("view_delta") or 0)
     else:
         _tv_title, _tv_delta = "", 0
-    k1, k2, k3, k4 = st.columns(4)
-    k1.metric("👁️ Δ Channel Views", f"{'+' if total_view_delta >= 0 else ''}{fmt_num(total_view_delta)}")
-    k1.markdown(_daily_rank_html(_all_view_deltas), unsafe_allow_html=True)
-    k2.metric("🎬 New videos", fmt_num(total_new_videos))
-    k2.markdown(_daily_rank_html(_all_new_counts), unsafe_allow_html=True)
-    k3.metric("📺 Long / Shorts / Live", _fmt_combined)
+    # _daily_rank_html() returns a wrapped <div> for st.markdown; the
+    # kpi_row helper supplies its own subtitle styling, so strip the
+    # outer wrapper and pass the inner text only.
+    def _rank_subtitle(rank_dict_arg) -> str:
+        import re as _re
+        html = _daily_rank_html(rank_dict_arg) or ""
+        m = _re.search(r">([^<]+)<", html)
+        return m.group(1).strip() if m else ""
+
     if _tv_title:
-        # Custom render to fit a long video title into a metric-shaped tile.
         _short_title = (_tv_title[:48] + "…") if len(_tv_title) > 49 else _tv_title
-        k4.markdown(f"""<div title="{_tv_title.replace('"', '&quot;')}">
-            <div style="font-size:0.875rem;color:#999;margin-bottom:2px">🔥 Top viral today</div>
-            <div style="font-size:1.6rem;font-weight:700;line-height:1.2;color:#00CC96">+{fmt_num(_tv_delta)}</div>
-            <div style="font-size:0.78rem;color:#aaa;line-height:1.25;margin-top:2px;
-                        white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{_short_title}</div>
-        </div>""", unsafe_allow_html=True)
+        _viral_value = f'<span style="color:#00CC96">+{fmt_num(_tv_delta)}</span>'
+        _viral_sub = _short_title
     else:
-        k4.metric("🔥 Top viral today", "—",
-                  help="No video gained views today (or no snapshots yet).")
+        _viral_value = "—"
+        _viral_sub = "no Δ today"
+
+    st.markdown(kpi_row([
+        ("👁️ Δ Channel Views",
+         f"{'+' if total_view_delta >= 0 else ''}{fmt_num(total_view_delta)}",
+         _rank_subtitle(_all_view_deltas)),
+        ("🎬 New videos",
+         fmt_num(total_new_videos),
+         _rank_subtitle(_all_new_counts)),
+        ("📺 Long / Shorts / Live", _fmt_combined),
+        ("🔥 Top viral today", _viral_value, _viral_sub),
+    ]), unsafe_allow_html=True)
 else:
     # Most active club: posted most videos yesterday
     club_new_counts: dict[str, int] = {}
@@ -452,18 +461,22 @@ else:
     most_active_name = ch_by_id.get(most_active[0], {}).get("name", "—") if most_active[0] else "—"
 
     _fmt_combined = f"{_fmt_counts['long']} / {_fmt_counts['short']} / {_fmt_counts['live']}"
-    k1, k2, k3, k4 = st.columns(4)
-    k1.metric("👁️ Δ Channel Views", f"{'+' if total_view_delta >= 0 else ''}{fmt_num(total_view_delta)}")
-    k2.metric("🎬 New videos", fmt_num(total_new_videos))
-    k3.metric("📺 Long / Shorts / Live", _fmt_combined)
-    # Auto-shrink long channel names so they don't truncate
+    # Channel name is the value of the 4th card; cap font-size with a
+    # CSS clamp so long names don't overflow the tile.
     _ma_name = most_active_name
-    _ma_size = "1.8rem" if len(_ma_name) <= 18 else "1.3rem" if len(_ma_name) <= 25 else "1.0rem"
-    k4.markdown(f"""<div>
-        <div style="font-size:0.875rem;color:#999;margin-bottom:2px">🔥 Most active</div>
-        <div style="font-size:{_ma_size};font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="{_ma_name} — {most_active[1]} videos posted">{_ma_name}</div>
-        <div style="font-size:0.8rem;color:#888">{most_active[1]} videos posted</div>
-    </div>""", unsafe_allow_html=True)
+    _ma_value = (
+        f'<span style="white-space:nowrap;overflow:hidden;'
+        f'text-overflow:ellipsis;display:block" '
+        f'title="{_ma_name} — {most_active[1]} videos posted">{_ma_name}</span>'
+    )
+    _ma_sub = f"{most_active[1]} videos posted" if most_active[0] else ""
+    st.markdown(kpi_row([
+        ("👁️ Δ Channel Views",
+         f"{'+' if total_view_delta >= 0 else ''}{fmt_num(total_view_delta)}"),
+        ("🎬 New videos",          fmt_num(total_new_videos)),
+        ("📺 Long / Shorts / Live", _fmt_combined),
+        ("🔥 Most active",         _ma_value, _ma_sub),
+    ]), unsafe_allow_html=True)
 
 # League header at zoom-2 — same visual signature as render_club_header.
 if g_league and not ONE_CLUB:

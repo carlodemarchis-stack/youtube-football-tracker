@@ -27,7 +27,7 @@ from src.cached_db import (
     get_recent_videos as _cached_recent,
     read_dashboard_cache as _cached_dc_read,
 )
-from src.analytics import fmt_num
+from src.analytics import fmt_num, kpi_row
 from src.auth import require_login
 from src.filters import (
     get_global_channels, get_global_color_map, get_global_color_map_dual,
@@ -93,11 +93,12 @@ _tot_subs = sum(int(c.get("subscriber_count") or 0) for c in players)
 _tot_views = sum(int(c.get("total_views") or 0) for c in players)
 _tot_videos = sum(int(c.get("video_count") or 0) for c in players)
 
-k1, k2, k3, k4 = st.columns(4)
-k1.metric("Players tracked", len(players))
-k2.metric("Total subscribers", fmt_num(_tot_subs))
-k3.metric("Total views", fmt_num(_tot_views))
-k4.metric("Total videos", fmt_num(_tot_videos))
+st.markdown(kpi_row([
+    ("Players tracked",       str(len(players))),
+    ("Total subscribers", fmt_num(_tot_subs)),
+    ("Total views",       fmt_num(_tot_views)),
+    ("Total videos",      fmt_num(_tot_videos)),
+]), unsafe_allow_html=True)
 
 # ── Helpers ──────────────────────────────────────────────────
 now = datetime.now(timezone.utc)

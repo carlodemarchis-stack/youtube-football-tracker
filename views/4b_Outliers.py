@@ -22,7 +22,7 @@ from src.cached_db import (
     get_all_channels as _cached_channels,
     get_last_fetch_time as _cached_last_fetch,
 )
-from src.analytics import fmt_num
+from src.analytics import fmt_num, kpi_row
 from src.filters import (
     get_global_filter, get_global_channels, get_global_color_map,
     get_global_color_map_dual, render_page_subtitle,
@@ -243,9 +243,10 @@ if g_club:
         return f"{val:.1f}"
 
     for row_start in (0, 4):
-        rcols = st.columns(4)
-        for j, axis in enumerate(AXES_ORDER[row_start:row_start + 4]):
-            rcols[j].metric(_prof.AXIS_LABEL[axis], _format_metric(axis, r.get(axis)))
+        st.markdown(kpi_row([
+            (_prof.AXIS_LABEL[axis], _format_metric(axis, r.get(axis)))
+            for axis in AXES_ORDER[row_start:row_start + 4]
+        ]), unsafe_allow_html=True)
     st.stop()
 
 

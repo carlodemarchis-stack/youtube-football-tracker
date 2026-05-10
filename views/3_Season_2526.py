@@ -15,7 +15,7 @@ from src.cached_db import (
     get_recent_videos as _cached_recent,
     read_dashboard_cache as _cached_dc_read,
 )
-from src.analytics import fmt_num, yt_popup_js, CATEGORY_COLORS
+from src.analytics import fmt_num, yt_popup_js, CATEGORY_COLORS, kpi_row
 try:
     from src.analytics import video_table_height
 except ImportError:
@@ -438,13 +438,14 @@ if league is None and _scope == "Overall":
     total_comments = sum(s["comments"] for s in league_stats.values())
     avg_vpv = total_views // max(total_videos, 1)
     eng_rate = ((total_likes + total_comments) / total_views * 100) if total_views else 0.0
-    col1, col2, col3, col4, col5, col6 = st.columns(6)
-    col1.metric("Total Season Views", fmt_num(total_views))
-    col2.metric("Total Season Videos", fmt_num(total_videos))
-    col3.metric("Avg Views/Video", fmt_num(avg_vpv))
-    col4.metric("Total Likes", fmt_num(total_likes))
-    col5.metric("Total Comments", fmt_num(total_comments))
-    col6.metric("Engagement Rate", f"{eng_rate:.2f}%", help="(Likes + Comments) / Views")
+    st.markdown(kpi_row([
+        ("Total Season Views",  fmt_num(total_views)),
+        ("Total Season Videos", fmt_num(total_videos)),
+        ("Avg Views/Video",     fmt_num(avg_vpv)),
+        ("Total Likes",         fmt_num(total_likes)),
+        ("Total Comments",      fmt_num(total_comments)),
+        ("Engagement Rate",     f"{eng_rate:.2f}%"),
+    ]), unsafe_allow_html=True)
 
     # Pie charts: long/short/live split
     import plotly.graph_objects as go
@@ -1523,13 +1524,14 @@ if club is None:
     _has_live = total_lives > 0
 
     # KPI banner row (likes/comments + engagement rate alongside pie totals)
-    k1, k2, k3, k4, k5, k6 = st.columns(6)
-    k1.metric("Total Views", fmt_num(total_views))
-    k2.metric("Total Videos", fmt_num(total_videos))
-    k3.metric("Avg Views/Video", fmt_num(total_views // max(total_videos, 1)))
-    k4.metric("Total Likes", fmt_num(total_likes))
-    k5.metric("Total Comments", fmt_num(total_comments))
-    k6.metric("Engagement Rate", f"{total_eng_rate:.2f}%", help="(Likes + Comments) / Views")
+    st.markdown(kpi_row([
+        ("Total Views",     fmt_num(total_views)),
+        ("Total Videos",    fmt_num(total_videos)),
+        ("Avg Views/Video", fmt_num(total_views // max(total_videos, 1))),
+        ("Total Likes",     fmt_num(total_likes)),
+        ("Total Comments",  fmt_num(total_comments)),
+        ("Engagement Rate", f"{total_eng_rate:.2f}%"),
+    ]), unsafe_allow_html=True)
 
     # Pie charts: long/short split
     import plotly.graph_objects as go
@@ -2375,25 +2377,22 @@ else:
                 if parts else "")
 
     # KPI banner row
-    k1, k2, k3, k4, k5, k6 = st.columns(6)
-    with k1:
-        st.metric("Total Views", fmt_num(_total_v_banner))
-        st.markdown(_rank_html_z3("views"), unsafe_allow_html=True)
-    with k2:
-        st.metric("Total Videos", fmt_num(_total_n_banner))
-        st.markdown(_rank_html_z3("videos"), unsafe_allow_html=True)
-    with k3:
-        st.metric("Avg Views/Video", fmt_num(_avg_vpv_banner))
-        st.markdown(_rank_html_z3("vpv"), unsafe_allow_html=True)
-    with k4:
-        st.metric("Total Likes", fmt_num(total_likes))
-        st.markdown(_rank_html_z3("likes"), unsafe_allow_html=True)
-    with k5:
-        st.metric("Total Comments", fmt_num(total_comments))
-        st.markdown(_rank_html_z3("comments"), unsafe_allow_html=True)
-    with k6:
-        st.metric("Engagement Rate", f"{_eng_rate:.2f}%", help="(Likes + Comments) / Views")
-        st.markdown(_rank_html_z3("eng"), unsafe_allow_html=True)
+    # _rank_html_z3() returns wrapped HTML; the kpi_row helper supplies
+    # its own subtitle styling, so extract the inner text only.
+    def _rank_subtitle_z3(metric: str) -> str:
+        import re as _re
+        html = _rank_html_z3(metric) or ""
+        m = _re.search(r">([^<]+)<", html)
+        return m.group(1).strip() if m else ""
+
+    st.markdown(kpi_row([
+        ("Total Views",     fmt_num(_total_v_banner),     _rank_subtitle_z3("views")),
+        ("Total Videos",    fmt_num(_total_n_banner),     _rank_subtitle_z3("videos")),
+        ("Avg Views/Video", fmt_num(_avg_vpv_banner),     _rank_subtitle_z3("vpv")),
+        ("Total Likes",     fmt_num(total_likes),         _rank_subtitle_z3("likes")),
+        ("Total Comments",  fmt_num(total_comments),      _rank_subtitle_z3("comments")),
+        ("Engagement Rate", f"{_eng_rate:.2f}%",           _rank_subtitle_z3("eng")),
+    ]), unsafe_allow_html=True)
 
     # Pie charts row
     def _make_pie_club(values, labels, colors, hover_suffix, title):
@@ -2672,12 +2671,12 @@ else:
     n_to_80 = min(n_to_80, n_total)
     pct_videos_to_80 = (n_to_80 / n_total * 100.0) if n_total else 0.0
 
-    cc1, cc2, cc3, cc4 = st.columns(4)
-    cc1.metric("Top video", f"{top1_pct:.0f}% of views")
-    cc2.metric("Top 10 videos", f"{top10_pct:.0f}% of views")
-    cc3.metric(f"Top 20% ({top20pct_n} videos)", f"{top20pct_pct:.0f}% of views")
-    cc4.metric("Median vs Avg", f"{_fmt(int(median_v))} / {_fmt(int(avg_v))}",
-               help="If median ≪ average, distribution is hit-driven (long tail).")
+    st.markdown(kpi_row([
+        ("Top video",     f"{top1_pct:.0f}% of views"),
+        ("Top 10 videos", f"{top10_pct:.0f}% of views"),
+        (f"Top 20% ({top20pct_n} videos)", f"{top20pct_pct:.0f}% of views"),
+        ("Median vs Avg", f"{_fmt(int(median_v))} / {_fmt(int(avg_v))}"),
+    ]), unsafe_allow_html=True)
 
     fig_par = go.Figure()
     fig_par.add_trace(go.Bar(

@@ -12,7 +12,7 @@ from src.cached_db import (
     get_all_channels as _cached_channels,
     get_last_fetch_time as _cached_last_fetch,
 )
-from src.analytics import fmt_num
+from src.analytics import fmt_num, kpi_row
 from src.filters import get_global_filter, get_global_channels, render_page_subtitle
 from src.auth import require_premium
 
@@ -99,22 +99,25 @@ def _rank_html(metric):
         parts.append(f"#{orr}/{ot} overall")
     return f"<div style='color:#888;font-size:0.8rem;margin-top:-6px'>{' · '.join(parts)}</div>" if parts else ""
 
-_cols = st.columns(5)
-with _cols[0]:
-    st.metric("Total Subscribers", fmt_num(_subs))
-    st.markdown(_rank_html("subs"), unsafe_allow_html=True)
-with _cols[1]:
-    st.metric("Total Views", fmt_num(_views))
-    st.markdown(_rank_html("views"), unsafe_allow_html=True)
-with _cols[2]:
-    st.metric("Views/Sub", fmt_num(_vps))
-    st.markdown(_rank_html("vps"), unsafe_allow_html=True)
-with _cols[3]:
-    st.metric("Total Videos", fmt_num(_vids))
-    st.markdown(_rank_html("videos"), unsafe_allow_html=True)
-with _cols[4]:
-    st.metric("Avg Views/Video", fmt_num(_vpv))
-    st.markdown(_rank_html("vpv"), unsafe_allow_html=True)
+def _rank_subtitle(metric: str) -> str:
+    """Plain-text rank line for the kpi_card subtitle slot
+    (the rendered <div>...</div> wrapping comes from kpi_row)."""
+    lr, lt = _rank(metric, "league")
+    orr, ot = _rank(metric, "overall")
+    parts = []
+    if lr:
+        parts.append(f"#{lr}/{lt} in {_ch_league}")
+    if orr:
+        parts.append(f"#{orr}/{ot} overall")
+    return " · ".join(parts)
+
+st.markdown(kpi_row([
+    ("Total Subscribers", fmt_num(_subs),  _rank_subtitle("subs")),
+    ("Total Views",       fmt_num(_views), _rank_subtitle("views")),
+    ("Views/Sub",         fmt_num(_vps),   _rank_subtitle("vps")),
+    ("Total Videos",      fmt_num(_vids),  _rank_subtitle("videos")),
+    ("Avg Views/Video",   fmt_num(_vpv),   _rank_subtitle("vpv")),
+]), unsafe_allow_html=True)
 
 # Summary
 if data.get("summary"):
@@ -220,13 +223,14 @@ if data.get("era_analysis"):
 if data.get("format_insights"):
     st.markdown("**Format Insights**")
     fi = data["format_insights"]
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Shorts (<60s)", f"{fi.get('shorts_count', 0)} videos")
-    col1.caption(f"Avg views: {fmt_num(fi.get('shorts_avg_views', 0))}")
-    col2.metric("Long-form", f"{fi.get('long_count', 0)} videos")
-    col2.caption(f"Avg views: {fmt_num(fi.get('long_avg_views', 0))}")
-    col3.metric("Live", f"{fi.get('live_count', 0)} videos")
-    col3.caption(f"Avg views: {fmt_num(fi.get('live_avg_views', 0))}")
+    st.markdown(kpi_row([
+        ("Shorts (<60s)", f"{fi.get('shorts_count', 0)} videos",
+         f"Avg views: {fmt_num(fi.get('shorts_avg_views', 0))}"),
+        ("Long-form",     f"{fi.get('long_count', 0)} videos",
+         f"Avg views: {fmt_num(fi.get('long_avg_views', 0))}"),
+        ("Live",          f"{fi.get('live_count', 0)} videos",
+         f"Avg views: {fmt_num(fi.get('live_avg_views', 0))}"),
+    ]), unsafe_allow_html=True)
     if fi.get("optimal_duration"):
         st.markdown(f"**Optimal duration:** {fi['optimal_duration']}")
     if fi.get("observation"):
@@ -243,13 +247,14 @@ if _has_season:
 # Season Overview
 sa = data.get("season_overview") or data.get("season_analysis")  # backward compat
 if sa:
-    sa_cols = st.columns(4)
-    sa_cols[0].metric("Videos", sa.get("total_videos", 0))
-    sa_cols[1].metric("Views", fmt_num(sa.get("total_views", 0)))
-    sa_cols[2].metric("Avg Views/Video", fmt_num(sa.get("avg_views_per_video", 0)))
     momentum = sa.get("momentum", "stable")
     m_icon = {"rising": "📈", "declining": "📉", "stable": "➡️"}.get(momentum, "➡️")
-    sa_cols[3].metric("Momentum", f"{m_icon} {momentum.title()}")
+    st.markdown(kpi_row([
+        ("Videos",          str(sa.get("total_videos", 0))),
+        ("Views",           fmt_num(sa.get("total_views", 0))),
+        ("Avg Views/Video", fmt_num(sa.get("avg_views_per_video", 0))),
+        ("Momentum",        f"{m_icon} {momentum.title()}"),
+    ]), unsafe_allow_html=True)
 
     if sa.get("comparison_to_alltime"):
         st.markdown(f"**vs All-Time Top 100:** {sa['comparison_to_alltime']}")
@@ -286,13 +291,14 @@ if data.get("season_best_performers"):
 if data.get("season_format_insights"):
     st.markdown("**Format Insights**")
     sfi = data["season_format_insights"]
-    sf_cols = st.columns(3)
-    sf_cols[0].metric("Shorts", f"{sfi.get('shorts_count', 0)} videos")
-    sf_cols[0].caption(f"Avg views: {fmt_num(sfi.get('shorts_avg_views', 0))}")
-    sf_cols[1].metric("Long-form", f"{sfi.get('long_count', 0)} videos")
-    sf_cols[1].caption(f"Avg views: {fmt_num(sfi.get('long_avg_views', 0))}")
-    sf_cols[2].metric("Live", f"{sfi.get('live_count', 0)} videos")
-    sf_cols[2].caption(f"Avg views: {fmt_num(sfi.get('live_avg_views', 0))}")
+    st.markdown(kpi_row([
+        ("Shorts",    f"{sfi.get('shorts_count', 0)} videos",
+         f"Avg views: {fmt_num(sfi.get('shorts_avg_views', 0))}"),
+        ("Long-form", f"{sfi.get('long_count', 0)} videos",
+         f"Avg views: {fmt_num(sfi.get('long_avg_views', 0))}"),
+        ("Live",      f"{sfi.get('live_count', 0)} videos",
+         f"Avg views: {fmt_num(sfi.get('live_avg_views', 0))}"),
+    ]), unsafe_allow_html=True)
     if sfi.get("format_shift"):
         st.caption(f"Format shift: {sfi['format_shift']}")
 

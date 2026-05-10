@@ -1383,24 +1383,15 @@ else:
         # yt_popup_js intercepts clicks → opens the video in the parent
         # overlay player instead of a new tab (consistent with every
         # other video list on the site).
-        # Skip the Season card when it's the same video as All-Time Top
-        # (e.g. small channels whose biggest hit is from this season —
-        # showing both adds noise without insight).
-        _show_season = (
-            _top_season_v is not None
-            and (_top_v is None
-                 or _top_season_v.get("youtube_video_id") != _top_v.get("youtube_video_id"))
-        )
+        # Always render all three cards even when Top == Top Season —
+        # the cards mean different things and the user expects three
+        # rows.
         _cards_html = (
-            _video_row_html(_top_v, "🏆 Top Video")
-            + (_video_row_html(_top_season_v, "🌟 Top Season Video") if _show_season else "")
-            + _video_row_html(_latest_v, "🆕 Latest Video")
+            _video_row_html(_top_v,        "🏆 Top Video")
+            + _video_row_html(_top_season_v, "🌟 Top Season Video")
+            + _video_row_html(_latest_v,     "🆕 Latest Video")
         )
-        # Card height ~92px each + 10px margin = ~102px. 3 cards max → ~310px.
-        # Bump iframe height accordingly so the third card isn't clipped.
-        _n_cards = sum(1 for x in (_top_v,
-                                   _top_season_v if _show_season else None,
-                                   _latest_v) if x)
+        _n_cards = sum(1 for x in (_top_v, _top_season_v, _latest_v) if x)
         components.html(
             f'<div style="font-family:\'Source Sans Pro\',sans-serif;color:#FAFAFA;">'
             f'{_cards_html}</div>'
