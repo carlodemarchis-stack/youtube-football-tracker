@@ -96,6 +96,24 @@ def edit_channel_dialog(ch):
         edit_sport = st.selectbox("Sport", SPORTS, index=SPORTS.index(ch.get("sport", "Football")) if ch.get("sport", "Football") in SPORTS else 0)
         edit_entity = st.selectbox("Entity Type", ENTITY_TYPES, index=ENTITY_TYPES.index(ch.get("entity_type", "Club")) if ch.get("entity_type", "Club") in ENTITY_TYPES else 0)
         edit_country = st.text_input("Country", value=ch.get("country", ""))
+        # Owned & operated identity — used by the Lab → Digital Footprint
+        # page and its yearly collector. Optional; long tail can be
+        # filled in over time.
+        edit_website = st.text_input(
+            "Website (owned & operated URL)",
+            value=ch.get("website") or "",
+            placeholder="https://www.example.com/en/",
+            help="Canonical landing page used by the Digital Footprint "
+                 "collector for sitemap, headers and CrUX lookups. "
+                 "Use the locale-specific URL when available.",
+        )
+        edit_wiki_slug = st.text_input(
+            "Wikipedia slug (en.wikipedia.org)",
+            value=ch.get("wikipedia_slug") or "",
+            placeholder="Juventus_FC",
+            help="The article slug (URL part after /wiki/). Used for "
+                 "language editions, article size and pageview signals.",
+        )
         c1, c2 = st.columns(2)
         with c1:
             edit_color = st.color_picker("Primary Color", value=ch.get("color") or "#636EFA")
@@ -114,6 +132,8 @@ def edit_channel_dialog(ch):
                 "sport": edit_sport,
                 "entity_type": edit_entity,
                 "country": edit_country,
+                "website": edit_website.strip() or None,
+                "wikipedia_slug": edit_wiki_slug.strip() or None,
                 "color": edit_color,
                 "color2": edit_color2,
                 "is_active": edit_active,
