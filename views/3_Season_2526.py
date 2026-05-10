@@ -2802,7 +2802,7 @@ else:
             [v for v in (vids or []) if _fmt_of(v) == "short"],
             key=lambda v: int(v.get("view_count") or 0),
             reverse=True,
-        )
+        )[:100]  # cap at top 100 — beyond that, ranks-by-views noise dominates
         if _shorts:
             _ranks, _dur, _custom_sd = [], [], []
             for i, v in enumerate(_shorts, 1):
@@ -2826,7 +2826,7 @@ else:
             ))
             fig_sd.update_layout(
                 title=dict(
-                    text=f"Season Shorts — duration of top hits ({len(_shorts)} videos, ranked by views)",
+                    text=f"Season Shorts — duration of top {len(_shorts)} hits (ranked by views)",
                     x=0, font=dict(color="#FAFAFA", size=14),
                 ),
                 xaxis=dict(
