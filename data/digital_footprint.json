@@ -1,12 +1,11 @@
 {
-  "generated_at": "2026-05-10T14:42:48.503614+00:00",
+  "generated_at": "2026-05-10T15:20:51.221324+00:00",
   "schema_version": 2,
-  "covered": 55,
+  "covered": 63,
   "skipped_no_website": [
     "AJ Auxerre",
     "OM",
     "Stade Brestois 29",
-    "ACF Fiorentina",
     "Girona FC",
     "RealOviedo",
     "Eintracht Frankfurt",
@@ -14,11 +13,11 @@
     "Paris FC",
     "VfB Stuttgart 1893",
     "Real Sociedad TV",
-    "Deportivo Alavés",
     "FC Metz",
     "FC St. Pauli",
     "Angers SCO",
     "Levante UD",
+    "Deportivo Alavés",
     "FC Nantes",
     "FCH ClubTV",
     "Rayo Vallecano de Madrid",
@@ -26,77 +25,24 @@
     "Official Brighton & Hove Albion FC",
     "Bayer 04 Leverkusen",
     "Crystal Palace FC",
-    "U.S. Sassuolo Calcio",
-    "Torino FC",
-    "Pisa Sporting Club",
-    "Genoa Cfc - Official",
     "1. FC Köln",
     "RCD Mallorca",
-    "Cagliari Calcio",
     "Racing Club de Strasbourg Alsace",
     "Elche Club de Fútbol 💚🌴",
     "HavreAthleticClub",
-    "Athletic Club",
-    "Udinese Calcio",
     "HSV",
+    "Athletic Club",
     "Leeds United Official",
     "FC Lorient",
     "Burnley Football Club",
     "Borussia Mönchengladbach",
     "Wolves",
     "RCD Espanyol de Barcelona",
-    "Bologna FC 1909",
     "Stade Rennais F.C. - Officiel",
     "Club Atlético Osasuna",
     "Getafe C.F."
   ],
   "channels": [
-    {
-      "youtube_channel_id": "UCmXYW3bOFMz1CmqYRAnpVUw",
-      "name": "US Cremonese",
-      "handle": "@uscremonese1903",
-      "league": "Serie A",
-      "country": "IT",
-      "entity_type": "Club",
-      "website": "https://www.uscremonese.it/en/",
-      "domain": "uscremonese.it",
-      "wikipedia_slug": "U.S._Cremonese",
-      "domain_first_year": null,
-      "http": {
-        "cdn": "Unknown",
-        "security_headers_present": 0,
-        "security_headers_max": 6,
-        "hsts": false,
-        "final_url": "https://uscremonese.it/en/"
-      },
-      "sitemap": {
-        "pages": 4446,
-        "locales": null,
-        "locale_list": []
-      },
-      "wikipedia": {
-        "langs": 45,
-        "article_kb": 24,
-        "pageviews_12mo": 54052
-      },
-      "ios_app": {
-        "present": false
-      },
-      "crux_phone": {
-        "error": "chrome ux report data not found"
-      },
-      "crux_desktop": {
-        "error": "chrome ux report data not found"
-      },
-      "crux_combined": {
-        "error": "chrome ux report data not found"
-      },
-      "psi": {
-        "a11y": 96,
-        "best_practices": 96,
-        "seo": 83
-      }
-    },
     {
       "youtube_channel_id": "UCCSgBfz78cc9JmIN7a7MCSg",
       "name": "Como 1907",
@@ -224,6 +170,52 @@
       }
     },
     {
+      "youtube_channel_id": "UCmXYW3bOFMz1CmqYRAnpVUw",
+      "name": "US Cremonese",
+      "handle": "@uscremonese1903",
+      "league": "Serie A",
+      "country": "IT",
+      "entity_type": "Club",
+      "website": "https://uscremonese.it/",
+      "domain": "uscremonese.it",
+      "wikipedia_slug": "U.S._Cremonese",
+      "domain_first_year": null,
+      "http": {
+        "cdn": "Unknown",
+        "security_headers_present": 0,
+        "security_headers_max": 6,
+        "hsts": false,
+        "final_url": "https://uscremonese.it/"
+      },
+      "sitemap": {
+        "pages": 4447,
+        "locales": null,
+        "locale_list": []
+      },
+      "wikipedia": {
+        "langs": 45,
+        "article_kb": 24,
+        "pageviews_12mo": 54052
+      },
+      "ios_app": {
+        "present": false
+      },
+      "crux_phone": {
+        "error": "chrome ux report data not found"
+      },
+      "crux_desktop": {
+        "error": "chrome ux report data not found"
+      },
+      "crux_combined": {
+        "error": "chrome ux report data not found"
+      },
+      "psi": {
+        "a11y": 89,
+        "best_practices": 96,
+        "seo": 92
+      }
+    },
+    {
       "youtube_channel_id": "UC_atVJpGbIdjIa9OC6E3yJA",
       "name": "SC Freiburg",
       "handle": "@scfreiburg",
@@ -314,7 +306,7 @@
         "final_url": "https://www.valenciacf.com/home"
       },
       "sitemap": {
-        "pages": 2756,
+        "pages": 2759,
         "locales": 3,
         "locale_list": [
           "en",
@@ -456,7 +448,7 @@
       "website": "https://www.ogcnice.com/en/",
       "domain": "ogcnice.com",
       "wikipedia_slug": "OGC_Nice",
-      "domain_first_year": null,
+      "domain_first_year": 2000,
       "http": {
         "cdn": "Unknown",
         "security_headers_present": 0,
@@ -537,7 +529,7 @@
         "final_url": "https://www.juventus.com/en/"
       },
       "sitemap": {
-        "pages": 1198,
+        "pages": 774,
         "locales": 2,
         "locale_list": [
           "en",
@@ -595,78 +587,6 @@
       }
     },
     {
-      "youtube_channel_id": "UCkzCjdRMrW2vXLx8mvPVLdQ",
-      "name": "Man City",
-      "handle": "@mancity",
-      "league": "Premier League",
-      "country": "EN",
-      "entity_type": "Club",
-      "website": "https://www.mancity.com/",
-      "domain": "mancity.com",
-      "wikipedia_slug": "Manchester_City_F.C.",
-      "domain_first_year": null,
-      "http": {
-        "cdn": "Cloudflare",
-        "security_headers_present": 5,
-        "security_headers_max": 6,
-        "hsts": true,
-        "final_url": "https://www.mancity.com/"
-      },
-      "sitemap": {
-        "pages": null,
-        "locales": null,
-        "locale_list": []
-      },
-      "wikipedia": {
-        "langs": 108,
-        "article_kb": 177,
-        "pageviews_12mo": 3910322
-      },
-      "ios_app": {
-        "present": true,
-        "name": "Manchester City Official App",
-        "developer": "Manchester City FC Ltd",
-        "version": "5.10.0",
-        "first_release": "2011-02-01",
-        "last_update": "2026-04-29",
-        "rating": 4.5195,
-        "rating_count": 564,
-        "size_mb": 212.8,
-        "languages": 1,
-        "language_list": [
-          "EN"
-        ],
-        "min_os": "15.0",
-        "price": "Free"
-      },
-      "crux_phone": {
-        "lcp_p75": 3828.0,
-        "fcp_p75": 2793.0,
-        "inp_p75": 321.0,
-        "cls_p75": 0.0011,
-        "ttfb_p75": 1362.0
-      },
-      "crux_desktop": {
-        "lcp_p75": 2194.0,
-        "fcp_p75": 1388.0,
-        "inp_p75": 114.0,
-        "cls_p75": 0.0004,
-        "ttfb_p75": 709.0
-      },
-      "crux_combined": {
-        "lcp_p75": 3428.0,
-        "fcp_p75": 2475.0,
-        "inp_p75": 278.0,
-        "cls_p75": 0.001,
-        "ttfb_p75": 1230.0
-      },
-      "psi": {
-        "a11y": 93,
-        "best_practices": 77,
-        "seo": 92
-      }
-    },
-    {
       "youtube_channel_id": "UCU2PacFf99vhb3hNiYDmxww",
       "name": "Chelsea Football Club",
       "handle": "@chelseafc",
@@ -685,7 +605,7 @@
         "final_url": "https://www.chelseafc.com/en"
       },
       "sitemap": {
-        "pages": 30954,
+        "pages": 30955,
         "locales": 1,
         "locale_list": [
           "en"
@@ -959,7 +879,7 @@
       },
       "psi": {
         "a11y": 87,
-        "best_practices": 100,
+        "best_practices": 96,
         "seo": 85
       }
     },
@@ -973,7 +893,7 @@
       "website": "https://www.newcastleunited.com/",
       "domain": "newcastleunited.com",
       "wikipedia_slug": "Newcastle_United_F.C.",
-      "domain_first_year": 1999,
+      "domain_first_year": null,
       "http": {
         "cdn": "Cloudflare",
         "security_headers_present": 2,
@@ -1047,7 +967,7 @@
       "website": "https://www.ligue1.com/",
       "domain": "ligue1.com",
       "wikipedia_slug": "Ligue_1",
-      "domain_first_year": null,
+      "domain_first_year": 2004,
       "http": {
         "cdn": "Unknown",
         "security_headers_present": 0,
@@ -1180,7 +1100,7 @@
       "website": "https://www.fulhamfc.com/",
       "domain": "fulhamfc.com",
       "wikipedia_slug": "Fulham_F.C.",
-      "domain_first_year": null,
+      "domain_first_year": 2001,
       "http": {
         "cdn": "CloudFront",
         "security_headers_present": 0,
@@ -1252,7 +1172,7 @@
       "website": "https://www.fcbarcelona.com/en/",
       "domain": "fcbarcelona.com",
       "wikipedia_slug": "FC_Barcelona",
-      "domain_first_year": 1998,
+      "domain_first_year": null,
       "http": {
         "cdn": "CloudFront",
         "security_headers_present": 1,
@@ -1261,7 +1181,7 @@
         "final_url": "https://www.fcbarcelona.com/en/"
       },
       "sitemap": {
-        "pages": 2061,
+        "pages": 2041,
         "locales": 1,
         "locale_list": [
           "en"
@@ -1317,6 +1237,67 @@
         "a11y": 72,
         "best_practices": 73,
         "seo": 92
+      }
+    },
+    {
+      "youtube_channel_id": "UCkZwB4IGoNBvRmVT2gaO4XA",
+      "name": "RB Leipzig",
+      "handle": "@rbleipzig",
+      "league": "Bundesliga",
+      "country": "DE",
+      "entity_type": "Club",
+      "website": "https://rbleipzig.com/en/",
+      "domain": "rbleipzig.com",
+      "wikipedia_slug": "RB_Leipzig",
+      "domain_first_year": null,
+      "http": {
+        "cdn": "Unknown",
+        "security_headers_present": 1,
+        "security_headers_max": 6,
+        "hsts": true,
+        "final_url": "https://rbleipzig.com/en"
+      },
+      "sitemap": {
+        "pages": null,
+        "locales": null,
+        "locale_list": []
+      },
+      "wikipedia": {
+        "langs": 70,
+        "article_kb": 304,
+        "pageviews_12mo": 896834
+      },
+      "ios_app": {
+        "present": true,
+        "name": "RB Leipzig",
+        "developer": "RasenBallsport Leipzig GmbH",
+        "version": "3.1.13",
+        "first_release": "2019-03-26",
+        "last_update": "2026-04-08",
+        "rating": 4.70284,
+        "rating_count": 1410,
+        "size_mb": 61.6,
+        "languages": 2,
+        "language_list": [
+          "EN",
+          "DE"
+        ],
+        "min_os": "17.0",
+        "price": "Gratis"
+      },
+      "crux_phone": {
+        "error": "chrome ux report data not found"
+      },
+      "crux_desktop": {
+        "error": "chrome ux report data not found"
+      },
+      "crux_combined": {
+        "error": "chrome ux report data not found"
+      },
+      "psi": {
+        "a11y": 89,
+        "best_practices": 96,
+        "seo": 100
       }
     },
     {
@@ -1381,67 +1362,6 @@
         "a11y": 88,
         "best_practices": 92,
         "seo": 92
-      }
-    },
-    {
-      "youtube_channel_id": "UCkZwB4IGoNBvRmVT2gaO4XA",
-      "name": "RB Leipzig",
-      "handle": "@rbleipzig",
-      "league": "Bundesliga",
-      "country": "DE",
-      "entity_type": "Club",
-      "website": "https://rbleipzig.com/en/",
-      "domain": "rbleipzig.com",
-      "wikipedia_slug": "RB_Leipzig",
-      "domain_first_year": null,
-      "http": {
-        "cdn": "Unknown",
-        "security_headers_present": 1,
-        "security_headers_max": 6,
-        "hsts": true,
-        "final_url": "https://rbleipzig.com/en"
-      },
-      "sitemap": {
-        "pages": null,
-        "locales": null,
-        "locale_list": []
-      },
-      "wikipedia": {
-        "langs": 70,
-        "article_kb": 304,
-        "pageviews_12mo": 896834
-      },
-      "ios_app": {
-        "present": true,
-        "name": "RB Leipzig",
-        "developer": "RasenBallsport Leipzig GmbH",
-        "version": "3.1.13",
-        "first_release": "2019-03-26",
-        "last_update": "2026-04-08",
-        "rating": 4.70284,
-        "rating_count": 1410,
-        "size_mb": 61.6,
-        "languages": 2,
-        "language_list": [
-          "EN",
-          "DE"
-        ],
-        "min_os": "17.0",
-        "price": "Gratis"
-      },
-      "crux_phone": {
-        "error": "chrome ux report data not found"
-      },
-      "crux_desktop": {
-        "error": "chrome ux report data not found"
-      },
-      "crux_combined": {
-        "error": "chrome ux report data not found"
-      },
-      "psi": {
-        "a11y": 89,
-        "best_practices": 96,
-        "seo": 100
       }
     },
     {
@@ -1547,7 +1467,7 @@
         "final_url": "https://www.asroma.com/en"
       },
       "sitemap": {
-        "pages": 1602,
+        "pages": 1605,
         "locales": 2,
         "locale_list": [
           "en",
@@ -1675,6 +1595,128 @@
         "a11y": 93,
         "best_practices": 96,
         "seo": 92
+      }
+    },
+    {
+      "youtube_channel_id": "UCok6j2Pw2VsM-QYP_bmwU6g",
+      "name": "U.S. Sassuolo Calcio",
+      "handle": "@sassuolocalcio",
+      "league": "Serie A",
+      "country": "IT",
+      "entity_type": "Club",
+      "website": "https://www.sassuolocalcio.it/en/",
+      "domain": "sassuolocalcio.it",
+      "wikipedia_slug": "U.S._Sassuolo_Calcio",
+      "domain_first_year": null,
+      "http": {
+        "cdn": "Unknown",
+        "security_headers_present": 1,
+        "security_headers_max": 6,
+        "hsts": true,
+        "final_url": "https://www.sassuolocalcio.it/en/"
+      },
+      "sitemap": {
+        "pages": 2855,
+        "locales": 1,
+        "locale_list": [
+          "en"
+        ]
+      },
+      "wikipedia": {
+        "langs": 65,
+        "article_kb": 38,
+        "pageviews_12mo": 54389
+      },
+      "ios_app": {
+        "present": false
+      },
+      "crux_phone": {
+        "lcp_p75": 3706.0,
+        "fcp_p75": 3403.0,
+        "inp_p75": 133.0,
+        "cls_p75": 0.0,
+        "ttfb_p75": 2886.0
+      },
+      "crux_desktop": {
+        "lcp_p75": 3716.0,
+        "fcp_p75": 3265.0,
+        "inp_p75": 46.0,
+        "cls_p75": 0.0011,
+        "ttfb_p75": 2937.0
+      },
+      "crux_combined": {
+        "lcp_p75": 3700.0,
+        "fcp_p75": 3375.0,
+        "inp_p75": 117.0,
+        "cls_p75": 0.0001,
+        "ttfb_p75": 2891.0
+      },
+      "psi": {
+        "a11y": 78,
+        "best_practices": 100,
+        "seo": 85
+      }
+    },
+    {
+      "youtube_channel_id": "UCsx5PLguyc68a_PoIwWJCEg",
+      "name": "Pisa Sporting Club",
+      "handle": "@pisasportingclub",
+      "league": "Serie A",
+      "country": "IT",
+      "entity_type": "Club",
+      "website": "https://pisasportingclub.com/en/",
+      "domain": "pisasportingclub.com",
+      "wikipedia_slug": "Pisa_S.C._1909",
+      "domain_first_year": null,
+      "http": {
+        "cdn": "Cloudflare",
+        "security_headers_present": 1,
+        "security_headers_max": 6,
+        "hsts": true,
+        "final_url": "https://pisasportingclub.com/en/"
+      },
+      "sitemap": {
+        "pages": 9943,
+        "locales": 1,
+        "locale_list": [
+          "en"
+        ]
+      },
+      "wikipedia": {
+        "langs": null,
+        "article_kb": null,
+        "pageviews_12mo": 0
+      },
+      "ios_app": {
+        "present": true,
+        "name": "Pisa Sporting Club",
+        "developer": "Origin Solutions",
+        "version": "2.0",
+        "first_release": "2024-08-09",
+        "last_update": "2024-10-28",
+        "rating": 4.07692,
+        "rating_count": 13,
+        "size_mb": 23.4,
+        "languages": 1,
+        "language_list": [
+          "EN"
+        ],
+        "min_os": "13.4",
+        "price": "Gratis"
+      },
+      "crux_phone": {
+        "error": "chrome ux report data not found"
+      },
+      "crux_desktop": {
+        "error": "chrome ux report data not found"
+      },
+      "crux_combined": {
+        "error": "chrome ux report data not found"
+      },
+      "psi": {
+        "a11y": 87,
+        "best_practices": 73,
+        "seo": 85
       }
     },
     {
@@ -1969,7 +2011,9 @@
         "ttfb_p75": 527.0
       },
       "psi": {
-        "error": "Lighthouse returned error: FAILED_DOCUMENT_REQUEST. Lighthouse was unable to rel"
+        "a11y": 96,
+        "best_practices": 100,
+        "seo": 100
       }
     },
     {
@@ -2062,6 +2106,52 @@
       "psi": {
         "a11y": 86,
         "best_practices": 100,
+        "seo": 92
+      }
+    },
+    {
+      "youtube_channel_id": "UCcFYiZvNtDbvVak3wEj3usA",
+      "name": "Genoa Cfc - Official",
+      "handle": "@genoacfcofficial",
+      "league": "Serie A",
+      "country": "IT",
+      "entity_type": "Club",
+      "website": "https://genoacfc.it/",
+      "domain": "genoacfc.it",
+      "wikipedia_slug": "Genoa_CFC",
+      "domain_first_year": null,
+      "http": {
+        "cdn": "Unknown",
+        "security_headers_present": 0,
+        "security_headers_max": 6,
+        "hsts": false,
+        "final_url": "https://genoacfc.it/"
+      },
+      "sitemap": {
+        "pages": 2556,
+        "locales": null,
+        "locale_list": []
+      },
+      "wikipedia": {
+        "langs": 80,
+        "article_kb": 86,
+        "pageviews_12mo": 542980
+      },
+      "ios_app": {
+        "present": false
+      },
+      "crux_phone": {
+        "error": "chrome ux report data not found"
+      },
+      "crux_desktop": {
+        "error": "chrome ux report data not found"
+      },
+      "crux_combined": {
+        "error": "chrome ux report data not found"
+      },
+      "psi": {
+        "a11y": 93,
+        "best_practices": 96,
         "seo": 92
       }
     },
@@ -2355,7 +2445,7 @@
       },
       "psi": {
         "a11y": 75,
-        "best_practices": 54,
+        "best_practices": 77,
         "seo": 77
       }
     },
@@ -2369,7 +2459,7 @@
       "website": "https://www.arsenal.com/",
       "domain": "arsenal.com",
       "wikipedia_slug": "Arsenal_F.C.",
-      "domain_first_year": null,
+      "domain_first_year": 1997,
       "http": {
         "cdn": "Unknown",
         "security_headers_present": 2,
@@ -2503,6 +2593,79 @@
         "a11y": 69,
         "best_practices": 54,
         "seo": 92
+      }
+    },
+    {
+      "youtube_channel_id": "UCbz89vmhZ0uerNuVKxur9lA",
+      "name": "Udinese Calcio",
+      "handle": "@udinesecalcio",
+      "league": "Serie A",
+      "country": "IT",
+      "entity_type": "Club",
+      "website": "https://www.udinese.it/",
+      "domain": "udinese.it",
+      "wikipedia_slug": "Udinese_Calcio",
+      "domain_first_year": null,
+      "http": {
+        "cdn": "Unknown",
+        "security_headers_present": 0,
+        "security_headers_max": 6,
+        "hsts": false,
+        "final_url": "https://www.udinese.it/"
+      },
+      "sitemap": {
+        "pages": null,
+        "locales": null,
+        "locale_list": []
+      },
+      "wikipedia": {
+        "langs": 74,
+        "article_kb": 50,
+        "pageviews_12mo": 587785
+      },
+      "ios_app": {
+        "present": true,
+        "name": "Udinese Calcio App Ufficiale",
+        "developer": "UDINESE CALCIO SPA",
+        "version": "3.1.2",
+        "first_release": "2019-05-17",
+        "last_update": "2025-12-12",
+        "rating": 4.58824,
+        "rating_count": 17,
+        "size_mb": 68.7,
+        "languages": 2,
+        "language_list": [
+          "EN",
+          "IT"
+        ],
+        "min_os": "14.0",
+        "price": "Gratis"
+      },
+      "crux_phone": {
+        "lcp_p75": 1933.0,
+        "fcp_p75": 1551.0,
+        "inp_p75": 90.0,
+        "cls_p75": 0.0,
+        "ttfb_p75": 460.0
+      },
+      "crux_desktop": {
+        "lcp_p75": 1229.0,
+        "fcp_p75": 896.0,
+        "inp_p75": 35.0,
+        "cls_p75": 0.0001,
+        "ttfb_p75": 348.0
+      },
+      "crux_combined": {
+        "lcp_p75": 1897.0,
+        "fcp_p75": 1521.0,
+        "inp_p75": 85.0,
+        "cls_p75": 0.0,
+        "ttfb_p75": 456.0
+      },
+      "psi": {
+        "a11y": 93,
+        "best_practices": 96,
+        "seo": 91
       }
     },
     {
@@ -2877,7 +3040,7 @@
         "final_url": "https://www.tottenhamhotspur.com/"
       },
       "sitemap": {
-        "pages": 795,
+        "pages": 576,
         "locales": 1,
         "locale_list": [
           "kr"
@@ -2934,6 +3097,80 @@
       }
     },
     {
+      "youtube_channel_id": "UC9nwpWq73kl4e2a51d1aCog",
+      "name": "ACF Fiorentina",
+      "handle": "@fiorentinaofficial",
+      "league": "Serie A",
+      "country": "IT",
+      "entity_type": "Club",
+      "website": "https://www.acffiorentina.com/en",
+      "domain": "acffiorentina.com",
+      "wikipedia_slug": "ACF_Fiorentina",
+      "domain_first_year": 2004,
+      "http": {
+        "cdn": "Unknown",
+        "security_headers_present": 1,
+        "security_headers_max": 6,
+        "hsts": false,
+        "final_url": "https://www.acffiorentina.com/en"
+      },
+      "sitemap": {
+        "pages": 3982,
+        "locales": 1,
+        "locale_list": [
+          "en"
+        ]
+      },
+      "wikipedia": {
+        "langs": 89,
+        "article_kb": 88,
+        "pageviews_12mo": 966125
+      },
+      "ios_app": {
+        "present": true,
+        "name": "Fiorentina Official App",
+        "developer": "ACF FIORENTINA",
+        "version": "2.2.1",
+        "first_release": "2020-10-05",
+        "last_update": "2026-04-30",
+        "rating": 4.45783,
+        "rating_count": 166,
+        "size_mb": 40.3,
+        "languages": 1,
+        "language_list": [
+          "EN"
+        ],
+        "min_os": "15.0",
+        "price": "Gratis"
+      },
+      "crux_phone": {
+        "lcp_p75": 2581.0,
+        "fcp_p75": 1919.0,
+        "inp_p75": 127.0,
+        "cls_p75": 0.0,
+        "ttfb_p75": 406.0
+      },
+      "crux_desktop": {
+        "lcp_p75": 1666.0,
+        "fcp_p75": 1083.0,
+        "inp_p75": 71.0,
+        "cls_p75": 0.0001,
+        "ttfb_p75": 340.0
+      },
+      "crux_combined": {
+        "lcp_p75": 2477.0,
+        "fcp_p75": 1827.0,
+        "inp_p75": 121.0,
+        "cls_p75": 0.0,
+        "ttfb_p75": 400.0
+      },
+      "psi": {
+        "a11y": 80,
+        "best_practices": 73,
+        "seo": 92
+      }
+    },
+    {
       "youtube_channel_id": "UCHy548EHHX9f-ETJlm18Jiw",
       "name": "AS MONACO",
       "handle": "@asmonaco",
@@ -2943,7 +3180,7 @@
       "website": "https://www.asmonaco.com/en/",
       "domain": "asmonaco.com",
       "wikipedia_slug": "AS_Monaco_FC",
-      "domain_first_year": null,
+      "domain_first_year": 2000,
       "http": {
         "cdn": "CloudFront",
         "security_headers_present": 0,
@@ -3027,6 +3264,151 @@
       }
     },
     {
+      "youtube_channel_id": "UCkzCjdRMrW2vXLx8mvPVLdQ",
+      "name": "Man City",
+      "handle": "@mancity",
+      "league": "Premier League",
+      "country": "EN",
+      "entity_type": "Club",
+      "website": "https://www.mancity.com/",
+      "domain": "mancity.com",
+      "wikipedia_slug": "Manchester_City_F.C.",
+      "domain_first_year": null,
+      "http": {
+        "cdn": "Cloudflare",
+        "security_headers_present": 5,
+        "security_headers_max": 6,
+        "hsts": true,
+        "final_url": "https://www.mancity.com/"
+      },
+      "sitemap": {
+        "pages": null,
+        "locales": null,
+        "locale_list": []
+      },
+      "wikipedia": {
+        "langs": 108,
+        "article_kb": 177,
+        "pageviews_12mo": 3910322
+      },
+      "ios_app": {
+        "present": true,
+        "name": "Manchester City Official App",
+        "developer": "Manchester City FC Ltd",
+        "version": "5.10.0",
+        "first_release": "2011-02-01",
+        "last_update": "2026-04-29",
+        "rating": 4.5195,
+        "rating_count": 564,
+        "size_mb": 212.8,
+        "languages": 1,
+        "language_list": [
+          "EN"
+        ],
+        "min_os": "15.0",
+        "price": "Free"
+      },
+      "crux_phone": {
+        "lcp_p75": 3828.0,
+        "fcp_p75": 2793.0,
+        "inp_p75": 321.0,
+        "cls_p75": 0.0011,
+        "ttfb_p75": 1362.0
+      },
+      "crux_desktop": {
+        "lcp_p75": 2194.0,
+        "fcp_p75": 1388.0,
+        "inp_p75": 114.0,
+        "cls_p75": 0.0004,
+        "ttfb_p75": 709.0
+      },
+      "crux_combined": {
+        "lcp_p75": 3428.0,
+        "fcp_p75": 2475.0,
+        "inp_p75": 278.0,
+        "cls_p75": 0.001,
+        "ttfb_p75": 1230.0
+      },
+      "psi": {
+        "a11y": 93,
+        "best_practices": 77,
+        "seo": 92
+      }
+    },
+    {
+      "youtube_channel_id": "UCWV3obpZVGgJ3j9FVhEjF2Q",
+      "name": "Real Madrid",
+      "handle": "@realmadrid",
+      "league": "La Liga",
+      "country": "ES",
+      "entity_type": "Club",
+      "website": "https://www.realmadrid.com/en",
+      "domain": "realmadrid.com",
+      "wikipedia_slug": "Real_Madrid_CF",
+      "domain_first_year": null,
+      "http": {
+        "cdn": "Akamai",
+        "security_headers_present": 1,
+        "security_headers_max": 6,
+        "hsts": true,
+        "final_url": "https://www.realmadrid.com/en"
+      },
+      "sitemap": {
+        "pages": null,
+        "locales": null,
+        "locale_list": []
+      },
+      "wikipedia": {
+        "langs": 136,
+        "article_kb": 263,
+        "pageviews_12mo": 5299865
+      },
+      "ios_app": {
+        "present": true,
+        "name": "Real Madrid",
+        "developer": "Real Madrid C.F.",
+        "version": "10.2.12",
+        "first_release": "2016-05-18",
+        "last_update": "2026-04-28",
+        "rating": 4.82479,
+        "rating_count": 2380,
+        "size_mb": 230.0,
+        "languages": 2,
+        "language_list": [
+          "EN",
+          "ES"
+        ],
+        "min_os": "16.6",
+        "price": "Gratis"
+      },
+      "crux_phone": {
+        "lcp_p75": 2411.0,
+        "fcp_p75": 1781.0,
+        "inp_p75": 156.0,
+        "cls_p75": 0.0014000000000000002,
+        "ttfb_p75": 881.0
+      },
+      "crux_desktop": {
+        "lcp_p75": 1537.0,
+        "fcp_p75": 1019.0,
+        "inp_p75": 73.0,
+        "cls_p75": 0.0016,
+        "ttfb_p75": 491.0
+      },
+      "crux_combined": {
+        "lcp_p75": 2351.0,
+        "fcp_p75": 1737.0,
+        "inp_p75": 151.0,
+        "cls_p75": 0.0014000000000000002,
+        "ttfb_p75": 861.0
+      },
+      "psi": {
+        "a11y": 82,
+        "best_practices": 96,
+        "seo": 92
+      }
+    },
+    {
       "youtube_channel_id": "UCTnCzHi0P6MH83er5OfZbzQ",
       "name": "SSCNapoli",
       "handle": "@sscnapoli",
@@ -3036,7 +3418,7 @@
       "website": "https://sscnapoli.it/en/",
       "domain": "sscnapoli.it",
       "wikipedia_slug": "SSC_Napoli",
-      "domain_first_year": null,
+      "domain_first_year": 2001,
       "http": {
         "cdn": "Cloudflare",
         "security_headers_present": 3,
@@ -3045,7 +3427,7 @@
         "final_url": "https://sscnapoli.it/en/"
       },
       "sitemap": {
-        "pages": 4404,
+        "pages": 6406,
         "locales": 1,
         "locale_list": [
           "en"
@@ -3085,8 +3467,71 @@
       },
       "psi": {
         "a11y": 92,
-        "best_practices": 96,
+        "best_practices": 92,
         "seo": 92
+      }
+    },
+    {
+      "youtube_channel_id": "UC0MLWyQ0L7uEZY8wbkDSTkw",
+      "name": "Villarreal CF",
+      "handle": "@villarrealcf",
+      "league": "La Liga",
+      "country": "ES",
+      "entity_type": "Club",
+      "website": "https://www.villarrealcf.es/en",
+      "domain": "villarrealcf.es",
+      "wikipedia_slug": "Villarreal_CF",
+      "domain_first_year": null,
+      "http": {
+        "cdn": "Unknown",
+        "security_headers_present": 1,
+        "security_headers_max": 6,
+        "hsts": false,
+        "final_url": "https://villarrealcf.es/en/"
+      },
+      "sitemap": {
+        "pages": 500,
+        "locales": 2,
+        "locale_list": [
+          "en",
+          "tv"
+        ]
+      },
+      "wikipedia": {
+        "langs": 78,
+        "article_kb": 65,
+        "pageviews_12mo": 924013
+      },
+      "ios_app": {
+        "present": true,
+        "name": "APV VILLAREAL C.F.",
+        "developer": "HEXAMOB S.L.",
+        "version": "2.0.664",
+        "first_release": "2020-11-16",
+        "last_update": "2021-01-27",
+        "rating": 3,
+        "rating_count": 2,
+        "size_mb": 36.3,
+        "languages": 1,
+        "language_list": [
+          "EN"
+        ],
+        "min_os": "11.0",
+        "price": "Gratis"
+      },
+      "crux_phone": {
+        "error": "chrome ux report data not found"
+      },
+      "crux_desktop": {
+        "error": "chrome ux report data not found"
+      },
+      "crux_combined": {
+        "error": "chrome ux report data not found"
+      },
+      "psi": {
+        "a11y": 87,
+        "best_practices": 92,
+        "seo": 77
       }
     },
     {
@@ -3099,7 +3544,7 @@
       "website": "https://www.liverpoolfc.com/",
       "domain": "liverpoolfc.com",
       "wikipedia_slug": "Liverpool_F.C.",
-      "domain_first_year": 2000,
+      "domain_first_year": null,
       "http": {
         "cdn": "CloudFront",
         "security_headers_present": 0,
@@ -3162,64 +3607,77 @@
       }
     },
     {
-      "youtube_channel_id": "UC0MLWyQ0L7uEZY8wbkDSTkw",
-      "name": "Villarreal CF",
-      "handle": "@villarrealcf",
-      "league": "La Liga",
-      "country": "ES",
+      "youtube_channel_id": "UCaUywe79ysewBvPXljIZ__w",
+      "name": "Bologna FC 1909",
+      "handle": "@siamobolognatv",
+      "league": "Serie A",
+      "country": "IT",
       "entity_type": "Club",
-      "website": "https://www.villarrealcf.es/en",
-      "domain": "villarrealcf.es",
-      "wikipedia_slug": "Villarreal_CF",
+      "website": "https://www.bolognafc.it/en/",
+      "domain": "bolognafc.it",
+      "wikipedia_slug": "Bologna_FC_1909",
       "domain_first_year": null,
       "http": {
-        "cdn": "Unknown",
-        "security_headers_present": 1,
+        "cdn": "Cloudflare",
+        "security_headers_present": 4,
         "security_headers_max": 6,
-        "hsts": false,
-        "final_url": "https://villarrealcf.es/en/"
+        "hsts": true,
+        "final_url": "https://www.bolognafc.it/en/home-3-2-2-2/"
       },
       "sitemap": {
-        "pages": 500,
-        "locales": 2,
+        "pages": 27166,
+        "locales": 1,
         "locale_list": [
-          "en",
-          "tv"
+          "en"
         ]
       },
       "wikipedia": {
-        "langs": 78,
-        "article_kb": 65,
-        "pageviews_12mo": 924013
+        "langs": 81,
+        "article_kb": 43,
+        "pageviews_12mo": 629889
       },
       "ios_app": {
         "present": true,
-        "name": "APV VILLAREAL C.F.",
-        "developer": "HEXAMOB S.L.",
-        "version": "2.0.664",
-        "first_release": "2020-11-16",
-        "last_update": "2021-01-27",
-        "rating": 3,
-        "rating_count": 2,
-        "size_mb": 36.3,
+        "name": "Bologna Fc 1909",
+        "developer": "Bologna f.c.",
+        "version": "2.1.5",
+        "first_release": "2019-12-05",
+        "last_update": "2026-02-27",
+        "rating": 3.71212,
+        "rating_count": 66,
+        "size_mb": 103.4,
         "languages": 1,
         "language_list": [
           "EN"
         ],
-        "min_os": "11.0",
+        "min_os": "15.6",
         "price": "Gratis"
       },
       "crux_phone": {
-        "error": "chrome ux report data not found"
+        "lcp_p75": 3220.0,
+        "fcp_p75": 2825.0,
+        "inp_p75": 148.0,
+        "cls_p75": 0.0002,
+        "ttfb_p75": 1453.0
       },
       "crux_desktop": {
-        "error": "chrome ux report data not found"
+        "lcp_p75": 2848.0,
+        "fcp_p75": 2532.0,
+        "inp_p75": 62.0,
+        "cls_p75": 0.0008,
+        "ttfb_p75": 1865.0
       },
       "crux_combined": {
-        "error": "chrome ux report data not found"
+        "lcp_p75": 3169.0,
+        "fcp_p75": 2784.0,
+        "inp_p75": 136.0,
+        "cls_p75": 0.0005,
+        "ttfb_p75": 1471.0
       },
       "psi": {
-        "error": "Lighthouse returned error: Something went wrong."
+        "a11y": 90,
+        "best_practices": 54,
+        "seo": 92
       }
     },
     {
@@ -3444,80 +3902,7 @@
       },
       "psi": {
         "a11y": 92,
-        "best_practices": 96,
-        "seo": 92
-      }
-    },
-    {
-      "youtube_channel_id": "UCWV3obpZVGgJ3j9FVhEjF2Q",
-      "name": "Real Madrid",
-      "handle": "@realmadrid",
-      "league": "La Liga",
-      "country": "ES",
-      "entity_type": "Club",
-      "website": "https://www.realmadrid.com/en",
-      "domain": "realmadrid.com",
-      "wikipedia_slug": "Real_Madrid_CF",
-      "domain_first_year": null,
-      "http": {
-        "cdn": "Akamai",
-        "security_headers_present": 1,
-        "security_headers_max": 6,
-        "hsts": true,
-        "final_url": "https://www.realmadrid.com/en"
-      },
-      "sitemap": {
-        "pages": null,
-        "locales": null,
-        "locale_list": []
-      },
-      "wikipedia": {
-        "langs": 136,
-        "article_kb": 263,
-        "pageviews_12mo": 5299865
-      },
-      "ios_app": {
-        "present": true,
-        "name": "Real Madrid",
-        "developer": "Real Madrid C.F.",
-        "version": "10.2.12",
-        "first_release": "2016-05-18",
-        "last_update": "2026-04-28",
-        "rating": 4.82479,
-        "rating_count": 2380,
-        "size_mb": 230.0,
-        "languages": 2,
-        "language_list": [
-          "EN",
-          "ES"
-        ],
-        "min_os": "16.6",
-        "price": "Gratis"
-      },
-      "crux_phone": {
-        "lcp_p75": 2411.0,
-        "fcp_p75": 1781.0,
-        "inp_p75": 156.0,
-        "cls_p75": 0.0014000000000000002,
-        "ttfb_p75": 881.0
-      },
-      "crux_desktop": {
-        "lcp_p75": 1537.0,
-        "fcp_p75": 1019.0,
-        "inp_p75": 73.0,
-        "cls_p75": 0.0016,
-        "ttfb_p75": 491.0
-      },
-      "crux_combined": {
-        "lcp_p75": 2351.0,
-        "fcp_p75": 1737.0,
-        "inp_p75": 151.0,
-        "cls_p75": 0.0014000000000000002,
-        "ttfb_p75": 861.0
-      },
-      "psi": {
-        "a11y": 82,
-        "best_practices": 96,
+        "best_practices": 77,
         "seo": 92
       }
     },
@@ -3578,6 +3963,68 @@
       }
     },
     {
+      "youtube_channel_id": "UCKPvGWyCL62gKy-i_Fz_CJA",
+      "name": "Cagliari Calcio",
+      "handle": "@cagliaricalciotv",
+      "league": "Serie A",
+      "country": "IT",
+      "entity_type": "Club",
+      "website": "https://cagliaricalcio.com/en/",
+      "domain": "cagliaricalcio.com",
+      "wikipedia_slug": "Cagliari_Calcio",
+      "domain_first_year": null,
+      "http": {
+        "cdn": "Unknown",
+        "security_headers_present": 1,
+        "security_headers_max": 6,
+        "hsts": false,
+        "final_url": "https://cagliaricalcio.com/en/"
+      },
+      "sitemap": {
+        "pages": 4120,
+        "locales": 1,
+        "locale_list": [
+          "en"
+        ]
+      },
+      "wikipedia": {
+        "langs": 74,
+        "article_kb": 50,
+        "pageviews_12mo": 482672
+      },
+      "ios_app": {
+        "present": true,
+        "name": "Cagliari Calcio",
+        "developer": "HashtagBe",
+        "version": "5.0.21",
+        "first_release": "2011-06-08",
+        "last_update": "2026-04-22",
+        "rating": 3.68254,
+        "rating_count": 63,
+        "size_mb": 82.0,
+        "languages": 1,
+        "language_list": [
+          "EN"
+        ],
+        "min_os": "16.0",
+        "price": "Gratis"
+      },
+      "crux_phone": {
+        "error": "chrome ux report data not found"
+      },
+      "crux_desktop": {
+        "error": "chrome ux report data not found"
+      },
+      "crux_combined": {
+        "error": "chrome ux report data not found"
+      },
+      "psi": {
+        "a11y": 86,
+        "best_practices": 100,
+        "seo": 100
+      }
+    },
+    {
       "youtube_channel_id": "UCuzKFwdh7z2GHcIOX_tXgxA",
       "name": "Atlético de Madrid",
       "handle": "@atleticodemadrid",
@@ -3587,7 +4034,7 @@
       "website": "https://en.atleticodemadrid.com/",
       "domain": "en.atleticodemadrid.com",
       "wikipedia_slug": "Atlético_Madrid",
-      "domain_first_year": null,
+      "domain_first_year": 2016,
       "http": {
         "cdn": "Cloudflare",
         "security_headers_present": 2,
@@ -3639,6 +4086,80 @@
       }
     },
     {
+      "youtube_channel_id": "UCD-Q9QNPEmhrxyZb2yn3juA",
+      "name": "Torino FC",
+      "handle": "@torinofcofficial",
+      "league": "Serie A",
+      "country": "IT",
+      "entity_type": "Club",
+      "website": "https://www.torinofc.it/en/",
+      "domain": "torinofc.it",
+      "wikipedia_slug": "Torino_FC",
+      "domain_first_year": null,
+      "http": {
+        "cdn": "Unknown",
+        "security_headers_present": 2,
+        "security_headers_max": 6,
+        "hsts": false,
+        "final_url": "https://www.torinofc.it/en/"
+      },
+      "sitemap": {
+        "pages": null,
+        "locales": null,
+        "locale_list": []
+      },
+      "wikipedia": {
+        "langs": 78,
+        "article_kb": 84,
+        "pageviews_12mo": 435381
+      },
+      "ios_app": {
+        "present": true,
+        "name": "TorinoGranata.it",
+        "developer": "TC&C",
+        "version": "7.9.18",
+        "first_release": "2014-07-26",
+        "last_update": "2026-05-07",
+        "rating": 4.64614,
+        "rating_count": 520,
+        "size_mb": 44.1,
+        "languages": 3,
+        "language_list": [
+          "EN",
+          "IT",
+          "ES"
+        ],
+        "min_os": "13.0",
+        "price": "Gratis"
+      },
+      "crux_phone": {
+        "lcp_p75": 1356.0,
+        "fcp_p75": 1104.0,
+        "inp_p75": 105.0,
+        "cls_p75": 0.0,
+        "ttfb_p75": 619.0
+      },
+      "crux_desktop": {
+        "lcp_p75": 929.0,
+        "fcp_p75": 781.0,
+        "inp_p75": 46.0,
+        "cls_p75": 0.0012,
+        "ttfb_p75": 520.0
+      },
+      "crux_combined": {
+        "lcp_p75": 1302.0,
+        "fcp_p75": 1065.0,
+        "inp_p75": 97.0,
+        "cls_p75": 0.0001,
+        "ttfb_p75": 607.0
+      },
+      "psi": {
+        "a11y": 81,
+        "best_practices": 92,
+        "seo": 92
+      }
+    },
+    {
       "youtube_channel_id": "UCfdfDFNp50xLjAjD0TKOa4g",
       "name": "VfL Wolfsburg",
       "handle": "@vflwolfsburg",
@@ -3657,7 +4178,7 @@
         "final_url": "https://www.vfl-wolfsburg.de/en/"
       },
       "sitemap": {
-        "pages": 473,
+        "pages": 663,
         "locales": null,
         "locale_list": []
       },
@@ -3880,7 +4401,7 @@
         "final_url": "https://www.inter.it/en"
       },
       "sitemap": {
-        "pages": 814,
+        "pages": 812,
         "locales": 3,
         "locale_list": [
           "en",
@@ -3949,7 +4470,7 @@
       "website": "https://www.laliga.com/en-GB",
       "domain": "laliga.com",
       "wikipedia_slug": "La_Liga",
-      "domain_first_year": null,
+      "domain_first_year": 1998,
       "http": {
         "cdn": "Unknown",
         "security_headers_present": 3,
@@ -4008,7 +4529,7 @@
       },
       "psi": {
         "a11y": 89,
-        "best_practices": 73,
+        "best_practices": 96,
         "seo": 85
       }
     }
