@@ -202,26 +202,31 @@ day = picked if isinstance(picked, date) else default_day
 prev_day = day - timedelta(days=1)
 
 # ── AI commentary note (cached, computed by daily_refresh) ─────
-try:
-    from src import dashboard_cache as _dc
-    _note_row = _dc.read(db, "daily_note", day.isoformat())
-    if _note_row and _note_row.get("payload"):
-        _p = _note_row["payload"]
-        # Prefer pre-decorated HTML (with badge injection); fall back to
-        # the raw text for older cache rows that pre-date decoration.
-        _note_body = (_p.get("html") or _p.get("text") or "").strip()
-        if _note_body:
-            # Slightly faded for older dates so users know it's "as of that day"
-            _is_recent = (datetime.now(CET).date() - day).days <= 1
-            _color = "#cccccc" if _is_recent else "#888"
-            st.markdown(
-                f'<div style="font-style:italic;color:{_color};line-height:1.6;'
-                f'border-left:3px solid #636EFA;padding:6px 14px;margin:6px 0 16px 0">'
-                f'{_note_body}</div>',
-                unsafe_allow_html=True,
-            )
-except Exception:
-    pass  # never block the page on a missing/broken note
+# Z1 only — the note is a global "what happened across football
+# YouTube yesterday" summary; under a league/club filter the
+# commentary references clubs that aren't in scope and reads
+# misleading. Hide unless the user has the unfiltered view.
+if g_league is None and g_club is None:
+    try:
+        from src import dashboard_cache as _dc
+        _note_row = _dc.read(db, "daily_note", day.isoformat())
+        if _note_row and _note_row.get("payload"):
+            _p = _note_row["payload"]
+            # Prefer pre-decorated HTML (with badge injection); fall back to
+            # the raw text for older cache rows that pre-date decoration.
+            _note_body = (_p.get("html") or _p.get("text") or "").strip()
+            if _note_body:
+                # Slightly faded for older dates so users know it's "as of that day"
+                _is_recent = (datetime.now(CET).date() - day).days <= 1
+                _color = "#cccccc" if _is_recent else "#888"
+                st.markdown(
+                    f'<div style="font-style:italic;color:{_color};line-height:1.6;'
+                    f'border-left:3px solid #636EFA;padding:6px 14px;margin:6px 0 16px 0">'
+                    f'{_note_body}</div>',
+                    unsafe_allow_html=True,
+                )
+    except Exception:
+        pass  # never block the page on a missing/broken note
 
 day_iso = day.isoformat()
 prev_iso = prev_day.isoformat()
