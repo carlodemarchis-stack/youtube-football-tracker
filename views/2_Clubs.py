@@ -1281,10 +1281,11 @@ else:
         gcols[4].metric("Views Δ 30d", _sgn(v30))
         gcols[5].metric(f"Views {_since_label}", _sgn(vssn))
 
-    # ── Top + Latest video rows ─────────────────────────────────
-    # Two compact rows: the channel's all-time #1 video by views and
-    # its most recently published video. Click the thumbnail to open
-    # on YouTube. Cheap (1 row each from the videos table).
+    # ── Top + Top Season + Latest video rows ────────────────────
+    # Three compact rows: the channel's all-time #1 video by views, its
+    # current-season #1 by views, and its most recently published video.
+    # Click the thumbnail to open in the in-page popup. Cheap (1 row
+    # each from the videos table).
     try:
         # NB: db.get_top_videos is defined twice in database.py and the
         # second def (no channel_id kwarg) shadows the first. Use
@@ -1293,6 +1294,17 @@ else:
         _top_v = _top_rows[0] if _top_rows else None
     except Exception:
         _top_v = None
+    try:
+        # Season top-1 via the same helper Season Top uses — single
+        # channel_ids list, indexed query, fast.
+        _ssn_rows = db.get_top_season_videos(
+            channel_ids=[channel["id"]],
+            since=get_season_since(channel),
+            limit=1, order_by="view_count",
+        )
+        _top_season_v = _ssn_rows[0] if _ssn_rows else None
+    except Exception:
+        _top_season_v = None
     try:
         _latest_v = _cached_recent(db, limit=1, channel_ids=(channel["id"],))
         _latest_v = _latest_v[0] if _latest_v else None
@@ -1357,19 +1369,36 @@ else:
             f'</div></div></a>'
         )
 
-    if _top_v or _latest_v:
+    if _top_v or _top_season_v or _latest_v:
         # Render via components.html (raw iframe) to bypass Streamlit's
         # markdown post-processor — st.markdown was breaking the Top card
         # into separate stacked boxes (one card per inner div).
         # yt_popup_js intercepts clicks → opens the video in the parent
         # overlay player instead of a new tab (consistent with every
         # other video list on the site).
-        _cards_html = _video_row_html(_top_v, "🏆 Top Video") + _video_row_html(_latest_v, "🆕 Latest Video")
+        # Skip the Season card when it's the same video as All-Time Top
+        # (e.g. small channels whose biggest hit is from this season —
+        # showing both adds noise without insight).
+        _show_season = (
+            _top_season_v is not None
+            and (_top_v is None
+                 or _top_season_v.get("youtube_video_id") != _top_v.get("youtube_video_id"))
+        )
+        _cards_html = (
+            _video_row_html(_top_v, "🏆 Top Video")
+            + (_video_row_html(_top_season_v, "🌟 Top Season Video") if _show_season else "")
+            + _video_row_html(_latest_v, "🆕 Latest Video")
+        )
+        # Card height ~92px each + 10px margin = ~102px. 3 cards max → ~310px.
+        # Bump iframe height accordingly so the third card isn't clipped.
+        _n_cards = sum(1 for x in (_top_v,
+                                   _top_season_v if _show_season else None,
+                                   _latest_v) if x)
         components.html(
             f'<div style="font-family:\'Source Sans Pro\',sans-serif;color:#FAFAFA;">'
             f'{_cards_html}</div>'
             f'{yt_popup_js()}',
-            height=300,
+            height=max(110 * _n_cards + 20, 220),
             scrolling=False,
         )
 
