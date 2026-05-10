@@ -1,0 +1,1821 @@
+{
+  "generated_at": "2026-05-10T13:04:48.592636+00:00",
+  "schema_version": 1,
+  "clubs": [
+    {
+      "name": "Juventus",
+      "league": "Serie A",
+      "domain": "juventus.com",
+      "site": "https://www.juventus.com/en/",
+      "wiki": "Juventus_FC",
+      "app_query": "juventus",
+      "app_country": "it",
+      "domain_first_year": 2000,
+      "http": {
+        "cdn": "Akamai",
+        "security_headers_present": 1,
+        "security_headers_max": 6,
+        "hsts": true,
+        "final_url": "https://www.juventus.com/en/"
+      },
+      "sitemap": {
+        "pages": 1198,
+        "locales": 2,
+        "locale_list": [
+          "en",
+          "it"
+        ],
+        "sub_sitemaps": 14
+      },
+      "wikipedia": {
+        "langs": 119,
+        "article_kb": 234,
+        "pageviews_12mo": 1974410
+      },
+      "ios_app": {
+        "present": true,
+        "name": "Juventus",
+        "developer": "Juventus Football Club SpA",
+        "version": "4.14.0",
+        "first_release": "2015-08-18",
+        "last_update": "2026-02-09",
+        "rating": 3.375,
+        "rating_count": 1280,
+        "size_mb": 219.5,
+        "languages": 2,
+        "language_list": [
+          "EN",
+          "IT"
+        ],
+        "min_os": "14.0",
+        "price": "Gratis"
+      },
+      "crux_phone": {
+        "lcp_p75": 2112.0,
+        "fcp_p75": 1820.0,
+        "inp_p75": 164.0,
+        "cls_p75": 0.0008,
+        "ttfb_p75": 739.0
+      },
+      "crux_desktop": {
+        "lcp_p75": 1777.0,
+        "fcp_p75": 1067.0,
+        "inp_p75": 68.0,
+        "cls_p75": 0.0009,
+        "ttfb_p75": 692.0
+      },
+      "crux_combined": {
+        "lcp_p75": 2079.0,
+        "fcp_p75": 1741.0,
+        "inp_p75": 151.0,
+        "cls_p75": 0.0008,
+        "ttfb_p75": 734.0
+      },
+      "psi": {
+        "a11y": 93,
+        "best_practices": 100,
+        "seo": 92
+      }
+    },
+    {
+      "name": "Inter Milan",
+      "league": "Serie A",
+      "domain": "inter.it",
+      "site": "https://www.inter.it/en",
+      "wiki": "Inter_Milan",
+      "app_query": "inter milan official",
+      "app_country": "it",
+      "domain_first_year": 1996,
+      "http": {
+        "cdn": "Cloudflare",
+        "security_headers_present": 5,
+        "security_headers_max": 6,
+        "hsts": true,
+        "final_url": "https://www.inter.it/en"
+      },
+      "sitemap": {
+        "pages": 816,
+        "locales": 3,
+        "locale_list": [
+          "en",
+          "it",
+          "zh"
+        ],
+        "sub_sitemaps": 13
+      },
+      "wikipedia": {
+        "langs": 114,
+        "article_kb": 165,
+        "pageviews_12mo": 2486463
+      },
+      "ios_app": {
+        "present": true,
+        "name": "Inter Official App",
+        "developer": "F.C. Internazionale Milano S.p.A.",
+        "version": "2.3.0",
+        "first_release": "2017-09-27",
+        "last_update": "2026-04-08",
+        "rating": 4.13713,
+        "rating_count": 999,
+        "size_mb": 53.9,
+        "languages": 3,
+        "language_list": [
+          "EN",
+          "IT",
+          "ZH"
+        ],
+        "min_os": "17.0",
+        "price": "Gratis"
+      },
+      "crux_phone": {
+        "lcp_p75": 3717.0,
+        "fcp_p75": 1341.0,
+        "inp_p75": 419.0,
+        "cls_p75": 0.0043,
+        "ttfb_p75": 536.0
+      },
+      "crux_desktop": {
+        "lcp_p75": 2280.0,
+        "fcp_p75": 892.0,
+        "inp_p75": 176.0,
+        "cls_p75": 0.0029,
+        "ttfb_p75": 424.0
+      },
+      "crux_combined": {
+        "lcp_p75": 3551.0,
+        "fcp_p75": 1286.0,
+        "inp_p75": 374.0,
+        "cls_p75": 0.0042,
+        "ttfb_p75": 523.0
+      },
+      "psi": {
+        "a11y": 78,
+        "best_practices": 96,
+        "seo": 85
+      }
+    },
+    {
+      "name": "AC Milan",
+      "league": "Serie A",
+      "domain": "acmilan.com",
+      "site": "https://www.acmilan.com/en",
+      "wiki": "AC_Milan",
+      "app_query": "ac milan official",
+      "app_country": "it",
+      "domain_first_year": null,
+      "http": {
+        "cdn": "CloudFront",
+        "security_headers_present": 1,
+        "security_headers_max": 6,
+        "hsts": true,
+        "final_url": "https://www.acmilan.com/en"
+      },
+      "sitemap": {
+        "pages": 824,
+        "locales": 2,
+        "locale_list": [
+          "en",
+          "it"
+        ],
+        "sub_sitemaps": null
+      },
+      "wikipedia": {
+        "langs": 114,
+        "article_kb": 148,
+        "pageviews_12mo": 2030603
+      },
+      "ios_app": {
+        "present": true,
+        "name": "AC Milan Official App",
+        "developer": "AC Milan SpA",
+        "version": "1.3.10",
+        "first_release": "2019-08-16",
+        "last_update": "2025-12-09",
+        "rating": 4.48466,
+        "rating_count": 1304,
+        "size_mb": 110.6,
+        "languages": 2,
+        "language_list": [
+          "EN",
+          "IT"
+        ],
+        "min_os": "12.0",
+        "price": "Gratis"
+      },
+      "crux_phone": {
+        "lcp_p75": 4945.0,
+        "fcp_p75": 3677.0,
+        "inp_p75": 221.0,
+        "cls_p75": 0.0029,
+        "ttfb_p75": 2389.0
+      },
+      "crux_desktop": {
+        "lcp_p75": 5142.0,
+        "fcp_p75": 3353.0,
+        "inp_p75": 151.0,
+        "cls_p75": 0.0036,
+        "ttfb_p75": 2453.0
+      },
+      "crux_combined": {
+        "lcp_p75": 4973.0,
+        "fcp_p75": 3638.0,
+        "inp_p75": 207.0,
+        "cls_p75": 0.0031,
+        "ttfb_p75": 2392.0
+      },
+      "psi": {
+        "a11y": 83,
+        "best_practices": null,
+        "seo": 85
+      }
+    },
+    {
+      "name": "SSC Napoli",
+      "league": "Serie A",
+      "domain": "sscnapoli.it",
+      "site": "https://sscnapoli.it/en/",
+      "wiki": "SSC_Napoli",
+      "app_query": "ssc napoli",
+      "app_country": "it",
+      "domain_first_year": 2001,
+      "http": {
+        "cdn": "Cloudflare",
+        "security_headers_present": 3,
+        "security_headers_max": 6,
+        "hsts": true,
+        "final_url": "https://sscnapoli.it/en/"
+      },
+      "sitemap": {
+        "pages": 2404,
+        "locales": 1,
+        "locale_list": [
+          "en"
+        ],
+        "sub_sitemaps": 12
+      },
+      "wikipedia": {
+        "langs": 107,
+        "article_kb": 113,
+        "pageviews_12mo": 1676524
+      },
+      "ios_app": {
+        "present": true,
+        "name": "SSC Napoli - App ufficiale",
+        "developer": "SSC Napoli S.p.A.",
+        "version": "1.2.9",
+        "first_release": "2022-10-05",
+        "last_update": "2026-04-23",
+        "rating": 4.8224,
+        "rating_count": 8823,
+        "size_mb": 172.3,
+        "languages": 2,
+        "language_list": [
+          "EN",
+          "IT"
+        ],
+        "min_os": "13.0",
+        "price": "Gratis"
+      },
+      "crux_phone": {
+        "error": "chrome ux report data not found"
+      },
+      "crux_desktop": {
+        "error": "chrome ux report data not found"
+      },
+      "crux_combined": {
+        "error": "chrome ux report data not found"
+      },
+      "psi": {
+        "a11y": 92,
+        "best_practices": 92,
+        "seo": 92
+      }
+    },
+    {
+      "name": "AS Roma",
+      "league": "Serie A",
+      "domain": "asroma.com",
+      "site": "https://www.asroma.com/en",
+      "wiki": "AS_Roma",
+      "app_query": "as roma official",
+      "app_country": "it",
+      "domain_first_year": null,
+      "http": {
+        "cdn": "CloudFront",
+        "security_headers_present": 5,
+        "security_headers_max": 6,
+        "hsts": true,
+        "final_url": "https://www.asroma.com/en"
+      },
+      "sitemap": {
+        "pages": 1602,
+        "locales": 2,
+        "locale_list": [
+          "en",
+          "it"
+        ],
+        "sub_sitemaps": 284
+      },
+      "wikipedia": {
+        "langs": 96,
+        "article_kb": 141,
+        "pageviews_12mo": 1221191
+      },
+      "ios_app": {
+        "present": true,
+        "name": "AS Roma Mobile",
+        "developer": "A.S. Roma S.p.A.",
+        "version": "4.0.1",
+        "first_release": "2012-04-20",
+        "last_update": "2023-05-04",
+        "rating": 3.72848,
+        "rating_count": 151,
+        "size_mb": 18.9,
+        "languages": 2,
+        "language_list": [
+          "EN",
+          "IT"
+        ],
+        "min_os": "11.0",
+        "price": "Gratis"
+      },
+      "crux_phone": {
+        "lcp_p75": 1975.0,
+        "fcp_p75": 1277.0,
+        "inp_p75": 140.0,
+        "cls_p75": 0.0004,
+        "ttfb_p75": 559.0
+      },
+      "crux_desktop": {
+        "lcp_p75": 1384.0,
+        "fcp_p75": 824.0,
+        "inp_p75": 63.0,
+        "cls_p75": 0.0006,
+        "ttfb_p75": 434.0
+      },
+      "crux_combined": {
+        "lcp_p75": 1894.0,
+        "fcp_p75": 1207.0,
+        "inp_p75": 128.0,
+        "cls_p75": 0.0006,
+        "ttfb_p75": 543.0
+      },
+      "psi": {
+        "a11y": 72,
+        "best_practices": 92,
+        "seo": 92
+      }
+    },
+    {
+      "name": "Manchester United",
+      "league": "Premier League",
+      "domain": "manutd.com",
+      "site": "https://www.manutd.com/",
+      "wiki": "Manchester_United_F.C.",
+      "app_query": "manchester united",
+      "app_country": "gb",
+      "domain_first_year": null,
+      "http": {
+        "cdn": "Cloudflare",
+        "security_headers_present": 2,
+        "security_headers_max": 6,
+        "hsts": false,
+        "final_url": "https://www.manutd.com/en"
+      },
+      "sitemap": {
+        "pages": 100000,
+        "locales": 4,
+        "locale_list": [
+          "ar",
+          "en",
+          "ko",
+          "zh"
+        ],
+        "sub_sitemaps": 10
+      },
+      "wikipedia": {
+        "langs": 136,
+        "article_kb": 178,
+        "pageviews_12mo": 5703138
+      },
+      "ios_app": {
+        "present": true,
+        "name": "Manchester United Official App",
+        "developer": "Manchester United FC",
+        "version": "26.0.1",
+        "first_release": "2018-08-09",
+        "last_update": "2026-05-08",
+        "rating": 4.6176,
+        "rating_count": 43211,
+        "size_mb": 84.8,
+        "languages": 1,
+        "language_list": [
+          "EN"
+        ],
+        "min_os": "15.1",
+        "price": "Free"
+      },
+      "crux_phone": {
+        "lcp_p75": 4635.0,
+        "fcp_p75": 3110.0,
+        "inp_p75": 242.0,
+        "cls_p75": 0.0039000000000000003,
+        "ttfb_p75": 1712.0
+      },
+      "crux_desktop": {
+        "lcp_p75": 2403.0,
+        "fcp_p75": 1472.0,
+        "inp_p75": 81.0,
+        "cls_p75": 0.0027,
+        "ttfb_p75": 1021.0
+      },
+      "crux_combined": {
+        "lcp_p75": 4239.0,
+        "fcp_p75": 2840.0,
+        "inp_p75": 213.0,
+        "cls_p75": 0.0038,
+        "ttfb_p75": 1611.0
+      },
+      "psi": {
+        "a11y": 99,
+        "best_practices": 96,
+        "seo": 92
+      }
+    },
+    {
+      "name": "Manchester City",
+      "league": "Premier League",
+      "domain": "mancity.com",
+      "site": "https://www.mancity.com/",
+      "wiki": "Manchester_City_F.C.",
+      "app_query": "manchester city official",
+      "app_country": "gb",
+      "domain_first_year": null,
+      "http": {
+        "cdn": "Cloudflare",
+        "security_headers_present": 5,
+        "security_headers_max": 6,
+        "hsts": true,
+        "final_url": "https://www.mancity.com/"
+      },
+      "sitemap": {
+        "pages": null,
+        "locales": null,
+        "locale_list": [],
+        "sub_sitemaps": null
+      },
+      "wikipedia": {
+        "langs": 108,
+        "article_kb": 177,
+        "pageviews_12mo": 3910322
+      },
+      "ios_app": {
+        "present": true,
+        "name": "Manchester City Official App",
+        "developer": "Manchester City FC Ltd",
+        "version": "5.10.0",
+        "first_release": "2011-02-01",
+        "last_update": "2026-04-29",
+        "rating": 4.267,
+        "rating_count": 1206,
+        "size_mb": 212.8,
+        "languages": 1,
+        "language_list": [
+          "EN"
+        ],
+        "min_os": "15.0",
+        "price": "Free"
+      },
+      "crux_phone": {
+        "lcp_p75": 3828.0,
+        "fcp_p75": 2793.0,
+        "inp_p75": 321.0,
+        "cls_p75": 0.0011,
+        "ttfb_p75": 1362.0
+      },
+      "crux_desktop": {
+        "lcp_p75": 2194.0,
+        "fcp_p75": 1388.0,
+        "inp_p75": 114.0,
+        "cls_p75": 0.0004,
+        "ttfb_p75": 709.0
+      },
+      "crux_combined": {
+        "lcp_p75": 3428.0,
+        "fcp_p75": 2475.0,
+        "inp_p75": 278.0,
+        "cls_p75": 0.001,
+        "ttfb_p75": 1230.0
+      },
+      "psi": {
+        "a11y": 93,
+        "best_practices": 77,
+        "seo": 92
+      }
+    },
+    {
+      "name": "Liverpool FC",
+      "league": "Premier League",
+      "domain": "liverpoolfc.com",
+      "site": "https://www.liverpoolfc.com/",
+      "wiki": "Liverpool_F.C.",
+      "app_query": "liverpool fc official",
+      "app_country": "gb",
+      "domain_first_year": null,
+      "http": {
+        "cdn": "CloudFront",
+        "security_headers_present": 0,
+        "security_headers_max": 6,
+        "hsts": false,
+        "final_url": "https://www.liverpoolfc.com/"
+      },
+      "sitemap": {
+        "pages": 298,
+        "locales": null,
+        "locale_list": [],
+        "sub_sitemaps": null
+      },
+      "wikipedia": {
+        "langs": 122,
+        "article_kb": 131,
+        "pageviews_12mo": 4865261
+      },
+      "ios_app": {
+        "present": true,
+        "name": "The Official Liverpool FC App",
+        "developer": "Liverpool Football Club",
+        "version": "6.30.22",
+        "first_release": "2009-11-18",
+        "last_update": "2026-04-09",
+        "rating": 3.8847,
+        "rating_count": 902,
+        "size_mb": 128.6,
+        "languages": 1,
+        "language_list": [
+          "EN"
+        ],
+        "min_os": "16.0",
+        "price": "Free"
+      },
+      "crux_phone": {
+        "lcp_p75": 2700.0,
+        "fcp_p75": 2052.0,
+        "inp_p75": 201.0,
+        "cls_p75": 0.0012,
+        "ttfb_p75": 1547.0
+      },
+      "crux_desktop": {
+        "lcp_p75": 2128.0,
+        "fcp_p75": 1187.0,
+        "inp_p75": 93.0,
+        "cls_p75": 0.0007000000000000001,
+        "ttfb_p75": 958.0
+      },
+      "crux_combined": {
+        "lcp_p75": 2618.0,
+        "fcp_p75": 1926.0,
+        "inp_p75": 180.0,
+        "cls_p75": 0.0011,
+        "ttfb_p75": 1468.0
+      },
+      "psi": {
+        "a11y": 83,
+        "best_practices": 96,
+        "seo": 92
+      }
+    },
+    {
+      "name": "Chelsea FC",
+      "league": "Premier League",
+      "domain": "chelseafc.com",
+      "site": "https://www.chelseafc.com/en",
+      "wiki": "Chelsea_F.C.",
+      "app_query": "chelsea fc official",
+      "app_country": "gb",
+      "domain_first_year": null,
+      "http": {
+        "cdn": "Unknown",
+        "security_headers_present": 2,
+        "security_headers_max": 6,
+        "hsts": true,
+        "final_url": "https://www.chelseafc.com/en"
+      },
+      "sitemap": {
+        "pages": 30950,
+        "locales": 1,
+        "locale_list": [
+          "en"
+        ],
+        "sub_sitemaps": null
+      },
+      "wikipedia": {
+        "langs": 120,
+        "article_kb": 182,
+        "pageviews_12mo": 4994021
+      },
+      "ios_app": {
+        "present": true,
+        "name": "Chelsea Official App",
+        "developer": "Chelsea Football Club",
+        "version": "3.0.9",
+        "first_release": "2018-07-30",
+        "last_update": "2026-04-21",
+        "rating": 4.68703,
+        "rating_count": 7298,
+        "size_mb": 117.9,
+        "languages": 1,
+        "language_list": [
+          "EN"
+        ],
+        "min_os": "16.0",
+        "price": "Free"
+      },
+      "crux_phone": {
+        "lcp_p75": 3986.0,
+        "fcp_p75": 2987.0,
+        "inp_p75": 183.0,
+        "cls_p75": 0.0097,
+        "ttfb_p75": 1038.0
+      },
+      "crux_desktop": {
+        "lcp_p75": 1578.0,
+        "fcp_p75": 1089.0,
+        "inp_p75": 74.0,
+        "cls_p75": 0.0067,
+        "ttfb_p75": 360.0
+      },
+      "crux_combined": {
+        "lcp_p75": 3525.0,
+        "fcp_p75": 2614.0,
+        "inp_p75": 157.0,
+        "cls_p75": 0.0091,
+        "ttfb_p75": 914.0
+      },
+      "psi": {
+        "a11y": 93,
+        "best_practices": 92,
+        "seo": 100
+      }
+    },
+    {
+      "name": "Arsenal",
+      "league": "Premier League",
+      "domain": "arsenal.com",
+      "site": "https://www.arsenal.com/",
+      "wiki": "Arsenal_F.C.",
+      "app_query": "arsenal official",
+      "app_country": "gb",
+      "domain_first_year": null,
+      "http": {
+        "cdn": "Unknown",
+        "security_headers_present": 2,
+        "security_headers_max": 6,
+        "hsts": true,
+        "final_url": "https://www.arsenal.com/"
+      },
+      "sitemap": {
+        "pages": 1388,
+        "locales": null,
+        "locale_list": [],
+        "sub_sitemaps": 5
+      },
+      "wikipedia": {
+        "langs": 119,
+        "article_kb": 179,
+        "pageviews_12mo": 4865549
+      },
+      "ios_app": {
+        "present": true,
+        "name": "The Arsenal: Official App",
+        "developer": "Arsenal Football Club PLC",
+        "version": "12.6.14",
+        "first_release": "2009-10-15",
+        "last_update": "2026-04-27",
+        "rating": 2.64461,
+        "rating_count": 408,
+        "size_mb": 86.1,
+        "languages": 1,
+        "language_list": [
+          "EN"
+        ],
+        "min_os": "15.1",
+        "price": "Free"
+      },
+      "crux_phone": {
+        "lcp_p75": 2635.0,
+        "fcp_p75": 2005.0,
+        "inp_p75": 247.0,
+        "cls_p75": 0.0004,
+        "ttfb_p75": 822.0
+      },
+      "crux_desktop": {
+        "lcp_p75": 1413.0,
+        "fcp_p75": 881.0,
+        "inp_p75": 63.0,
+        "cls_p75": 0.0021,
+        "ttfb_p75": 400.0
+      },
+      "crux_combined": {
+        "lcp_p75": 2308.0,
+        "fcp_p75": 1702.0,
+        "inp_p75": 195.0,
+        "cls_p75": 0.0005,
+        "ttfb_p75": 724.0
+      },
+      "psi": {
+        "error": "Lighthouse returned error: Something went wrong."
+      }
+    },
+    {
+      "name": "Real Madrid",
+      "league": "La Liga",
+      "domain": "realmadrid.com",
+      "site": "https://www.realmadrid.com/en",
+      "wiki": "Real_Madrid_CF",
+      "app_query": "real madrid",
+      "app_country": "es",
+      "domain_first_year": null,
+      "http": {
+        "cdn": "Akamai",
+        "security_headers_present": 1,
+        "security_headers_max": 6,
+        "hsts": true,
+        "final_url": "https://www.realmadrid.com/en"
+      },
+      "sitemap": {
+        "pages": null,
+        "locales": null,
+        "locale_list": [],
+        "sub_sitemaps": null
+      },
+      "wikipedia": {
+        "langs": 136,
+        "article_kb": 263,
+        "pageviews_12mo": 5299865
+      },
+      "ios_app": {
+        "present": true,
+        "name": "Real Madrid",
+        "developer": "Real Madrid C.F.",
+        "version": "10.2.12",
+        "first_release": "2016-05-18",
+        "last_update": "2026-04-28",
+        "rating": 4.82479,
+        "rating_count": 2380,
+        "size_mb": 230.0,
+        "languages": 2,
+        "language_list": [
+          "EN",
+          "ES"
+        ],
+        "min_os": "16.6",
+        "price": "Gratis"
+      },
+      "crux_phone": {
+        "lcp_p75": 2411.0,
+        "fcp_p75": 1781.0,
+        "inp_p75": 156.0,
+        "cls_p75": 0.0014000000000000002,
+        "ttfb_p75": 881.0
+      },
+      "crux_desktop": {
+        "lcp_p75": 1537.0,
+        "fcp_p75": 1019.0,
+        "inp_p75": 73.0,
+        "cls_p75": 0.0016,
+        "ttfb_p75": 491.0
+      },
+      "crux_combined": {
+        "lcp_p75": 2351.0,
+        "fcp_p75": 1737.0,
+        "inp_p75": 151.0,
+        "cls_p75": 0.0014000000000000002,
+        "ttfb_p75": 861.0
+      },
+      "psi": {
+        "a11y": 82,
+        "best_practices": 96,
+        "seo": 92
+      }
+    },
+    {
+      "name": "FC Barcelona",
+      "league": "La Liga",
+      "domain": "fcbarcelona.com",
+      "site": "https://www.fcbarcelona.com/en/",
+      "wiki": "FC_Barcelona",
+      "app_query": "fc barcelona",
+      "app_country": "es",
+      "domain_first_year": null,
+      "http": {
+        "cdn": "CloudFront",
+        "security_headers_present": 1,
+        "security_headers_max": 6,
+        "hsts": true,
+        "final_url": "https://www.fcbarcelona.com/en/"
+      },
+      "sitemap": {
+        "pages": 2042,
+        "locales": 1,
+        "locale_list": [
+          "en"
+        ],
+        "sub_sitemaps": 6
+      },
+      "wikipedia": {
+        "langs": 143,
+        "article_kb": 231,
+        "pageviews_12mo": 4849687
+      },
+      "ios_app": {
+        "present": true,
+        "name": "FC Barcelona Oficial",
+        "developer": "FCBarcelona",
+        "version": "7.3.0",
+        "first_release": "2009-12-16",
+        "last_update": "2026-04-20",
+        "rating": 4.70576,
+        "rating_count": 7069,
+        "size_mb": 150.4,
+        "languages": 4,
+        "language_list": [
+          "CA",
+          "EN",
+          "FR",
+          "ES"
+        ],
+        "min_os": "16.0",
+        "price": "Gratis"
+      },
+      "crux_phone": {
+        "lcp_p75": 3143.0,
+        "fcp_p75": 2403.0,
+        "inp_p75": 211.0,
+        "cls_p75": 0.0008,
+        "ttfb_p75": 1255.0
+      },
+      "crux_desktop": {
+        "lcp_p75": 1863.0,
+        "fcp_p75": 1433.0,
+        "inp_p75": 87.0,
+        "cls_p75": 0.0002,
+        "ttfb_p75": 936.0
+      },
+      "crux_combined": {
+        "lcp_p75": 2832.0,
+        "fcp_p75": 2134.0,
+        "inp_p75": 181.0,
+        "cls_p75": 0.0008,
+        "ttfb_p75": 1187.0
+      },
+      "psi": {
+        "a11y": 72,
+        "best_practices": 73,
+        "seo": 92
+      }
+    },
+    {
+      "name": "Atletico Madrid",
+      "league": "La Liga",
+      "domain": "atleticodemadrid.com",
+      "site": "https://en.atleticodemadrid.com/",
+      "wiki": "Atlético_Madrid",
+      "app_query": "atletico de madrid",
+      "app_country": "es",
+      "domain_first_year": null,
+      "http": {
+        "cdn": "Cloudflare",
+        "security_headers_present": 2,
+        "security_headers_max": 6,
+        "hsts": false,
+        "final_url": "https://en.atleticodemadrid.com/"
+      },
+      "sitemap": {
+        "pages": 10469,
+        "locales": null,
+        "locale_list": [],
+        "sub_sitemaps": 6
+      },
+      "wikipedia": {
+        "langs": 102,
+        "article_kb": 154,
+        "pageviews_12mo": 1939639
+      },
+      "ios_app": {
+        "present": true,
+        "name": "Atlético de Madrid App Oficial",
+        "developer": "Club Atlético de Madrid S.A.D.",
+        "version": "6.29.4",
+        "first_release": "2013-05-16",
+        "last_update": "2026-03-06",
+        "rating": 3.87544,
+        "rating_count": 281,
+        "size_mb": 62.5,
+        "languages": 2,
+        "language_list": [
+          "EN",
+          "ES"
+        ],
+        "min_os": "15.0",
+        "price": "Gratis"
+      },
+      "crux_phone": {
+        "lcp_p75": 1576.0,
+        "fcp_p75": 1381.0,
+        "inp_p75": 166.0,
+        "cls_p75": 0.0003,
+        "ttfb_p75": 805.0
+      },
+      "crux_desktop": {
+        "lcp_p75": 1195.0,
+        "fcp_p75": 1061.0,
+        "inp_p75": 72.0,
+        "cls_p75": 0.0007000000000000001,
+        "ttfb_p75": 679.0
+      },
+      "crux_combined": {
+        "lcp_p75": 1515.0,
+        "fcp_p75": 1332.0,
+        "inp_p75": 153.0,
+        "cls_p75": 0.0003,
+        "ttfb_p75": 786.0
+      },
+      "psi": {
+        "a11y": 88,
+        "best_practices": 54,
+        "seo": 83
+      }
+    },
+    {
+      "name": "Sevilla FC",
+      "league": "La Liga",
+      "domain": "sevillafc.es",
+      "site": "https://www.sevillafc.es/en",
+      "wiki": "Sevilla_FC",
+      "app_query": "sevilla fc",
+      "app_country": "es",
+      "domain_first_year": null,
+      "http": {
+        "cdn": "CloudFront",
+        "security_headers_present": 3,
+        "security_headers_max": 6,
+        "hsts": true,
+        "final_url": "https://sevillafc.es/en"
+      },
+      "sitemap": {
+        "pages": 1,
+        "locales": null,
+        "locale_list": [],
+        "sub_sitemaps": null
+      },
+      "wikipedia": {
+        "langs": 85,
+        "article_kb": 140,
+        "pageviews_12mo": 926567
+      },
+      "ios_app": {
+        "present": true,
+        "name": "Sevilla FC - App Oficial",
+        "developer": "Sevilla Fútbol Club",
+        "version": "4.2.2",
+        "first_release": "2016-10-06",
+        "last_update": "2026-03-26",
+        "rating": 4.70278,
+        "rating_count": 3129,
+        "size_mb": 56.3,
+        "languages": 1,
+        "language_list": [
+          "EN"
+        ],
+        "min_os": "18.0",
+        "price": "Gratis"
+      },
+      "crux_phone": {
+        "error": "chrome ux report data not found"
+      },
+      "crux_desktop": {
+        "error": "chrome ux report data not found"
+      },
+      "crux_combined": {
+        "lcp_p75": 2605.0,
+        "fcp_p75": 1689.0,
+        "inp_p75": 91.0,
+        "cls_p75": 0.0004,
+        "ttfb_p75": 260.0
+      },
+      "psi": {
+        "a11y": 88,
+        "best_practices": 92,
+        "seo": 92
+      }
+    },
+    {
+      "name": "Real Betis",
+      "league": "La Liga",
+      "domain": "realbetisbalompie.es",
+      "site": "https://www.realbetisbalompie.es/en",
+      "wiki": "Real_Betis",
+      "app_query": "real betis",
+      "app_country": "es",
+      "domain_first_year": null,
+      "http": {
+        "cdn": "Unknown",
+        "security_headers_present": 4,
+        "security_headers_max": 6,
+        "hsts": true,
+        "final_url": "https://www.realbetisbalompie.es/en"
+      },
+      "sitemap": {
+        "pages": null,
+        "locales": null,
+        "locale_list": []
+      },
+      "wikipedia": {
+        "langs": 76,
+        "article_kb": 89,
+        "pageviews_12mo": 1198439
+      },
+      "ios_app": {
+        "present": true,
+        "name": "Real Betis Balompié",
+        "developer": "REAL BETIS BALOMPIE, SOCIEDAD ANONIMA DEPORTIVA",
+        "version": "5.2.8",
+        "first_release": "2018-09-19",
+        "last_update": "2026-02-10",
+        "rating": 3.50694,
+        "rating_count": 144,
+        "size_mb": 75.7,
+        "languages": 8,
+        "language_list": [
+          "EU",
+          "EN",
+          "GL",
+          "PT",
+          "ZH",
+          "ES",
+          "TH",
+          "TR"
+        ],
+        "min_os": "14.0",
+        "price": "Gratis"
+      },
+      "crux_phone": {
+        "lcp_p75": 2082.0,
+        "fcp_p75": 1026.0,
+        "inp_p75": 190.0,
+        "cls_p75": 0.0005,
+        "ttfb_p75": 543.0
+      },
+      "crux_desktop": {
+        "lcp_p75": 1275.0,
+        "fcp_p75": 609.0,
+        "inp_p75": 77.0,
+        "cls_p75": 0.0016,
+        "ttfb_p75": 331.0
+      },
+      "crux_combined": {
+        "lcp_p75": 2003.0,
+        "fcp_p75": 980.0,
+        "inp_p75": 178.0,
+        "cls_p75": 0.0007000000000000001,
+        "ttfb_p75": 521.0
+      },
+      "psi": {
+        "error": "Lighthouse returned error: NO_FCP. The page did not paint any content. Please en"
+      }
+    },
+    {
+      "name": "Bayern Munich",
+      "league": "Bundesliga",
+      "domain": "fcbayern.com",
+      "site": "https://fcbayern.com/en",
+      "wiki": "FC_Bayern_Munich",
+      "app_query": "fc bayern",
+      "app_country": "de",
+      "domain_first_year": 1997,
+      "http": {
+        "cdn": "?",
+        "security_headers_present": null,
+        "security_headers_max": 6
+      },
+      "sitemap": {
+        "pages": null,
+        "locales": null,
+        "locale_list": []
+      },
+      "wikipedia": {
+        "langs": 115,
+        "article_kb": 198,
+        "pageviews_12mo": 2644033
+      },
+      "ios_app": {
+        "present": true,
+        "name": "FC Bayern München",
+        "developer": "FC Bayern Muenchen AG",
+        "version": "8.6.0",
+        "first_release": "2010-08-18",
+        "last_update": "2026-04-29",
+        "rating": 4.71366,
+        "rating_count": 10753,
+        "size_mb": 193.8,
+        "languages": 3,
+        "language_list": [
+          "EN",
+          "DE",
+          "ES"
+        ],
+        "min_os": "16.6",
+        "price": "Gratis"
+      },
+      "crux_phone": {
+        "error": "chrome ux report data not found"
+      },
+      "crux_desktop": {
+        "error": "chrome ux report data not found"
+      },
+      "crux_combined": {
+        "error": "chrome ux report data not found"
+      },
+      "psi": {
+        "a11y": 97,
+        "best_practices": 100,
+        "seo": 100
+      }
+    },
+    {
+      "name": "Borussia Dortmund",
+      "league": "Bundesliga",
+      "domain": "bvb.de",
+      "site": "https://www.bvb.de/eng",
+      "wiki": "Borussia_Dortmund",
+      "app_query": "bvb",
+      "app_country": "de",
+      "domain_first_year": null,
+      "http": {
+        "cdn": "Cloudflare",
+        "security_headers_present": 3,
+        "security_headers_max": 6,
+        "hsts": true,
+        "final_url": "https://www.bvb.de/de/en.html"
+      },
+      "sitemap": {
+        "pages": null,
+        "locales": null,
+        "locale_list": []
+      },
+      "wikipedia": {
+        "langs": 96,
+        "article_kb": 139,
+        "pageviews_12mo": 1480266
+      },
+      "ios_app": {
+        "present": true,
+        "name": "BVB",
+        "developer": "Borussia Dortmund GmbH & Co. KG auf Aktien",
+        "version": "5.3.5",
+        "first_release": "2022-01-26",
+        "last_update": "2026-05-07",
+        "rating": 4.71164,
+        "rating_count": 37045,
+        "size_mb": 82.2,
+        "languages": 2,
+        "language_list": [
+          "EN",
+          "DE"
+        ],
+        "min_os": "17.0",
+        "price": "Gratis"
+      },
+      "crux_phone": {
+        "lcp_p75": 2145.0,
+        "fcp_p75": 1712.0,
+        "inp_p75": 123.0,
+        "cls_p75": 0.0013,
+        "ttfb_p75": 771.0
+      },
+      "crux_desktop": {
+        "lcp_p75": 2043.0,
+        "fcp_p75": 1395.0,
+        "inp_p75": 49.0,
+        "cls_p75": 0.005699999999999999,
+        "ttfb_p75": 1158.0
+      },
+      "crux_combined": {
+        "lcp_p75": 2164.0,
+        "fcp_p75": 1688.0,
+        "inp_p75": 113.0,
+        "cls_p75": 0.0015,
+        "ttfb_p75": 821.0
+      },
+      "psi": {
+        "a11y": 95,
+        "best_practices": 77,
+        "seo": 100
+      }
+    },
+    {
+      "name": "RB Leipzig",
+      "league": "Bundesliga",
+      "domain": "rbleipzig.com",
+      "site": "https://rbleipzig.com/en/",
+      "wiki": "RB_Leipzig",
+      "app_query": "rb leipzig",
+      "app_country": "de",
+      "domain_first_year": 2009,
+      "http": {
+        "cdn": "Unknown",
+        "security_headers_present": 1,
+        "security_headers_max": 6,
+        "hsts": true,
+        "final_url": "https://rbleipzig.com/en"
+      },
+      "sitemap": {
+        "pages": null,
+        "locales": null,
+        "locale_list": [],
+        "sub_sitemaps": null
+      },
+      "wikipedia": {
+        "langs": 70,
+        "article_kb": 304,
+        "pageviews_12mo": 896834
+      },
+      "ios_app": {
+        "present": true,
+        "name": "RB Leipzig",
+        "developer": "RasenBallsport Leipzig GmbH",
+        "version": "3.1.13",
+        "first_release": "2019-03-26",
+        "last_update": "2026-04-08",
+        "rating": 4.70157,
+        "rating_count": 1404,
+        "size_mb": 61.6,
+        "languages": 2,
+        "language_list": [
+          "EN",
+          "DE"
+        ],
+        "min_os": "17.0",
+        "price": "Gratis"
+      },
+      "crux_phone": {
+        "error": "chrome ux report data not found"
+      },
+      "crux_desktop": {
+        "error": "chrome ux report data not found"
+      },
+      "crux_combined": {
+        "error": "chrome ux report data not found"
+      },
+      "psi": {
+        "a11y": 89,
+        "best_practices": 96,
+        "seo": 100
+      }
+    },
+    {
+      "name": "Bayer Leverkusen",
+      "league": "Bundesliga",
+      "domain": "bayer04.de",
+      "site": "https://www.bayer04.de/en",
+      "wiki": "Bayer_04_Leverkusen",
+      "app_query": "bayer 04",
+      "app_country": "de",
+      "domain_first_year": null,
+      "http": {
+        "cdn": "Unknown",
+        "security_headers_present": 3,
+        "security_headers_max": 6,
+        "hsts": true,
+        "final_url": "https://www.bayer04.de/en"
+      },
+      "sitemap": {
+        "pages": 36967,
+        "locales": null,
+        "locale_list": [],
+        "sub_sitemaps": null
+      },
+      "wikipedia": {
+        "langs": 86,
+        "article_kb": 68,
+        "pageviews_12mo": 1489804
+      },
+      "ios_app": {
+        "present": true,
+        "name": "Bayer 04 Leverkusen",
+        "developer": "Bayer 04 Leverkusen Fussball GmbH",
+        "version": "8.4.6",
+        "first_release": "2011-08-03",
+        "last_update": "2026-04-28",
+        "rating": 4.675,
+        "rating_count": 120,
+        "size_mb": 65.9,
+        "languages": 2,
+        "language_list": [
+          "EN",
+          "DE"
+        ],
+        "min_os": "15.0",
+        "price": "Gratis"
+      },
+      "crux_phone": {
+        "lcp_p75": 1251.0,
+        "fcp_p75": 912.0,
+        "inp_p75": 93.0,
+        "cls_p75": 0.0005,
+        "ttfb_p75": 504.0
+      },
+      "crux_desktop": {
+        "lcp_p75": 1281.0,
+        "fcp_p75": 879.0,
+        "inp_p75": 47.0,
+        "cls_p75": 0.002,
+        "ttfb_p75": 478.0
+      },
+      "crux_combined": {
+        "lcp_p75": 1260.0,
+        "fcp_p75": 910.0,
+        "inp_p75": 87.0,
+        "cls_p75": 0.0006,
+        "ttfb_p75": 501.0
+      },
+      "psi": {
+        "a11y": 84,
+        "best_practices": 96,
+        "seo": 75
+      }
+    },
+    {
+      "name": "Eintracht Frankfurt",
+      "league": "Bundesliga",
+      "domain": "eintracht.de",
+      "site": "https://www.eintracht.de/en/",
+      "wiki": "Eintracht_Frankfurt",
+      "app_query": "eintracht frankfurt",
+      "app_country": "de",
+      "domain_first_year": null,
+      "http": {
+        "cdn": "Netlify",
+        "security_headers_present": 1,
+        "security_headers_max": 6,
+        "hsts": true,
+        "final_url": "https://www.eintracht.de/en/"
+      },
+      "sitemap": {
+        "pages": 25,
+        "locales": null,
+        "locale_list": [],
+        "sub_sitemaps": 1
+      },
+      "wikipedia": {
+        "langs": 101,
+        "article_kb": 87,
+        "pageviews_12mo": 852749
+      },
+      "ios_app": {
+        "present": true,
+        "name": "Eintracht Frankfurt Handball",
+        "developer": "Eintracht Frankfurt e. V.",
+        "version": "1.10.2",
+        "first_release": "2015-08-20",
+        "last_update": "2021-09-09",
+        "rating": 5,
+        "rating_count": 4,
+        "size_mb": 9.4,
+        "languages": 1,
+        "language_list": [
+          "DE"
+        ],
+        "min_os": "9.0",
+        "price": "Gratis"
+      },
+      "crux_phone": {
+        "lcp_p75": 3582.0,
+        "fcp_p75": 1159.0,
+        "inp_p75": 300.0,
+        "cls_p75": 0.0017000000000000001,
+        "ttfb_p75": 318.0
+      },
+      "crux_desktop": {
+        "lcp_p75": 3047.0,
+        "fcp_p75": 1040.0,
+        "inp_p75": 172.0,
+        "cls_p75": 0.0004,
+        "ttfb_p75": 337.0
+      },
+      "crux_combined": {
+        "lcp_p75": 3490.0,
+        "fcp_p75": 1167.0,
+        "inp_p75": 267.0,
+        "cls_p75": 0.0016,
+        "ttfb_p75": 320.0
+      },
+      "psi": {
+        "error": "Lighthouse returned error: Something went wrong."
+      }
+    },
+    {
+      "name": "Paris Saint-Germain",
+      "league": "Ligue 1",
+      "domain": "psg.fr",
+      "site": "https://en.psg.fr/",
+      "wiki": "Paris_Saint-Germain_F.C.",
+      "app_query": "psg official",
+      "app_country": "fr",
+      "domain_first_year": null,
+      "http": {
+        "cdn": "Cloudflare",
+        "security_headers_present": 6,
+        "security_headers_max": 6,
+        "hsts": true,
+        "final_url": "https://www.psg.fr/en"
+      },
+      "sitemap": {
+        "pages": 5831,
+        "locales": null,
+        "locale_list": [],
+        "sub_sitemaps": null
+      },
+      "wikipedia": {
+        "langs": 96,
+        "article_kb": 133,
+        "pageviews_12mo": 464381
+      },
+      "ios_app": {
+        "present": true,
+        "name": "PSG Officiel",
+        "developer": "PSG",
+        "version": "11.4.0",
+        "first_release": "2012-04-09",
+        "last_update": "2026-04-30",
+        "rating": 4.81311,
+        "rating_count": 8353,
+        "size_mb": 68.1,
+        "languages": 1,
+        "language_list": [
+          "EN"
+        ],
+        "min_os": "15.6",
+        "price": "Gratuit"
+      },
+      "crux_phone": {
+        "lcp_p75": 2806.0,
+        "fcp_p75": 1799.0,
+        "inp_p75": 146.0,
+        "cls_p75": 0.0,
+        "ttfb_p75": 846.0
+      },
+      "crux_desktop": {
+        "lcp_p75": 2246.0,
+        "fcp_p75": 1341.0,
+        "inp_p75": 76.0,
+        "cls_p75": 0.0001,
+        "ttfb_p75": 751.0
+      },
+      "crux_combined": {
+        "lcp_p75": 2700.0,
+        "fcp_p75": 1711.0,
+        "inp_p75": 130.0,
+        "cls_p75": 0.0,
+        "ttfb_p75": 828.0
+      },
+      "psi": {
+        "a11y": 87,
+        "best_practices": 92,
+        "seo": 85
+      }
+    },
+    {
+      "name": "Olympique de Marseille",
+      "league": "Ligue 1",
+      "domain": "om.fr",
+      "site": "https://www.om.fr/en",
+      "wiki": "Olympique_de_Marseille",
+      "app_query": "olympique marseille",
+      "app_country": "fr",
+      "domain_first_year": null,
+      "http": {
+        "cdn": "Vercel",
+        "security_headers_present": 1,
+        "security_headers_max": 6,
+        "hsts": true,
+        "final_url": "https://www.om.fr/en"
+      },
+      "sitemap": {
+        "pages": 7,
+        "locales": null,
+        "locale_list": [],
+        "sub_sitemaps": null
+      },
+      "wikipedia": {
+        "langs": 80,
+        "article_kb": 83,
+        "pageviews_12mo": 1230261
+      },
+      "ios_app": {
+        "present": true,
+        "name": "OM (Officiel)",
+        "developer": "OM Medias",
+        "version": "20.13.53",
+        "first_release": "2009-12-22",
+        "last_update": "2026-04-28",
+        "rating": 4.41176,
+        "rating_count": 102,
+        "size_mb": 143.5,
+        "languages": 13,
+        "language_list": [
+          "CS",
+          "NL",
+          "EN",
+          "FR",
+          "DE",
+          "EL",
+          "HU",
+          "IT",
+          "PT",
+          "RU",
+          "SR",
+          "ES",
+          "TR"
+        ],
+        "min_os": "17.6",
+        "price": "Gratuit"
+      },
+      "crux_phone": {
+        "lcp_p75": 1787.0,
+        "fcp_p75": 1199.0,
+        "inp_p75": 167.0,
+        "cls_p75": 0.0001,
+        "ttfb_p75": 468.0
+      },
+      "crux_desktop": {
+        "lcp_p75": 1750.0,
+        "fcp_p75": 941.0,
+        "inp_p75": 84.0,
+        "cls_p75": 0.0001,
+        "ttfb_p75": 324.0
+      },
+      "crux_combined": {
+        "lcp_p75": 1782.0,
+        "fcp_p75": 1147.0,
+        "inp_p75": 150.0,
+        "cls_p75": 0.0001,
+        "ttfb_p75": 442.0
+      },
+      "psi": {
+        "a11y": 96,
+        "best_practices": 96,
+        "seo": 92
+      }
+    },
+    {
+      "name": "Olympique Lyonnais",
+      "league": "Ligue 1",
+      "domain": "ol.fr",
+      "site": "https://www.ol.fr/en",
+      "wiki": "Olympique_Lyonnais",
+      "app_query": "ol lyon",
+      "app_country": "fr",
+      "domain_first_year": null,
+      "http": {
+        "cdn": "Unknown",
+        "security_headers_present": 1,
+        "security_headers_max": 6,
+        "hsts": true,
+        "final_url": "https://www.ol.fr/en"
+      },
+      "sitemap": {
+        "pages": 1286,
+        "locales": 2,
+        "locale_list": [
+          "en",
+          "fr"
+        ],
+        "sub_sitemaps": 123
+      },
+      "wikipedia": {
+        "langs": 77,
+        "article_kb": 80,
+        "pageviews_12mo": 1105039
+      },
+      "ios_app": {
+        "present": true,
+        "name": "OLPLAY - Olympique Lyonnais",
+        "developer": "OLYMPIQUE LYONNAIS",
+        "version": "3.7.8",
+        "first_release": "2018-09-25",
+        "last_update": "2025-04-15",
+        "rating": 4.54887,
+        "rating_count": 1115,
+        "size_mb": 112.4,
+        "languages": 2,
+        "language_list": [
+          "EN",
+          "FR"
+        ],
+        "min_os": "12.0",
+        "price": "Gratuit"
+      },
+      "crux_phone": {
+        "lcp_p75": 3741.0,
+        "fcp_p75": 1948.0,
+        "inp_p75": 176.0,
+        "cls_p75": 0.01,
+        "ttfb_p75": 529.0
+      },
+      "crux_desktop": {
+        "lcp_p75": 3194.0,
+        "fcp_p75": 1310.0,
+        "inp_p75": 94.0,
+        "cls_p75": 0.005699999999999999,
+        "ttfb_p75": 337.0
+      },
+      "crux_combined": {
+        "lcp_p75": 3676.0,
+        "fcp_p75": 1854.0,
+        "inp_p75": 161.0,
+        "cls_p75": 0.0096,
+        "ttfb_p75": 503.0
+      },
+      "psi": {
+        "a11y": 87,
+        "best_practices": 96,
+        "seo": 85
+      }
+    },
+    {
+      "name": "AS Monaco",
+      "league": "Ligue 1",
+      "domain": "asmonaco.com",
+      "site": "https://www.asmonaco.com/en/",
+      "wiki": "AS_Monaco_FC",
+      "app_query": "as monaco",
+      "app_country": "fr",
+      "domain_first_year": null,
+      "http": {
+        "cdn": "CloudFront",
+        "security_headers_present": 0,
+        "security_headers_max": 6,
+        "hsts": false,
+        "final_url": "https://www.asmonaco.com/en/"
+      },
+      "sitemap": {
+        "pages": 23747,
+        "locales": 8,
+        "locale_list": [
+          "cn",
+          "en",
+          "es",
+          "fr",
+          "it",
+          "mc",
+          "mo",
+          "ru"
+        ],
+        "sub_sitemaps": 13
+      },
+      "wikipedia": {
+        "langs": 80,
+        "article_kb": 54,
+        "pageviews_12mo": 1109060
+      },
+      "ios_app": {
+        "present": true,
+        "name": "AS Monaco",
+        "developer": "AS Monaco FC SA",
+        "version": "6.5.12",
+        "first_release": "2013-02-25",
+        "last_update": "2026-03-23",
+        "rating": 4.04828,
+        "rating_count": 145,
+        "size_mb": 151.7,
+        "languages": 13,
+        "language_list": [
+          "CS",
+          "NL",
+          "EN",
+          "FR",
+          "DE",
+          "EL",
+          "HU",
+          "IT",
+          "PT",
+          "RU",
+          "SR",
+          "ES",
+          "TR"
+        ],
+        "min_os": "17.6",
+        "price": "Gratuit"
+      },
+      "crux_phone": {
+        "lcp_p75": 1838.0,
+        "fcp_p75": 1496.0,
+        "inp_p75": 194.0,
+        "cls_p75": 0.0,
+        "ttfb_p75": 1015.0
+      },
+      "crux_desktop": {
+        "lcp_p75": 1163.0,
+        "fcp_p75": 1012.0,
+        "inp_p75": 66.0,
+        "cls_p75": 0.0,
+        "ttfb_p75": 784.0
+      },
+      "crux_combined": {
+        "lcp_p75": 1670.0,
+        "fcp_p75": 1361.0,
+        "inp_p75": 168.0,
+        "cls_p75": 0.0,
+        "ttfb_p75": 933.0
+      },
+      "psi": {
+        "a11y": 89,
+        "best_practices": 96,
+        "seo": 92
+      }
+    },
+    {
+      "name": "Lille OSC",
+      "league": "Ligue 1",
+      "domain": "losc.fr",
+      "site": "https://www.losc.fr/en/",
+      "wiki": "LOSC_Lille",
+      "app_query": "losc lille",
+      "app_country": "fr",
+      "domain_first_year": null,
+      "http": {
+        "cdn": "Unknown",
+        "security_headers_present": 4,
+        "security_headers_max": 6,
+        "hsts": true,
+        "final_url": "https://www.losc.fr/en"
+      },
+      "sitemap": {
+        "pages": null,
+        "locales": null,
+        "locale_list": []
+      },
+      "wikipedia": {
+        "langs": 68,
+        "article_kb": 149,
+        "pageviews_12mo": 5126
+      },
+      "ios_app": {
+        "present": true,
+        "name": "LOSC",
+        "developer": "LOSC Lille Metropole",
+        "version": "6.3.85",
+        "first_release": "2010-05-14",
+        "last_update": "2025-10-30",
+        "rating": 4.48108,
+        "rating_count": 185,
+        "size_mb": 132.4,
+        "languages": 13,
+        "language_list": [
+          "CS",
+          "NL",
+          "EN",
+          "FR",
+          "DE",
+          "EL",
+          "HU",
+          "IT",
+          "PT",
+          "RU",
+          "SR",
+          "ES",
+          "TR"
+        ],
+        "min_os": "17.6",
+        "price": "Gratuit"
+      },
+      "crux_phone": {
+        "lcp_p75": 1474.0,
+        "fcp_p75": 1074.0,
+        "inp_p75": 176.0,
+        "cls_p75": 0.0,
+        "ttfb_p75": 469.0
+      },
+      "crux_desktop": {
+        "lcp_p75": 1200.0,
+        "fcp_p75": 690.0,
+        "inp_p75": 68.0,
+        "cls_p75": 0.0004,
+        "ttfb_p75": 343.0
+      },
+      "crux_combined": {
+        "lcp_p75": 1441.0,
+        "fcp_p75": 1007.0,
+        "inp_p75": 161.0,
+        "cls_p75": 0.0002,
+        "ttfb_p75": 446.0
+      },
+      "psi": {
+        "a11y": 85,
+        "best_practices": 92,
+        "seo": 77
+      }
+    }
+  ]
+}

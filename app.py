@@ -117,6 +117,7 @@ other_pages = [
 lab_pages = [
     st.Page("views/4b_Outliers.py", title="Outliers"),
     st.Page("views/16_Socials.py", title="Other Social"),
+    st.Page("views/16b_Digital_Footprint.py", title="Digital Footprint"),
 ]
 
 # Tier 2 — premium (promote users via User Management)
