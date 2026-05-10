@@ -1392,11 +1392,14 @@ else:
             + _video_row_html(_latest_v,     "🆕 Latest Video")
         )
         _n_cards = sum(1 for x in (_top_v, _top_season_v, _latest_v) if x)
+        # Each card: 200px thumb at 16:9 → 112px tall, + 20px padding +
+        # 2px border + 10px bottom margin ≈ 145px. Add a 20px iframe
+        # chrome buffer so the last card never clips.
         components.html(
             f'<div style="font-family:\'Source Sans Pro\',sans-serif;color:#FAFAFA;">'
             f'{_cards_html}</div>'
             f'{yt_popup_js()}',
-            height=max(110 * _n_cards + 20, 220),
+            height=145 * _n_cards + 20,
             scrolling=False,
         )
 
