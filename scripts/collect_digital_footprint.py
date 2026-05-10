@@ -90,8 +90,15 @@ TECH_PATTERNS = [
     # it; several clubs run native Contentful). Elevated to vendor
     # so the table surfaces it next to the specialists.
     ("Pulselive",     _re.compile(r"pulselive\.com|pulse\.football|cdn\.pulselive|data-pulse-|aws\.pulselive", _re.I), "vendor"),
-    ("Deltatre",      _re.compile(r"deltatre|deltatreId|dltforge|diva\.deltatre|dl4-platform|/forge/", _re.I),         "vendor"),
+    # Deltatre footprints: their CMS is Forge, their video player is
+    # Diva. Both appear as siteconfig:forge* keys, forgelibpath URLs,
+    # divavideos paths or DIVA_* feature flags in embedded JSON.
+    ("Deltatre",      _re.compile(r"deltatre|deltatreId|forgelibpath|siteconfig:forge|dltforge|divavideos|diva[._-]video|DIVA_VIDEO|/forge/", _re.I), "vendor"),
     ("Stadion",       _re.compile(r"stadion\.io|contentfulproxy\.stadion|dazn-stadion|stadion-app", _re.I),            "vendor"),
+    # InCrowd Sports — UK sport-tech (Crystal Palace, etc.). Merged
+    # with Cortex (data-feed sister company); grouping under same
+    # vendor since they're one entity now.
+    ("InCrowd",       _re.compile(r"incrowdsports\.com|incrowd\.io|cortextech\.io|cortex\.io", _re.I), "vendor"),
     ("Contentful",    _re.compile(r"contentful\.com|images\.ctfassets\.net|videos\.ctfassets\.net|assets\.ctfassets\.net|downloads\.ctfassets\.net", _re.I), "vendor"),
     # ── CMS / DXP ──────────────────────────────────────────
     ("AEM",           _re.compile(r"data-sly-|/etc\.clientlibs/|/content/dam/", _re.I),                       "cms"),

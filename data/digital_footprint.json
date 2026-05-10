@@ -857,11 +857,16 @@
         "seo": 92
       },
       "tech": {
-        "vendor": null,
+        "vendor": "Deltatre",
         "cms": null,
         "framework": null,
         "extras": [],
-        "evidence": []
+        "evidence": [
+          "Deltatre: …ame=\"siteconfig:forgelibpathsponsorb…"
+        ],
+        "vendor_chain": [
+          "Deltatre"
+        ]
       }
     },
     {
@@ -3008,12 +3013,16 @@
         "seo": 92
       },
       "tech": {
-        "vendor": null,
+        "vendor": "InCrowd",
         "cms": null,
         "framework": "Next.js",
         "extras": [],
         "evidence": [
+          "InCrowd: …-cdn.incrowdsports.com/89c425a9-ec63-…",
           "Next.js: …ref=\"/_next/static/css/d48c19d0e4…"
+        ],
+        "vendor_chain": [
+          "InCrowd"
         ]
       }
     },
@@ -3344,12 +3353,16 @@
         "error": "Lighthouse returned error: Something went wrong."
       },
       "tech": {
-        "vendor": null,
+        "vendor": "Deltatre",
         "cms": null,
         "framework": "Next.js",
         "extras": [],
         "evidence": [
+          "Deltatre: …MENT_DIVA_VIDEO\\\":false,\\\"FLAG…",
           "Next.js: …ref=\"/_next/static/chunks/webpack…"
+        ],
+        "vendor_chain": [
+          "Deltatre"
         ]
       }
     },
@@ -4677,13 +4690,17 @@
         "seo": 92
       },
       "tech": {
-        "vendor": null,
+        "vendor": "InCrowd",
         "cms": "Drupal",
         "framework": null,
         "extras": [],
         "evidence": [
           "<meta generator>: Drupal 10 (https://www.drupal.org)",
+          "InCrowd: …/pcb.incrowdsports.com\" /> <link rel=…",
           "Drupal: …ame=\"Generator\" content=\"Drupal 10 (https://ww…"
+        ],
+        "vendor_chain": [
+          "InCrowd"
         ]
       }
     },
@@ -5812,12 +5829,16 @@
         "seo": 100
       },
       "tech": {
-        "vendor": null,
+        "vendor": "InCrowd",
         "cms": null,
         "framework": "Nuxt",
         "extras": [],
         "evidence": [
+          "InCrowd: …-cdn.incrowdsports.com/587dc69f-71a5-…",
           "Nuxt: …ndow.__NUXT__={};window.__NU…"
+        ],
+        "vendor_chain": [
+          "InCrowd"
         ]
       }
     },
