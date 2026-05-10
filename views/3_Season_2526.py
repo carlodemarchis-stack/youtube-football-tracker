@@ -2549,7 +2549,15 @@ else:
         st.caption(f"(videos-per-day chart unavailable: {_e})")
 
     st.subheader("Monthly output")
-    col_m1, col_m2 = st.columns(2)
+
+    # Avg-views-per-video can't be stacked or summed across formats —
+    # each (fmt, month) cell is a ratio. Compute it explicitly here.
+    def _series_vpv(fmt):
+        v = _series(fmt, "views")
+        n = _series(fmt, "videos")
+        return [int(v[i] / n[i]) if n[i] else 0 for i in range(len(months))]
+
+    col_m1, col_m2, col_m3 = st.columns(3)
     with col_m1:
         fig_mviews = go.Figure()
         fig_mviews.add_trace(go.Bar(name="Long", x=months, y=_series("long", "views"), marker_color=LONG_COLOR))
@@ -2574,6 +2582,19 @@ else:
                              paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                              font=dict(color="#FAFAFA"))
         st.plotly_chart(fig_mv, use_container_width=True)
+    with col_m3:
+        # Grouped (not stacked) — averages don't aggregate.
+        fig_mvpv = go.Figure()
+        fig_mvpv.add_trace(go.Bar(name="Long", x=months, y=_series_vpv("long"), marker_color=LONG_COLOR))
+        fig_mvpv.add_trace(go.Bar(name="Shorts", x=months, y=_series_vpv("short"), marker_color=SHORT_COLOR))
+        if has_live:
+            fig_mvpv.add_trace(go.Bar(name="Live", x=months, y=_series_vpv("live"), marker_color=LIVE_COLOR))
+        fig_mvpv.update_layout(title="Avg Views/Video per Month", barmode="group",
+                               xaxis_title="", yaxis_title="", margin=dict(t=40, b=70),
+                               legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+                               paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                               font=dict(color="#FAFAFA"))
+        st.plotly_chart(fig_mvpv, use_container_width=True)
 
     # ── Publishing heatmap (day-of-week × hour, CET) ───────────
     # Reveals the club's editorial rhythm: when do they post highlights,
