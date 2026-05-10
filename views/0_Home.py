@@ -248,7 +248,7 @@ st.markdown(
     '<span style="color:#FFA15A;font-weight:600">🚧 Work in progress · pre-beta</span>'
     ' &nbsp;—&nbsp; this is an early build that will keep evolving. '
     'Bumps and rough edges are expected. '
-    '<a href="mailto:carlo@factory63.com?subject=YTFT%20feedback" '
+    '<a href="mailto:carlodemarchis@gmail.com?subject=YTFT%20feedback" '
     'style="color:#58A6FF;text-decoration:none">Let me know</a> '
     'if you find any issue.'
     '</div>',
