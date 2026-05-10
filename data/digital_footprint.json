@@ -1277,6 +1277,9 @@
         "evidence": [
           "Stadion: …ogos.stadion.io/assets/ClubLog…",
           "Cloudinary: …tp://res.cloudinary.com/chelsea-produc…"
+        ],
+        "vendor_chain": [
+          "Stadion"
         ]
       }
     },
@@ -1607,13 +1610,17 @@
       },
       "tech": {
         "vendor": "Stadion",
-        "cms": "Contentful",
+        "cms": null,
         "framework": "Next.js",
         "extras": [],
         "evidence": [
           "Stadion: …ps://contentfulproxy.stadion.io/zl2jjr3puak…",
           "Contentful: …ps://images.ctfassets.net/zl2jjr3puakk/1…",
           "Next.js: …ref=\"/_next/static/css/022695aea3…"
+        ],
+        "vendor_chain": [
+          "Stadion",
+          "Contentful"
         ]
       }
     },
@@ -2019,13 +2026,17 @@
       },
       "tech": {
         "vendor": "Stadion",
-        "cms": "Contentful",
+        "cms": null,
         "framework": "Next.js",
         "extras": [],
         "evidence": [
           "Stadion: …ps://contentfulproxy.stadion.io/9ec6988xevc…",
           "Contentful: …2F%2Fimages.ctfassets.net%2F9ec6988xevcz…",
           "Next.js: …ref=\"/_next/static/css/dd831aef0a…"
+        ],
+        "vendor_chain": [
+          "Stadion",
+          "Contentful"
         ]
       }
     },
@@ -2774,6 +2785,9 @@
         "extras": [],
         "evidence": [
           "Pulselive: …form.pulselive.com/fcbarcelona/en…"
+        ],
+        "vendor_chain": [
+          "Pulselive"
         ]
       }
     },
@@ -3812,6 +3826,9 @@
         "evidence": [
           "Deltatre: …d-ff.deltatre.digital\\\",\\\"LA…",
           "Next.js: …ref=\"/_next/static/media/61d96c48…"
+        ],
+        "vendor_chain": [
+          "Deltatre"
         ]
       }
     },
@@ -3977,13 +3994,16 @@
         "seo": 100
       },
       "tech": {
-        "vendor": null,
-        "cms": "Contentful",
+        "vendor": "Contentful",
+        "cms": null,
         "framework": "Next.js",
         "extras": [],
         "evidence": [
           "Contentful: …2F%2Fimages.ctfassets.net%2Fnurz7nsnha04…",
           "Next.js: …ref=\"/_next/static/css/d725194c58…"
+        ],
+        "vendor_chain": [
+          "Contentful"
         ]
       }
     },
@@ -4224,6 +4244,9 @@
         "evidence": [
           "Stadion: …ogos.stadion.io/assets/ClubLog…",
           "Cloudinary: …ps://res.cloudinary.com/brentford-fc/i…"
+        ],
+        "vendor_chain": [
+          "Stadion"
         ]
       }
     },
@@ -4897,6 +4920,9 @@
         "extras": [],
         "evidence": [
           "Pulselive: …prod.pulselive.com/api'; \t\twindow…"
+        ],
+        "vendor_chain": [
+          "Pulselive"
         ]
       }
     },
@@ -5367,13 +5393,17 @@
       },
       "tech": {
         "vendor": "Stadion",
-        "cms": "Contentful",
+        "cms": null,
         "framework": "Next.js",
         "extras": [],
         "evidence": [
           "Stadion: …ps://contentfulproxy.stadion.io/phva2knh4vy…",
           "Contentful: …ps://images.ctfassets.net/phva2knh4vy5/8…",
           "Next.js: …ref=\"/_next/static/css/8baf404768…"
+        ],
+        "vendor_chain": [
+          "Stadion",
+          "Contentful"
         ]
       }
     },
@@ -5716,6 +5746,9 @@
         "extras": [],
         "evidence": [
           "Pulselive: …prod.pulselive.com/thfc/en.js\" ch…"
+        ],
+        "vendor_chain": [
+          "Pulselive"
         ]
       }
     },
@@ -6680,13 +6713,17 @@
       },
       "tech": {
         "vendor": "Stadion",
-        "cms": "Contentful",
+        "cms": null,
         "framework": "Next.js",
         "extras": [],
         "evidence": [
           "Stadion: …ps://contentfulproxy.stadion.io\" crossorigi…",
           "Contentful: …ps://images.ctfassets.net/unzgbvss5tuy/7…",
           "Next.js: …ref=\"/_next/static/css/eabc8500e9…"
+        ],
+        "vendor_chain": [
+          "Stadion",
+          "Contentful"
         ]
       }
     },

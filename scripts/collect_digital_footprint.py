@@ -83,10 +83,16 @@ def wayback_first_year(domain: str) -> int | None:
 import re as _re
 
 TECH_PATTERNS = [
-    # ── Sport-tech vendors (highest signal) ─────────────────
+    # ── Sport-tech vendors / platform substrates (highest signal) ─
+    # Pulselive, Deltatre, Stadion are sport-specialist platforms.
+    # Contentful is a general-purpose headless CMS but is a
+    # meaningful platform choice in football (Stadion sits on top of
+    # it; several clubs run native Contentful). Elevated to vendor
+    # so the table surfaces it next to the specialists.
     ("Pulselive",     _re.compile(r"pulselive\.com|pulse\.football|cdn\.pulselive|data-pulse-|aws\.pulselive", _re.I), "vendor"),
     ("Deltatre",      _re.compile(r"deltatre|deltatreId|dltforge|diva\.deltatre|dl4-platform|/forge/", _re.I),         "vendor"),
     ("Stadion",       _re.compile(r"stadion\.io|contentfulproxy\.stadion|dazn-stadion|stadion-app", _re.I),            "vendor"),
+    ("Contentful",    _re.compile(r"contentful\.com|images\.ctfassets\.net|videos\.ctfassets\.net|assets\.ctfassets\.net|downloads\.ctfassets\.net", _re.I), "vendor"),
     # ── CMS / DXP ──────────────────────────────────────────
     ("AEM",           _re.compile(r"data-sly-|/etc\.clientlibs/|/content/dam/", _re.I),                       "cms"),
     ("Sitecore",      _re.compile(r"/sitecore/|SC_ANALYTICS_GLOBAL_COOKIE|data-sc-item-id", _re.I),           "cms"),
@@ -94,7 +100,6 @@ TECH_PATTERNS = [
     ("WordPress",     _re.compile(r'wp-content/|wp-includes/|generator"\s*content="WordPress', _re.I),         "cms"),
     ("Wagtail",       _re.compile(r'generator"\s*content="Wagtail', _re.I),                                    "cms"),
     ("Kentico Kontent",_re.compile(r"kc-usercontent\.com|kontent\.ai", _re.I),                                 "cms"),
-    ("Contentful",    _re.compile(r"contentful\.com|images\.ctfassets\.net", _re.I),                          "cms"),
     ("Storyblok",     _re.compile(r"storyblok\.com|a\.storyblok\.com", _re.I),                                "cms"),
     ("Strapi",        _re.compile(r"strapi\.io", _re.I),                                                       "cms"),
     ("Magnolia",      _re.compile(r"magnolia-cms|magnolia\.info", _re.I),                                      "cms"),
@@ -139,21 +144,33 @@ def tech_stack(url: str) -> dict:
     if mg:
         out["evidence"].append(f"<meta generator>: {mg.group(1)[:50]}")
 
-    seen = set()
+    # Allow multiple vendor matches (Stadion + Contentful is the
+    # common case — both are real, complementary signals).
+    # Single match for cms and framework (first wins).
+    vendor_hits: list[str] = []
+    seen_single = set()
     for label, rx, category in TECH_PATTERNS:
-        if category in seen:
-            continue  # only first match per category
+        if category in seen_single:
+            continue
         m = rx.search(html)
         if not m:
             continue
-        seen.add(category)
-        if category in ("vendor", "cms", "framework"):
+        if category == "vendor":
+            vendor_hits.append(label)
+        elif category in ("cms", "framework"):
+            seen_single.add(category)
             out[category] = label
         else:
+            seen_single.add(category)
             out["extras"].append(label)
-        # 30-char evidence snippet — proves we're not hallucinating
         ev = html[max(0, m.start()-5):m.end()+15].replace("\n", " ")[:55]
         out["evidence"].append(f"{label}: …{ev}…")
+
+    if vendor_hits:
+        # Primary vendor = first hit; full chain stored too so the UI
+        # can render "Stadion · Contentful" for stacked layers.
+        out["vendor"] = vendor_hits[0]
+        out["vendor_chain"] = vendor_hits
 
     return out
 

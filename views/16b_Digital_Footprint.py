@@ -93,14 +93,20 @@ def _find_channel(name):
 
 
 def _tech_cell(c):
-    """Render a compact stack summary: vendor (sport-tech) > cms > framework.
-    Color-coded so sport-tech vendors stand out as the highest signal."""
+    """Render a compact stack summary: vendor chain (sport-tech) > cms > framework.
+    Color-coded so vendors stand out as the highest signal. Stadion-on-
+    Contentful clubs render as 'Stadion · Contentful · ...' so the
+    layered platform choice is visible."""
     t = c.get("tech") or {}
-    vendor = t.get("vendor")
+    chain = t.get("vendor_chain") or ([t["vendor"]] if t.get("vendor") else [])
     cms = t.get("cms")
     fw = t.get("framework")
-    if vendor:
-        return (f"<span style='color:#FF6B6B;font-weight:600'>{vendor}</span>"
+    if chain:
+        chain_html = " · ".join(
+            f"<span style='color:#FF6B6B;font-weight:600'>{v}</span>"
+            for v in chain
+        )
+        return (chain_html
                 + (f"<span style='color:#666'> · {cms}</span>" if cms else "")
                 + (f"<span style='color:#666'> · {fw}</span>" if fw else ""))
     if cms:
@@ -324,11 +330,14 @@ def render_z3(c: dict) -> None:
                     "<span style='color:#888;font-size:0.85rem'>"
                     "(fingerprinted from homepage HTML)</span>",
                     unsafe_allow_html=True)
+        chain = t.get("vendor_chain") or (
+            [t["vendor"]] if t.get("vendor") else [])
+        vendor_str = " · ".join(chain) if chain else "—"
         st.markdown(kpi_row([
-            ("Sport-tech vendor", t.get("vendor") or "—",
-                "Pulselive / Deltatre / Stadion = specialist platforms"),
-            ("CMS / DXP",         t.get("cms") or "—", ""),
-            ("Framework",         t.get("framework") or "—", ""),
+            ("Sport-tech / platform", vendor_str,
+                "Stacked layers shown left-to-right (delivery → substrate)"),
+            ("CMS / DXP",            t.get("cms") or "—", ""),
+            ("Framework",            t.get("framework") or "—", ""),
         ]), unsafe_allow_html=True)
         ev = t.get("evidence") or []
         if ev:
