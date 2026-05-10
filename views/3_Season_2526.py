@@ -2791,3 +2791,69 @@ else:
         """, height=video_table_height(len(ranked)), scrolling=False)
 
     # Top Season Videos lists moved to the Season Top Videos page.
+
+    # ── Season videos: duration × views (column chart) ──────────
+    # One bar per season video, x = duration in seconds, y = views
+    # (log so a viral Short doesn't squash long-form). Color = format.
+    # Quick visual answer to "where do this club's hits live?".
+    try:
+        if vids:
+            _COLOR_SD = {"long": "#636EFA", "short": "#00CC96", "live": "#FFA15A"}
+            _LABEL_SD = {"long": "Long", "short": "Shorts", "live": "Live"}
+            _xs, _ys, _colors_sd, _custom_sd = [], [], [], []
+            for v in vids:
+                _f = _fmt_of(v)
+                _d = int(v.get("duration_seconds") or 0)
+                _vw = int(v.get("view_count") or 0)
+                _xs.append(_d)
+                _ys.append(_vw)
+                _colors_sd.append(_COLOR_SD[_f])
+                _t = (v.get("title") or "")[:80]
+                _ms = f"{_d // 60}:{_d % 60:02d}"
+                _custom_sd.append([_t, _LABEL_SD[_f], _ms])
+            _bar_w = max(2, min(15, max(1, max(_xs) // 200) if _xs else 1))
+            fig_sd = go.Figure(go.Bar(
+                x=_xs, y=_ys, marker_color=_colors_sd,
+                customdata=_custom_sd,
+                hovertemplate=(
+                    "<b>%{customdata[0]}</b><br>"
+                    "%{customdata[1]} · %{customdata[2]}<br>"
+                    "Views: %{y:,}<extra></extra>"
+                ),
+                width=[_bar_w] * len(_xs),
+                showlegend=False,
+            ))
+            # Inline legend — Plotly's auto-legend doesn't pick up
+            # per-bar colors on a single Bar trace.
+            for _f in ("long", "short", "live"):
+                if any(_fmt_of(v) == _f for v in vids):
+                    fig_sd.add_trace(go.Scatter(
+                        x=[None], y=[None], mode="markers",
+                        marker=dict(color=_COLOR_SD[_f], size=10),
+                        name=_LABEL_SD[_f], showlegend=True,
+                    ))
+            fig_sd.update_layout(
+                title=dict(
+                    text=f"Season videos — {len(vids)} videos by duration vs views",
+                    x=0, font=dict(color="#FAFAFA", size=14),
+                ),
+                xaxis=dict(
+                    title="Duration (seconds)",
+                    showgrid=True, gridcolor="rgba(255,255,255,0.06)",
+                    rangemode="tozero",
+                ),
+                yaxis=dict(
+                    title="Views", type="log",
+                    showgrid=True, gridcolor="rgba(255,255,255,0.06)",
+                ),
+                margin=dict(t=40, b=50, l=60, r=20),
+                height=360,
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#FAFAFA"),
+                legend=dict(orientation="h", x=0.5, xanchor="center",
+                            y=-0.18, yanchor="top",
+                            bgcolor="rgba(0,0,0,0)"),
+            )
+            st.plotly_chart(fig_sd, use_container_width=True)
+    except Exception as _e:
+        st.caption(f"(duration×views chart unavailable: {_e})")
