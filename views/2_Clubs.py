@@ -1246,6 +1246,84 @@ else:
             if fig_pub_trend:
                 st.plotly_chart(fig_pub_trend, use_container_width=True)
 
+    # ── Season videos: views vs duration scatter ────────────────
+    # One bar per video this season, x-axis = video duration in seconds,
+    # y-axis = views. Color by format. Quick visual answer to "do my
+    # hits live in shorts or long-form?".
+    try:
+        _PUB_SINCE_2 = get_season_since(channel)
+        _ssn_vids = db.get_season_videos_by_channel(channel["id"],
+                                                     since=_PUB_SINCE_2)
+        if _ssn_vids:
+            import plotly.graph_objects as _go_sd
+            _COLOR = {"long": "#636EFA", "short": "#00CC96", "live": "#FFA15A"}
+            _LABEL = {"long": "Long", "short": "Shorts", "live": "Live"}
+
+            def _fmt_of(v):
+                f = (v.get("format") or "").lower()
+                if f in ("long", "short", "live"):
+                    return f
+                return "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
+
+            xs, ys, colors, customdata = [], [], [], []
+            for v in _ssn_vids:
+                f = _fmt_of(v)
+                d = int(v.get("duration_seconds") or 0)
+                vw = int(v.get("view_count") or 0)
+                xs.append(d)
+                ys.append(vw)
+                colors.append(_COLOR[f])
+                # Hover: title (truncated), format label, MM:SS, views
+                _t = (v.get("title") or "")[:80]
+                _ms = f"{d // 60}:{d % 60:02d}"
+                customdata.append([_t, _LABEL[f], _ms])
+
+            fig_sd = _go_sd.Figure(_go_sd.Bar(
+                x=xs, y=ys, marker_color=colors,
+                customdata=customdata,
+                hovertemplate=(
+                    "<b>%{customdata[0]}</b><br>"
+                    "%{customdata[1]} · %{customdata[2]}<br>"
+                    "Views: %{y:,}<extra></extra>"
+                ),
+                width=[max(2, min(15, max(1, max(xs) // 200) if xs else 1))] * len(xs),
+            ))
+            # Inline legend via empty traces — Plotly's auto-legend
+            # doesn't pick up colors-per-bar when trace=Bar.
+            for f in ("long", "short", "live"):
+                if any(_fmt_of(v) == f for v in _ssn_vids):
+                    fig_sd.add_trace(_go_sd.Scatter(
+                        x=[None], y=[None], mode="markers",
+                        marker=dict(color=_COLOR[f], size=10),
+                        name=_LABEL[f], showlegend=True,
+                    ))
+            fig_sd.update_layout(
+                title=dict(
+                    text=(f"Season videos — {len(_ssn_vids)} videos "
+                          f"by duration vs views"),
+                    x=0, font=dict(color="#FAFAFA", size=14),
+                ),
+                xaxis=dict(
+                    title="Duration (seconds)",
+                    showgrid=True, gridcolor="rgba(255,255,255,0.06)",
+                    rangemode="tozero",
+                ),
+                yaxis=dict(
+                    title="Views", type="log",
+                    showgrid=True, gridcolor="rgba(255,255,255,0.06)",
+                ),
+                margin=dict(t=40, b=50, l=60, r=20),
+                height=360,
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#FAFAFA"),
+                legend=dict(orientation="h", x=0.5, xanchor="center",
+                            y=-0.18, yanchor="top",
+                            bgcolor="rgba(0,0,0,0)"),
+            )
+            st.plotly_chart(fig_sd, use_container_width=True)
+    except Exception as _e:
+        st.caption(f"(season-videos chart unavailable: {_e})")
+
     st.subheader("Growth")
     if not _snaps or len(_snaps) < 2:
         st.caption(
