@@ -227,7 +227,20 @@ def _flat_table(channels: list[dict], header: str = "") -> None:
         "</style>"
         "<div style='overflow-x:auto'>"
         "<table class='df-tbl'>"
-        "<thead><tr>"
+        # Two-row thead: top row groups columns with colored
+        # underlines (mirrors the All Channels — Season layout);
+        # bottom row holds the individual column labels.
+        "<thead>"
+        "<tr>"
+        "<th colspan='2' style='border-bottom:0'></th>"
+        "<th colspan='4' style='text-align:center;border-bottom:2px solid #FF6B6B;color:#FF6B6B'>Stack</th>"
+        "<th colspan='2' style='text-align:center;border-bottom:2px solid #19D3F3;color:#19D3F3'>Content</th>"
+        "<th colspan='2' style='text-align:center;border-bottom:2px solid #00CC96;color:#00CC96'>Real users</th>"
+        "<th colspan='2' style='text-align:center;border-bottom:2px solid #58A6FF;color:#58A6FF'>Lighthouse</th>"
+        "<th colspan='2' style='text-align:center;border-bottom:2px solid #FFA15A;color:#FFA15A'>iOS app</th>"
+        "<th colspan='2' style='text-align:center;border-bottom:2px solid #AB63FA;color:#AB63FA'>Wikipedia</th>"
+        "</tr>"
+        "<tr>"
         "<th>Channel</th>"
         "<th>Website</th>"
         "<th>Tech</th>"
@@ -236,7 +249,7 @@ def _flat_table(channels: list[dict], header: str = "") -> None:
         "<th>Real LCP</th><th>Real INP</th>"
         "<th>A11y</th><th>SEO</th>"
         "<th>iOS ★</th><th>Updated</th>"
-        "<th>Wiki L</th><th>Wiki views/12mo</th>"
+        "<th>Wiki L</th><th>Views/12mo</th>"
         "</tr></thead>"
         f"<tbody>{''.join(rows_html)}</tbody></table></div>"
     )
