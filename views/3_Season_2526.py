@@ -2810,13 +2810,19 @@ else:
                 _t = (v.get("title") or "")[:80]
                 _ms = f"{_d // 60}:{_d % 60:02d}"
                 _custom_sd.append([_t, _ms])
+            # Axes inverted vs the previous version: x = views (log),
+            # y = duration. Horizontal bars — each one starts at 0 and
+            # extends right to the video's view count, sitting at its
+            # duration on the y-axis. Reads naturally as "longer bar =
+            # bigger hit", with duration as the categorical-ish y axis.
             fig_sd = go.Figure(go.Bar(
-                x=_xs, y=_ys, marker_color="#00CC96",
+                x=_ys, y=_xs, orientation="h",
+                marker_color="#00CC96",
                 customdata=_custom_sd,
                 hovertemplate=(
                     "<b>%{customdata[0]}</b><br>"
                     "Shorts · %{customdata[1]}<br>"
-                    "Views: %{y:,}<extra></extra>"
+                    "Views: %{x:,}<extra></extra>"
                 ),
                 showlegend=False,
             ))
@@ -2826,16 +2832,16 @@ else:
                     x=0, font=dict(color="#FAFAFA", size=14),
                 ),
                 xaxis=dict(
+                    title="Views", type="log",
+                    showgrid=True, gridcolor="rgba(255,255,255,0.06)",
+                ),
+                yaxis=dict(
                     title="Duration (seconds)",
                     showgrid=True, gridcolor="rgba(255,255,255,0.06)",
                     rangemode="tozero",
                 ),
-                yaxis=dict(
-                    title="Views", type="log",
-                    showgrid=True, gridcolor="rgba(255,255,255,0.06)",
-                ),
                 margin=dict(t=40, b=50, l=60, r=20),
-                height=360,
+                height=420,
                 paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                 font=dict(color="#FAFAFA"),
             )
