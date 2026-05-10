@@ -20,7 +20,9 @@ import streamlit as st
 from src.analytics import kpi_row, fmt_num
 from src.auth import require_login
 from src.channels import LEAGUE_FLAG
+from src.dot import channel_badge
 from src.filters import (
+    get_global_color_map, get_global_color_map_dual,
     get_global_filter, render_league_header, render_page_subtitle,
 )
 
@@ -119,9 +121,14 @@ def _flat_table(channels: list[dict], header: str = "") -> None:
         reverse=True,
     )
 
+    color_map = get_global_color_map() or {}
+    dual_map = get_global_color_map_dual() or {}
+
     rows_html = []
-    for i, c in enumerate(channels_sorted, 1):
-        flag = LEAGUE_FLAG.get(c.get("league", ""), "")
+    for c in channels_sorted:
+        # Snapshot dicts don't carry color; channel_badge only needs
+        # name + entity_type + country, which the snapshot has.
+        badge = channel_badge(c, color_map, dual_map, 12)
         web = _website_link(c)
         cdn = _safe(c, "http", "cdn", default="?")
         sec = _safe(c, "http", "security_headers_present")
@@ -141,18 +148,22 @@ def _flat_table(channels: list[dict], header: str = "") -> None:
         wv = _safe(c, "wikipedia", "pageviews_12mo")
         domain_yr = c.get("domain_first_year")
 
-        # Z3 link target — uses the global filter URL contract
         slug = quote_plus(c["name"])
         league = c.get("league", "")
         name_link = (f"<a href='?league={quote_plus(league)}&club={slug}' "
                      f"style='color:#FAFAFA;text-decoration:none'>"
                      f"{c['name']}</a>")
+        # Badge + name on the same flex row so the dot/flag aligns
+        # vertically with the text — matches the convention used in
+        # render_club_header / Top Season tables.
+        channel_cell = (
+            "<div style='display:flex;align-items:center;gap:8px'>"
+            f"{badge}<span>{name_link}</span></div>"
+        )
 
         rows_html.append(
             "<tr>"
-            f"<td style='text-align:right;color:#888'>{i}</td>"
-            f"<td>{flag} <span style='color:#888'>{league or '—'}</span></td>"
-            f"<td>{name_link}</td>"
+            f"<td>{channel_cell}</td>"
             f"<td>{web}</td>"
             f"<td style='text-align:right'>{domain_yr or '—'}</td>"
             f"<td style='text-align:right'>{cdn}</td>"
@@ -182,17 +193,15 @@ def _flat_table(channels: list[dict], header: str = "") -> None:
         ".df-tbl th{background:#1a1c24;color:#888;text-transform:uppercase;"
         "letter-spacing:.4px;font-size:10.5px;padding:8px 8px;text-align:right;"
         "font-weight:600;border-bottom:1px solid #2a2c34;white-space:nowrap}"
-        ".df-tbl th:nth-child(2),.df-tbl th:nth-child(3),.df-tbl th:nth-child(4)"
-        "{text-align:left}"
+        ".df-tbl th:nth-child(1),.df-tbl th:nth-child(2){text-align:left}"
         ".df-tbl td{padding:7px 8px;border-bottom:1px solid #20222a;color:#FAFAFA}"
         ".df-tbl tr:hover td{background:#1a1c24}"
         "</style>"
         "<div style='overflow-x:auto'>"
         "<table class='df-tbl'>"
         "<thead><tr>"
-        "<th>#</th><th style='text-align:left'>League</th>"
-        "<th style='text-align:left'>Channel</th>"
-        "<th style='text-align:left'>Website</th>"
+        "<th>Channel</th>"
+        "<th>Website</th>"
         "<th>Since</th><th>CDN</th><th>Sec</th>"
         "<th>Pages</th><th>Loc</th>"
         "<th>Real LCP</th><th>Real INP</th>"
