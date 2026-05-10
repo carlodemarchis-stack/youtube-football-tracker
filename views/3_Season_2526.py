@@ -2792,11 +2792,14 @@ else:
 
     # Top Season Videos lists moved to the Season Top Videos page.
 
-    # ── Season Shorts: two histograms by duration (side by side) ──
-    # Both x = exact duration in seconds (0–60). Left: y = total views
-    # at that duration (where the reach is). Right: y = count of videos
-    # at that duration (where the editorial volume is). Together they
-    # answer "are my hits at the same lengths I post most?".
+    # ── Season Shorts: three histograms by duration (side by side) ──
+    # All x = exact duration in seconds (0–60).
+    #   1. y = total views at that duration  → where the reach is
+    #   2. y = number of videos at that duration → where the volume is
+    #   3. y = avg views/video at that duration → where the efficiency is
+    # Volume + reach without efficiency tell you "this duration prints
+    # views because we post a lot there"; efficiency separates a hit
+    # length from a high-output one.
     try:
         _shorts = [v for v in (vids or []) if _fmt_of(v) == "short"]
         if _shorts:
@@ -2810,23 +2813,25 @@ else:
             _xs = sorted(_by_sec_views.keys())
             _ys_v = [_by_sec_views[d] for d in _xs]
             _ys_n = [_by_sec_count[d] for d in _xs]
-            _customdata_v = [[_by_sec_count[d]] for d in _xs]
-            _customdata_n = [[_by_sec_views[d]] for d in _xs]
+            _ys_avg = [int(_by_sec_views[d] / _by_sec_count[d]) for d in _xs]
+            _customdata_v = [[_by_sec_count[d], _ys_avg[i]] for i, d in enumerate(_xs)]
+            _customdata_n = [[_by_sec_views[d], _ys_avg[i]] for i, d in enumerate(_xs)]
+            _customdata_avg = [[_by_sec_views[d], _by_sec_count[d]] for d in _xs]
 
-            def _make(xs, ys, custom, hover_unit, title, y_title):
+            def _make(xs, ys, custom, hover_lines, title, y_title):
                 f = go.Figure(go.Bar(
                     x=xs, y=ys, marker_color="#00CC96",
                     customdata=custom,
                     hovertemplate=(
                         "<b>%{x}s</b><br>"
-                        + hover_unit
+                        + hover_lines
                         + "<extra></extra>"
                     ),
                     showlegend=False,
                 ))
                 f.update_layout(
                     title=dict(text=title, x=0,
-                               font=dict(color="#FAFAFA", size=14)),
+                               font=dict(color="#FAFAFA", size=13)),
                     xaxis=dict(title="Duration (seconds)",
                                showgrid=True,
                                gridcolor="rgba(255,255,255,0.06)",
@@ -2836,7 +2841,7 @@ else:
                                gridcolor="rgba(255,255,255,0.06)",
                                rangemode="tozero"),
                     margin=dict(t=40, b=50, l=60, r=20),
-                    height=360,
+                    height=320,
                     paper_bgcolor="rgba(0,0,0,0)",
                     plot_bgcolor="rgba(0,0,0,0)",
                     font=dict(color="#FAFAFA"),
@@ -2844,22 +2849,35 @@ else:
                 return f
 
             _n_durations = len(_by_sec_views)
-            _suffix = (f" ({len(_shorts)} videos across "
-                       f"{_n_durations} distinct durations)")
+            _suffix = (f" ({len(_shorts)} videos / "
+                       f"{_n_durations} durations)")
             fig_sd_v = _make(
                 _xs, _ys_v, _customdata_v,
-                "Total views: %{y:,}<br>Videos: %{customdata[0]}",
-                "Season Shorts — total views by duration" + _suffix,
+                ("Total views: %{y:,}<br>"
+                 "Videos: %{customdata[0]}<br>"
+                 "Avg / video: %{customdata[1]:,}"),
+                "Total views by duration" + _suffix,
                 "Sum of views",
             )
             fig_sd_n = _make(
                 _xs, _ys_n, _customdata_n,
-                "Videos: %{y}<br>Total views: %{customdata[0]:,}",
-                "Season Shorts — number of videos by duration" + _suffix,
+                ("Videos: %{y}<br>"
+                 "Total views: %{customdata[0]:,}<br>"
+                 "Avg / video: %{customdata[1]:,}"),
+                "Number of videos by duration" + _suffix,
                 "Number of videos",
             )
-            _col_a, _col_b = st.columns(2)
+            fig_sd_avg = _make(
+                _xs, _ys_avg, _customdata_avg,
+                ("Avg / video: %{y:,}<br>"
+                 "Total views: %{customdata[0]:,}<br>"
+                 "Videos: %{customdata[1]}"),
+                "Avg views / video by duration" + _suffix,
+                "Avg views / video",
+            )
+            _col_a, _col_b, _col_c = st.columns(3)
             _col_a.plotly_chart(fig_sd_v, use_container_width=True)
             _col_b.plotly_chart(fig_sd_n, use_container_width=True)
+            _col_c.plotly_chart(fig_sd_avg, use_container_width=True)
     except Exception as _e:
         st.caption(f"(Shorts duration histograms unavailable: {_e})")
