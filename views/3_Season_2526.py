@@ -2792,48 +2792,47 @@ else:
 
     # Top Season Videos lists moved to the Season Top Videos page.
 
-    # ── Season Shorts: duration × views (column chart) ──────────
-    # One bar per Shorts video this season, x = duration in seconds,
-    # y = views (log so a viral Short doesn't squash a long tail).
-    # Long-form / Live excluded — Shorts is where the duration question
-    # is actually meaningful (the 60s ceiling makes 15s vs 45s a real
-    # editorial choice).
+    # ── Season Shorts: duration profile of top hits (column chart) ──
+    # X = rank by views (#1 = most-viewed Shorts of the season at left).
+    # Y = duration in seconds. Each bar = one Shorts video.
+    # Quick visual answer: do top hits cluster at 15s, 30s, 45s? Is
+    # the editorial sweet spot the same as the catalogue average?
     try:
-        _shorts = [v for v in (vids or []) if _fmt_of(v) == "short"]
+        _shorts = sorted(
+            [v for v in (vids or []) if _fmt_of(v) == "short"],
+            key=lambda v: int(v.get("view_count") or 0),
+            reverse=True,
+        )
         if _shorts:
-            _xs, _ys, _custom_sd = [], [], []
-            for v in _shorts:
+            _ranks, _dur, _custom_sd = [], [], []
+            for i, v in enumerate(_shorts, 1):
                 _d = int(v.get("duration_seconds") or 0)
                 _vw = int(v.get("view_count") or 0)
-                _xs.append(_d)
-                _ys.append(_vw)
+                _ranks.append(i)
+                _dur.append(_d)
                 _t = (v.get("title") or "")[:80]
                 _ms = f"{_d // 60}:{_d % 60:02d}"
-                _custom_sd.append([_t, _ms])
-            # Axes inverted vs the previous version: x = views (log),
-            # y = duration. Horizontal bars — each one starts at 0 and
-            # extends right to the video's view count, sitting at its
-            # duration on the y-axis. Reads naturally as "longer bar =
-            # bigger hit", with duration as the categorical-ish y axis.
+                _custom_sd.append([_t, _ms, _vw])
             fig_sd = go.Figure(go.Bar(
-                x=_ys, y=_xs, orientation="h",
+                x=_ranks, y=_dur,
                 marker_color="#00CC96",
                 customdata=_custom_sd,
                 hovertemplate=(
-                    "<b>%{customdata[0]}</b><br>"
-                    "Shorts · %{customdata[1]}<br>"
-                    "Views: %{x:,}<extra></extra>"
+                    "<b>#%{x} · %{customdata[0]}</b><br>"
+                    "Duration: %{customdata[1]}<br>"
+                    "Views: %{customdata[2]:,}<extra></extra>"
                 ),
                 showlegend=False,
             ))
             fig_sd.update_layout(
                 title=dict(
-                    text=f"Season Shorts — {len(_shorts)} videos by duration vs views",
+                    text=f"Season Shorts — duration of top hits ({len(_shorts)} videos, ranked by views)",
                     x=0, font=dict(color="#FAFAFA", size=14),
                 ),
                 xaxis=dict(
-                    title="Views", type="log",
-                    showgrid=True, gridcolor="rgba(255,255,255,0.06)",
+                    title="Rank by views (#1 = most viewed)",
+                    showgrid=False,
+                    rangemode="tozero",
                 ),
                 yaxis=dict(
                     title="Duration (seconds)",
@@ -2841,10 +2840,10 @@ else:
                     rangemode="tozero",
                 ),
                 margin=dict(t=40, b=50, l=60, r=20),
-                height=420,
+                height=380,
                 paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                 font=dict(color="#FAFAFA"),
             )
             st.plotly_chart(fig_sd, use_container_width=True)
     except Exception as _e:
-        st.caption(f"(Shorts duration×views chart unavailable: {_e})")
+        st.caption(f"(Shorts rank×duration chart unavailable: {_e})")
