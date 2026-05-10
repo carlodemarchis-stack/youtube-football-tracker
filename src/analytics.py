@@ -166,6 +166,73 @@ def fmt_num(n: int | float) -> str:
 import pandas as pd
 
 
+# ── KPI card / row ───────────────────────────────────────────────────────
+# Standard colored-border card used across the dashboard. Each "row" is
+# a CSS grid that auto-fits the cards to the viewport width.
+#
+# Use kpi_row() instead of Streamlit's st.metric() — same information,
+# tighter layout, color-coded so similar metrics across pages read as
+# consistent cards.
+
+# Default palette — cycles through these colors in order. Pages that
+# want a specific mapping (Long=blue / Shorts=green / Live=orange,
+# etc.) pass `colors=[...]` explicitly.
+KPI_PALETTE = ("#58A6FF", "#FFA15A", "#00CC96", "#EF553B",
+               "#AB63FA", "#636EFA", "#19D3F3")
+
+
+def kpi_card_html(label: str, value: str, color: str = "#58A6FF",
+                  subtitle: str = "") -> str:
+    """Return the inner-card HTML. Caller usually wraps these in a
+    grid via kpi_row(). `subtitle` renders as a small grey line below
+    the value (used for rank annotations like '#1/18 in Bundesliga')."""
+    sub_html = ""
+    if subtitle:
+        sub_html = (f'<div style="color:#888;font-size:11px;'
+                    f'margin-top:2px;line-height:1.3">{subtitle}</div>')
+    return (
+        f'<div style="background:#1a1c24;border-radius:6px;padding:10px 14px;'
+        f'border-left:3px solid {color}">'
+        f'<div style="color:#888;font-size:11px;font-weight:600;'
+        f'text-transform:uppercase;letter-spacing:0.5px">{label}</div>'
+        f'<div style="color:#FAFAFA;font-size:22px;font-weight:700;'
+        f'margin-top:2px">{value}</div>{sub_html}</div>'
+    )
+
+
+def kpi_row(
+    pairs,
+    *,
+    colors=None,
+    margin: str = "4px 0 14px 0",
+) -> str:
+    """Render a horizontal grid of KPI cards.
+
+    pairs: list of (label, value) or (label, value, subtitle).
+           value_html and subtitle may contain inline HTML — trusted.
+    colors: optional explicit color list, else cycles KPI_PALETTE.
+
+    Returns the HTML; pass to st.markdown(..., unsafe_allow_html=True).
+    """
+    if not pairs:
+        return ""
+    if colors is None:
+        colors = [KPI_PALETTE[i % len(KPI_PALETTE)] for i in range(len(pairs))]
+    cards = []
+    for i, p in enumerate(pairs):
+        if len(p) == 2:
+            label, value = p
+            subtitle = ""
+        else:
+            label, value, subtitle = p
+        cards.append(kpi_card_html(label, value, colors[i], subtitle))
+    return (
+        f'<div style="display:grid;'
+        f'grid-template-columns:repeat({len(pairs)},1fr);gap:10px;'
+        f'margin:{margin}">{"".join(cards)}</div>'
+    )
+
+
 def yt_popup_js() -> str:
     """Return a <script> block that intercepts YouTube video links/window.open
     calls inside a components.html iframe and sends a postMessage to the

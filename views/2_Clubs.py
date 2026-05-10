@@ -16,7 +16,7 @@ from src.cached_db import (
     get_recent_videos as _cached_recent,
     read_dashboard_cache as _cached_dc_read,
 )
-from src.analytics import compute_channel_comparison, fmt_num, yt_popup_js
+from src.analytics import compute_channel_comparison, fmt_num, yt_popup_js, kpi_row
 from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope, render_page_subtitle
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, get_season_since
 from src.auth import get_current_user, is_admin, require_login
@@ -273,12 +273,13 @@ if league is None and _scope == "Overall":
         }
         tot_vps = tot["total_views"] // max(tot["total_subs"], 1)
         tot_avg_v = tot["total_views"] // max(tot["total_videos"], 1)
-        _mcols = st.columns(5)
-        _mcols[0].metric("Total Subscribers", fmt_num(tot["total_subs"]))
-        _mcols[1].metric("Total Views", fmt_num(tot["total_views"]))
-        _mcols[2].metric("Views/Sub", fmt_num(tot_vps))
-        _mcols[3].metric("Total Videos", fmt_num(tot["total_videos"]))
-        _mcols[4].metric("Avg Views/Video", fmt_num(tot_avg_v))
+        st.markdown(kpi_row([
+            ("Total Subscribers", fmt_num(tot["total_subs"])),
+            ("Total Views",       fmt_num(tot["total_views"])),
+            ("Views/Sub",         fmt_num(tot_vps)),
+            ("Total Videos",      fmt_num(tot["total_videos"])),
+            ("Avg Views/Video",   fmt_num(tot_avg_v)),
+        ]), unsafe_allow_html=True)
 
         # ── 3 pies: where the lifetime views / videos / per-video
         # performance sit by format (Long / Shorts / Live). Only useful
@@ -689,12 +690,13 @@ elif club is None:
     total_videos = sum(ch.get("video_count", 0) for ch in clubs_only)
     avg_vpv = total_views // max(total_videos, 1)
     avg_vps = total_views // max(total_subs, 1)
-    cols = st.columns(5)
-    cols[0].metric("Total Subscribers", fmt_num(total_subs))
-    cols[1].metric("Total Views", fmt_num(total_views))
-    cols[2].metric("Views/Sub", fmt_num(avg_vps))
-    cols[3].metric("Total Videos", fmt_num(total_videos))
-    cols[4].metric("Avg Views/Video", fmt_num(avg_vpv))
+    st.markdown(kpi_row([
+        ("Total Subscribers", fmt_num(total_subs)),
+        ("Total Views",       fmt_num(total_views)),
+        ("Views/Sub",         fmt_num(avg_vps)),
+        ("Total Videos",      fmt_num(total_videos)),
+        ("Avg Views/Video",   fmt_num(avg_vpv)),
+    ]), unsafe_allow_html=True)
     if not clubs_only:
         st.info("No clubs in this league yet.")
         st.stop()
@@ -1061,22 +1063,26 @@ else:
             parts.append(f"#{orr}/{ot} overall")
         return f"<div style='color:#888;font-size:0.8rem;margin-top:-6px'>{' · '.join(parts)}</div>" if parts else ""
 
-    cols = st.columns(5)
-    with cols[0]:
-        st.metric("Total Subscribers", fmt_num(subs_ch))
-        st.markdown(_rank_html("subs"), unsafe_allow_html=True)
-    with cols[1]:
-        st.metric("Total Views", fmt_num(total_views_ch))
-        st.markdown(_rank_html("views"), unsafe_allow_html=True)
-    with cols[2]:
-        st.metric("Views/Sub", fmt_num(vps_ch))
-        st.markdown(_rank_html("vps"), unsafe_allow_html=True)
-    with cols[3]:
-        st.metric("Total Videos", fmt_num(video_count_ch))
-        st.markdown(_rank_html("videos"), unsafe_allow_html=True)
-    with cols[4]:
-        st.metric("Avg Views/Video", fmt_num(avg_vpv_ch))
-        st.markdown(_rank_html("vpv"), unsafe_allow_html=True)
+    # _rank_html() returns wrapped HTML; the kpi_row helper takes a
+    # plain subtitle string and wraps it with its own muted styling, so
+    # extract the inner text here to avoid double-wrapping.
+    def _rank_subtitle(metric: str) -> str:
+        lr, lt = _rank(metric, "league")
+        orr, ot = _rank(metric, "overall")
+        parts = []
+        if lr:
+            parts.append(f"#{lr}/{lt} in {_ch_league}")
+        if orr:
+            parts.append(f"#{orr}/{ot} overall")
+        return " · ".join(parts)
+
+    st.markdown(kpi_row([
+        ("Total Subscribers", fmt_num(subs_ch),         _rank_subtitle("subs")),
+        ("Total Views",       fmt_num(total_views_ch), _rank_subtitle("views")),
+        ("Views/Sub",         fmt_num(vps_ch),         _rank_subtitle("vps")),
+        ("Total Videos",      fmt_num(video_count_ch), _rank_subtitle("videos")),
+        ("Avg Views/Video",   fmt_num(avg_vpv_ch),     _rank_subtitle("vpv")),
+    ]), unsafe_allow_html=True)
 
     # ── 3 lifetime per-format donuts — same set used at All-Leagues
     # and One-League zoom levels. All pulled from precomputed columns
@@ -1273,13 +1279,14 @@ else:
         except Exception:
             _since_label = "all-time"
 
-        gcols = st.columns(6)
-        gcols[0].metric("Subs Δ 7d", _sgn(d7))
-        gcols[1].metric("Subs Δ 30d", _sgn(d30))
-        gcols[2].metric(f"Subs {_since_label}", _sgn(dssn))
-        gcols[3].metric("Views Δ 7d", _sgn(v7))
-        gcols[4].metric("Views Δ 30d", _sgn(v30))
-        gcols[5].metric(f"Views {_since_label}", _sgn(vssn))
+        st.markdown(kpi_row([
+            ("Subs Δ 7d",                 _sgn(d7)),
+            ("Subs Δ 30d",                _sgn(d30)),
+            (f"Subs {_since_label}",      _sgn(dssn)),
+            ("Views Δ 7d",                _sgn(v7)),
+            ("Views Δ 30d",               _sgn(v30)),
+            (f"Views {_since_label}",     _sgn(vssn)),
+        ]), unsafe_allow_html=True)
 
     # ── Top + Top Season + Latest video rows ────────────────────
     # Three compact rows: the channel's all-time #1 video by views, its
