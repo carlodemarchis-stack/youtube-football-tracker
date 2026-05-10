@@ -2869,9 +2869,7 @@ else:
                 )
                 return f
 
-            _n_durations = len(_by_sec_views)
-            _suffix = (f" ({len(_shorts)} videos / "
-                       f"{_n_durations} durations)")
+            _suffix = f" ({len(_shorts)} videos)"
             fig_sd_v = _make(
                 _xs, _ys_v, _customdata_v,
                 ("Total views: %{y:,}<br>"
