@@ -2833,7 +2833,7 @@ else:
                 xaxis=dict(
                     title="Duration (seconds)",
                     showgrid=True, gridcolor="rgba(255,255,255,0.06)",
-                    rangemode="tozero",
+                    range=[0, 60],
                 ),
                 yaxis=dict(
                     title="Sum of views",
