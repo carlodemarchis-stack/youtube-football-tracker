@@ -908,22 +908,7 @@
         "pageviews_12mo": 1998173
       },
       "ios_app": {
-        "present": true,
-        "name": "We Are Sunderland",
-        "developer": "Newsquest",
-        "version": "2.3",
-        "first_release": "2024-02-15",
-        "last_update": "2026-02-26",
-        "rating": 5,
-        "rating_count": 1,
-        "size_mb": 138.3,
-        "languages": 1,
-        "language_list": [
-          "EN"
-        ],
-        "min_os": "15.0",
-        "price": "Free",
-        "store_url": "https://apps.apple.com/us/app/we-are-sunderland/id6475593685?uo=4"
+        "present": false
       },
       "crux_phone": {
         "lcp_p75": 4109.0,
@@ -1928,22 +1913,7 @@
         "pageviews_12mo": 354474
       },
       "ios_app": {
-        "present": true,
-        "name": "FC Metz Pass",
-        "developer": "BlackTicket",
-        "version": "4.0.5",
-        "first_release": "2024-09-15",
-        "last_update": "2026-04-23",
-        "rating": 4.84211,
-        "rating_count": 19,
-        "size_mb": 76.5,
-        "languages": 1,
-        "language_list": [
-          "FR"
-        ],
-        "min_os": "15.0",
-        "price": "Gratuit",
-        "store_url": "https://apps.apple.com/fr/app/fc-metz-pass/id6596768191?uo=4"
+        "present": false
       },
       "crux_phone": {
         "lcp_p75": 1829.0,
@@ -2190,22 +2160,7 @@
         "pageviews_12mo": 338262
       },
       "ios_app": {
-        "present": true,
-        "name": "Angers SCO 1919",
-        "developer": "Florian SAMOYEAU",
-        "version": "1.0.4",
-        "first_release": "2023-10-12",
-        "last_update": "2024-01-10",
-        "rating": 3.2,
-        "rating_count": 5,
-        "size_mb": 98.4,
-        "languages": 1,
-        "language_list": [
-          "EN"
-        ],
-        "min_os": "12.0",
-        "price": "Gratuit",
-        "store_url": "https://apps.apple.com/fr/app/angers-sco-1919/id6457417711?uo=4"
+        "present": false
       },
       "crux_phone": {
         "error": "chrome ux report data not found"
@@ -2258,22 +2213,7 @@
         "pageviews_12mo": 544227
       },
       "ios_app": {
-        "present": true,
-        "name": "El Correo",
-        "developer": "Diario El Correo, S.A.",
-        "version": "8.0.0",
-        "first_release": "2009-11-18",
-        "last_update": "2026-04-28",
-        "rating": 4.27589,
-        "rating_count": 1178,
-        "size_mb": 48.7,
-        "languages": 1,
-        "language_list": [
-          "EN"
-        ],
-        "min_os": "16.0",
-        "price": "Gratis",
-        "store_url": "https://apps.apple.com/es/app/el-correo/id323858893?uo=4"
+        "present": false
       },
       "crux_phone": {
         "error": "chrome ux report data not found"
@@ -3181,30 +3121,7 @@
         "pageviews_12mo": 540828
       },
       "ios_app": {
-        "present": true,
-        "name": "FCU KIOSK",
-        "developer": "vierC print+mediafabrik GmbH & Co. KG",
-        "version": "5.2.0",
-        "first_release": "2017-01-20",
-        "last_update": "2025-07-25",
-        "rating": 4.6087,
-        "rating_count": 23,
-        "size_mb": 162.6,
-        "languages": 9,
-        "language_list": [
-          "DA",
-          "NL",
-          "EN",
-          "FR",
-          "DE",
-          "IT",
-          "NB",
-          "PT",
-          "RU"
-        ],
-        "min_os": "14.0",
-        "price": "Gratis",
-        "store_url": "https://apps.apple.com/de/app/fcu-kiosk/id1193609606?uo=4"
+        "present": false
       },
       "crux_phone": {
         "lcp_p75": 1129.0,
@@ -3581,24 +3498,7 @@
         "pageviews_12mo": 715884
       },
       "ios_app": {
-        "present": true,
-        "name": "La Lazio Siamo Noi",
-        "developer": "Alessandro Zappulla",
-        "version": "8.3.3",
-        "first_release": "2015-03-01",
-        "last_update": "2026-02-06",
-        "rating": 4.62398,
-        "rating_count": 1835,
-        "size_mb": 44.1,
-        "languages": 3,
-        "language_list": [
-          "EN",
-          "IT",
-          "ES"
-        ],
-        "min_os": "13.0",
-        "price": "Gratis",
-        "store_url": "https://apps.apple.com/it/app/la-lazio-siamo-noi/id966262908?uo=4"
+        "present": false
       },
       "crux_phone": {
         "lcp_p75": 2533.0,
@@ -4103,7 +4003,23 @@
         "pageviews_12mo": 542980
       },
       "ios_app": {
-        "present": false
+        "present": true,
+        "name": "Genoa App Ufficiale",
+        "developer": "Genoa Cfc",
+        "version": "3.1.2",
+        "first_release": "2018-12-14",
+        "last_update": "2026-02-05",
+        "rating": 4.51471,
+        "rating_count": 68,
+        "size_mb": 65.4,
+        "languages": 2,
+        "language_list": [
+          "EN",
+          "IT"
+        ],
+        "min_os": "14.0",
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/it/app/genoa-app-ufficiale/id1431936708?uo=4"
       },
       "crux_phone": {
         "error": "chrome ux report data not found"
@@ -5522,24 +5438,7 @@
         "pageviews_12mo": 415103
       },
       "ios_app": {
-        "present": true,
-        "name": "vélôToulouse officiel",
-        "developer": "JCDecaux",
-        "version": "3.3.2",
-        "first_release": "2024-05-21",
-        "last_update": "2026-03-18",
-        "rating": 4.58373,
-        "rating_count": 5583,
-        "size_mb": 85.9,
-        "languages": 3,
-        "language_list": [
-          "EN",
-          "FR",
-          "ES"
-        ],
-        "min_os": "15.0",
-        "price": "Gratuit",
-        "store_url": "https://apps.apple.com/fr/app/v%C3%A9l%C3%B4toulouse-officiel/id6478927758?uo=4"
+        "present": false
       },
       "crux_phone": {
         "lcp_p75": 3059.0,
@@ -6531,22 +6430,7 @@
         "pageviews_12mo": 924013
       },
       "ios_app": {
-        "present": true,
-        "name": "APV VILLAREAL C.F.",
-        "developer": "HEXAMOB S.L.",
-        "version": "2.0.664",
-        "first_release": "2020-11-16",
-        "last_update": "2021-01-27",
-        "rating": 3,
-        "rating_count": 2,
-        "size_mb": 36.3,
-        "languages": 1,
-        "language_list": [
-          "EN"
-        ],
-        "min_os": "11.0",
-        "price": "Gratis",
-        "store_url": "https://apps.apple.com/es/app/apv-villareal-c-f/id1538436157?uo=4"
+        "present": false
       },
       "crux_phone": {
         "error": "chrome ux report data not found"
@@ -7397,23 +7281,21 @@
       },
       "ios_app": {
         "present": true,
-        "name": "TorinoGranata.it",
-        "developer": "TC&C",
-        "version": "7.9.18",
-        "first_release": "2014-07-26",
-        "last_update": "2026-05-07",
-        "rating": 4.64614,
-        "rating_count": 520,
-        "size_mb": 44.1,
-        "languages": 3,
+        "name": "Torino Channel",
+        "developer": "Torino FC",
+        "version": "1.9",
+        "first_release": "2021-08-11",
+        "last_update": "2021-08-11",
+        "rating": 3.52,
+        "rating_count": 25,
+        "size_mb": 20.7,
+        "languages": 1,
         "language_list": [
-          "EN",
-          "IT",
-          "ES"
+          "IT"
         ],
-        "min_os": "13.0",
+        "min_os": "12.0",
         "price": "Gratis",
-        "store_url": "https://apps.apple.com/it/app/torinogranata-it/id901291825?uo=4"
+        "store_url": "https://apps.apple.com/it/app/torino-channel/id1577341149?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1356.0,
@@ -7909,21 +7791,22 @@
       },
       "ios_app": {
         "present": true,
-        "name": "Osasuna Club de Empresas",
+        "name": "Osasuna Official App",
         "developer": "C.A. Osasuna",
-        "version": "26.02.10",
-        "first_release": "2024-10-17",
-        "last_update": "2026-02-10",
-        "rating": 0,
-        "rating_count": 0,
-        "size_mb": 55.0,
-        "languages": 1,
+        "version": "4.6.0",
+        "first_release": "2023-09-15",
+        "last_update": "2026-04-30",
+        "rating": 4.6879,
+        "rating_count": 471,
+        "size_mb": 47.2,
+        "languages": 2,
         "language_list": [
-          "EN"
+          "EU",
+          "ES"
         ],
-        "min_os": "15.5",
+        "min_os": "15.0",
         "price": "Gratis",
-        "store_url": "https://apps.apple.com/es/app/osasuna-club-de-empresas/id6736645637?uo=4"
+        "store_url": "https://apps.apple.com/es/app/osasuna-official-app/id6450509028?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1379.0,
