@@ -764,23 +764,20 @@ def render_z3(c: dict) -> None:
                 a11y = psi.get("a11y"); seo = psi.get("seo"); bp = psi.get("best_practices")
                 a11y_r = _z3_rank(a11y, peers, lambda p: _safe(p, "psi", "a11y"))
                 seo_r  = _z3_rank(seo,  peers, lambda p: _safe(p, "psi", "seo"))
-                def _short_rank(r):
-                    """Compact '#1/21' rank, green when #1."""
-                    if not r[0]: return ""
-                    if r[0] == 1:
-                        return f" <span style='color:#00CC96;font-weight:600'>🏆 #1/{r[1]}</span>"
-                    return f" #{r[0]}/{r[1]}"
+                bp_r   = _z3_rank(bp,   peers, lambda p: _safe(p, "psi", "best_practices"))
                 st.markdown(
-                    f"<div style='display:flex;gap:24px;margin-top:6px;"
-                    f"font-size:12px;color:#888'>"
-                    f"<span>Lighthouse (synthetic): "
-                    f"<b style='color:#FAFAFA'>A11y {a11y}</b>"
-                    f"{_short_rank(a11y_r)}"
-                    f" · <b style='color:#FAFAFA'>SEO {seo}</b>"
-                    f"{_short_rank(seo_r)}"
-                    f" · BP {bp}</span></div>",
+                    "<div style='color:#888;font-size:12px;margin:14px 0 4px 0'>"
+                    "Lighthouse (synthetic mobile audit)</div>",
                     unsafe_allow_html=True,
                 )
+                st.markdown(kpi_row([
+                    ("Accessibility", str(a11y) if a11y is not None else "—",
+                        _rank_pill(a11y_r[0], a11y_r[1], league)),
+                    ("SEO", str(seo) if seo is not None else "—",
+                        _rank_pill(seo_r[0], seo_r[1], league)),
+                    ("Best practices", str(bp) if bp is not None else "—",
+                        _rank_pill(bp_r[0], bp_r[1], league)),
+                ]), unsafe_allow_html=True)
 
         # ── Stack story ───────────────────────────────────────────────
     with tab_stack:
