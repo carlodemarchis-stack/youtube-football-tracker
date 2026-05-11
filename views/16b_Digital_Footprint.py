@@ -215,15 +215,21 @@ def _flat_table(channels: list[dict], header: str = "") -> None:
     if header:
         st.markdown(f"**{header}**")
 
+    # Same visual signature as All Channels — Season: light row
+    # separator, no header background, hover-only highlight.
     table = (
         "<style>"
-        ".df-tbl{width:100%;border-collapse:collapse;font-size:12.5px;margin:6px 0}"
-        ".df-tbl th{background:#1a1c24;color:#888;text-transform:uppercase;"
-        "letter-spacing:.4px;font-size:10.5px;padding:8px 8px;text-align:right;"
-        "font-weight:600;border-bottom:1px solid #2a2c34;white-space:nowrap}"
-        ".df-tbl th:nth-child(1),.df-tbl th:nth-child(2),.df-tbl th:nth-child(3){text-align:left}"
-        ".df-tbl td{padding:7px 8px;border-bottom:1px solid #20222a;color:#FAFAFA}"
+        ".df-tbl{width:100%;border-collapse:collapse;font-size:13px;margin:6px 0}"
+        ".df-tbl th{padding:6px 12px;color:#888;font-weight:600;text-align:right;"
+        "white-space:nowrap;user-select:none}"
+        ".df-tbl thead tr:last-child{border-bottom:2px solid #444}"
+        ".df-tbl td{padding:6px 12px;border-bottom:1px solid #262730;"
+        "white-space:nowrap;color:#FAFAFA;text-align:right}"
+        ".df-tbl td:nth-child(1),.df-tbl td:nth-child(2),.df-tbl td:nth-child(3),"
+        ".df-tbl th:nth-child(1),.df-tbl th:nth-child(2),.df-tbl th:nth-child(3)"
+        "{text-align:left}"
         ".df-tbl tr:hover td{background:#1a1c24}"
+        ".df-tbl a{color:inherit;text-decoration:none}"
         "</style>"
         "<div style='overflow-x:auto'>"
         "<table class='df-tbl'>"
