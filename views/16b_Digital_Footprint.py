@@ -222,12 +222,16 @@ def _flat_table(channels: list[dict], header: str = "") -> None:
     table = (
         "<style>"
         ".df-wrap{overflow-x:auto;width:100%}"
-        ".df-tbl{width:100%;border-collapse:collapse;font-size:14px;"
+        ".df-tbl{width:100%;border-collapse:collapse;border:0;font-size:14px;"
         "color:#FAFAFA;background:transparent}"
-        ".df-tbl th{padding:6px 12px;user-select:none;white-space:nowrap;"
-        "font-weight:600}"
-        ".df-tbl td{padding:6px 12px;border-bottom:1px solid #262730;"
-        "white-space:nowrap}"
+        # Explicitly zero the three sides that would create vertical /
+        # outer dividers (Streamlit's CSS reset paints sides on every
+        # cell). Leave border-bottom unset here so inline rules can
+        # still draw the colored group underlines + row separator.
+        ".df-tbl th,.df-tbl td{border-left:0 !important;border-right:0 !important;"
+        "border-top:0 !important;padding:6px 12px;white-space:nowrap}"
+        ".df-tbl th{user-select:none;font-weight:600;border-bottom:0}"
+        ".df-tbl td{border-bottom:1px solid #262730 !important}"
         ".df-tbl tr:hover td{background:#1a1c24}"
         ".df-tbl a{color:inherit;text-decoration:none}"
         "</style>"
