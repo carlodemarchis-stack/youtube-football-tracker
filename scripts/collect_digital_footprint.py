@@ -469,38 +469,97 @@ def ios_app(query: str, country: str) -> dict:
     return out
 
 
+def _crux_variants(origin: str) -> list[str]:
+    """Build candidate CrUX origins for one website. CrUX is origin-
+    specific (https://x.com and https://www.x.com are different), and
+    clubs canonicalize differently. Tries, in order:
+      1. The origin as given
+      2. Toggled www. prefix (add or strip)
+      3. If the host has a leading short subdomain that looks like a
+         locale (e.g. en.psg.fr, fr.example.com), the root-domain
+         versions with and without www.
+    """
+    from urllib.parse import urlparse
+    p = urlparse(origin)
+    host = p.netloc.lower()
+    out = [f"{p.scheme}://{host}"]
+
+    # Toggle www
+    if host.startswith("www."):
+        out.append(f"{p.scheme}://{host[4:]}")
+    else:
+        out.append(f"{p.scheme}://www.{host}")
+
+    # Strip short leading subdomain if it looks like a locale
+    parts = host.split(".")
+    if len(parts) >= 3 and len(parts[0]) <= 3 and parts[0] != "www":
+        root = ".".join(parts[1:])
+        out.append(f"{p.scheme}://{root}")
+        out.append(f"{p.scheme}://www.{root}")
+
+    # Dedupe while keeping order
+    seen = set(); ordered = []
+    for o in out:
+        if o not in seen:
+            ordered.append(o); seen.add(o)
+    return ordered
+
+
 def crux(origin: str, form_factor: str | None = None) -> dict:
+    """Query CrUX. Tries multiple origin variants (toggling www and
+    stripping locale subdomains) because CrUX origins don't match
+    1:1 with the website URLs clubs publish."""
     if not PSI_KEY:
         return {}
-    body: dict = {"origin": origin}
-    if form_factor:
-        body["formFactor"] = form_factor
-    try:
-        r = requests.post(
-            "https://chromeuxreport.googleapis.com/v1/records:queryRecord",
-            params={"key": PSI_KEY},
-            json=body, timeout=30,
-            headers={"Content-Type": "application/json"},
-        )
-        d = r.json()
-        if "error" in d:
-            return {"error": d["error"].get("message", "")[:80]}
-        m = d.get("record", {}).get("metrics", {})
 
-        def p75(k):
-            v = m.get(k, {}).get("percentiles", {}).get("p75")
-            return float(v) if v is not None else None
+    def _query(o: str) -> tuple[dict | None, str | None]:
+        body: dict = {"origin": o}
+        if form_factor:
+            body["formFactor"] = form_factor
+        try:
+            r = requests.post(
+                "https://chromeuxreport.googleapis.com/v1/records:queryRecord",
+                params={"key": PSI_KEY},
+                json=body, timeout=30,
+                headers={"Content-Type": "application/json"},
+            )
+            d = r.json()
+            if "error" in d:
+                return None, d["error"].get("message", "")[:120]
+            return d, None
+        except Exception as e:
+            return None, str(e)[:80]
 
-        cls_v = p75("cumulative_layout_shift")
-        if cls_v is not None:
-            cls_v = cls_v / 100
-        return {"lcp_p75": p75("largest_contentful_paint"),
-                "fcp_p75": p75("first_contentful_paint"),
-                "inp_p75": p75("interaction_to_next_paint"),
-                "cls_p75": cls_v,
-                "ttfb_p75": p75("experimental_time_to_first_byte")}
-    except Exception as e:
-        return {"error": str(e)[:80]}
+    last_err = None
+    for variant in _crux_variants(origin):
+        d, err = _query(variant)
+        if d:
+            break
+        last_err = err
+        if not err or ("not found" not in err.lower() and
+                       "data not found" not in err.lower()):
+            # Real error (quota, auth) — stop trying alternates
+            break
+    else:
+        d = None
+
+    if not d:
+        return {"error": last_err or "unknown"}
+
+    m = d.get("record", {}).get("metrics", {})
+
+    def p75(k):
+        v = m.get(k, {}).get("percentiles", {}).get("p75")
+        return float(v) if v is not None else None
+
+    cls_v = p75("cumulative_layout_shift")
+    if cls_v is not None:
+        cls_v = cls_v / 100
+    return {"lcp_p75": p75("largest_contentful_paint"),
+            "fcp_p75": p75("first_contentful_paint"),
+            "inp_p75": p75("interaction_to_next_paint"),
+            "cls_p75": cls_v,
+            "ttfb_p75": p75("experimental_time_to_first_byte")}
 
 
 def psi(url: str) -> dict:
