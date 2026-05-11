@@ -16,6 +16,7 @@ from pathlib import Path
 from urllib.parse import urlparse, quote_plus
 
 import streamlit as st
+import streamlit.components.v1 as _components
 
 from src.analytics import kpi_row, fmt_num
 from src.auth import require_login
@@ -218,7 +219,10 @@ def _flat_table(channels: list[dict], header: str = "") -> None:
 
         slug = quote_plus(c["name"])
         league = c.get("league", "")
+        # target="_top" so click navigates the Streamlit parent page
+        # (the table itself renders inside a components.html iframe).
         name_link = (f"<a href='?league={quote_plus(league)}&club={slug}' "
+                     f"target='_top' "
                      f"style='color:#FAFAFA;text-decoration:none'>"
                      f"{c['name']}</a>")
         # Badge + name on the same flex row so the dot/flag aligns
@@ -231,82 +235,143 @@ def _flat_table(channels: list[dict], header: str = "") -> None:
 
         tech = _tech_cell(c)
 
+        # Build cells with data-val attributes (used by the sort JS).
+        # Numeric cells store the raw number; string cells store a
+        # lowercase comparison key.
+        def _td(val_sort, content, *, align="right", extra_attr=""):
+            v = "" if val_sort is None else str(val_sort)
+            a = f"style='text-align:{align}'" if align != "left" else "style='text-align:left'"
+            return f"<td {a} data-val=\"{v}\" {extra_attr}>{content}</td>"
+
+        # Pages cell — unique-content count
+        if unique_pages and divisor > 1:
+            pages_cell = _td(unique_pages, fmt_num(unique_pages),
+                              extra_attr=f"title='Locale-normalized: "
+                                          f"{fmt_num(raw_pages)} raw URLs ÷ {divisor} locales "
+                                          f"= {fmt_num(unique_pages)} unique pages'")
+        elif unique_pages:
+            pages_cell = _td(unique_pages, fmt_num(unique_pages))
+        else:
+            pages_cell = _td(0, "—")
+
+        # Locales cell
+        if loc and loc_langs:
+            loc_cell = _td(loc, str(loc),
+                            extra_attr=f"title='{', '.join(loc_langs)} (via {loc_src})'")
+        else:
+            loc_cell = _td(loc or 0, str(loc) if loc else "—")
+
+        # iOS rating cell — content includes link + count
+        if rating and store_url:
+            rating_html = (f"<a href='{store_url}' target='_top' rel='noopener' "
+                            f"style='color:#58A6FF;text-decoration:none'>"
+                            f"{rating:.1f}★</a>")
+        elif rating:
+            rating_html = f"{rating:.1f}★"
+        else:
+            rating_html = "—"
+        if rating_n:
+            rating_html += f" <span style='color:#666'>({fmt_num(rating_n)})</span>"
+        ios_cell = _td(rating or 0, rating_html)
+
+        # Wiki views cell with per-language tooltip
+        if wv and wv_by_lang:
+            wv_tip = ", ".join(f"{k}: {fmt_num(v)}" for k, v
+                                in sorted(wv_by_lang.items(),
+                                          key=lambda x: -x[1])[:8])
+            wv_cell = _td(wv, fmt_num(wv), extra_attr=f"title='{wv_tip}'")
+        else:
+            wv_cell = _td(wv or 0, fmt_num(wv) if wv else "—")
+
         rows_html.append(
             "<tr>"
-            f"<td>{channel_cell}</td>"
-            f"<td>{web}</td>"
-            f"<td>{tech}</td>"
-            f"<td style='text-align:right'>{domain_yr or '—'}</td>"
-            f"<td style='text-align:right'>{cdn}</td>"
-            f"<td style='text-align:right'>{sec_s}</td>"
-            # Pages cell — unique-content count (raw / locale-count
-            # when high-trust). Hover shows the raw sitemap total +
-            # the locale divisor when normalized.
-            + (f"<td style='text-align:right' title='Locale-normalized: "
-               f"{fmt_num(raw_pages)} raw URLs ÷ {divisor} locales = {fmt_num(unique_pages)} unique pages'>"
-               f"{fmt_num(unique_pages)}</td>"
-               if unique_pages and divisor > 1 else
-               f"<td style='text-align:right'>{fmt_num(unique_pages) if unique_pages else '—'}</td>")
-            # Locales cell — hover reveals language codes + source layer
-            + (f"<td style='text-align:right' title='{', '.join(loc_langs)} "
-               f"(via {loc_src})'>{loc}</td>"
-               if loc and loc_langs else
-               f"<td style='text-align:right'>{loc if loc else '—'}</td>")
-            + f"<td style='text-align:right'>{_rate_lcp(lcp)} {_fmt_ms(lcp)}</td>"
-            f"<td style='text-align:right'>{_rate_inp(inp)} {_fmt_ms(inp)}</td>"
-            f"<td style='text-align:right'>{a11y if a11y is not None else '—'}</td>"
-            f"<td style='text-align:right'>{seo if seo is not None else '—'}</td>"
-            # iOS rating links to the App Store listing when present
-            f"<td style='text-align:right'>"
-            + (f"<a href='{store_url}' target='_blank' rel='noopener' "
-               f"style='color:#58A6FF;text-decoration:none'>"
-               f"{rating:.1f}★</a>"
-               if rating and store_url else
-               (f"{rating:.1f}★" if rating else "—"))
-            + (f" <span style='color:#666'>({fmt_num(rating_n)})</span>"
-               if rating_n else "") + "</td>"
-            f"<td style='text-align:right'>{last or '—'}</td>"
-            f"<td style='text-align:right'>{wl if wl else '—'}</td>"
-            # Wiki views: total across all major languages; tooltip
-            # shows the per-language breakdown sorted by views desc.
-            + (f"<td style='text-align:right' title='"
-               + ", ".join(f"{k}: {fmt_num(v)}"
-                            for k, v in sorted(wv_by_lang.items(),
-                                                key=lambda x: -x[1])[:8])
-               + f"'>{fmt_num(wv)}</td>"
-               if wv and wv_by_lang else
-               f"<td style='text-align:right'>{fmt_num(wv) if wv else '—'}</td>")
-            + "</tr>"
+            f"<td style='text-align:left' data-val=\"{c['name'].lower()}\">{channel_cell}</td>"
+            f"<td style='text-align:left' data-val=\"{(c.get('domain') or '').lower()}\">{web}</td>"
+            f"<td style='text-align:left' data-val=\"{((c.get('tech') or {}).get('vendor') or (c.get('tech') or {}).get('cms') or (c.get('tech') or {}).get('framework') or '').lower()}\">{tech}</td>"
+            f"{_td(domain_yr or 0, domain_yr or '—')}"
+            f"{_td(cdn, cdn)}"
+            f"{_td(sec if sec is not None else -1, sec_s)}"
+            f"{pages_cell}"
+            f"{loc_cell}"
+            f"{_td(lcp if lcp else 99999, f'{_rate_lcp(lcp)} {_fmt_ms(lcp)}')}"
+            f"{_td(inp if inp else 99999, f'{_rate_inp(inp)} {_fmt_ms(inp)}')}"
+            f"{_td(a11y if a11y is not None else -1, str(a11y) if a11y is not None else '—')}"
+            f"{_td(seo if seo is not None else -1, str(seo) if seo is not None else '—')}"
+            f"{ios_cell}"
+            f"{_td(last or '0000-00', last or '—')}"
+            f"{_td(wl or 0, str(wl) if wl else '—')}"
+            f"{wv_cell}"
+            "</tr>"
         )
 
     if header:
         st.markdown(f"**{header}**")
 
-    # Mirror the All Channels — Season table exactly: transparent
-    # background, no outer or vertical borders, single horizontal
-    # row separator. Group titles in the top header row carry their
-    # own inline colored bottom border.
-    table = (
+    # Column metadata for the sort JS — (data-col index, type).
+    # For columns where "lower is better" (LCP, INP), the JS still
+    # toggles asc/desc on click; users can pick the direction they want.
+    # Default sort = column 15 (Wiki views) desc.
+    ths = [
+        # (idx, type, align, label, tooltip)
+        (0,  "str", "left",  "Channel",     ""),
+        (1,  "str", "left",  "Website",     ""),
+        (2,  "str", "left",  "Tech",
+            "Detected tech stack — vendor (red), CMS (blue), framework (grey)."),
+        (3,  "num", "right", "Since",
+            "First year the domain was archived on Wayback Machine."),
+        (4,  "str", "right", "CDN",
+            "CDN from HTTP response headers."),
+        (5,  "num", "right", "Sec",
+            "Security headers present (out of 6): HSTS, CSP, X-Frame, X-Content, Referrer, Permissions."),
+        (6,  "num", "right", "Pages",
+            "Locale-normalized unique pages. Hover a cell to see raw + divisor."),
+        (7,  "num", "right", "Loc",
+            "Language editions offered. Hover a cell for the language list + source."),
+        (8,  "num", "right", "Real LCP",
+            "LCP p75 mobile (CrUX). 🟢 ≤2.5s · 🟡 ≤4s · 🔴 >4s"),
+        (9,  "num", "right", "Real INP",
+            "INP p75 mobile (CrUX). 🟢 ≤200ms · 🟡 ≤500ms · 🔴 >500ms"),
+        (10, "num", "right", "A11y",
+            "Lighthouse Accessibility 0–100."),
+        (11, "num", "right", "SEO",
+            "Lighthouse SEO 0–100."),
+        (12, "num", "right", "iOS ★",
+            "App Store rating. Click the cell to open the App Store page."),
+        (13, "str", "right", "Updated",
+            "iOS app current-version release date."),
+        (14, "num", "right", "Wiki L",
+            "Wikipedia language editions (global brand width)."),
+        (15, "num", "right", "Views/12mo",
+            "Wiki pageviews summed across major language editions. Hover for breakdown."),
+    ]
+    th_html = "".join(
+        f"<th data-col='{idx}' data-type='{tp}' "
+        f"style='text-align:{al};cursor:pointer'"
+        + (f" title=\"{tip}\"" if tip else "")
+        + f">{lbl}</th>"
+        for idx, tp, al, lbl, tip in ths
+    )
+
+    table_html = (
         "<style>"
+        "body{margin:0;background:#0E1117;color:#FAFAFA;"
+        "font-family:'Source Sans Pro',sans-serif}"
         ".df-wrap{overflow-x:auto;width:100%}"
         ".df-tbl{width:100%;border-collapse:collapse;border:0;font-size:14px;"
         "color:#FAFAFA;background:transparent}"
-        # Explicitly zero the three sides that would create vertical /
-        # outer dividers (Streamlit's CSS reset paints sides on every
-        # cell). Leave border-bottom unset here so inline rules can
-        # still draw the colored group underlines + row separator.
-        ".df-tbl th,.df-tbl td{border-left:0 !important;border-right:0 !important;"
-        "border-top:0 !important;padding:6px 12px;white-space:nowrap}"
-        ".df-tbl th{user-select:none;font-weight:600;border-bottom:0}"
-        ".df-tbl td{border-bottom:1px solid #262730 !important}"
+        ".df-tbl th,.df-tbl td{border-left:0;border-right:0;border-top:0;"
+        "padding:6px 12px;white-space:nowrap}"
+        ".df-tbl th{user-select:none;font-weight:600;color:#FAFAFA;border-bottom:0}"
+        ".df-tbl th[data-col]:hover{color:#636EFA}"
+        ".df-tbl th.active{color:#636EFA}"
+        ".df-tbl td{border-bottom:1px solid #262730}"
         ".df-tbl tr:hover td{background:#1a1c24}"
+        ".df-tbl tr.outlier-top td:first-child{box-shadow:inset 3px 0 0 #00CC96}"
+        ".df-tbl tr.outlier-bottom td:first-child{box-shadow:inset 3px 0 0 #EF553B}"
         ".df-tbl a{color:inherit;text-decoration:none}"
         "</style>"
         "<div class='df-wrap'>"
         "<table class='df-tbl'>"
-        # Two-row thead: top row groups columns with colored
-        # underlines (mirrors the All Channels — Season layout);
-        # bottom row holds the individual column labels.
         "<thead>"
         "<tr>"
         "<th colspan='2'></th>"
@@ -317,60 +382,54 @@ def _flat_table(channels: list[dict], header: str = "") -> None:
         "<th colspan='2' style='text-align:center;border-bottom:2px solid #FFA15A;color:#FFA15A'>iOS app</th>"
         "<th colspan='2' style='text-align:center;border-bottom:2px solid #AB63FA;color:#AB63FA'>Wikipedia</th>"
         "</tr>"
-        "<tr style='border-bottom:2px solid #444'>"
-        "<th style='text-align:left'>Channel</th>"
-        "<th style='text-align:left'>Website</th>"
-        "<th style='text-align:left' "
-        "title='Detected tech stack — sport-tech vendor (red), CMS / DXP (blue), frontend framework (grey). Fingerprinted from homepage HTML.'>"
-        "Tech</th>"
-        "<th style='text-align:right' "
-        "title='First year the domain was archived on the Wayback Machine — proxy for when the site was launched.'>"
-        "Since</th>"
-        "<th style='text-align:right' "
-        "title='Content Delivery Network detected via HTTP response headers (Akamai, Cloudflare, CloudFront, Fastly…).'>"
-        "CDN</th>"
-        "<th style='text-align:right' "
-        "title='Security headers present (out of 6): HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy.'>"
-        "Sec</th>"
-        "<th style='text-align:right' "
-        "title='Locale-normalized unique pages: total sitemap URLs divided by locale count when locale signal is hreflang or sitemap (avoids double-counting translated content). Hover any cell to see the raw + divisor.'>"
-        "Pages</th>"
-        "<th style='text-align:right' "
-        "title='Number of language editions the site offers. Detected via layered probe: 1) hreflang tags in &lt;head&gt; (most reliable), 2) sitemap path codes /xx/ when 2-12 distinct, 3) <html lang> fallback for single-locale sites. Hover the cell to see the language list + source.'>"
-        "Loc</th>"
-        "<th style='text-align:right' "
-        "title='Largest Contentful Paint, p75 across real Chrome users on mobile (last 28 days, CrUX). 🟢 ≤2.5s · 🟡 ≤4s · 🔴 >4s'>"
-        "Real LCP</th>"
-        "<th style='text-align:right' "
-        "title='Interaction to Next Paint, p75 — how long until the page responds to taps/clicks (CrUX, real users). 🟢 ≤200ms · 🟡 ≤500ms · 🔴 >500ms'>"
-        "Real INP</th>"
-        "<th style='text-align:right' "
-        "title='Lighthouse Accessibility score 0–100 (synthetic mobile audit).'>"
-        "A11y</th>"
-        "<th style='text-align:right' "
-        "title='Lighthouse SEO score 0–100 (synthetic mobile audit).'>"
-        "SEO</th>"
-        "<th style='text-align:right' "
-        "title='iOS App Store average rating (out of 5) and total rating count. Click to open the App Store page.'>"
-        "iOS ★</th>"
-        "<th style='text-align:right' "
-        "title='Most recent iOS app version release date — maintenance signal.'>"
-        "Updated</th>"
-        "<th style='text-align:right' "
-        "title='Number of language editions of the club’s Wikipedia article (global brand width proxy).'>"
-        "Wiki L</th>"
-        "<th style='text-align:right' "
-        "title='Total Wikipedia pageviews over the trailing 12 months — summed across major language editions (en, es, de, fr, it, pt, ja, ru, zh, ar, ko, tr, nl, pl). Hover any cell to see the per-language breakdown.'>"
-        "Views/12mo</th>"
-        "</tr></thead>"
+        f"<tr style='border-bottom:2px solid #444'>{th_html}</tr>"
+        "</thead>"
         f"<tbody>{''.join(rows_html)}</tbody></table></div>"
+        # Sortable + outlier-highlighting JS. Highlights top-3 and
+        # bottom-3 rows of the current sort with a small left-edge
+        # color marker (green for top, red for bottom).
+        "<script>(function(){"
+        "const t=document.querySelector('.df-tbl');"
+        "const tb=t.querySelector('tbody');"
+        "const hs=t.querySelectorAll('th[data-col]');"
+        "let cur=15,asc=false;"
+        "function refresh(){"
+            "const rows=Array.from(tb.rows);"
+            "const isStr=hs[cur].dataset.type==='str';"
+            "rows.sort((a,b)=>{"
+                "const va=a.cells[cur].dataset.val||'';"
+                "const vb=b.cells[cur].dataset.val||'';"
+                "let c;"
+                "if(isStr)c=va.localeCompare(vb,undefined,{sensitivity:'base'});"
+                "else c=(parseFloat(va)||0)-(parseFloat(vb)||0);"
+                "return asc?c:-c;"
+            "});"
+            # Clear classes and re-attach in new order
+            "rows.forEach(r=>{r.classList.remove('outlier-top','outlier-bottom');tb.appendChild(r);});"
+            # Outliers: top 3 of current sort, bottom 3
+            "const n=rows.length;"
+            "for(let i=0;i<3&&i<n;i++)rows[i].classList.add('outlier-top');"
+            "for(let i=0;i<3&&i<n;i++)rows[n-1-i].classList.add('outlier-bottom');"
+            "hs.forEach(h=>{h.classList.remove('active');h.textContent=h.textContent.replace(/ [▲▼]/g,'');});"
+            "hs[cur].classList.add('active');"
+            "hs[cur].textContent+=asc?' ▲':' ▼';"
+        "}"
+        "hs.forEach((h,i)=>{h.addEventListener('click',()=>{"
+            "if(i===cur)asc=!asc;else{cur=i;asc=hs[i].dataset.type==='str';}"
+            "refresh();"
+        "});});"
+        "refresh();"
+        "})();</script>"
     )
-    st.markdown(table, unsafe_allow_html=True)
+    # Iframe height: 32px/row × N rows + ~80px for 2 header rows
+    iframe_h = min(900, 32 * len(channels_sorted) + 90)
+    _components.html(table_html, height=iframe_h, scrolling=True)
     st.caption(
-        "Sorted by Wikipedia EN pageviews (12mo) — global interest proxy. "
-        "Real LCP / INP = real Chrome users on mobile, p75, last 28 days "
-        "(CrUX). A11y / SEO from Lighthouse — Performance score is "
-        "deliberately omitted (synthetic, noisy on content-heavy sites)."
+        "Click any column header to sort. Top-3 of current sort marked "
+        "green, bottom-3 red. Default sort = Wikipedia views (12mo, "
+        "multi-language total) — global interest proxy. "
+        "Real LCP / INP = real Chrome users (CrUX). A11y / SEO from "
+        "Lighthouse — Performance score deliberately omitted."
     )
 
 
