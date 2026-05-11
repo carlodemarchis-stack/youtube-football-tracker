@@ -1544,7 +1544,12 @@
       },
       "content": {
         "owned_subdomains": [],
-        "features": {},
+        "features": {
+          "ticketing": true,
+          "streaming": true,
+          "academy": true,
+          "foundation": true
+        },
         "feature_locations": {},
         "external_partners": [
           "use.typekit.net"
@@ -3912,7 +3917,14 @@
       },
       "content": {
         "owned_subdomains": [],
-        "features": {},
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "streaming": true,
+          "membership": true,
+          "museum_tour": true,
+          "academy": true
+        },
         "feature_locations": {},
         "external_partners": [],
         "sections": []
@@ -7316,7 +7328,14 @@
       },
       "content": {
         "owned_subdomains": [],
-        "features": {},
+        "features": {
+          "ticketing": true,
+          "streaming": true,
+          "academy": true,
+          "newsletter": true,
+          "radio": true,
+          "careers": true
+        },
         "feature_locations": {},
         "external_partners": [],
         "sections": []
@@ -8509,7 +8528,13 @@
       },
       "content": {
         "owned_subdomains": [],
-        "features": {},
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "streaming": true,
+          "membership": true,
+          "academy": true
+        },
         "feature_locations": {},
         "external_partners": [],
         "sections": []

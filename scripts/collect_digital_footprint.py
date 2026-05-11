@@ -494,7 +494,10 @@ def content_taxonomy(website: str, domain: str) -> dict:
     try:
         r = requests.get(website, headers=HEADERS, timeout=20,
                          allow_redirects=True)
-        html = r.text[:500_000]
+        # 3MB cap — some clubs serve very large homepages with their
+        # entire site shell + inline JSON (Real Madrid 1MB+, Forest
+        # / Everton ~2MB). Below 3MB the function still runs fast.
+        html = r.text[:3_000_000]
     except Exception:
         return {}
 
