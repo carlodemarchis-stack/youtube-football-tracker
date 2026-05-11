@@ -692,8 +692,9 @@ def render_z3(c: dict) -> None:
                              + f" than {league} median"
                              ) if lcp_gap is not None else ""
                 st.markdown(
-                    f"<div style='font-size:11px;color:#888;text-transform:uppercase;"
-                    f"letter-spacing:0.5px'>LCP (p75 mobile)</div>"
+                    f"<div title='Largest Contentful Paint — when the biggest visible element finishes loading. p75 = the 75th-percentile experience across real Chrome users on mobile (CrUX, last 28 days). Lower is better.' "
+                    f"style='font-size:11px;color:#888;text-transform:uppercase;"
+                    f"letter-spacing:0.5px;cursor:help'>LCP (p75 mobile)</div>"
                     f"<div style='font-size:32px;font-weight:700'>{lcp_emoji} {lcp/1000:.2f}s</div>"
                     f"<div style='color:#888;font-size:12px'>"
                     f"{_rank_pill(lcp_rank[0], lcp_rank[1], league)}"
@@ -725,8 +726,9 @@ def render_z3(c: dict) -> None:
                              + f" than {league} median"
                              ) if inp_gap is not None else ""
                 st.markdown(
-                    f"<div style='font-size:11px;color:#888;text-transform:uppercase;"
-                    f"letter-spacing:0.5px'>INP (tap latency p75)</div>"
+                    f"<div title='Interaction to Next Paint — how long the page takes to react to a tap or click. p75 = the 75th-percentile lag across real Chrome users on mobile (CrUX, last 28 days). Lower is better.' "
+                    f"style='font-size:11px;color:#888;text-transform:uppercase;"
+                    f"letter-spacing:0.5px;cursor:help'>INP (tap latency p75)</div>"
                     f"<div style='font-size:32px;font-weight:700'>{inp_emoji} {int(inp)} ms</div>"
                     f"<div style='color:#888;font-size:12px'>"
                     f"{_rank_pill(inp_rank[0], inp_rank[1], league)}"
@@ -749,11 +751,12 @@ def render_z3(c: dict) -> None:
                         unsafe_allow_html=True,
                     )
 
-            # Secondary CrUX metrics — small inline row
+            # Secondary CrUX metrics — small inline row with hover help
             st.markdown(
                 f"<div style='color:#888;font-size:12px;margin-top:14px'>"
-                f"FCP {_fmt_ms(fcp)} · CLS {(cx.get('cls_p75') or 0):.2f}"
-                f" · TTFB {_fmt_ms(ttfb)}"
+                f"<span title='First Contentful Paint — when ANY content first appears on screen. p75 mobile.' style='cursor:help;text-decoration:underline dotted #444'>FCP</span> {_fmt_ms(fcp)} · "
+                f"<span title='Cumulative Layout Shift — how much the page jumps around as it loads. 0 = stable. Lower is better.' style='cursor:help;text-decoration:underline dotted #444'>CLS</span> {(cx.get('cls_p75') or 0):.2f} · "
+                f"<span title='Time to First Byte — how fast the server responds to the request. p75 mobile. Reflects backend / CDN speed.' style='cursor:help;text-decoration:underline dotted #444'>TTFB</span> {_fmt_ms(ttfb)}"
                 f"</div>",
                 unsafe_allow_html=True,
             )
@@ -771,11 +774,14 @@ def render_z3(c: dict) -> None:
                     unsafe_allow_html=True,
                 )
                 st.markdown(kpi_row([
-                    ("Accessibility", str(a11y) if a11y is not None else "—",
+                    ("<span title='Lighthouse Accessibility score 0–100. Audits things like color contrast, alt text on images, ARIA labels, keyboard navigation, form labels. Synthetic but reliable — same checklist Google runs.' style='cursor:help'>Accessibility</span>",
+                        str(a11y) if a11y is not None else "—",
                         _rank_pill(a11y_r[0], a11y_r[1], league)),
-                    ("SEO", str(seo) if seo is not None else "—",
+                    ("<span title='Lighthouse SEO score 0–100. Audits crawlability, meta tags, structured data, mobile friendliness, link practices. Synthetic but reliable signal for search-engine fitness.' style='cursor:help'>SEO</span>",
+                        str(seo) if seo is not None else "—",
                         _rank_pill(seo_r[0], seo_r[1], league)),
-                    ("Best practices", str(bp) if bp is not None else "—",
+                    ("<span title='Lighthouse Best Practices score 0–100. Audits HTTPS, deprecated APIs, console errors, image aspect ratios, security headers. Generic web-hygiene checklist.' style='cursor:help'>Best practices</span>",
+                        str(bp) if bp is not None else "—",
                         _rank_pill(bp_r[0], bp_r[1], league)),
                 ]), unsafe_allow_html=True)
 
