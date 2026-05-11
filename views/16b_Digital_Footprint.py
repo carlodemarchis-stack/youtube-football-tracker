@@ -76,6 +76,24 @@ def _rate_inp(v):
     return "🟢" if v <= 200 else ("🟡" if v <= 500 else "🔴")
 
 
+def _rate_fcp(v):
+    if v is None:
+        return ""
+    return "🟢" if v <= 1800 else ("🟡" if v <= 3000 else "🔴")
+
+
+def _rate_cls(v):
+    if v is None:
+        return ""
+    return "🟢" if v <= 0.10 else ("🟡" if v <= 0.25 else "🔴")
+
+
+def _rate_ttfb(v):
+    if v is None:
+        return ""
+    return "🟢" if v <= 800 else ("🟡" if v <= 1800 else "🔴")
+
+
 def _league_channels(league):
     return [c for c in all_channels if c.get("league") == league]
 
@@ -751,15 +769,125 @@ def render_z3(c: dict) -> None:
                         unsafe_allow_html=True,
                     )
 
-            # Secondary CrUX metrics — small inline row with hover help
-            st.markdown(
-                f"<div style='color:#888;font-size:12px;margin-top:14px'>"
-                f"<span title='First Contentful Paint — when ANY content first appears on screen. p75 mobile.' style='cursor:help;text-decoration:underline dotted #444'>FCP</span> {_fmt_ms(fcp)} · "
-                f"<span title='Cumulative Layout Shift — how much the page jumps around as it loads. 0 = stable. Lower is better.' style='cursor:help;text-decoration:underline dotted #444'>CLS</span> {(cx.get('cls_p75') or 0):.2f} · "
-                f"<span title='Time to First Byte — how fast the server responds to the request. p75 mobile. Reflects backend / CDN speed.' style='cursor:help;text-decoration:underline dotted #444'>TTFB</span> {_fmt_ms(ttfb)}"
-                f"</div>",
-                unsafe_allow_html=True,
-            )
+            # Secondary CrUX metrics — same visual pattern as LCP/INP
+            # above, in a 3-column row with rating emoji + rank + gap
+            # + min/max distribution bar.
+            cls_v = cx.get("cls_p75")
+            fcp_med = _z3_median(peers, lambda p: _safe(p, "crux_phone", "fcp_p75"))
+            cls_med = _z3_median(peers, lambda p: _safe(p, "crux_phone", "cls_p75"))
+            ttfb_med = _z3_median(peers, lambda p: _safe(p, "crux_phone", "ttfb_p75"))
+            fcp_rank = _z3_rank(fcp, peers,
+                                 lambda p: _safe(p, "crux_phone", "fcp_p75"),
+                                 higher_better=False)
+            cls_rank = _z3_rank(cls_v, peers,
+                                 lambda p: _safe(p, "crux_phone", "cls_p75"),
+                                 higher_better=False)
+            ttfb_rank = _z3_rank(ttfb, peers,
+                                  lambda p: _safe(p, "crux_phone", "ttfb_p75"),
+                                  higher_better=False)
+
+            def _gap_text(value, median, fmt_v, unit_label):
+                if value is None or median is None:
+                    return ""
+                gap = value - median
+                if gap == 0:
+                    return f"matches {league} median"
+                direction = "slower" if gap > 0 else "faster"
+                return f"{fmt_v(abs(gap))} {direction} than {league} median"
+
+            ccol1, ccol2, ccol3 = st.columns(3)
+            with ccol1:
+                rank_html = _rank_pill(fcp_rank[0], fcp_rank[1], league)
+                gap_text = _gap_text(fcp, fcp_med,
+                                       lambda v: f"{v/1000:.1f}s", "s")
+                sep = " · " if rank_html and gap_text else ""
+                st.markdown(
+                    f"<div title='First Contentful Paint — when ANY content first appears on screen. p75 across real Chrome users on mobile (CrUX). 🟢 ≤1.8s · 🟡 ≤3s · 🔴 >3s. Lower is better.' "
+                    f"style='font-size:11px;color:#888;text-transform:uppercase;"
+                    f"letter-spacing:0.5px;cursor:help'>FCP (p75 mobile)</div>"
+                    f"<div style='font-size:24px;font-weight:700'>{_rate_fcp(fcp)} {_fmt_ms(fcp)}</div>"
+                    f"<div style='color:#888;font-size:12px'>{rank_html}{sep}{gap_text}</div>",
+                    unsafe_allow_html=True,
+                )
+                league_fcps = [v for v in (_safe(p, "crux_phone", "fcp_p75")
+                                            for p in peers) if v is not None]
+                if league_fcps and fcp:
+                    lo, hi = min(league_fcps), max(league_fcps)
+                    st.markdown(_bar_for(fcp, lo, hi, ok=1800, warn=3000,
+                                           lower_better=True),
+                                unsafe_allow_html=True)
+                    st.markdown(
+                        f"<div style='display:flex;justify-content:space-between;"
+                        f"color:#666;font-size:10px;margin-top:-4px'>"
+                        f"<span>{lo/1000:.1f}s (fastest)</span>"
+                        f"<span>{hi/1000:.1f}s (slowest)</span></div>",
+                        unsafe_allow_html=True,
+                    )
+
+            with ccol2:
+                rank_html = _rank_pill(cls_rank[0], cls_rank[1], league)
+                gap_text = ""
+                if cls_v is not None and cls_med is not None:
+                    gap = cls_v - cls_med
+                    if gap == 0:
+                        gap_text = f"matches {league} median"
+                    else:
+                        gap_text = (f"{abs(gap):.2f} "
+                                     + ("worse" if gap > 0 else "better")
+                                     + f" than {league} median")
+                sep = " · " if rank_html and gap_text else ""
+                cls_disp = f"{cls_v:.2f}" if cls_v is not None else "—"
+                st.markdown(
+                    f"<div title='Cumulative Layout Shift — how much the page jumps around as it loads. 0 = perfectly stable. p75 across real Chrome users on mobile (CrUX). 🟢 ≤0.10 · 🟡 ≤0.25 · 🔴 >0.25. Lower is better.' "
+                    f"style='font-size:11px;color:#888;text-transform:uppercase;"
+                    f"letter-spacing:0.5px;cursor:help'>CLS (layout stability p75)</div>"
+                    f"<div style='font-size:24px;font-weight:700'>{_rate_cls(cls_v)} {cls_disp}</div>"
+                    f"<div style='color:#888;font-size:12px'>{rank_html}{sep}{gap_text}</div>",
+                    unsafe_allow_html=True,
+                )
+                league_clss = [v for v in (_safe(p, "crux_phone", "cls_p75")
+                                            for p in peers) if v is not None]
+                if league_clss and cls_v is not None:
+                    lo, hi = min(league_clss), max(league_clss)
+                    if hi > lo:
+                        st.markdown(_bar_for(cls_v, lo, hi, ok=0.10, warn=0.25,
+                                               lower_better=True),
+                                    unsafe_allow_html=True)
+                        st.markdown(
+                            f"<div style='display:flex;justify-content:space-between;"
+                            f"color:#666;font-size:10px;margin-top:-4px'>"
+                            f"<span>{lo:.2f} (best)</span>"
+                            f"<span>{hi:.2f} (worst)</span></div>",
+                            unsafe_allow_html=True,
+                        )
+
+            with ccol3:
+                rank_html = _rank_pill(ttfb_rank[0], ttfb_rank[1], league)
+                gap_text = _gap_text(ttfb, ttfb_med,
+                                       lambda v: f"{int(v)}ms", "ms")
+                sep = " · " if rank_html and gap_text else ""
+                st.markdown(
+                    f"<div title='Time to First Byte — how fast the server responds to the request. p75 across real Chrome users on mobile (CrUX). Reflects backend / CDN speed. 🟢 ≤800ms · 🟡 ≤1800ms · 🔴 >1800ms. Lower is better.' "
+                    f"style='font-size:11px;color:#888;text-transform:uppercase;"
+                    f"letter-spacing:0.5px;cursor:help'>TTFB (server response p75)</div>"
+                    f"<div style='font-size:24px;font-weight:700'>{_rate_ttfb(ttfb)} {_fmt_ms(ttfb)}</div>"
+                    f"<div style='color:#888;font-size:12px'>{rank_html}{sep}{gap_text}</div>",
+                    unsafe_allow_html=True,
+                )
+                league_ttfbs = [v for v in (_safe(p, "crux_phone", "ttfb_p75")
+                                             for p in peers) if v is not None]
+                if league_ttfbs and ttfb:
+                    lo, hi = min(league_ttfbs), max(league_ttfbs)
+                    st.markdown(_bar_for(ttfb, lo, hi, ok=800, warn=1800,
+                                           lower_better=True),
+                                unsafe_allow_html=True)
+                    st.markdown(
+                        f"<div style='display:flex;justify-content:space-between;"
+                        f"color:#666;font-size:10px;margin-top:-4px'>"
+                        f"<span>{int(lo)}ms (fastest)</span>"
+                        f"<span>{int(hi)}ms (slowest)</span></div>",
+                        unsafe_allow_html=True,
+                    )
 
             # Lighthouse synthetic scores — labeled clearly
             psi = c.get("psi") or {}
