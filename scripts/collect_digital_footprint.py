@@ -52,14 +52,31 @@ PSI_KEY = os.environ.get("GOOGLE_PSI_API_KEY", "").strip()
 
 # ── Per-source helpers ────────────────────────────────────────────
 def wayback_first_year(domain: str) -> int | None:
+    """First-archived year via Wayback CDX. Uses matchType=domain so
+    any capture on the domain (or its subdomains, www.* paths,
+    deep URLs) counts — the default exact-match misses most early
+    captures because they were stored as www.<domain> or <domain>/
+    index.html, not the bare hostname.
+    """
+    if not domain:
+        return None
     try:
         r = requests.get(
-            "http://web.archive.org/cdx/search/cdx",
-            params={"url": domain, "limit": 1, "output": "json"},
-            timeout=20, headers=HEADERS,
+            "https://web.archive.org/cdx/search/cdx",
+            params={"url": domain, "limit": 1, "output": "json",
+                    "matchType": "domain",
+                    # 200 captures only — skips redirect / error pages
+                    # that pollute the earliest result
+                    "filter": "statuscode:200"},
+            timeout=30, headers=HEADERS,
         )
-        r.raise_for_status()
-        rows = r.json()
+        if r.status_code != 200:
+            return None
+        body = r.text.strip()
+        if not body:
+            return None
+        import json as _j
+        rows = _j.loads(body)
         if len(rows) < 2:
             return None
         ts = rows[1][1]
