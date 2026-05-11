@@ -1279,13 +1279,176 @@ else:
 
 
 # ── Glossary ──────────────────────────────────────────────────────
-# Always rendered at the bottom of the page (Z1/Z2/Z3) so the
-# meaning of each metric is one scroll away, with the source +
-# trust caveat called out per item.
+# Content adapts to which zoom level the page is rendering: at Z1/Z2
+# it's a column-by-column glossary of the comparison table; at Z3
+# it's a tab-by-tab guide to the deep-dive page. Trust caveats and
+# data sources are called out per item so users can audit anything.
 st.markdown("---")
-with st.expander("📖 What every column means", expanded=False):
-    st.markdown(
-        """
+
+_is_z3 = bool(g_club_name and _find_channel(g_club_name))
+
+if _is_z3:
+    _expander_title = "📖 What every section means"
+    _glossary_md = """
+### Header
+- **Flag + name** — country flag for the league channels (entity_type
+  League), dual-color dot for clubs.
+- **www.club.com** — the canonical owned-&-operated URL we use as
+  the source of truth for every web-side signal. Click to open.
+- **Online since YYYY (X yrs old)** — first year the domain appears
+  in the Wayback Machine archive. A "site age" proxy — earlier than
+  the actual launch sometimes, never later.
+- **📖 Wikipedia · 📱 App Store · 📦 Wayback** — direct links to the
+  raw sources for verification.
+
+---
+
+### Overview tab
+
+The auto-generated paragraph synthesizes the rest of the page in
+2–3 sentences using snapshot data — no AI, deterministic. Below it
+a 5-card strip with the headline KPIs (LCP rank · Wiki views rank ·
+iOS rating rank · Language versions · Primary vendor).
+
+A **🏆 #1 in green** anywhere on the page means this club is the
+league leader on that metric.
+
+---
+
+### ⚡ Performance tab — real user data
+
+Real Chrome users on **mobile**, p75 across the last 28 days, from
+Google's Chrome User Experience Report (CrUX). p75 means "75% of
+visits were at or better than this number". Lower is better;
+thresholds follow Google's Core Web Vitals.
+
+- **LCP** Largest Contentful Paint — when the biggest visible
+  element finishes loading. 🟢 ≤2.5s · 🟡 ≤4s · 🔴 >4s.
+- **INP** Interaction to Next Paint — how long the page takes to
+  react to a tap/click. 🟢 ≤200ms · 🟡 ≤500ms · 🔴 >500ms.
+- **FCP** First Contentful Paint — when ANY content first appears.
+- **CLS** Cumulative Layout Shift — how much the page jumps as it
+  loads. 0 = perfectly stable. 🟢 ≤0.10 · 🟡 ≤0.25 · 🔴 >0.25.
+- **TTFB** Time to First Byte — server-response speed (reflects
+  backend / CDN). 🟢 ≤800ms · 🟡 ≤1800ms · 🔴 >1800ms.
+
+Each card shows the value, league rank, gap to league median, and
+a mini-bar between the fastest and slowest peer.
+
+The **Lighthouse** row at the bottom (Accessibility / SEO / Best
+practices) is a separate **synthetic** audit by Google PageSpeed
+Insights — not real users. Reliable for non-performance categories;
+the Performance score is deliberately omitted (synthetic mobile
+emulation punishes content-heavy sites way more than real users
+feel it — we use real-user CrUX above instead).
+
+---
+
+### 🏗️ Stack tab
+
+The layered table shows what powers the site, from delivery surface
+to content layer:
+- **Delivery (CDN)** — detected via HTTP response headers (Akamai,
+  Cloudflare, CloudFront, Fastly, Vercel, Netlify).
+- **Sport-tech / platform** — specialist sports platforms detected
+  in the homepage HTML: Pulselive, Deltatre, Stadion, InCrowd,
+  Hiway Media, Contentful.
+- **CMS / DXP** — general-purpose content systems: AEM, Sitecore,
+  Drupal, WordPress, Wagtail, Kentico Kontent, Storyblok, Umbraco.
+- **Frontend framework** — Next.js, Nuxt, Angular, React.
+
+The "Same X stack as…" line below lists peer clubs running on the
+same primary vendor — useful for spotting platform patterns within
+a league.
+
+Some clubs show "Custom / in-house" — no fingerprint matched
+because the site is built bespoke (common for Real Madrid, Bayern,
+PSG, etc.). False positives (e.g. an embedded Pulselive widget
+that triggered the regex) are cleared manually.
+
+---
+
+### 🌍 Audience tab
+
+**Wikipedia pageviews** are our proxy for global interest — they're
+the closest available signal to "how many people search for and
+read about this club worldwide". Summed across major language
+editions (en, es, de, fr, it, pt, ja, ru, zh, ar, ko, tr, nl, pl)
+rather than English-only — fairer to clubs with non-English
+fanbases (PSG's English article gets 464k views; their French
+article 4M).
+
+The bars are top-8 languages by views with %-of-total. The total
++ rank shows the absolute scale within the league.
+
+**Wiki language editions** below is the number of language editions
+the article *exists* in (proxy for global brand width — Juventus
+has 119, Lecce has 68).
+
+**Site language versions** is a separate signal — how many language
+*editions of the website* the club operates. Detected via a
+layered probe (most reliable signal wins):
+1. **Manual override** — hand-curated list for WAF-blocked sites.
+2. **hreflang** declarations `<link rel="alternate" hreflang="xx">`.
+3. **Sitemap path codes** `/xx/` — when between 2 and 12 distinct.
+4. **`<html lang>`** — single-locale fallback.
+5. **`og:locale`** — Open Graph meta tag.
+6. **`Content-Language`** HTTP header.
+7. **Country fallback** — last-resort assumption (UK → `en`).
+
+---
+
+### 📱 Mobile app tab — iOS only
+
+Data from Apple's iTunes Search/Lookup API. Android is not tracked
+(no official free API; scraping is brittle).
+
+- **Rating** — App Store average rating (out of 5), with total
+  rating count below. Click the star to open the store page.
+- **Maintenance** — months since last update, with a color label:
+  🟢 actively maintained (≤6 months) · 🟠 occasionally (≤24
+  months) · 🔴 appears stale. Some clubs have apps that were
+  delisted from the App Store entirely (Lazio, Union Berlin,
+  Sunderland) — these show "No official iOS app".
+
+Below: size in MB and number of languages the app ships with.
+
+---
+
+### 🔍 Gaps tab
+
+Explicit list of notable absences. Negative space is insight —
+"no iOS app" / "single locale" / "no fingerprint detected" tells
+you something about the club's digital posture.
+
+---
+
+### ⚖️ Compare tab
+
+Side-by-side overlay against a peer club from the same league.
+Defaults to the closest peer in Wikipedia views (most natural
+matchup) but you can pick any other club. The **green +bold**
+side wins on each metric — lower for LCP/INP (latency), higher
+for everything else.
+
+---
+
+### What we don't track (and why)
+- **Absolute web traffic numbers** — third-party estimators
+  (Similarweb) are ±30–50% accurate; not defensible enough to put
+  in the data we publish.
+- **Google Trends** — the free API path is rate-limited; reliable
+  access is paid.
+- **Lighthouse Performance score** — synthetic mobile emulation
+  punishes content-heavy sites way more than real users feel it.
+  We use real-user CrUX numbers instead.
+- **Android app data** — no official free API; scraping is brittle
+  enough that we leave it out rather than publish unreliable
+  numbers.
+"""
+else:
+    _expander_title = "📖 What every column means"
+    _glossary_md = """
 ### Identity
 - **Channel** — the YouTube channel name; the dual-color dot uses
   the club's brand colors, league channels get their country flag.
@@ -1378,5 +1541,7 @@ reliable for non-performance categories.
   access is paid.
 - **PSI Performance score** — synthetic mobile emulation punishes
   content-heavy sites way more than real users feel it.
-        """
-    )
+"""
+
+with st.expander(_expander_title, expanded=False):
+    st.markdown(_glossary_md)
