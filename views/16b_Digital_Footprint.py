@@ -168,6 +168,7 @@ def _flat_table(channels: list[dict], header: str = "") -> None:
         app = c.get("ios_app") or {}
         rating = app.get("rating")
         rating_n = app.get("rating_count")
+        store_url = (app.get("store_url") or "").strip()
         last = (app.get("last_update") or "")[:7]
         wl = _safe(c, "wikipedia", "langs")
         wv = _safe(c, "wikipedia", "pageviews_12mo")
@@ -202,8 +203,13 @@ def _flat_table(channels: list[dict], header: str = "") -> None:
             f"<td style='text-align:right'>{_rate_inp(inp)} {_fmt_ms(inp)}</td>"
             f"<td style='text-align:right'>{a11y if a11y is not None else '—'}</td>"
             f"<td style='text-align:right'>{seo if seo is not None else '—'}</td>"
+            # iOS rating links to the App Store listing when present
             f"<td style='text-align:right'>"
-            f"{f'{rating:.1f}★' if rating else '—'}"
+            + (f"<a href='{store_url}' target='_blank' rel='noopener' "
+               f"style='color:#58A6FF;text-decoration:none'>"
+               f"{rating:.1f}★</a>"
+               if rating and store_url else
+               (f"{rating:.1f}★" if rating else "—"))
             + (f" <span style='color:#666'>({fmt_num(rating_n)})</span>"
                if rating_n else "") + "</td>"
             f"<td style='text-align:right'>{last or '—'}</td>"
@@ -253,20 +259,48 @@ def _flat_table(channels: list[dict], header: str = "") -> None:
         "<tr style='border-bottom:2px solid #444'>"
         "<th style='text-align:left'>Channel</th>"
         "<th style='text-align:left'>Website</th>"
-        "<th style='text-align:left'>Tech</th>"
-        "<th style='text-align:right'>Since</th>"
-        "<th style='text-align:right'>CDN</th>"
-        "<th style='text-align:right'>Sec</th>"
-        "<th style='text-align:right'>Pages</th>"
-        "<th style='text-align:right'>Loc</th>"
-        "<th style='text-align:right'>Real LCP</th>"
-        "<th style='text-align:right'>Real INP</th>"
-        "<th style='text-align:right'>A11y</th>"
-        "<th style='text-align:right'>SEO</th>"
-        "<th style='text-align:right'>iOS ★</th>"
-        "<th style='text-align:right'>Updated</th>"
-        "<th style='text-align:right'>Wiki L</th>"
-        "<th style='text-align:right'>Views/12mo</th>"
+        "<th style='text-align:left' "
+        "title='Detected tech stack — sport-tech vendor (red), CMS / DXP (blue), frontend framework (grey). Fingerprinted from homepage HTML.'>"
+        "Tech</th>"
+        "<th style='text-align:right' "
+        "title='First year the domain was archived on the Wayback Machine — proxy for when the site was launched.'>"
+        "Since</th>"
+        "<th style='text-align:right' "
+        "title='Content Delivery Network detected via HTTP response headers (Akamai, Cloudflare, CloudFront, Fastly…).'>"
+        "CDN</th>"
+        "<th style='text-align:right' "
+        "title='Security headers present (out of 6): HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy.'>"
+        "Sec</th>"
+        "<th style='text-align:right' "
+        "title='Total URLs found across the site’s sitemap.xml (and any sub-sitemaps). Content depth proxy.'>"
+        "Pages</th>"
+        "<th style='text-align:right' "
+        "title='Locale codes detected in the sitemap path (e.g. /en/, /it/) — count of language editions offered.'>"
+        "Loc</th>"
+        "<th style='text-align:right' "
+        "title='Largest Contentful Paint, p75 across real Chrome users on mobile (last 28 days, CrUX). 🟢 ≤2.5s · 🟡 ≤4s · 🔴 >4s'>"
+        "Real LCP</th>"
+        "<th style='text-align:right' "
+        "title='Interaction to Next Paint, p75 — how long until the page responds to taps/clicks (CrUX, real users). 🟢 ≤200ms · 🟡 ≤500ms · 🔴 >500ms'>"
+        "Real INP</th>"
+        "<th style='text-align:right' "
+        "title='Lighthouse Accessibility score 0–100 (synthetic mobile audit).'>"
+        "A11y</th>"
+        "<th style='text-align:right' "
+        "title='Lighthouse SEO score 0–100 (synthetic mobile audit).'>"
+        "SEO</th>"
+        "<th style='text-align:right' "
+        "title='iOS App Store average rating (out of 5) and total rating count. Click to open the App Store page.'>"
+        "iOS ★</th>"
+        "<th style='text-align:right' "
+        "title='Most recent iOS app version release date — maintenance signal.'>"
+        "Updated</th>"
+        "<th style='text-align:right' "
+        "title='Number of language editions of the club’s Wikipedia article (global brand width proxy).'>"
+        "Wiki L</th>"
+        "<th style='text-align:right' "
+        "title='Total pageviews on the English Wikipedia article over the trailing 12 months — global interest proxy.'>"
+        "Views/12mo</th>"
         "</tr></thead>"
         f"<tbody>{''.join(rows_html)}</tbody></table></div>"
     )
@@ -291,10 +325,13 @@ def render_z3(c: dict) -> None:
     web_link = (f"<a href='{web_url}' target='_blank' "
                 f"style='color:#58A6FF;text-decoration:none'>{web_host}</a>")
 
+    # CDN moved out of the header line into the Tech stack KPI
+    # row below — keep the header lean (name + clickable host +
+    # online-since).
     st.markdown(
         f"<h3 style='margin:0'>{flag} {name}"
         f"<span style='color:#888;font-weight:400;font-size:0.95rem;"
-        f"margin-left:14px'>{web_link} · online since {online_since} · {cdn} CDN</span></h3>",
+        f"margin-left:14px'>{web_link} · online since {online_since}</span></h3>",
         unsafe_allow_html=True,
     )
     st.caption(league or "—")
@@ -353,22 +390,26 @@ def render_z3(c: dict) -> None:
             ("TTFB", _fmt_ms(ttfb), ""),
         ]), unsafe_allow_html=True)
 
-    # Tech stack — sport-tech vendor / CMS / framework with evidence
+    # Tech stack — CDN + sport-tech vendor / CMS / framework
+    # Always renders (CDN comes from response headers and is
+    # available for any site that responded).
     t = c.get("tech") or {}
+    st.markdown("**Tech stack** "
+                "<span style='color:#888;font-size:0.85rem'>"
+                "(CDN from HTTP headers · vendor / CMS / framework fingerprinted from homepage HTML)</span>",
+                unsafe_allow_html=True)
+    chain = t.get("vendor_chain") or (
+        [t["vendor"]] if t.get("vendor") else [])
+    vendor_str = " · ".join(chain) if chain else "—"
+    st.markdown(kpi_row([
+        ("CDN",                  cdn or "—",
+            "Detected from HTTP response headers"),
+        ("Sport-tech / platform", vendor_str,
+            "Stacked layers shown left-to-right (delivery → substrate)"),
+        ("CMS / DXP",            t.get("cms") or "—", ""),
+        ("Framework",            t.get("framework") or "—", ""),
+    ]), unsafe_allow_html=True)
     if t.get("vendor") or t.get("cms") or t.get("framework"):
-        st.markdown("**Tech stack** "
-                    "<span style='color:#888;font-size:0.85rem'>"
-                    "(fingerprinted from homepage HTML)</span>",
-                    unsafe_allow_html=True)
-        chain = t.get("vendor_chain") or (
-            [t["vendor"]] if t.get("vendor") else [])
-        vendor_str = " · ".join(chain) if chain else "—"
-        st.markdown(kpi_row([
-            ("Sport-tech / platform", vendor_str,
-                "Stacked layers shown left-to-right (delivery → substrate)"),
-            ("CMS / DXP",            t.get("cms") or "—", ""),
-            ("Framework",            t.get("framework") or "—", ""),
-        ]), unsafe_allow_html=True)
         ev = t.get("evidence") or []
         if ev:
             ev_html = "<br>".join(
@@ -400,6 +441,12 @@ def render_z3(c: dict) -> None:
         rating = app.get("rating")
         rating_s = f"{rating:.1f} ★" if rating else "—"
         rating_n = app.get("rating_count")
+        store_url = (app.get("store_url") or "").strip()
+        # Wrap the rating value as an App Store link when we have it.
+        if rating and store_url:
+            rating_s = (f"<a href='{store_url}' target='_blank' rel='noopener' "
+                        f"style='color:#58A6FF;text-decoration:none'>"
+                        f"{rating:.1f} ★</a>")
         last = app.get("last_update") or "—"
         size = app.get("size_mb")
         langs = app.get("languages")
@@ -467,3 +514,84 @@ else:
         ("Total pages", fmt_num(sum(all_pages)) if all_pages else "—", ""),
     ]), unsafe_allow_html=True)
     _flat_table(all_channels)
+
+
+# ── Glossary ──────────────────────────────────────────────────────
+# Always rendered at the bottom of the page (Z1/Z2/Z3) so the
+# meaning of each metric is one scroll away, with the source +
+# trust caveat called out per item.
+st.markdown("---")
+with st.expander("📖 What every column means", expanded=False):
+    st.markdown(
+        """
+### Identity
+- **Channel** — the YouTube channel name; the dual-color dot uses
+  the club's brand colors, league channels get their country flag.
+- **Website** — the canonical owned-&-operated landing page (locale-
+  specific where it exists, e.g. `/en/`). Click to open.
+
+### Stack (red header)
+- **Tech** — detected platform layers. Sport-tech vendors (Pulselive,
+  Deltatre, Stadion, InCrowd, Hiway Media, Contentful) render in
+  red; CMS / DXP (AEM, Sitecore, Drupal, WordPress, Wagtail,
+  Kentico Kontent, Storyblok, Umbraco) in blue; frontend frameworks
+  (Next.js, Nuxt, Angular, React) in grey. Fingerprinted from the
+  homepage HTML — evidence snippets visible on the Z3 club page.
+- **Since** — first year the domain shows up in the Wayback Machine
+  archive. A "site age" proxy.
+- **CDN** — Content Delivery Network detected from HTTP response
+  headers (Akamai, Cloudflare, CloudFront, Fastly, Vercel, Netlify).
+- **Sec** — count of security headers present out of 6 standard
+  ones: HSTS, CSP, X-Frame-Options, X-Content-Type-Options,
+  Referrer-Policy, Permissions-Policy.
+
+### Content (cyan header)
+- **Pages** — total URLs across the site's `sitemap.xml` (and any
+  sub-sitemaps). Heuristic — some clubs use non-standard sitemap
+  locations and return "—".
+- **Loc** — number of locale codes detected in sitemap paths
+  (`/en/`, `/it/`, …) — count of language editions offered.
+
+### Real users (green header) — from CrUX
+Real Chrome users on **mobile**, p75 across the last 28 days. p75
+means "75 % of visits were at or better than this number". Lower is
+better. Color thresholds follow Google's Core Web Vitals.
+- **Real LCP** — Largest Contentful Paint: how long until the
+  biggest visible element finishes loading. 🟢 ≤ 2.5s · 🟡 ≤ 4s ·
+  🔴 > 4s.
+- **Real INP** — Interaction to Next Paint: how long until the
+  page responds to a tap or click. 🟢 ≤ 200 ms · 🟡 ≤ 500 ms ·
+  🔴 > 500 ms.
+- Missing values = the site didn't get enough Chrome traffic to be
+  measured.
+
+### Lighthouse (blue header) — synthetic audit
+Google PageSpeed Insights audit, mobile profile. Synthetic but
+reliable for non-performance categories.
+- **A11y** — Accessibility score 0–100.
+- **SEO** — Search-engine fitness score 0–100.
+- **Performance score is deliberately omitted** — it's noisy on
+  content-heavy sites; we use the real-user CrUX numbers above
+  instead.
+
+### iOS app (orange header) — from iTunes Search/Lookup API
+- **iOS ★** — average rating out of 5, with total rating count in
+  parentheses. **Click the rating to open the App Store page.**
+- **Updated** — release date of the current version (maintenance
+  signal).
+
+### Wikipedia (purple header)
+- **Wiki L** — number of language editions of the article (proxy
+  for global brand width).
+- **Views/12mo** — total pageviews on the English Wikipedia article
+  over the trailing 12 months (proxy for global interest).
+
+### What we don't track (and why)
+- **Absolute traffic numbers** — third-party estimators (Similarweb)
+  are ±30–50 %; not defensible enough.
+- **Google Trends** — the free path is rate-limited; reliable
+  access is paid.
+- **PSI Performance score** — synthetic mobile emulation punishes
+  content-heavy sites way more than real users feel it.
+        """
+    )

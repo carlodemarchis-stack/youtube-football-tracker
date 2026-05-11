@@ -53,7 +53,8 @@
           "ZH"
         ],
         "min_os": "13.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/it/app/como-tv/id6505051015?uo=4"
       },
       "crux_phone": {
         "error": "chrome ux report data not found"
@@ -120,7 +121,8 @@
           "EN"
         ],
         "min_os": "12.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/it/app/us-lecce/id1584326278?uo=4"
       },
       "crux_phone": {
         "error": "chrome ux report data not found"
@@ -245,7 +247,8 @@
           "EN"
         ],
         "min_os": "15.1",
-        "price": "Gratuit"
+        "price": "Gratuit",
+        "store_url": "https://apps.apple.com/fr/app/aj-auxerre/id6743951530?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1525.0,
@@ -327,7 +330,8 @@
           "DE"
         ],
         "min_os": "16.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/de/app/sc-freiburg/id492037430?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1718.0,
@@ -412,7 +416,8 @@
           "EN"
         ],
         "min_os": "15.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/es/app/valencia-cf-official-app/id1423049571?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 2182.0,
@@ -494,7 +499,8 @@
           "DE"
         ],
         "min_os": "15.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/de/app/fc-augsburg-1907/id1167486817?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 2033.0,
@@ -585,7 +591,8 @@
           "TR"
         ],
         "min_os": "17.6",
-        "price": "Gratuit"
+        "price": "Gratuit",
+        "store_url": "https://apps.apple.com/fr/app/om-officiel/id346179130?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1787.0,
@@ -666,7 +673,8 @@
           "FR"
         ],
         "min_os": "13.0",
-        "price": "Gratuit"
+        "price": "Gratuit",
+        "store_url": "https://apps.apple.com/fr/app/ogc-nice-officiel/id1058786320?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1925.0,
@@ -757,7 +765,8 @@
           "TR"
         ],
         "min_os": "17.6",
-        "price": "Gratuit"
+        "price": "Gratuit",
+        "store_url": "https://apps.apple.com/fr/app/stade-brestois-29/id1309482791?uo=4"
       },
       "crux_phone": {
         "error": "chrome ux report data not found"
@@ -828,7 +837,8 @@
           "IT"
         ],
         "min_os": "14.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/it/app/juventus/id985645803?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 2112.0,
@@ -912,7 +922,8 @@
           "EN"
         ],
         "min_os": "15.0",
-        "price": "Free"
+        "price": "Free",
+        "store_url": "https://apps.apple.com/us/app/we-are-sunderland/id6475593685?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 4109.0,
@@ -996,7 +1007,8 @@
           "ES"
         ],
         "min_os": "15.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/es/app/real-oviedo-app-oficial/id1434768310?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 3676.0,
@@ -1079,7 +1091,8 @@
           "ES"
         ],
         "min_os": "15.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/es/app/girona-fc/id1455830985?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 3676.0,
@@ -1161,7 +1174,8 @@
           "DE"
         ],
         "min_os": "14.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/de/app/mainaqila/id1522842682?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 3582.0,
@@ -1244,7 +1258,8 @@
           "EN"
         ],
         "min_os": "16.0",
-        "price": "Free"
+        "price": "Free",
+        "store_url": "https://apps.apple.com/us/app/chelsea-official-app/id1353142218?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 3986.0,
@@ -1338,7 +1353,8 @@
           "TR"
         ],
         "min_os": "14.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/es/app/real-betis-balompi%C3%A9/id1392232716?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1549.0,
@@ -1431,7 +1447,8 @@
           "TR"
         ],
         "min_os": "17.6",
-        "price": "Gratuit"
+        "price": "Gratuit",
+        "store_url": "https://apps.apple.com/fr/app/paris-fc/id1280566457?uo=4"
       },
       "crux_phone": {
         "error": "chrome ux report data not found"
@@ -1502,7 +1519,8 @@
           "DE"
         ],
         "min_os": "17.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/de/app/bvb/id1506175875?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 2145.0,
@@ -1585,7 +1603,8 @@
           "EN"
         ],
         "min_os": "15.1",
-        "price": "Free"
+        "price": "Free",
+        "store_url": "https://apps.apple.com/us/app/west-ham-united/id1282971593?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 2023.0,
@@ -1676,7 +1695,8 @@
           "FR"
         ],
         "min_os": "12.0",
-        "price": "Gratuit"
+        "price": "Gratuit",
+        "store_url": "https://apps.apple.com/fr/app/olplay-olympique-lyonnais/id1376038376?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 3741.0,
@@ -1758,7 +1778,8 @@
           "DE"
         ],
         "min_os": "16.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/de/app/vfb-stuttgart-1893/id552372596?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 2019.0,
@@ -1839,7 +1860,8 @@
           "EN"
         ],
         "min_os": "15.6",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/de/app/fc-st-pauli/id1513153587?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1538.0,
@@ -1920,7 +1942,8 @@
           "FR"
         ],
         "min_os": "15.0",
-        "price": "Gratuit"
+        "price": "Gratuit",
+        "store_url": "https://apps.apple.com/fr/app/fc-metz-pass/id6596768191?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1829.0,
@@ -2001,7 +2024,8 @@
           "EN"
         ],
         "min_os": "16.0",
-        "price": "Free"
+        "price": "Free",
+        "store_url": "https://apps.apple.com/us/app/official-newcastle-united-app/id6557082440?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 2224.0,
@@ -2100,7 +2124,8 @@
           "TR"
         ],
         "min_os": "17.6",
-        "price": "Gratuit"
+        "price": "Gratuit",
+        "store_url": "https://apps.apple.com/fr/app/fc-nantes-officiel/id6474624455?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1258.0,
@@ -2179,7 +2204,8 @@
           "EN"
         ],
         "min_os": "12.0",
-        "price": "Gratuit"
+        "price": "Gratuit",
+        "store_url": "https://apps.apple.com/fr/app/angers-sco-1919/id6457417711?uo=4"
       },
       "crux_phone": {
         "error": "chrome ux report data not found"
@@ -2246,7 +2272,8 @@
           "EN"
         ],
         "min_os": "16.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/es/app/el-correo/id323858893?uo=4"
       },
       "crux_phone": {
         "error": "chrome ux report data not found"
@@ -2308,7 +2335,8 @@
           "FR"
         ],
         "min_os": "15.1",
-        "price": "Gratuit"
+        "price": "Gratuit",
+        "store_url": "https://apps.apple.com/fr/app/ligue-1-app-officielle/id1557642991?uo=4"
       },
       "crux_phone": {
         "error": "chrome ux report data not found"
@@ -2377,7 +2405,8 @@
           "EN"
         ],
         "min_os": "16.0",
-        "price": "Free"
+        "price": "Free",
+        "store_url": "https://apps.apple.com/us/app/nottingham-forest-app/id1059689288?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 3763.0,
@@ -2523,7 +2552,8 @@
           "EN"
         ],
         "min_os": "16.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/de/app/tsg-1899-hoffenheim/id6739210433?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1129.0,
@@ -2669,7 +2699,8 @@
           "EN"
         ],
         "min_os": "16.0",
-        "price": "Free"
+        "price": "Free",
+        "store_url": "https://apps.apple.com/us/app/official-fulham-fc-app/id1479884451?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 3019.0,
@@ -2755,7 +2786,8 @@
           "ES"
         ],
         "min_os": "16.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/es/app/fc-barcelona-oficial/id343196080?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 3143.0,
@@ -2840,7 +2872,8 @@
           "DE"
         ],
         "min_os": "17.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/de/app/rb-leipzig/id1451075105?uo=4"
       },
       "crux_phone": {
         "error": "chrome ux report data not found"
@@ -2909,7 +2942,8 @@
           "EN"
         ],
         "min_os": "18.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/es/app/sevilla-fc-app-oficial/id1157542793?uo=4"
       },
       "crux_phone": {
         "error": "chrome ux report data not found"
@@ -2988,7 +3022,8 @@
           "ES"
         ],
         "min_os": "16.0",
-        "price": "Free"
+        "price": "Free",
+        "store_url": "https://apps.apple.com/us/app/crystal-palace-fc/id1084235580?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1960.0,
@@ -3074,7 +3109,8 @@
           "DE"
         ],
         "min_os": "15.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/de/app/bayer-04-leverkusen/id452312826?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1251.0,
@@ -3167,7 +3203,8 @@
           "RU"
         ],
         "min_os": "14.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/de/app/fcu-kiosk/id1193609606?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1129.0,
@@ -3250,7 +3287,8 @@
           "IT"
         ],
         "min_os": "11.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/it/app/as-roma-mobile/id518424485?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1975.0,
@@ -3330,7 +3368,8 @@
           "IT"
         ],
         "min_os": "16.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/it/app/lega-serie-a-official-app/id1488132951?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 5111.0,
@@ -3485,7 +3524,8 @@
           "EN"
         ],
         "min_os": "13.4",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/it/app/pisa-sporting-club/id6569254881?uo=4"
       },
       "crux_phone": {
         "error": "chrome ux report data not found"
@@ -3557,7 +3597,8 @@
           "ES"
         ],
         "min_os": "13.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/it/app/la-lazio-siamo-noi/id966262908?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 2533.0,
@@ -3645,7 +3686,8 @@
           "IT"
         ],
         "min_os": "14.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/it/app/hellas-verona-football-club/id1565416418?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1867.0,
@@ -3729,7 +3771,8 @@
           "DE"
         ],
         "min_os": "15.1",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/de/app/bundesliga-fu%C3%9Fball-liveticker/id1005632836?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1746.0,
@@ -3811,7 +3854,8 @@
           "IT"
         ],
         "min_os": "15.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/it/app/atalanta-bc-official-app/id6504805803?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1775.0,
@@ -3917,7 +3961,8 @@
           "VI"
         ],
         "min_os": "12.4",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/de/app/1-fsv-mainz-05-e-v/id1418712225?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1398.0,
@@ -3998,7 +4043,8 @@
           "DE"
         ],
         "min_os": "17.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/de/app/1-fc-k%C3%B6ln/id1073067977?uo=4"
       },
       "crux_phone": {
         "error": "chrome ux report data not found"
@@ -4139,7 +4185,8 @@
           "TR"
         ],
         "min_os": "17.6",
-        "price": "Gratuit"
+        "price": "Gratuit",
+        "store_url": "https://apps.apple.com/fr/app/losc/id372175690?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1474.0,
@@ -4227,7 +4274,8 @@
           "TH"
         ],
         "min_os": "17.0",
-        "price": "Free"
+        "price": "Free",
+        "store_url": "https://apps.apple.com/us/app/brentford-fc-official/id1172756708?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 3937.0,
@@ -4314,7 +4362,8 @@
           "EN"
         ],
         "min_os": "18.6",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/es/app/rcd-mallorca/id6535649411?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 4028.0,
@@ -4395,7 +4444,8 @@
           "ES"
         ],
         "min_os": "16.6",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/de/app/fc-bayern-m%C3%BCnchen/id383087477?uo=4"
       },
       "crux_phone": {
         "error": "chrome ux report data not found"
@@ -4456,7 +4506,8 @@
           "EN"
         ],
         "min_os": "16.0",
-        "price": "Free"
+        "price": "Free",
+        "store_url": "https://apps.apple.com/us/app/afc-bournemouth/id6502762964?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 3705.0,
@@ -4588,7 +4639,8 @@
           "DE"
         ],
         "min_os": "17.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/de/app/hamburger-sv/id594247173?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1890.0,
@@ -4669,7 +4721,8 @@
           "EN"
         ],
         "min_os": "15.1",
-        "price": "Free"
+        "price": "Free",
+        "store_url": "https://apps.apple.com/us/app/the-arsenal-official-app/id332060637?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 2635.0,
@@ -4827,7 +4880,8 @@
           "ES"
         ],
         "min_os": "13.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/es/app/athletic-club-app-oficial/id680507636?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1988.0,
@@ -4910,7 +4964,8 @@
           "EN"
         ],
         "min_os": "17.0",
-        "price": "Free"
+        "price": "Free",
+        "store_url": "https://apps.apple.com/us/app/premier-league-scores-news/id1138895159?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 3224.0,
@@ -4995,7 +5050,8 @@
           "IT"
         ],
         "min_os": "14.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/it/app/udinese-calcio-app-ufficiale/id1438504722?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1933.0,
@@ -5074,7 +5130,8 @@
           "EN"
         ],
         "min_os": "16.0",
-        "price": "Free"
+        "price": "Free",
+        "store_url": "https://apps.apple.com/us/app/aston-villa-fc/id1139256337?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 2556.0,
@@ -5155,7 +5212,8 @@
           "EN"
         ],
         "min_os": "17.0",
-        "price": "Free"
+        "price": "Free",
+        "store_url": "https://apps.apple.com/us/app/everton/id489805882?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 4761.0,
@@ -5234,7 +5292,8 @@
           "EN"
         ],
         "min_os": "15.6",
-        "price": "Gratuit"
+        "price": "Gratuit",
+        "store_url": "https://apps.apple.com/fr/app/psg-officiel/id515968212?uo=4"
       },
       "crux_phone": {
         "error": "chrome ux report data not found"
@@ -5307,7 +5366,8 @@
           "FR"
         ],
         "min_os": "13.0",
-        "price": "Gratuit"
+        "price": "Gratuit",
+        "store_url": "https://apps.apple.com/fr/app/rc-lens/id1489574511?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1337.0,
@@ -5388,7 +5448,8 @@
           "EN"
         ],
         "min_os": "16.0",
-        "price": "Free"
+        "price": "Free",
+        "store_url": "https://apps.apple.com/us/app/leeds-united-official/id1253043613?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1449.0,
@@ -5477,7 +5538,8 @@
           "ES"
         ],
         "min_os": "15.0",
-        "price": "Gratuit"
+        "price": "Gratuit",
+        "store_url": "https://apps.apple.com/fr/app/v%C3%A9l%C3%B4toulouse-officiel/id6478927758?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 3059.0,
@@ -5556,7 +5618,8 @@
           "DE"
         ],
         "min_os": "16.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/de/app/fohlenapp/id1135384022?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 2763.0,
@@ -5651,7 +5714,8 @@
           "TR"
         ],
         "min_os": "17.6",
-        "price": "Gratuit"
+        "price": "Gratuit",
+        "store_url": "https://apps.apple.com/fr/app/fc-lorient/id6752600518?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1455.0,
@@ -5736,7 +5800,8 @@
           "KO"
         ],
         "min_os": "15.1",
-        "price": "Free"
+        "price": "Free",
+        "store_url": "https://apps.apple.com/us/app/official-spurs-app/id1407312851?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 2377.0,
@@ -5820,7 +5885,8 @@
           "EN"
         ],
         "min_os": "16.0",
-        "price": "Free"
+        "price": "Free",
+        "store_url": "https://apps.apple.com/us/app/official-burnley-fc-app/id1284523839?uo=4"
       },
       "crux_phone": {
         "error": "chrome ux report data not found"
@@ -5895,7 +5961,8 @@
           "EN"
         ],
         "min_os": "15.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/it/app/fiorentina-official-app/id1530422146?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 2581.0,
@@ -5974,7 +6041,8 @@
           "EN"
         ],
         "min_os": "16.4",
-        "price": "Free"
+        "price": "Free",
+        "store_url": "https://apps.apple.com/us/app/minnesota-timberwolves/id942701008?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1991.0,
@@ -6074,7 +6142,8 @@
           "TR"
         ],
         "min_os": "17.6",
-        "price": "Gratuit"
+        "price": "Gratuit",
+        "store_url": "https://apps.apple.com/fr/app/as-monaco/id603192180?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1838.0,
@@ -6153,7 +6222,8 @@
           "EN"
         ],
         "min_os": "15.0",
-        "price": "Free"
+        "price": "Free",
+        "store_url": "https://apps.apple.com/us/app/manchester-city-official-app/id416127886?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 3828.0,
@@ -6235,7 +6305,8 @@
           "ES"
         ],
         "min_os": "16.6",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/es/app/real-madrid/id1107624540?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 2411.0,
@@ -6317,7 +6388,8 @@
           "ES"
         ],
         "min_os": "15.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/es/app/rcd-espanyol-de-barcelona/id1482739348?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 2104.0,
@@ -6399,7 +6471,8 @@
           "IT"
         ],
         "min_os": "13.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/it/app/ssc-napoli-app-ufficiale/id1637655895?uo=4"
       },
       "crux_phone": {
         "error": "chrome ux report data not found"
@@ -6472,7 +6545,8 @@
           "EN"
         ],
         "min_os": "11.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/es/app/apv-villareal-c-f/id1538436157?uo=4"
       },
       "crux_phone": {
         "error": "chrome ux report data not found"
@@ -6542,7 +6616,8 @@
           "EN"
         ],
         "min_os": "16.0",
-        "price": "Free"
+        "price": "Free",
+        "store_url": "https://apps.apple.com/us/app/the-official-liverpool-fc-app/id332227346?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 2700.0,
@@ -6626,7 +6701,8 @@
           "EN"
         ],
         "min_os": "15.6",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/it/app/bologna-fc-1909/id1473976565?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 3220.0,
@@ -6712,7 +6788,8 @@
           "EN"
         ],
         "min_os": "15.1",
-        "price": "Free"
+        "price": "Free",
+        "store_url": "https://apps.apple.com/us/app/manchester-united-official-app/id785339538?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 4635.0,
@@ -6806,7 +6883,8 @@
           "TR"
         ],
         "min_os": "14.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/es/app/real-betis-balompi%C3%A9/id1392232716?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 2082.0,
@@ -6883,7 +6961,8 @@
           "DE"
         ],
         "min_os": "17.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/de/app/sv-werder-bremen/id483331309?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1305.0,
@@ -6960,7 +7039,8 @@
           "ES"
         ],
         "min_os": "14.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/es/app/celta-app/id6593674218?uo=4"
       },
       "crux_phone": {
         "error": "chrome ux report data not found"
@@ -7021,7 +7101,8 @@
           "EN"
         ],
         "min_os": "16.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/it/app/cagliari-calcio/id441230439?uo=4"
       },
       "crux_phone": {
         "error": "chrome ux report data not found"
@@ -7096,7 +7177,8 @@
           "ES"
         ],
         "min_os": "15.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/es/app/getafe-cf-app-oficial/id1475654280?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 3528.0,
@@ -7177,7 +7259,8 @@
           "EN"
         ],
         "min_os": "15.0",
-        "price": "Gratuit"
+        "price": "Gratuit",
+        "store_url": "https://apps.apple.com/fr/app/stade-rennais-f-c/id1090349322?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1260.0,
@@ -7259,7 +7342,8 @@
           "ES"
         ],
         "min_os": "15.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/es/app/atl%C3%A9tico-de-madrid-app-oficial/id648999614?uo=4"
       },
       "crux_phone": {
         "error": "chrome ux report data not found"
@@ -7328,7 +7412,8 @@
           "ES"
         ],
         "min_os": "13.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/it/app/torinogranata-it/id901291825?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1356.0,
@@ -7409,7 +7494,8 @@
           "EN"
         ],
         "min_os": "16.6",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/de/app/vfl-wolfsburg-to-go/id1415762194?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1412.0,
@@ -7493,7 +7579,8 @@
           "ES"
         ],
         "min_os": "17.0",
-        "price": "Free"
+        "price": "Free",
+        "store_url": "https://apps.apple.com/us/app/bhafc-app/id898232581?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 2994.0,
@@ -7577,7 +7664,8 @@
           "ES"
         ],
         "min_os": "15.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/es/app/levante-ud-app-oficial/id1662894327?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 3921.0,
@@ -7662,7 +7750,8 @@
           "IT"
         ],
         "min_os": "12.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/it/app/ac-milan-official-app/id1473516867?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 4945.0,
@@ -7746,7 +7835,8 @@
           "IT"
         ],
         "min_os": "14.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/it/app/parma-calcio-1913/id1228711158?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1645.0,
@@ -7832,7 +7922,8 @@
           "EN"
         ],
         "min_os": "15.5",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/es/app/osasuna-club-de-empresas/id6736645637?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 1379.0,
@@ -7911,7 +8002,8 @@
           "FR"
         ],
         "min_os": "11.0",
-        "price": "Gratuit"
+        "price": "Gratuit",
+        "store_url": "https://apps.apple.com/fr/app/rc-strasbourg-alsace/id1526645034?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 2115.0,
@@ -7999,7 +8091,8 @@
           "ZH"
         ],
         "min_os": "17.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/it/app/inter-official-app/id1246760139?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 3717.0,
@@ -8081,7 +8174,8 @@
           "ES"
         ],
         "min_os": "15.0",
-        "price": "Gratis"
+        "price": "Gratis",
+        "store_url": "https://apps.apple.com/es/app/laliga-deportes-en-directo/id904889983?uo=4"
       },
       "crux_phone": {
         "lcp_p75": 2828.0,

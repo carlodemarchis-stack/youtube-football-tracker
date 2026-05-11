@@ -357,6 +357,7 @@ def ios_app(query: str, country: str) -> dict:
             "language_list": chosen.get("languageCodesISO2A") or [],
             "min_os": chosen.get("minimumOsVersion"),
             "price": chosen.get("formattedPrice"),
+            "store_url": chosen.get("trackViewUrl"),
         })
     except Exception:
         pass
