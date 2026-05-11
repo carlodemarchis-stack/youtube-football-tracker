@@ -604,401 +604,433 @@ def render_z3(c: dict) -> None:
     )
     st.caption(league or "—")
 
-    # ── At-a-glance narrative ────────────────────────────────────
-    st.markdown(
-        f"<div style='background:#1a1c24;border-left:3px solid #58A6FF;"
-        f"border-radius:4px;padding:12px 16px;margin:12px 0;font-size:14px;"
-        f"line-height:1.6;color:#FAFAFA'>"
-        f"{_z3_summary_narrative(c, peers)}"
-        f"</div>",
-        unsafe_allow_html=True,
-    )
+    # ── Tabs: Overview (summary) + one tab per section ───────────
+    tab_overview, tab_perf, tab_stack, tab_aud, tab_app, tab_gaps, tab_cmp = st.tabs([
+        "Overview", "⚡ Performance", "🏗️ Stack", "🌍 Audience",
+        "📱 Mobile app", "🔍 Gaps", "⚖️ Compare",
+    ])
 
-    # ── Performance story ─────────────────────────────────────────
-    _section_header("⚡ Performance",
-                    "Real Chrome users on mobile, last 28 days (CrUX)")
-    cx = c.get("crux_phone") or {}
-    if not cx or "error" in cx:
-        st.info("No real-user CrUX data — this site doesn't get enough "
-                "Chrome traffic to be measured. That's itself a signal "
-                "about audience size.")
-    else:
-        lcp = cx.get("lcp_p75"); inp = cx.get("inp_p75")
-        fcp = cx.get("fcp_p75"); ttfb = cx.get("ttfb_p75")
-        # Build league-wide LCP / INP context
-        lcp_med = _z3_median(peers, lambda p: _safe(p, "crux_phone", "lcp_p75"))
-        inp_med = _z3_median(peers, lambda p: _safe(p, "crux_phone", "inp_p75"))
-        lcp_rank = _z3_rank(lcp, peers,
-                             lambda p: _safe(p, "crux_phone", "lcp_p75"),
-                             higher_better=False)
-        inp_rank = _z3_rank(inp, peers,
-                             lambda p: _safe(p, "crux_phone", "inp_p75"),
-                             higher_better=False)
-
-        col1, col2 = st.columns(2)
-        with col1:
-            lcp_emoji = _rate_lcp(lcp)
-            lcp_gap = ((lcp - lcp_med) / 1000) if lcp_med else None
-            gap_text = (f"{abs(lcp_gap):.1f}s "
-                         + ("slower" if lcp_gap > 0 else "faster")
-                         + f" than {league} median"
-                         ) if lcp_gap is not None else ""
-            st.markdown(
-                f"<div style='font-size:11px;color:#888;text-transform:uppercase;"
-                f"letter-spacing:0.5px'>LCP (p75 mobile)</div>"
-                f"<div style='font-size:32px;font-weight:700'>{lcp_emoji} {lcp/1000:.2f}s</div>"
-                f"<div style='color:#888;font-size:12px'>"
-                f"{'#' + str(lcp_rank[0]) + ' of ' + str(lcp_rank[1]) + ' in ' + league + ' · ' if lcp_rank[0] else ''}"
-                f"{gap_text}</div>",
-                unsafe_allow_html=True,
-            )
-            # Distribution bar relative to league min/max
-            league_lcps = [v for v in (_safe(p, "crux_phone", "lcp_p75")
-                                       for p in peers) if v is not None]
-            if league_lcps:
-                lo, hi = min(league_lcps), max(league_lcps)
-                st.markdown(_bar_for(lcp, lo, hi, ok=2500, warn=4000,
-                                       lower_better=True),
-                            unsafe_allow_html=True)
-                st.markdown(
-                    f"<div style='display:flex;justify-content:space-between;"
-                    f"color:#666;font-size:10px;margin-top:-4px'>"
-                    f"<span>{lo/1000:.1f}s (fastest)</span>"
-                    f"<span>{hi/1000:.1f}s (slowest)</span></div>",
-                    unsafe_allow_html=True,
-                )
-
-        with col2:
-            inp_emoji = _rate_inp(inp)
-            inp_gap = (inp - inp_med) if inp_med else None
-            gap_text = (f"{abs(int(inp_gap))}ms "
-                         + ("slower" if inp_gap > 0 else "faster")
-                         + f" than {league} median"
-                         ) if inp_gap is not None else ""
-            st.markdown(
-                f"<div style='font-size:11px;color:#888;text-transform:uppercase;"
-                f"letter-spacing:0.5px'>INP (tap latency p75)</div>"
-                f"<div style='font-size:32px;font-weight:700'>{inp_emoji} {int(inp)} ms</div>"
-                f"<div style='color:#888;font-size:12px'>"
-                f"{'#' + str(inp_rank[0]) + ' of ' + str(inp_rank[1]) + ' in ' + league + ' · ' if inp_rank[0] else ''}"
-                f"{gap_text}</div>",
-                unsafe_allow_html=True,
-            )
-            league_inps = [v for v in (_safe(p, "crux_phone", "inp_p75")
-                                       for p in peers) if v is not None]
-            if league_inps:
-                lo, hi = min(league_inps), max(league_inps)
-                st.markdown(_bar_for(inp, lo, hi, ok=200, warn=500,
-                                       lower_better=True),
-                            unsafe_allow_html=True)
-                st.markdown(
-                    f"<div style='display:flex;justify-content:space-between;"
-                    f"color:#666;font-size:10px;margin-top:-4px'>"
-                    f"<span>{int(lo)}ms (fastest)</span>"
-                    f"<span>{int(hi)}ms (slowest)</span></div>",
-                    unsafe_allow_html=True,
-                )
-
-        # Secondary CrUX metrics — small inline row
+    # ── Overview tab — narrative card + 5-card highlight strip ───
+    with tab_overview:
         st.markdown(
-            f"<div style='color:#888;font-size:12px;margin-top:14px'>"
-            f"FCP {_fmt_ms(fcp)} · CLS {(cx.get('cls_p75') or 0):.2f}"
-            f" · TTFB {_fmt_ms(ttfb)}"
+            f"<div style='background:#1a1c24;border-left:3px solid #58A6FF;"
+            f"border-radius:4px;padding:12px 16px;margin:12px 0;font-size:14px;"
+            f"line-height:1.6;color:#FAFAFA'>"
+            f"{_z3_summary_narrative(c, peers)}"
             f"</div>",
             unsafe_allow_html=True,
         )
+        # Quick-glance KPI strip with ranks
+        _cx = c.get("crux_phone") or {}
+        _lcp = _cx.get("lcp_p75")
+        _lcp_r = _z3_rank(_lcp, peers,
+                          lambda p: _safe(p, "crux_phone", "lcp_p75"),
+                          higher_better=False)
+        _wv = _wiki_views(c)
+        _wv_r = _z3_rank(_wv, peers, _wiki_views)
+        _app = c.get("ios_app") or {}
+        _r = _app.get("rating")
+        _r_r = _z3_rank(_r, peers, lambda p: _safe(p, "ios_app", "rating"))
+        _loc = (c.get("locales") or {}).get("count")
+        _t = c.get("tech") or {}
+        _vendor = (_t.get("vendor_chain") or [_t.get("vendor")] if _t.get("vendor") else [None])[0]
 
-        # Lighthouse synthetic scores — labeled clearly
-        psi = c.get("psi") or {}
-        if psi and "error" not in psi:
-            a11y = psi.get("a11y"); seo = psi.get("seo"); bp = psi.get("best_practices")
-            a11y_r = _z3_rank(a11y, peers, lambda p: _safe(p, "psi", "a11y"))
-            seo_r  = _z3_rank(seo,  peers, lambda p: _safe(p, "psi", "seo"))
+        st.markdown(kpi_row([
+            (f"LCP {_rate_lcp(_lcp)}",
+                _fmt_ms(_lcp) if _lcp else "—",
+                f"#{_lcp_r[0]} of {_lcp_r[1]} in {league}" if _lcp_r[0] else ""),
+            ("Wiki views (12mo)",
+                fmt_num(_wv) if _wv else "—",
+                f"#{_wv_r[0]} of {_wv_r[1]} in {league}" if _wv_r[0] else ""),
+            ("iOS rating",
+                f"{_r:.1f}★" if _r else "—",
+                f"#{_r_r[0]} of {_r_r[1]} in {league}" if _r_r[0] else ""),
+            ("Site locales", str(_loc) if _loc else "—", ""),
+            ("Primary vendor", _vendor or "—",
+                "Sport-tech / platform"),
+        ]), unsafe_allow_html=True)
+        st.caption("Switch to any tab above for the deep dive on that area.")
+
+    # ── Performance tab ───────────────────────────────────────────
+    with tab_perf:
+        cx = c.get("crux_phone") or {}
+        if not cx or "error" in cx:
+            st.info("No real-user CrUX data — this site doesn't get enough "
+                    "Chrome traffic to be measured. That's itself a signal "
+                    "about audience size.")
+        else:
+            lcp = cx.get("lcp_p75"); inp = cx.get("inp_p75")
+            fcp = cx.get("fcp_p75"); ttfb = cx.get("ttfb_p75")
+            # Build league-wide LCP / INP context
+            lcp_med = _z3_median(peers, lambda p: _safe(p, "crux_phone", "lcp_p75"))
+            inp_med = _z3_median(peers, lambda p: _safe(p, "crux_phone", "inp_p75"))
+            lcp_rank = _z3_rank(lcp, peers,
+                                 lambda p: _safe(p, "crux_phone", "lcp_p75"),
+                                 higher_better=False)
+            inp_rank = _z3_rank(inp, peers,
+                                 lambda p: _safe(p, "crux_phone", "inp_p75"),
+                                 higher_better=False)
+
+            col1, col2 = st.columns(2)
+            with col1:
+                lcp_emoji = _rate_lcp(lcp)
+                lcp_gap = ((lcp - lcp_med) / 1000) if lcp_med else None
+                gap_text = (f"{abs(lcp_gap):.1f}s "
+                             + ("slower" if lcp_gap > 0 else "faster")
+                             + f" than {league} median"
+                             ) if lcp_gap is not None else ""
+                st.markdown(
+                    f"<div style='font-size:11px;color:#888;text-transform:uppercase;"
+                    f"letter-spacing:0.5px'>LCP (p75 mobile)</div>"
+                    f"<div style='font-size:32px;font-weight:700'>{lcp_emoji} {lcp/1000:.2f}s</div>"
+                    f"<div style='color:#888;font-size:12px'>"
+                    f"{'#' + str(lcp_rank[0]) + ' of ' + str(lcp_rank[1]) + ' in ' + league + ' · ' if lcp_rank[0] else ''}"
+                    f"{gap_text}</div>",
+                    unsafe_allow_html=True,
+                )
+                # Distribution bar relative to league min/max
+                league_lcps = [v for v in (_safe(p, "crux_phone", "lcp_p75")
+                                           for p in peers) if v is not None]
+                if league_lcps:
+                    lo, hi = min(league_lcps), max(league_lcps)
+                    st.markdown(_bar_for(lcp, lo, hi, ok=2500, warn=4000,
+                                           lower_better=True),
+                                unsafe_allow_html=True)
+                    st.markdown(
+                        f"<div style='display:flex;justify-content:space-between;"
+                        f"color:#666;font-size:10px;margin-top:-4px'>"
+                        f"<span>{lo/1000:.1f}s (fastest)</span>"
+                        f"<span>{hi/1000:.1f}s (slowest)</span></div>",
+                        unsafe_allow_html=True,
+                    )
+
+            with col2:
+                inp_emoji = _rate_inp(inp)
+                inp_gap = (inp - inp_med) if inp_med else None
+                gap_text = (f"{abs(int(inp_gap))}ms "
+                             + ("slower" if inp_gap > 0 else "faster")
+                             + f" than {league} median"
+                             ) if inp_gap is not None else ""
+                st.markdown(
+                    f"<div style='font-size:11px;color:#888;text-transform:uppercase;"
+                    f"letter-spacing:0.5px'>INP (tap latency p75)</div>"
+                    f"<div style='font-size:32px;font-weight:700'>{inp_emoji} {int(inp)} ms</div>"
+                    f"<div style='color:#888;font-size:12px'>"
+                    f"{'#' + str(inp_rank[0]) + ' of ' + str(inp_rank[1]) + ' in ' + league + ' · ' if inp_rank[0] else ''}"
+                    f"{gap_text}</div>",
+                    unsafe_allow_html=True,
+                )
+                league_inps = [v for v in (_safe(p, "crux_phone", "inp_p75")
+                                           for p in peers) if v is not None]
+                if league_inps:
+                    lo, hi = min(league_inps), max(league_inps)
+                    st.markdown(_bar_for(inp, lo, hi, ok=200, warn=500,
+                                           lower_better=True),
+                                unsafe_allow_html=True)
+                    st.markdown(
+                        f"<div style='display:flex;justify-content:space-between;"
+                        f"color:#666;font-size:10px;margin-top:-4px'>"
+                        f"<span>{int(lo)}ms (fastest)</span>"
+                        f"<span>{int(hi)}ms (slowest)</span></div>",
+                        unsafe_allow_html=True,
+                    )
+
+            # Secondary CrUX metrics — small inline row
             st.markdown(
-                f"<div style='display:flex;gap:24px;margin-top:6px;"
-                f"font-size:12px;color:#888'>"
-                f"<span>Lighthouse (synthetic): "
-                f"<b style='color:#FAFAFA'>A11y {a11y}</b>"
-                f"{'  #' + str(a11y_r[0]) + '/' + str(a11y_r[1]) if a11y_r[0] else ''}"
-                f" · <b style='color:#FAFAFA'>SEO {seo}</b>"
-                f"{'  #' + str(seo_r[0]) + '/' + str(seo_r[1]) if seo_r[0] else ''}"
-                f" · BP {bp}</span></div>",
+                f"<div style='color:#888;font-size:12px;margin-top:14px'>"
+                f"FCP {_fmt_ms(fcp)} · CLS {(cx.get('cls_p75') or 0):.2f}"
+                f" · TTFB {_fmt_ms(ttfb)}"
+                f"</div>",
                 unsafe_allow_html=True,
             )
 
-    # ── Stack story ───────────────────────────────────────────────
-    _section_header("🏗️ Stack",
-                    "Detected from HTTP headers + homepage HTML")
-    t = c.get("tech") or {}
-    cdn = _safe(c, "http", "cdn", default="?")
-    chain = t.get("vendor_chain") or (
-        [t["vendor"]] if t.get("vendor") else [])
-    layers = []
-    layers.append(("Delivery (CDN)", cdn, "#FF6B6B" if cdn != "?" else "#444"))
-    if chain:
-        for v in chain:
-            layers.append(("Sport-tech / platform", v, "#FF6B6B"))
-    if t.get("cms"):
-        layers.append(("CMS / DXP", t["cms"], "#58A6FF"))
-    if t.get("framework"):
-        layers.append(("Frontend framework", t["framework"], "#888"))
-    if not chain and not t.get("cms") and not t.get("framework"):
-        layers.append(("Platform", "Custom / in-house (no fingerprint matched)",
-                        "#888"))
+            # Lighthouse synthetic scores — labeled clearly
+            psi = c.get("psi") or {}
+            if psi and "error" not in psi:
+                a11y = psi.get("a11y"); seo = psi.get("seo"); bp = psi.get("best_practices")
+                a11y_r = _z3_rank(a11y, peers, lambda p: _safe(p, "psi", "a11y"))
+                seo_r  = _z3_rank(seo,  peers, lambda p: _safe(p, "psi", "seo"))
+                st.markdown(
+                    f"<div style='display:flex;gap:24px;margin-top:6px;"
+                    f"font-size:12px;color:#888'>"
+                    f"<span>Lighthouse (synthetic): "
+                    f"<b style='color:#FAFAFA'>A11y {a11y}</b>"
+                    f"{'  #' + str(a11y_r[0]) + '/' + str(a11y_r[1]) if a11y_r[0] else ''}"
+                    f" · <b style='color:#FAFAFA'>SEO {seo}</b>"
+                    f"{'  #' + str(seo_r[0]) + '/' + str(seo_r[1]) if seo_r[0] else ''}"
+                    f" · BP {bp}</span></div>",
+                    unsafe_allow_html=True,
+                )
 
-    stack_rows = "".join(
-        f"<tr><td style='padding:6px 14px 6px 0;color:#888;font-size:12px;"
-        f"vertical-align:top'>{label}</td>"
-        f"<td style='padding:6px 0;color:{color};font-weight:600'>{value}</td></tr>"
-        for label, value, color in layers
-    )
-    st.markdown(
-        f"<table style='border-collapse:collapse;margin:6px 0'>{stack_rows}</table>",
-        unsafe_allow_html=True,
-    )
+        # ── Stack story ───────────────────────────────────────────────
+    with tab_stack:
+        t = c.get("tech") or {}
+        cdn = _safe(c, "http", "cdn", default="?")
+        chain = t.get("vendor_chain") or (
+            [t["vendor"]] if t.get("vendor") else [])
+        layers = []
+        layers.append(("Delivery (CDN)", cdn, "#FF6B6B" if cdn != "?" else "#444"))
+        if chain:
+            for v in chain:
+                layers.append(("Sport-tech / platform", v, "#FF6B6B"))
+        if t.get("cms"):
+            layers.append(("CMS / DXP", t["cms"], "#58A6FF"))
+        if t.get("framework"):
+            layers.append(("Frontend framework", t["framework"], "#888"))
+        if not chain and not t.get("cms") and not t.get("framework"):
+            layers.append(("Platform", "Custom / in-house (no fingerprint matched)",
+                            "#888"))
 
-    # Peers on same primary vendor
-    primary = chain[0] if chain else (t.get("cms") or t.get("framework"))
-    if primary:
-        def _primary_of(p):
-            pt = p.get("tech") or {}
-            pc = pt.get("vendor_chain") or ([pt["vendor"]] if pt.get("vendor") else [])
-            return pc[0] if pc else (pt.get("cms") or pt.get("framework"))
-        same_stack = [p["name"] for p in peers
-                       if _primary_of(p) == primary and p["name"] != name]
-        if same_stack:
-            sample = ", ".join(same_stack[:5])
-            more = f" (+{len(same_stack)-5} more)" if len(same_stack) > 5 else ""
-            st.caption(f"Same {primary} stack as: {sample}{more}")
+        stack_rows = "".join(
+            f"<tr><td style='padding:6px 14px 6px 0;color:#888;font-size:12px;"
+            f"vertical-align:top'>{label}</td>"
+            f"<td style='padding:6px 0;color:{color};font-weight:600'>{value}</td></tr>"
+            for label, value, color in layers
+        )
+        st.markdown(
+            f"<table style='border-collapse:collapse;margin:6px 0'>{stack_rows}</table>",
+            unsafe_allow_html=True,
+        )
 
-    # ── Audience story ────────────────────────────────────────────
-    _section_header("🌍 Audience",
-                    "Wikipedia interest as a proxy for global reach")
-    w = c.get("wikipedia") or {}
-    by_lang = w.get("pageviews_by_lang") or {}
-    total = _wiki_views(c)
-    wl = w.get("langs")
-    if total and by_lang:
-        # Horizontal bars per language, top 8
-        sorted_langs = sorted(by_lang.items(), key=lambda x: -x[1])[:8]
-        max_v = sorted_langs[0][1] if sorted_langs else 1
-        rows = []
-        for lc, v in sorted_langs:
-            pct = int(v / max_v * 100)
-            share = v / total * 100
-            rows.append(
+        # Peers on same primary vendor
+        primary = chain[0] if chain else (t.get("cms") or t.get("framework"))
+        if primary:
+            def _primary_of(p):
+                pt = p.get("tech") or {}
+                pc = pt.get("vendor_chain") or ([pt["vendor"]] if pt.get("vendor") else [])
+                return pc[0] if pc else (pt.get("cms") or pt.get("framework"))
+            same_stack = [p["name"] for p in peers
+                           if _primary_of(p) == primary and p["name"] != name]
+            if same_stack:
+                sample = ", ".join(same_stack[:5])
+                more = f" (+{len(same_stack)-5} more)" if len(same_stack) > 5 else ""
+                st.caption(f"Same {primary} stack as: {sample}{more}")
+
+        # ── Audience story ────────────────────────────────────────────
+    with tab_aud:
+        w = c.get("wikipedia") or {}
+        by_lang = w.get("pageviews_by_lang") or {}
+        total = _wiki_views(c)
+        wl = w.get("langs")
+        if total and by_lang:
+            # Horizontal bars per language, top 8
+            sorted_langs = sorted(by_lang.items(), key=lambda x: -x[1])[:8]
+            max_v = sorted_langs[0][1] if sorted_langs else 1
+            rows = []
+            for lc, v in sorted_langs:
+                pct = int(v / max_v * 100)
+                share = v / total * 100
+                rows.append(
+                    f"<tr>"
+                    f"<td style='padding:3px 12px 3px 0;color:#888;font-size:12px;width:40px'>{lc}</td>"
+                    f"<td style='padding:3px 0'>"
+                    f"<div style='background:#58A6FF;height:14px;width:{pct}%;"
+                    f"border-radius:2px'></div></td>"
+                    f"<td style='padding:3px 0 3px 12px;font-size:12px;width:90px;text-align:right'>"
+                    f"{fmt_num(v)}</td>"
+                    f"<td style='padding:3px 0 3px 8px;color:#888;font-size:11px;width:50px;text-align:right'>"
+                    f"{share:.0f}%</td>"
+                    f"</tr>"
+                )
+            tot_rank = _z3_rank(total, peers, _wiki_views)
+            rank_label = (f"#{tot_rank[0]} of {tot_rank[1]} in {league}"
+                           if tot_rank[0] else "")
+            st.markdown(
+                f"<div style='display:flex;align-items:baseline;gap:14px;"
+                f"margin-bottom:6px'>"
+                f"<div style='font-size:24px;font-weight:700'>{fmt_num(total)}</div>"
+                f"<div style='color:#888;font-size:12px'>Wikipedia pageviews "
+                f"(12mo) across {len(by_lang)} major languages · {rank_label}</div></div>"
+                f"<table style='border-collapse:collapse;width:100%;max-width:520px'>"
+                f"{''.join(rows)}</table>",
+                unsafe_allow_html=True,
+            )
+            if wl:
+                st.caption(f"Article exists in {wl} language editions total")
+
+        # Site locales (separate concept — what languages the SITE offers)
+        loc = c.get("locales") or {}
+        loc_count = loc.get("count")
+        loc_langs = loc.get("langs") or []
+        loc_src = loc.get("source") or ""
+        if loc_count:
+            langs_str = "/".join(loc_langs[:8])
+            if len(loc_langs) > 8:
+                langs_str += f" +{len(loc_langs)-8}"
+            st.markdown(
+                f"<div style='margin-top:14px;color:#888;font-size:13px'>"
+                f"<b style='color:#FAFAFA'>Site offers {loc_count} locale"
+                f"{'s' if loc_count != 1 else ''}</b> ({langs_str}) "
+                f"<span style='font-size:11px'>· via {loc_src}</span></div>",
+                unsafe_allow_html=True,
+            )
+
+        # ── App story ─────────────────────────────────────────────────
+    with tab_app:
+        if not app.get("present"):
+            st.info(f"No official iOS app for {name}.")
+        else:
+            rating = app.get("rating")
+            rating_n = app.get("rating_count")
+            last = app.get("last_update") or ""
+            first = app.get("first_release") or ""
+            size = app.get("size_mb")
+            langs = app.get("languages")
+            store_url = (app.get("store_url") or "").strip()
+
+            # Maintenance freshness: how many months since last update?
+            from datetime import date
+            months_since = None
+            if last:
+                try:
+                    ld = datetime.strptime(last, "%Y-%m-%d").date()
+                    today = date.today()
+                    months_since = (today.year - ld.year) * 12 + (today.month - ld.month)
+                except Exception:
+                    pass
+            freshness_color = "#00CC96" if months_since is not None and months_since <= 6 else (
+                "#FFA15A" if months_since is not None and months_since <= 24 else "#EF553B"
+            )
+            freshness_label = "actively maintained" if months_since is not None and months_since <= 6 else (
+                "occasionally maintained" if months_since is not None and months_since <= 24 else "appears stale"
+            )
+
+            rating_r = _z3_rank(rating, peers, lambda p: _safe(p, "ios_app", "rating"))
+            rating_disp = (f"<a href='{store_url}' target='_blank' "
+                            f"style='color:#58A6FF;text-decoration:none'>{rating:.1f}★</a>"
+                            if rating and store_url else
+                            (f"{rating:.1f}★" if rating else "—"))
+
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown(
+                    f"<div style='font-size:11px;color:#888;text-transform:uppercase;"
+                    f"letter-spacing:0.5px'>Rating</div>"
+                    f"<div style='font-size:32px;font-weight:700'>{rating_disp}</div>"
+                    f"<div style='color:#888;font-size:12px'>"
+                    f"{fmt_num(rating_n) + ' ratings' if rating_n else ''}"
+                    f"{' · #' + str(rating_r[0]) + ' of ' + str(rating_r[1]) + ' in ' + league if rating_r[0] else ''}"
+                    f"</div>",
+                    unsafe_allow_html=True,
+                )
+            with col2:
+                st.markdown(
+                    f"<div style='font-size:11px;color:#888;text-transform:uppercase;"
+                    f"letter-spacing:0.5px'>Maintenance</div>"
+                    f"<div style='font-size:18px;font-weight:600;color:{freshness_color}'>"
+                    f"{freshness_label}</div>"
+                    f"<div style='color:#888;font-size:12px'>"
+                    f"Last update {last or '—'}"
+                    + (f" · {months_since} mo ago" if months_since is not None else "")
+                    + f" · on store since {first[:4] if first else '—'}"
+                    f"</div>",
+                    unsafe_allow_html=True,
+                )
+            # Footer line with size + langs
+            st.markdown(
+                f"<div style='color:#888;font-size:12px;margin-top:10px'>"
+                f"{f'{size:.0f} MB' if size else ''}"
+                + (f" · {langs} languages" if langs else "")
+                + f"</div>",
+                unsafe_allow_html=True,
+            )
+
+        # ── What's missing ────────────────────────────────────────────
+    with tab_gaps:
+        gaps = []
+        if not app.get("present"):
+            gaps.append("No official iOS app")
+        if (loc_count or 0) <= 1:
+            gaps.append("Single-locale site (no international audience push)")
+        elif loc_src == "country":
+            gaps.append("No structured hreflang declarations (locale detected by fallback)")
+        sec_p = _safe(c, "http", "security_headers_present")
+        if sec_p is not None and sec_p < 3:
+            gaps.append(f"Weak security headers ({sec_p}/6 present)")
+        if not (t.get("vendor") or t.get("cms") or t.get("framework")):
+            gaps.append("No detectable platform fingerprint (likely custom in-house)")
+        if not cx or "error" in cx:
+            gaps.append("Not enough Chrome traffic for CrUX real-user data")
+        if not w.get("pageviews_12mo_total"):
+            gaps.append("No Wikipedia interest data (article missing or unmapped)")
+
+        if not gaps:
+            st.markdown("<div style='color:#00CC96'>None obvious — this is a "
+                         "well-rounded digital footprint.</div>",
+                         unsafe_allow_html=True)
+        else:
+            st.markdown(
+                "<ul style='margin:6px 0 0 0;padding-left:20px;color:#FAFAFA;"
+                "line-height:1.7;font-size:14px'>"
+                + "".join(f"<li>{g}</li>" for g in gaps)
+                + "</ul>",
+                unsafe_allow_html=True,
+            )
+
+        # ── Compare to a peer ─────────────────────────────────────────
+    with tab_cmp:
+        peer_names = [p["name"] for p in peers if p["name"] != name]
+        if peer_names:
+            # Pre-pick the closest peer in Wiki views (most natural comparison)
+            my_wv = _wiki_views(c) or 0
+            peers_by_wv = sorted(
+                ((abs((_wiki_views(p) or 0) - my_wv), p["name"]) for p in peers
+                 if p["name"] != name and _wiki_views(p))
+            )
+            default = peers_by_wv[0][1] if peers_by_wv else peer_names[0]
+            choice = st.selectbox("Peer", peer_names,
+                                    index=peer_names.index(default) if default in peer_names else 0,
+                                    key=f"_z3_peer_{name}",
+                                    label_visibility="collapsed")
+            peer = next(p for p in peers if p["name"] == choice)
+
+            def _fmt_lcp(p):
+                v = _safe(p, "crux_phone", "lcp_p75")
+                return f"{v/1000:.2f}s" if v else "—"
+            def _fmt_inp(p):
+                v = _safe(p, "crux_phone", "inp_p75")
+                return f"{int(v)} ms" if v else "—"
+            def _fmt_rating(p):
+                v = _safe(p, "ios_app", "rating")
+                return f"{v:.1f}★" if v else "—"
+            def _fmt_pages(p):
+                v, _, _, _ = _unique_pages(p)
+                return fmt_num(v) if v else "—"
+
+            comparisons = [
+                ("Real LCP (mobile)",  _fmt_lcp(c),        _fmt_lcp(peer)),
+                ("Real INP (mobile)",  _fmt_inp(c),        _fmt_inp(peer)),
+                ("Wiki views (12mo)",  fmt_num(_wiki_views(c) or 0),
+                                       fmt_num(_wiki_views(peer) or 0)),
+                ("Wiki languages",     str(_safe(c, "wikipedia", "langs") or "—"),
+                                       str(_safe(peer, "wikipedia", "langs") or "—")),
+                ("Site pages",         _fmt_pages(c),      _fmt_pages(peer)),
+                ("Site locales",       str((c.get('locales') or {}).get('count') or "—"),
+                                       str((peer.get('locales') or {}).get('count') or "—")),
+                ("iOS rating",         _fmt_rating(c),     _fmt_rating(peer)),
+                ("Lighthouse A11y",    str(_safe(c, "psi", "a11y") or "—"),
+                                       str(_safe(peer, "psi", "a11y") or "—")),
+            ]
+            rows = "".join(
                 f"<tr>"
-                f"<td style='padding:3px 12px 3px 0;color:#888;font-size:12px;width:40px'>{lc}</td>"
-                f"<td style='padding:3px 0'>"
-                f"<div style='background:#58A6FF;height:14px;width:{pct}%;"
-                f"border-radius:2px'></div></td>"
-                f"<td style='padding:3px 0 3px 12px;font-size:12px;width:90px;text-align:right'>"
-                f"{fmt_num(v)}</td>"
-                f"<td style='padding:3px 0 3px 8px;color:#888;font-size:11px;width:50px;text-align:right'>"
-                f"{share:.0f}%</td>"
+                f"<td style='padding:5px 14px 5px 0;color:#888;font-size:12px'>{lbl}</td>"
+                f"<td style='padding:5px 14px;color:#FAFAFA'>{va}</td>"
+                f"<td style='padding:5px 0;color:#FAFAFA'>{vb}</td>"
                 f"</tr>"
+                for lbl, va, vb in comparisons
             )
-        tot_rank = _z3_rank(total, peers, _wiki_views)
-        rank_label = (f"#{tot_rank[0]} of {tot_rank[1]} in {league}"
-                       if tot_rank[0] else "")
-        st.markdown(
-            f"<div style='display:flex;align-items:baseline;gap:14px;"
-            f"margin-bottom:6px'>"
-            f"<div style='font-size:24px;font-weight:700'>{fmt_num(total)}</div>"
-            f"<div style='color:#888;font-size:12px'>Wikipedia pageviews "
-            f"(12mo) across {len(by_lang)} major languages · {rank_label}</div></div>"
-            f"<table style='border-collapse:collapse;width:100%;max-width:520px'>"
-            f"{''.join(rows)}</table>",
-            unsafe_allow_html=True,
-        )
-        if wl:
-            st.caption(f"Article exists in {wl} language editions total")
-
-    # Site locales (separate concept — what languages the SITE offers)
-    loc = c.get("locales") or {}
-    loc_count = loc.get("count")
-    loc_langs = loc.get("langs") or []
-    loc_src = loc.get("source") or ""
-    if loc_count:
-        langs_str = "/".join(loc_langs[:8])
-        if len(loc_langs) > 8:
-            langs_str += f" +{len(loc_langs)-8}"
-        st.markdown(
-            f"<div style='margin-top:14px;color:#888;font-size:13px'>"
-            f"<b style='color:#FAFAFA'>Site offers {loc_count} locale"
-            f"{'s' if loc_count != 1 else ''}</b> ({langs_str}) "
-            f"<span style='font-size:11px'>· via {loc_src}</span></div>",
-            unsafe_allow_html=True,
-        )
-
-    # ── App story ─────────────────────────────────────────────────
-    _section_header("📱 Mobile app",
-                    "Apple App Store — iOS only (Android not currently tracked)")
-    if not app.get("present"):
-        st.info(f"No official iOS app for {name}.")
-    else:
-        rating = app.get("rating")
-        rating_n = app.get("rating_count")
-        last = app.get("last_update") or ""
-        first = app.get("first_release") or ""
-        size = app.get("size_mb")
-        langs = app.get("languages")
-        store_url = (app.get("store_url") or "").strip()
-
-        # Maintenance freshness: how many months since last update?
-        from datetime import date
-        months_since = None
-        if last:
-            try:
-                ld = datetime.strptime(last, "%Y-%m-%d").date()
-                today = date.today()
-                months_since = (today.year - ld.year) * 12 + (today.month - ld.month)
-            except Exception:
-                pass
-        freshness_color = "#00CC96" if months_since is not None and months_since <= 6 else (
-            "#FFA15A" if months_since is not None and months_since <= 24 else "#EF553B"
-        )
-        freshness_label = "actively maintained" if months_since is not None and months_since <= 6 else (
-            "occasionally maintained" if months_since is not None and months_since <= 24 else "appears stale"
-        )
-
-        rating_r = _z3_rank(rating, peers, lambda p: _safe(p, "ios_app", "rating"))
-        rating_disp = (f"<a href='{store_url}' target='_blank' "
-                        f"style='color:#58A6FF;text-decoration:none'>{rating:.1f}★</a>"
-                        if rating and store_url else
-                        (f"{rating:.1f}★" if rating else "—"))
-
-        col1, col2 = st.columns(2)
-        with col1:
             st.markdown(
-                f"<div style='font-size:11px;color:#888;text-transform:uppercase;"
-                f"letter-spacing:0.5px'>Rating</div>"
-                f"<div style='font-size:32px;font-weight:700'>{rating_disp}</div>"
-                f"<div style='color:#888;font-size:12px'>"
-                f"{fmt_num(rating_n) + ' ratings' if rating_n else ''}"
-                f"{' · #' + str(rating_r[0]) + ' of ' + str(rating_r[1]) + ' in ' + league if rating_r[0] else ''}"
-                f"</div>",
+                f"<table style='border-collapse:collapse;margin:6px 0;font-size:14px'>"
+                f"<thead><tr>"
+                f"<th></th>"
+                f"<th style='text-align:left;padding:0 14px 8px 0;color:#888;"
+                f"font-weight:600;font-size:12px'>{name}</th>"
+                f"<th style='text-align:left;padding:0 0 8px 0;color:#888;"
+                f"font-weight:600;font-size:12px'>{choice}</th>"
+                f"</tr></thead>"
+                f"<tbody>{rows}</tbody></table>",
                 unsafe_allow_html=True,
             )
-        with col2:
-            st.markdown(
-                f"<div style='font-size:11px;color:#888;text-transform:uppercase;"
-                f"letter-spacing:0.5px'>Maintenance</div>"
-                f"<div style='font-size:18px;font-weight:600;color:{freshness_color}'>"
-                f"{freshness_label}</div>"
-                f"<div style='color:#888;font-size:12px'>"
-                f"Last update {last or '—'}"
-                + (f" · {months_since} mo ago" if months_since is not None else "")
-                + f" · on store since {first[:4] if first else '—'}"
-                f"</div>",
-                unsafe_allow_html=True,
-            )
-        # Footer line with size + langs
-        st.markdown(
-            f"<div style='color:#888;font-size:12px;margin-top:10px'>"
-            f"{f'{size:.0f} MB' if size else ''}"
-            + (f" · {langs} languages" if langs else "")
-            + f"</div>",
-            unsafe_allow_html=True,
-        )
-
-    # ── What's missing ────────────────────────────────────────────
-    _section_header("🔍 Gaps",
-                    "Notable absences — sometimes the story is what's not there")
-    gaps = []
-    if not app.get("present"):
-        gaps.append("No official iOS app")
-    if (loc_count or 0) <= 1:
-        gaps.append("Single-locale site (no international audience push)")
-    elif loc_src == "country":
-        gaps.append("No structured hreflang declarations (locale detected by fallback)")
-    sec_p = _safe(c, "http", "security_headers_present")
-    if sec_p is not None and sec_p < 3:
-        gaps.append(f"Weak security headers ({sec_p}/6 present)")
-    if not (t.get("vendor") or t.get("cms") or t.get("framework")):
-        gaps.append("No detectable platform fingerprint (likely custom in-house)")
-    if not cx or "error" in cx:
-        gaps.append("Not enough Chrome traffic for CrUX real-user data")
-    if not w.get("pageviews_12mo_total"):
-        gaps.append("No Wikipedia interest data (article missing or unmapped)")
-
-    if not gaps:
-        st.markdown("<div style='color:#00CC96'>None obvious — this is a "
-                     "well-rounded digital footprint.</div>",
-                     unsafe_allow_html=True)
-    else:
-        st.markdown(
-            "<ul style='margin:6px 0 0 0;padding-left:20px;color:#FAFAFA;"
-            "line-height:1.7;font-size:14px'>"
-            + "".join(f"<li>{g}</li>" for g in gaps)
-            + "</ul>",
-            unsafe_allow_html=True,
-        )
-
-    # ── Compare to a peer ─────────────────────────────────────────
-    _section_header("⚖️ Compare to a peer", "Pick another club to overlay")
-    peer_names = [p["name"] for p in peers if p["name"] != name]
-    if peer_names:
-        # Pre-pick the closest peer in Wiki views (most natural comparison)
-        my_wv = _wiki_views(c) or 0
-        peers_by_wv = sorted(
-            ((abs((_wiki_views(p) or 0) - my_wv), p["name"]) for p in peers
-             if p["name"] != name and _wiki_views(p))
-        )
-        default = peers_by_wv[0][1] if peers_by_wv else peer_names[0]
-        choice = st.selectbox("Peer", peer_names,
-                                index=peer_names.index(default) if default in peer_names else 0,
-                                key=f"_z3_peer_{name}",
-                                label_visibility="collapsed")
-        peer = next(p for p in peers if p["name"] == choice)
-
-        def _fmt_lcp(p):
-            v = _safe(p, "crux_phone", "lcp_p75")
-            return f"{v/1000:.2f}s" if v else "—"
-        def _fmt_inp(p):
-            v = _safe(p, "crux_phone", "inp_p75")
-            return f"{int(v)} ms" if v else "—"
-        def _fmt_rating(p):
-            v = _safe(p, "ios_app", "rating")
-            return f"{v:.1f}★" if v else "—"
-        def _fmt_pages(p):
-            v, _, _, _ = _unique_pages(p)
-            return fmt_num(v) if v else "—"
-
-        comparisons = [
-            ("Real LCP (mobile)",  _fmt_lcp(c),        _fmt_lcp(peer)),
-            ("Real INP (mobile)",  _fmt_inp(c),        _fmt_inp(peer)),
-            ("Wiki views (12mo)",  fmt_num(_wiki_views(c) or 0),
-                                   fmt_num(_wiki_views(peer) or 0)),
-            ("Wiki languages",     str(_safe(c, "wikipedia", "langs") or "—"),
-                                   str(_safe(peer, "wikipedia", "langs") or "—")),
-            ("Site pages",         _fmt_pages(c),      _fmt_pages(peer)),
-            ("Site locales",       str((c.get('locales') or {}).get('count') or "—"),
-                                   str((peer.get('locales') or {}).get('count') or "—")),
-            ("iOS rating",         _fmt_rating(c),     _fmt_rating(peer)),
-            ("Lighthouse A11y",    str(_safe(c, "psi", "a11y") or "—"),
-                                   str(_safe(peer, "psi", "a11y") or "—")),
-        ]
-        rows = "".join(
-            f"<tr>"
-            f"<td style='padding:5px 14px 5px 0;color:#888;font-size:12px'>{lbl}</td>"
-            f"<td style='padding:5px 14px;color:#FAFAFA'>{va}</td>"
-            f"<td style='padding:5px 0;color:#FAFAFA'>{vb}</td>"
-            f"</tr>"
-            for lbl, va, vb in comparisons
-        )
-        st.markdown(
-            f"<table style='border-collapse:collapse;margin:6px 0;font-size:14px'>"
-            f"<thead><tr>"
-            f"<th></th>"
-            f"<th style='text-align:left;padding:0 14px 8px 0;color:#888;"
-            f"font-weight:600;font-size:12px'>{name}</th>"
-            f"<th style='text-align:left;padding:0 0 8px 0;color:#888;"
-            f"font-weight:600;font-size:12px'>{choice}</th>"
-            f"</tr></thead>"
-            f"<tbody>{rows}</tbody></table>",
-            unsafe_allow_html=True,
-        )
 
 
 # ── Subtitle + zoom routing ───────────────────────────────────────
