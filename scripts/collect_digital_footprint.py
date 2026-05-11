@@ -127,6 +127,44 @@ TECH_PATTERNS = [
 ]
 
 
+# Manual tech-stack overrides for channels where the HTML
+# fingerprint is misleading. Keyed by youtube_channel_id. Either:
+#   - drop a false-positive vendor by setting it to None
+#   - assert a known stack (vendor / cms / framework) when our
+#     regex couldn't see it.
+# Source label becomes "manual" so the Z3 evidence is honest.
+TECH_OVERRIDES: dict[str, dict] = {
+    # FC Barcelona — Pulselive only powers an embedded form widget
+    # (form.pulselive.com), NOT the main site or video platform.
+    # Clear the false-positive vendor match.
+    "UC14UlmYlSNiQCBe9Eookf_A": {"clear_vendor_chain": True},
+}
+
+
+def _apply_tech_override(yt_id: str | None, fp: dict) -> dict:
+    if not yt_id or yt_id not in TECH_OVERRIDES:
+        return fp
+    override = TECH_OVERRIDES[yt_id]
+    out = dict(fp)
+    if override.get("clear_vendor_chain"):
+        out["vendor"] = None
+        out["vendor_chain"] = []
+        # Drop vendor-related evidence too so Z3 doesn't show
+        # misleading snippets
+        out["evidence"] = [e for e in (out.get("evidence") or [])
+                            if not any(v in e for v in
+                                       ("Pulselive", "Deltatre", "Stadion",
+                                        "InCrowd", "Hiway", "Contentful"))]
+        out.setdefault("notes", []).append(
+            "Vendor cleared manually — fingerprint was an embedded "
+            "widget, not the main platform")
+    # Direct overrides
+    for k in ("vendor", "cms", "framework"):
+        if k in override:
+            out[k] = override[k]
+    return out
+
+
 def tech_stack(url: str) -> dict:
     """Fingerprint the homepage HTML for CMS / sport-tech vendor /
     frontend framework. Returns first match per category.
@@ -705,7 +743,8 @@ def collect_one(ch: dict) -> dict:
         # Signals
         "domain_first_year":  wayback_first_year(domain) if domain else None,
         "http":               http_headers(website) if website else {},
-        "tech":               tech_stack(website) if website else {},
+        "tech":               _apply_tech_override(ch.get("youtube_channel_id"),
+                                                    tech_stack(website)) if website else {},
         "sitemap":            sm,
         "locales":            detect_locales(website, sm.get("locale_list"), ch.get("country"), ch.get("youtube_channel_id")) if website else {},
         "wikipedia":          wikipedia(wiki_slug),

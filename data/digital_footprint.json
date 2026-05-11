@@ -3655,15 +3655,14 @@
         "seo": 92
       },
       "tech": {
-        "vendor": "Pulselive",
+        "vendor": null,
         "cms": null,
         "framework": null,
         "extras": [],
-        "evidence": [
-          "Pulselive: …form.pulselive.com/fcbarcelona/en…"
-        ],
-        "vendor_chain": [
-          "Pulselive"
+        "evidence": [],
+        "vendor_chain": [],
+        "notes": [
+          "Vendor cleared manually — fingerprint was an embedded widget, not the main platform"
         ]
       },
       "locales": {
