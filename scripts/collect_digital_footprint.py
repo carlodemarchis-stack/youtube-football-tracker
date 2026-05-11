@@ -230,9 +230,24 @@ _COUNTRY_TO_LANG = {
     "PT": "pt", "NL": "nl", "BE": "nl",
 }
 
+# Manual locale overrides, keyed by youtube_channel_id.
+# Use for sites whose WAF blocks our IP (Akamai / Cloudflare
+# bot management) or that respond with empty HTML shells but
+# whose locale offering is publicly known. Source label is
+# "manual" so consumers can tell these are human-curated.
+LOCALE_OVERRIDES: dict[str, list[str]] = {
+    # FC Bayern München — fcbayern.com offers EN, DE, ES, FR, AR
+    "UCZkcxFIsqW5htimoUQKA0iA": ["de", "en", "es", "fr", "ar"],
+    # Deportivo Alavés — Spanish-only site
+    "UC5yHOZPDde9RWodH5bn4QgA": ["es"],
+    # RC Celta — site on .gal domain, primary Spanish with Galician
+    "UCCJLVZYqRb_85b2Flpg04cg": ["es", "gl"],
+}
+
 
 def detect_locales(website: str, sitemap_locales: list[str] | None = None,
-                   country: str | None = None) -> dict:
+                   country: str | None = None,
+                   youtube_channel_id: str | None = None) -> dict:
     """Return {count, langs[], source} for a site's language editions.
 
     Layered detector — uses the most reliable signal that returns ≥ 2:
@@ -249,6 +264,13 @@ def detect_locales(website: str, sitemap_locales: list[str] | None = None,
     """
     if not website:
         return {}
+    # 0. Manual overrides — highest priority, used for sites we
+    #    can't reach (WAF / IP block) but whose locale offering
+    #    is publicly known.
+    if youtube_channel_id and youtube_channel_id in LOCALE_OVERRIDES:
+        langs = LOCALE_OVERRIDES[youtube_channel_id]
+        return {"count": len(langs), "langs": list(langs),
+                "source": "manual"}
     try:
         r = requests.get(website, headers=HEADERS, timeout=20,
                          allow_redirects=True)
@@ -576,7 +598,7 @@ def collect_one(ch: dict) -> dict:
         "http":               http_headers(website) if website else {},
         "tech":               tech_stack(website) if website else {},
         "sitemap":            sm,
-        "locales":            detect_locales(website, sm.get("locale_list"), ch.get("country")) if website else {},
+        "locales":            detect_locales(website, sm.get("locale_list"), ch.get("country"), ch.get("youtube_channel_id")) if website else {},
         "wikipedia":          wikipedia(wiki_slug),
         "ios_app":            ios_app(app_query, app_country),
         "crux_phone":         crux(origin, "PHONE") if origin else {},

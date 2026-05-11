@@ -567,14 +567,19 @@ with st.expander("📖 What every column means", expanded=False):
   locations and return "—".
 - **Loc** — number of language editions the site offers. Detected
   via a layered probe (most reliable signal wins):
-  1. `<link rel="alternate" hreflang="xx">` declarations in the
-     homepage head — Google's structured signal for international
-     sites. Used when ≥ 2 codes are found.
-  2. `/xx/` path codes in the sitemap — only when between 2 and 12
+  1. **Manual override** — hand-curated list for sites whose WAF
+     blocks our IP (e.g. FC Bayern's Akamai bot manager).
+  2. **hreflang** declarations `<link rel="alternate" hreflang="xx">`
+     in the homepage `<head>` — Google's structured signal. Used
+     when ≥ 2 codes are found.
+  3. **Sitemap path codes** `/xx/` — only when between 2 and 12
      distinct codes (above that = false positives from URL slugs).
-  3. `<html lang="xx">` attribute — fallback for single-locale
-     sites; count = 1.
-  4. "—" when none of the above worked.
+  4. **`<html lang="xx">`** — fallback for single-locale sites; count = 1.
+  5. **`og:locale`** — Facebook Open Graph meta tag.
+  6. **Content-Language** HTTP header.
+  7. **Country fallback** — last-resort assumption based on the
+     club's country (e.g. UK club → `en`). Lower trust; labeled
+     `via country` in the cell tooltip.
   Hover any cell to see the **language list and which source layer
   was used**.
 

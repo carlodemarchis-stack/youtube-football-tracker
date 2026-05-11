@@ -2432,7 +2432,13 @@
         "seo": 77
       },
       "tech": {},
-      "locales": {}
+      "locales": {
+        "count": 1,
+        "langs": [
+          "es"
+        ],
+        "source": "manual"
+      }
     },
     {
       "youtube_channel_id": "UCQsH5XtIc9hONE1BQjucM0g",
@@ -4782,7 +4788,17 @@
         "seo": 100
       },
       "tech": {},
-      "locales": {}
+      "locales": {
+        "count": 5,
+        "langs": [
+          "de",
+          "en",
+          "es",
+          "fr",
+          "ar"
+        ],
+        "source": "manual"
+      }
     },
     {
       "youtube_channel_id": "UCeOCuVSSweaEj6oVtJZEKQw",
@@ -7574,7 +7590,14 @@
         "error": "Lighthouse returned error: FAILED_DOCUMENT_REQUEST. Lighthouse was unable to rel"
       },
       "tech": {},
-      "locales": {}
+      "locales": {
+        "count": 2,
+        "langs": [
+          "es",
+          "gl"
+        ],
+        "source": "manual"
+      }
     },
     {
       "youtube_channel_id": "UCKPvGWyCL62gKy-i_Fz_CJA",
