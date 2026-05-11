@@ -215,30 +215,30 @@ def _flat_table(channels: list[dict], header: str = "") -> None:
     if header:
         st.markdown(f"**{header}**")
 
-    # Same visual signature as All Channels — Season: light row
-    # separator, no header background, hover-only highlight.
+    # Mirror the All Channels — Season table exactly: transparent
+    # background, no outer or vertical borders, single horizontal
+    # row separator. Group titles in the top header row carry their
+    # own inline colored bottom border.
     table = (
         "<style>"
-        ".df-tbl{width:100%;border-collapse:collapse;font-size:13px;margin:6px 0}"
-        ".df-tbl th{padding:6px 12px;color:#888;font-weight:600;text-align:right;"
-        "white-space:nowrap;user-select:none}"
-        ".df-tbl thead tr:last-child{border-bottom:2px solid #444}"
+        ".df-wrap{overflow-x:auto;width:100%}"
+        ".df-tbl{width:100%;border-collapse:collapse;font-size:14px;"
+        "color:#FAFAFA;background:transparent}"
+        ".df-tbl th{padding:6px 12px;user-select:none;white-space:nowrap;"
+        "font-weight:600}"
         ".df-tbl td{padding:6px 12px;border-bottom:1px solid #262730;"
-        "white-space:nowrap;color:#FAFAFA;text-align:right}"
-        ".df-tbl td:nth-child(1),.df-tbl td:nth-child(2),.df-tbl td:nth-child(3),"
-        ".df-tbl th:nth-child(1),.df-tbl th:nth-child(2),.df-tbl th:nth-child(3)"
-        "{text-align:left}"
+        "white-space:nowrap}"
         ".df-tbl tr:hover td{background:#1a1c24}"
         ".df-tbl a{color:inherit;text-decoration:none}"
         "</style>"
-        "<div style='overflow-x:auto'>"
+        "<div class='df-wrap'>"
         "<table class='df-tbl'>"
         # Two-row thead: top row groups columns with colored
         # underlines (mirrors the All Channels — Season layout);
         # bottom row holds the individual column labels.
         "<thead>"
         "<tr>"
-        "<th colspan='2' style='border-bottom:0'></th>"
+        "<th colspan='2'></th>"
         "<th colspan='4' style='text-align:center;border-bottom:2px solid #FF6B6B;color:#FF6B6B'>Stack</th>"
         "<th colspan='2' style='text-align:center;border-bottom:2px solid #19D3F3;color:#19D3F3'>Content</th>"
         "<th colspan='2' style='text-align:center;border-bottom:2px solid #00CC96;color:#00CC96'>Real users</th>"
@@ -246,16 +246,23 @@ def _flat_table(channels: list[dict], header: str = "") -> None:
         "<th colspan='2' style='text-align:center;border-bottom:2px solid #FFA15A;color:#FFA15A'>iOS app</th>"
         "<th colspan='2' style='text-align:center;border-bottom:2px solid #AB63FA;color:#AB63FA'>Wikipedia</th>"
         "</tr>"
-        "<tr>"
-        "<th>Channel</th>"
-        "<th>Website</th>"
-        "<th>Tech</th>"
-        "<th>Since</th><th>CDN</th><th>Sec</th>"
-        "<th>Pages</th><th>Loc</th>"
-        "<th>Real LCP</th><th>Real INP</th>"
-        "<th>A11y</th><th>SEO</th>"
-        "<th>iOS ★</th><th>Updated</th>"
-        "<th>Wiki L</th><th>Views/12mo</th>"
+        "<tr style='border-bottom:2px solid #444'>"
+        "<th style='text-align:left'>Channel</th>"
+        "<th style='text-align:left'>Website</th>"
+        "<th style='text-align:left'>Tech</th>"
+        "<th style='text-align:right'>Since</th>"
+        "<th style='text-align:right'>CDN</th>"
+        "<th style='text-align:right'>Sec</th>"
+        "<th style='text-align:right'>Pages</th>"
+        "<th style='text-align:right'>Loc</th>"
+        "<th style='text-align:right'>Real LCP</th>"
+        "<th style='text-align:right'>Real INP</th>"
+        "<th style='text-align:right'>A11y</th>"
+        "<th style='text-align:right'>SEO</th>"
+        "<th style='text-align:right'>iOS ★</th>"
+        "<th style='text-align:right'>Updated</th>"
+        "<th style='text-align:right'>Wiki L</th>"
+        "<th style='text-align:right'>Views/12mo</th>"
         "</tr></thead>"
         f"<tbody>{''.join(rows_html)}</tbody></table></div>"
     )
