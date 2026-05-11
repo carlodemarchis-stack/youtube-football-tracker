@@ -478,7 +478,8 @@
           "boutique.aja.fr"
         ],
         "features": {
-          "ticketing": true
+          "ticketing": true,
+          "radio": true
         },
         "feature_locations": {},
         "external_partners": [
@@ -763,7 +764,8 @@
           "ticketing": true,
           "membership": true,
           "academy": true,
-          "foundation": true
+          "foundation": true,
+          "radio": true
         },
         "feature_locations": {
           "shop": "shop.valenciacf.com"
@@ -2347,7 +2349,8 @@
           "shop": true,
           "streaming": true,
           "newsletter": true,
-          "foundation": true
+          "foundation": true,
+          "radio": true
         },
         "feature_locations": {},
         "external_partners": [
@@ -2498,6 +2501,7 @@
           "academy": true,
           "foundation": true,
           "podcast": true,
+          "radio": true,
           "magazine": true,
           "careers": true
         },
@@ -2514,7 +2518,6 @@
           "eu.puma.com",
           "fifa.rivals.game",
           "hero-software.de",
-          "kobler.com.vn",
           "mahsa.edu.my",
           "naga.com",
           "pluto.tv",
@@ -2525,7 +2528,8 @@
           "www.brinkhoffs.de",
           "www.bvbonlineshop.com",
           "www.cocacolaep.com",
-          "www.coinbase.com"
+          "www.coinbase.com",
+          "www.dew21.de"
         ],
         "sections": []
       }
@@ -3463,7 +3467,6 @@
           "www.macron.com",
           "www.nantesmetropole.fr",
           "www.pays-de-loire-automobiles.com",
-          "www.prestige-sodexo.com",
           "www.reseau-le-saint.com",
           "www.synergie.fr",
           "www.vst.coop"
@@ -4135,7 +4138,8 @@
         "features": {
           "shop": true,
           "ticketing": true,
-          "newsletter": true
+          "newsletter": true,
+          "radio": true
         },
         "feature_locations": {
           "shop": "shop.tsg-hoffenheim.de"
@@ -4704,6 +4708,7 @@
           "academy": true,
           "newsletter": true,
           "foundation": true,
+          "radio": true,
           "careers": true
         },
         "feature_locations": {},
@@ -4831,7 +4836,8 @@
           "membership": true,
           "academy": true,
           "foundation": true,
-          "podcast": true
+          "podcast": true,
+          "radio": true
         },
         "feature_locations": {},
         "external_partners": [],
@@ -5092,7 +5098,8 @@
         ],
         "features": {
           "streaming": true,
-          "newsletter": true
+          "newsletter": true,
+          "radio": true
         },
         "feature_locations": {
           "streaming": "tv.bayer04.de"
@@ -5491,7 +5498,8 @@
           "ticketing": true,
           "academy": true,
           "newsletter": true,
-          "foundation": true
+          "foundation": true,
+          "radio": true
         },
         "feature_locations": {},
         "external_partners": [],
@@ -5609,15 +5617,15 @@
         "external_partners": [
           "confindustriaceramica.it",
           "gmpg.org",
+          "www.acquadolomia.it",
           "www.adesital.it",
           "www.azetagomma.com",
-          "www.casalgrandepadana.it",
+          "www.cercol.com",
           "www.comerindustries.com",
-          "www.florim.com",
           "www.fratelliberetta.com",
-          "www.giocodigitale.game",
           "www.kinto-mobility.eu",
-          "www.modula.eu"
+          "www.modula.eu",
+          "www.unicomstarker.com"
         ],
         "sections": []
       }
@@ -5864,6 +5872,7 @@
           "academy": true,
           "newsletter": true,
           "podcast": true,
+          "radio": true,
           "magazine": true
         },
         "feature_locations": {},
@@ -6002,7 +6011,8 @@
           "membership": true,
           "academy": true,
           "newsletter": true,
-          "foundation": true
+          "foundation": true,
+          "radio": true
         },
         "feature_locations": {},
         "external_partners": [],
@@ -6132,6 +6142,7 @@
         ],
         "features": {
           "newsletter": true,
+          "radio": true,
           "careers": true
         },
         "feature_locations": {},
@@ -6561,7 +6572,8 @@
           "academy": true,
           "newsletter": true,
           "press_media": true,
-          "foundation": true
+          "foundation": true,
+          "radio": true
         },
         "feature_locations": {},
         "external_partners": [
@@ -9830,7 +9842,8 @@
           "streaming": true,
           "museum_tour": true,
           "academy": true,
-          "foundation": true
+          "foundation": true,
+          "radio": true
         },
         "feature_locations": {
           "shop": "shop.wolves.co.uk",
@@ -10621,7 +10634,8 @@
           "membership": true,
           "academy": true,
           "newsletter": true,
-          "foundation": true
+          "foundation": true,
+          "radio": true
         },
         "feature_locations": {
           "shop": "shop.villarrealcf.es"
@@ -10901,9 +10915,9 @@
           "www.dbtechnologies.com",
           "www.elisabettafranchi.com",
           "www.filicorizecchini.com",
-          "www.granarolo.it",
           "www.gruppohera.it",
-          "www.heritancehotels.com"
+          "www.heritancehotels.com",
+          "www.ima.it"
         ],
         "sections": []
       }
@@ -11176,7 +11190,8 @@
           "ticketing": true,
           "streaming": true,
           "membership": true,
-          "academy": true
+          "academy": true,
+          "radio": true
         },
         "feature_locations": {
           "shop": "shop.realbetisbalompie.es",
@@ -12563,6 +12578,7 @@
           "academy": true,
           "foundation": true,
           "podcast": true,
+          "radio": true,
           "careers": true
         },
         "feature_locations": {
@@ -12708,7 +12724,8 @@
           "academy": true,
           "newsletter": true,
           "press_media": true,
-          "foundation": true
+          "foundation": true,
+          "radio": true
         },
         "feature_locations": {
           "shop": "shop.parmacalcio1913.com"
@@ -12851,7 +12868,8 @@
         "features": {
           "ticketing": true,
           "streaming": true,
-          "foundation": true
+          "foundation": true,
+          "radio": true
         },
         "feature_locations": {},
         "external_partners": [
@@ -13141,6 +13159,7 @@
           "streaming": true,
           "academy": true,
           "investor_relations": true,
+          "radio": true,
           "magazine": true
         },
         "feature_locations": {
@@ -13275,6 +13294,7 @@
           "ticketing": true,
           "newsletter": true,
           "foundation": true,
+          "radio": true,
           "careers": true
         },
         "feature_locations": {},

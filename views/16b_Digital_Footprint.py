@@ -1045,6 +1045,7 @@ def render_z3(c: dict) -> None:
             ("newsletter",        "📧",  "Newsletter"),
             ("press_media",       "📰",  "Press / media centre"),
             ("podcast",           "🎙️",  "Podcast"),
+            ("radio",             "📻",  "Club radio"),
             ("magazine",          "📖",  "Magazine / programme"),
             ("foundation",        "🤝",  "Foundation / CSR"),
             ("investor_relations","📈",  "Investor relations"),
