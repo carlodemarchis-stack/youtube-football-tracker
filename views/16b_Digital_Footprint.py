@@ -661,7 +661,14 @@ def render_z3(c: dict) -> None:
         _app = c.get("ios_app") or {}
         _r = _app.get("rating")
         _r_r = _z3_rank(_r, peers, lambda p: _safe(p, "ios_app", "rating"))
-        _loc = (c.get("locales") or {}).get("count")
+        _loc_data = c.get("locales") or {}
+        _loc = _loc_data.get("count")
+        _loc_langs = _loc_data.get("langs") or []
+        # Compact 2-letter list — uppercase reads well in the
+        # subtitle, e.g. "EN · ES · FR · CA · JA".
+        _langs_str = " · ".join(l.upper() for l in _loc_langs[:8])
+        if len(_loc_langs) > 8:
+            _langs_str += f" +{len(_loc_langs)-8}"
         _t = c.get("tech") or {}
         _vendor = (_t.get("vendor_chain") or [_t.get("vendor")] if _t.get("vendor") else [None])[0]
 
@@ -675,7 +682,9 @@ def render_z3(c: dict) -> None:
             ("iOS rating",
                 f"{_r:.1f}★" if _r else "—",
                 _rank_pill(_r_r[0], _r_r[1], league)),
-            ("Site locales", str(_loc) if _loc else "—", ""),
+            ("Language versions",
+                str(_loc) if _loc else "—",
+                _langs_str),
             ("Primary vendor", _vendor or "—",
                 "Sport-tech / platform"),
         ]), unsafe_allow_html=True)
