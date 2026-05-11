@@ -117,6 +117,37 @@ def _tech_cell(c):
     return "<span style='color:#444'>—</span>"
 
 
+def _unique_pages(c):
+    """Pages, locale-normalized when we have a trustable locale count.
+    Multi-locale sites that translate the same content shouldn't be
+    counted N× — divide by the locale count when source is high-trust.
+    Returns (unique, raw, divisor, source) — None for missing data."""
+    raw = _safe(c, "sitemap", "pages")
+    if not raw:
+        return None, None, None, None
+    loc = c.get("locales") or {}
+    src = loc.get("source") or ""
+    count = loc.get("count") or 1
+    # Only normalize when locale signal is reliable AND count > 1.
+    # hreflang/sitemap = trust the count. html-lang/og:locale/
+    # http-header always = 1. country/manual = don't divide
+    # (manual could be many langs but isn't necessarily mirrored
+    # 1:1 in the sitemap).
+    if src in ("hreflang", "sitemap") and count > 1:
+        return raw // count, raw, count, src
+    return raw, raw, 1, src
+
+
+def _wiki_views(c):
+    """Total Wikipedia pageviews across major language editions when
+    we have it; fall back to EN-only otherwise."""
+    w = c.get("wikipedia") or {}
+    tot = w.get("pageviews_12mo_total")
+    if tot:
+        return tot
+    return w.get("pageviews_12mo")
+
+
 def _website_link(c):
     """Render the website cell — clickable, displays the bare host."""
     url = c.get("website") or ""
@@ -138,11 +169,11 @@ def _flat_table(channels: list[dict], header: str = "") -> None:
         st.info("No channels in this scope.")
         return
 
-    # Sort by Wiki EN pageviews 12mo (interest proxy); fallback to name
+    # Sort by Wiki total pageviews 12mo (interest proxy across all
+    # language editions, not just English); fallback to name.
     channels_sorted = sorted(
         channels,
-        key=lambda c: (_safe(c, "wikipedia", "pageviews_12mo") or 0,
-                       c.get("name", "")),
+        key=lambda c: (_wiki_views(c) or 0, c.get("name", "")),
         reverse=True,
     )
 
@@ -158,13 +189,19 @@ def _flat_table(channels: list[dict], header: str = "") -> None:
         cdn = _safe(c, "http", "cdn", default="?")
         sec = _safe(c, "http", "security_headers_present")
         sec_s = f"{sec}/6" if sec is not None else "—"
-        pages = _safe(c, "sitemap", "pages")
+        # Pages → locale-normalized "unique" count, with the raw +
+        # multiplier surfaced on hover.
+        unique_pages, raw_pages, divisor, _psrc = _unique_pages(c)
         # Prefer the layered locales detector over the raw sitemap
         # regex — falls back through hreflang → sitemap → html lang.
         loc_data = c.get("locales") or {}
         loc = loc_data.get("count")
         loc_langs = loc_data.get("langs") or []
         loc_src = loc_data.get("source") or ""
+        # Wikipedia: prefer multi-lang sum, fall back to EN-only
+        wv = _wiki_views(c)
+        wv_en = _safe(c, "wikipedia", "pageviews_12mo")
+        wv_by_lang = _safe(c, "wikipedia", "pageviews_by_lang") or {}
         cx = c.get("crux_phone") or {}
         lcp = cx.get("lcp_p75")
         inp = cx.get("inp_p75")
@@ -176,7 +213,7 @@ def _flat_table(channels: list[dict], header: str = "") -> None:
         store_url = (app.get("store_url") or "").strip()
         last = (app.get("last_update") or "")[:7]
         wl = _safe(c, "wikipedia", "langs")
-        wv = _safe(c, "wikipedia", "pageviews_12mo")
+        # wv already set above to total-or-EN by _wiki_views(c)
         domain_yr = c.get("domain_first_year")
 
         slug = quote_plus(c["name"])
@@ -202,9 +239,15 @@ def _flat_table(channels: list[dict], header: str = "") -> None:
             f"<td style='text-align:right'>{domain_yr or '—'}</td>"
             f"<td style='text-align:right'>{cdn}</td>"
             f"<td style='text-align:right'>{sec_s}</td>"
-            f"<td style='text-align:right'>{fmt_num(pages) if pages else '—'}</td>"
-            # Cell shows count; hover reveals the actual language codes
-            # and the source layer (hreflang / sitemap / html-lang).
+            # Pages cell — unique-content count (raw / locale-count
+            # when high-trust). Hover shows the raw sitemap total +
+            # the locale divisor when normalized.
+            + (f"<td style='text-align:right' title='Locale-normalized: "
+               f"{fmt_num(raw_pages)} raw URLs ÷ {divisor} locales = {fmt_num(unique_pages)} unique pages'>"
+               f"{fmt_num(unique_pages)}</td>"
+               if unique_pages and divisor > 1 else
+               f"<td style='text-align:right'>{fmt_num(unique_pages) if unique_pages else '—'}</td>")
+            # Locales cell — hover reveals language codes + source layer
             + (f"<td style='text-align:right' title='{', '.join(loc_langs)} "
                f"(via {loc_src})'>{loc}</td>"
                if loc and loc_langs else
@@ -224,8 +267,16 @@ def _flat_table(channels: list[dict], header: str = "") -> None:
                if rating_n else "") + "</td>"
             f"<td style='text-align:right'>{last or '—'}</td>"
             f"<td style='text-align:right'>{wl if wl else '—'}</td>"
-            f"<td style='text-align:right'>{fmt_num(wv) if wv else '—'}</td>"
-            "</tr>"
+            # Wiki views: total across all major languages; tooltip
+            # shows the per-language breakdown sorted by views desc.
+            + (f"<td style='text-align:right' title='"
+               + ", ".join(f"{k}: {fmt_num(v)}"
+                            for k, v in sorted(wv_by_lang.items(),
+                                                key=lambda x: -x[1])[:8])
+               + f"'>{fmt_num(wv)}</td>"
+               if wv and wv_by_lang else
+               f"<td style='text-align:right'>{fmt_num(wv) if wv else '—'}</td>")
+            + "</tr>"
         )
 
     if header:
@@ -282,7 +333,7 @@ def _flat_table(channels: list[dict], header: str = "") -> None:
         "title='Security headers present (out of 6): HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy.'>"
         "Sec</th>"
         "<th style='text-align:right' "
-        "title='Total URLs found across the site’s sitemap.xml (and any sub-sitemaps). Content depth proxy.'>"
+        "title='Locale-normalized unique pages: total sitemap URLs divided by locale count when locale signal is hreflang or sitemap (avoids double-counting translated content). Hover any cell to see the raw + divisor.'>"
         "Pages</th>"
         "<th style='text-align:right' "
         "title='Number of language editions the site offers. Detected via layered probe: 1) hreflang tags in &lt;head&gt; (most reliable), 2) sitemap path codes /xx/ when 2-12 distinct, 3) <html lang> fallback for single-locale sites. Hover the cell to see the language list + source.'>"
@@ -309,7 +360,7 @@ def _flat_table(channels: list[dict], header: str = "") -> None:
         "title='Number of language editions of the club’s Wikipedia article (global brand width proxy).'>"
         "Wiki L</th>"
         "<th style='text-align:right' "
-        "title='Total pageviews on the English Wikipedia article over the trailing 12 months — global interest proxy.'>"
+        "title='Total Wikipedia pageviews over the trailing 12 months — summed across major language editions (en, es, de, fr, it, pt, ja, ru, zh, ar, ko, tr, nl, pl). Hover any cell to see the per-language breakdown.'>"
         "Views/12mo</th>"
         "</tr></thead>"
         f"<tbody>{''.join(rows_html)}</tbody></table></div>"
@@ -359,14 +410,16 @@ def render_z3(c: dict) -> None:
                 return f"#{i}/{len(vals)} in {league}"
         return ""
 
-    pages = _safe(c, "sitemap", "pages")
+    # Use locale-normalized unique-pages for the Z3 KPI too
+    unique_pages, raw_pages, divisor, _psrc = _unique_pages(c)
+    pages = unique_pages
     locales_data = c.get("locales") or {}
     locales = locales_data.get("count")
     locales_langs = locales_data.get("langs") or []
     locales_src = locales_data.get("source") or ""
     sec_p = _safe(c, "http", "security_headers_present")
     wiki_langs = _safe(c, "wikipedia", "langs")
-    wiki_views = _safe(c, "wikipedia", "pageviews_12mo")
+    wiki_views = _wiki_views(c)  # total across major Wiki language editions
 
     st.markdown("**Web overview**")
     locales_val = str(locales) if locales else "—"
@@ -380,7 +433,7 @@ def render_z3(c: dict) -> None:
         ("Wiki langs", str(wiki_langs) if wiki_langs else "—",
             rank_of(lambda c: _safe(c, "wikipedia", "langs"))),
         ("Wiki views (12mo)", fmt_num(wiki_views) if wiki_views else "—",
-            rank_of(lambda c: _safe(c, "wikipedia", "pageviews_12mo"))),
+            rank_of(_wiki_views)),
     ]), unsafe_allow_html=True)
 
     st.markdown("**Real-user performance** "
@@ -562,9 +615,12 @@ with st.expander("📖 What every column means", expanded=False):
   Referrer-Policy, Permissions-Policy.
 
 ### Content (cyan header)
-- **Pages** — total URLs across the site's `sitemap.xml` (and any
-  sub-sitemaps). Heuristic — some clubs use non-standard sitemap
-  locations and return "—".
+- **Pages** — **locale-normalized** unique-page count. When the
+  locale signal is trustable (hreflang or sitemap), the raw URL
+  total is divided by the locale count so a club with 600 EN +
+  600 IT translated articles is reported as 600 unique pages, not
+  1,200. Hover any cell to see the raw + divisor. Some clubs use
+  non-standard sitemap locations and return "—".
 - **Loc** — number of language editions the site offers. Detected
   via a layered probe (most reliable signal wins):
   1. **Manual override** — hand-curated list for sites whose WAF
@@ -614,8 +670,13 @@ reliable for non-performance categories.
 ### Wikipedia (purple header)
 - **Wiki L** — number of language editions of the article (proxy
   for global brand width).
-- **Views/12mo** — total pageviews on the English Wikipedia article
-  over the trailing 12 months (proxy for global interest).
+- **Views/12mo** — total Wikipedia pageviews over the trailing 12
+  months, **summed across major language editions** (en, es, de,
+  fr, it, pt, ja, ru, zh, ar, ko, tr, nl, pl). Earlier versions
+  used English-only views, which under-counted clubs with primarily
+  Italian / Spanish / French / German fan bases (e.g. PSG's EN
+  article gets 464k views; their FR article 4M — total ≈ 5.2M).
+  Hover any cell to see the per-language breakdown.
 
 ### What we don't track (and why)
 - **Absolute traffic numbers** — third-party estimators (Similarweb)

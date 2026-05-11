@@ -32,7 +32,24 @@
       "wikipedia": {
         "langs": 51,
         "article_kb": 69,
-        "pageviews_12mo": 1432534
+        "pageviews_12mo": 1432534,
+        "pageviews_12mo_total": 2642857,
+        "pageviews_by_lang": {
+          "en": 1432534,
+          "es": 296588,
+          "de": 76977,
+          "fr": 113137,
+          "it": 419764,
+          "pt": 2887,
+          "ja": 68398,
+          "ru": 130822,
+          "zh": 20075,
+          "ar": 920,
+          "ko": 3588,
+          "tr": 15766,
+          "nl": 29240,
+          "pl": 32161
+        }
       },
       "ios_app": {
         "present": true,
@@ -123,7 +140,24 @@
       "wikipedia": {
         "langs": 57,
         "article_kb": 59,
-        "pageviews_12mo": 106009
+        "pageviews_12mo": 106009,
+        "pageviews_12mo_total": 448449,
+        "pageviews_by_lang": {
+          "en": 106009,
+          "es": 31106,
+          "de": 18450,
+          "fr": 22509,
+          "it": 189813,
+          "pt": 13315,
+          "ja": 12316,
+          "ru": 23033,
+          "zh": 6886,
+          "ar": 6967,
+          "ko": 2518,
+          "tr": 3977,
+          "nl": 4554,
+          "pl": 6996
+        }
       },
       "ios_app": {
         "present": true,
@@ -212,7 +246,24 @@
       "wikipedia": {
         "langs": 45,
         "article_kb": 24,
-        "pageviews_12mo": 54052
+        "pageviews_12mo": 54052,
+        "pageviews_12mo_total": 572409,
+        "pageviews_by_lang": {
+          "en": 54052,
+          "es": 58649,
+          "de": 28829,
+          "fr": 38858,
+          "it": 252866,
+          "pt": 18905,
+          "ja": 23452,
+          "ru": 49870,
+          "zh": 13833,
+          "ar": 6034,
+          "ko": 1960,
+          "tr": 4538,
+          "nl": 8746,
+          "pl": 11817
+        }
       },
       "ios_app": {
         "present": false
@@ -287,7 +338,24 @@
       "wikipedia": {
         "langs": 54,
         "article_kb": 27,
-        "pageviews_12mo": 396735
+        "pageviews_12mo": 396735,
+        "pageviews_12mo_total": 669977,
+        "pageviews_by_lang": {
+          "en": 396735,
+          "es": 22176,
+          "de": 14424,
+          "fr": 115696,
+          "it": 22733,
+          "pt": 10148,
+          "ja": 15121,
+          "ru": 34045,
+          "zh": 9950,
+          "ar": 8969,
+          "ko": 1593,
+          "tr": 3873,
+          "nl": 5739,
+          "pl": 8775
+        }
       },
       "ios_app": {
         "present": true,
@@ -377,7 +445,24 @@
       "wikipedia": {
         "langs": 70,
         "article_kb": 54,
-        "pageviews_12mo": 466895
+        "pageviews_12mo": 466895,
+        "pageviews_12mo_total": 852343,
+        "pageviews_by_lang": {
+          "en": 466895,
+          "es": 39192,
+          "de": 141352,
+          "fr": 34796,
+          "it": 31336,
+          "pt": 17633,
+          "ja": 47596,
+          "ru": 26160,
+          "zh": 14972,
+          "ar": 6606,
+          "ko": 2180,
+          "tr": 6569,
+          "nl": 9586,
+          "pl": 7470
+        }
       },
       "ios_app": {
         "present": true,
@@ -472,7 +557,24 @@
       "wikipedia": {
         "langs": 90,
         "article_kb": 118,
-        "pageviews_12mo": 856247
+        "pageviews_12mo": 856247,
+        "pageviews_12mo_total": 1532185,
+        "pageviews_by_lang": {
+          "en": 856247,
+          "es": 213473,
+          "de": 35974,
+          "fr": 61880,
+          "it": 71001,
+          "pt": 60889,
+          "ja": 41632,
+          "ru": 84197,
+          "zh": 21443,
+          "ar": 31099,
+          "ko": 4852,
+          "tr": 17156,
+          "nl": 14073,
+          "pl": 18269
+        }
       },
       "ios_app": {
         "present": true,
@@ -563,7 +665,24 @@
       "wikipedia": {
         "langs": 72,
         "article_kb": 45,
-        "pageviews_12mo": 410604
+        "pageviews_12mo": 410604,
+        "pageviews_12mo_total": 675372,
+        "pageviews_by_lang": {
+          "en": 410604,
+          "es": 19499,
+          "de": 111362,
+          "fr": 23495,
+          "it": 29288,
+          "pt": 11984,
+          "ja": 14471,
+          "ru": 15523,
+          "zh": 10659,
+          "ar": 9870,
+          "ko": 1927,
+          "tr": 3939,
+          "nl": 5569,
+          "pl": 7182
+        }
       },
       "ios_app": {
         "present": true,
@@ -651,7 +770,24 @@
       "wikipedia": {
         "langs": 80,
         "article_kb": 83,
-        "pageviews_12mo": 1230261
+        "pageviews_12mo": 1230261,
+        "pageviews_12mo_total": 2679504,
+        "pageviews_by_lang": {
+          "en": 1230261,
+          "es": 157698,
+          "de": 49260,
+          "fr": 712101,
+          "it": 144855,
+          "pt": 93279,
+          "ja": 64179,
+          "ru": 118518,
+          "zh": 25069,
+          "ar": 21863,
+          "ko": 4720,
+          "tr": 19689,
+          "nl": 17405,
+          "pl": 20607
+        }
       },
       "ios_app": {
         "present": true,
@@ -752,7 +888,16 @@
       "wikipedia": {
         "langs": 61,
         "article_kb": 35,
-        "pageviews_12mo": 547771
+        "pageviews_12mo": 547771,
+        "pageviews_12mo_total": 774349,
+        "pageviews_by_lang": {
+          "en": 547771,
+          "es": 29444,
+          "de": 18973,
+          "fr": 113023,
+          "it": 42582,
+          "pt": 22556
+        }
       },
       "ios_app": {
         "present": true,
@@ -839,7 +984,17 @@
       "wikipedia": {
         "langs": 53,
         "article_kb": 38,
-        "pageviews_12mo": 376668
+        "pageviews_12mo": 376668,
+        "pageviews_12mo_total": 532804,
+        "pageviews_by_lang": {
+          "en": 376668,
+          "es": 19980,
+          "de": 9455,
+          "fr": 92784,
+          "it": 18090,
+          "pt": 9643,
+          "ja": 6184
+        }
       },
       "ios_app": {
         "present": true,
@@ -929,7 +1084,16 @@
       "wikipedia": {
         "langs": 119,
         "article_kb": 234,
-        "pageviews_12mo": 1974410
+        "pageviews_12mo": 1974410,
+        "pageviews_12mo_total": 3939216,
+        "pageviews_by_lang": {
+          "en": 1974410,
+          "es": 343842,
+          "de": 116285,
+          "fr": 257307,
+          "it": 1045481,
+          "pt": 201891
+        }
       },
       "ios_app": {
         "present": true,
@@ -1023,7 +1187,15 @@
       "wikipedia": {
         "langs": 77,
         "article_kb": 141,
-        "pageviews_12mo": 1998173
+        "pageviews_12mo": 1998173,
+        "pageviews_12mo_total": 2480888,
+        "pageviews_by_lang": {
+          "en": 1998173,
+          "es": 154438,
+          "de": 87685,
+          "fr": 152008,
+          "it": 88584
+        }
       },
       "ios_app": {
         "present": false
@@ -1095,7 +1267,24 @@
       "wikipedia": {
         "langs": 52,
         "article_kb": 69,
-        "pageviews_12mo": 693317
+        "pageviews_12mo": 693317,
+        "pageviews_12mo_total": 1334054,
+        "pageviews_by_lang": {
+          "en": 693317,
+          "es": 350430,
+          "de": 21205,
+          "fr": 56116,
+          "it": 39950,
+          "pt": 22596,
+          "ja": 19827,
+          "ru": 54969,
+          "zh": 10354,
+          "ar": 30992,
+          "ko": 1760,
+          "tr": 5652,
+          "nl": 11196,
+          "pl": 15690
+        }
       },
       "ios_app": {
         "present": true,
@@ -1189,7 +1378,24 @@
       "wikipedia": {
         "langs": 63,
         "article_kb": 59,
-        "pageviews_12mo": 660772
+        "pageviews_12mo": 660772,
+        "pageviews_12mo_total": 1074521,
+        "pageviews_by_lang": {
+          "en": 660772,
+          "es": 117357,
+          "de": 22424,
+          "fr": 43370,
+          "it": 41280,
+          "pt": 29080,
+          "ja": 26529,
+          "ru": 59274,
+          "zh": 18486,
+          "ar": 23282,
+          "ko": 2024,
+          "tr": 8982,
+          "nl": 11139,
+          "pl": 10522
+        }
       },
       "ios_app": {
         "present": true,
@@ -1280,7 +1486,24 @@
       "wikipedia": {
         "langs": 101,
         "article_kb": 87,
-        "pageviews_12mo": 852749
+        "pageviews_12mo": 852749,
+        "pageviews_12mo_total": 1683370,
+        "pageviews_by_lang": {
+          "en": 852749,
+          "es": 97354,
+          "de": 274278,
+          "fr": 60711,
+          "it": 53734,
+          "pt": 42654,
+          "ja": 129044,
+          "ru": 69276,
+          "zh": 24410,
+          "ar": 21548,
+          "ko": 5306,
+          "tr": 26391,
+          "nl": 11488,
+          "pl": 14427
+        }
       },
       "ios_app": {
         "present": true,
@@ -1372,7 +1595,24 @@
       "wikipedia": {
         "langs": 120,
         "article_kb": 182,
-        "pageviews_12mo": 4994021
+        "pageviews_12mo": 4994021,
+        "pageviews_12mo_total": 8401019,
+        "pageviews_by_lang": {
+          "en": 4994021,
+          "es": 673476,
+          "de": 156173,
+          "fr": 449958,
+          "it": 396236,
+          "pt": 410167,
+          "ja": 232350,
+          "ru": 466225,
+          "zh": 183564,
+          "ar": 215555,
+          "ko": 22221,
+          "tr": 76744,
+          "nl": 46324,
+          "pl": 78005
+        }
       },
       "ios_app": {
         "present": true,
@@ -1467,7 +1707,24 @@
       "wikipedia": {
         "langs": 78,
         "article_kb": 89,
-        "pageviews_12mo": 885947
+        "pageviews_12mo": 885947,
+        "pageviews_12mo_total": 1810478,
+        "pageviews_by_lang": {
+          "en": 885947,
+          "es": 313526,
+          "de": 48651,
+          "fr": 48502,
+          "it": 82728,
+          "pt": 61521,
+          "ja": 141603,
+          "ru": 104168,
+          "zh": 27487,
+          "ar": 35042,
+          "ko": 3033,
+          "tr": 20242,
+          "nl": 16133,
+          "pl": 21895
+        }
       },
       "ios_app": {
         "present": true,
@@ -1568,7 +1825,24 @@
       "wikipedia": {
         "langs": 39,
         "article_kb": 49,
-        "pageviews_12mo": 975535
+        "pageviews_12mo": 975535,
+        "pageviews_12mo_total": 2161097,
+        "pageviews_by_lang": {
+          "en": 975535,
+          "es": 148665,
+          "de": 132749,
+          "fr": 454158,
+          "it": 172431,
+          "pt": 64421,
+          "ja": 40961,
+          "ru": 73754,
+          "zh": 14759,
+          "ar": 19858,
+          "ko": 3066,
+          "tr": 13017,
+          "nl": 23416,
+          "pl": 24307
+        }
       },
       "ios_app": {
         "present": true,
@@ -1671,7 +1945,24 @@
       "wikipedia": {
         "langs": 96,
         "article_kb": 139,
-        "pageviews_12mo": 1480266
+        "pageviews_12mo": 1480266,
+        "pageviews_12mo_total": 3176021,
+        "pageviews_by_lang": {
+          "en": 1480266,
+          "es": 296971,
+          "de": 361507,
+          "fr": 149801,
+          "it": 123729,
+          "pt": 206717,
+          "ja": 123684,
+          "ru": 186669,
+          "zh": 42906,
+          "ar": 62451,
+          "ko": 7689,
+          "tr": 65435,
+          "nl": 25053,
+          "pl": 43143
+        }
       },
       "ios_app": {
         "present": true,
@@ -1764,7 +2055,24 @@
       "wikipedia": {
         "langs": 80,
         "article_kb": 187,
-        "pageviews_12mo": 1917592
+        "pageviews_12mo": 1917592,
+        "pageviews_12mo_total": 2728011,
+        "pageviews_by_lang": {
+          "en": 1917592,
+          "es": 137005,
+          "de": 68482,
+          "fr": 92659,
+          "it": 108262,
+          "pt": 76137,
+          "ja": 66955,
+          "ru": 108524,
+          "zh": 48921,
+          "ar": 34313,
+          "ko": 4355,
+          "tr": 17588,
+          "nl": 20107,
+          "pl": 27111
+        }
       },
       "ios_app": {
         "present": true,
@@ -1862,7 +2170,24 @@
       "wikipedia": {
         "langs": 77,
         "article_kb": 80,
-        "pageviews_12mo": 1105039
+        "pageviews_12mo": 1105039,
+        "pageviews_12mo_total": 2181574,
+        "pageviews_by_lang": {
+          "en": 1105039,
+          "es": 150878,
+          "de": 46880,
+          "fr": 423950,
+          "it": 91375,
+          "pt": 111068,
+          "ja": 48436,
+          "ru": 94497,
+          "zh": 24299,
+          "ar": 31303,
+          "ko": 5226,
+          "tr": 17361,
+          "nl": 14480,
+          "pl": 16782
+        }
       },
       "ios_app": {
         "present": true,
@@ -1953,7 +2278,24 @@
       "wikipedia": {
         "langs": 83,
         "article_kb": 89,
-        "pageviews_12mo": 712590
+        "pageviews_12mo": 712590,
+        "pageviews_12mo_total": 1439670,
+        "pageviews_by_lang": {
+          "en": 712590,
+          "es": 85244,
+          "de": 296932,
+          "fr": 51304,
+          "it": 48998,
+          "pt": 43813,
+          "ja": 47972,
+          "ru": 59416,
+          "zh": 20377,
+          "ar": 25205,
+          "ko": 4350,
+          "tr": 16567,
+          "nl": 15284,
+          "pl": 11618
+        }
       },
       "ios_app": {
         "present": true,
@@ -2043,7 +2385,24 @@
       "wikipedia": {
         "langs": 61,
         "article_kb": 73,
-        "pageviews_12mo": 656290
+        "pageviews_12mo": 656290,
+        "pageviews_12mo_total": 1147297,
+        "pageviews_by_lang": {
+          "en": 656290,
+          "es": 9735,
+          "de": 166157,
+          "fr": 44696,
+          "it": 57845,
+          "pt": 34730,
+          "ja": 69203,
+          "ru": 34348,
+          "zh": 10495,
+          "ar": 9348,
+          "ko": 2367,
+          "tr": 6239,
+          "nl": 21641,
+          "pl": 24203
+        }
       },
       "ios_app": {
         "present": true,
@@ -2132,7 +2491,24 @@
       "wikipedia": {
         "langs": 58,
         "article_kb": 32,
-        "pageviews_12mo": 354474
+        "pageviews_12mo": 354474,
+        "pageviews_12mo_total": 621037,
+        "pageviews_by_lang": {
+          "en": 354474,
+          "es": 20636,
+          "de": 17641,
+          "fr": 128070,
+          "it": 24766,
+          "pt": 12145,
+          "ja": 9814,
+          "ru": 21780,
+          "zh": 6649,
+          "ar": 9207,
+          "ko": 1696,
+          "tr": 4451,
+          "nl": 4842,
+          "pl": 4866
+        }
       },
       "ios_app": {
         "present": false
@@ -2206,7 +2582,24 @@
       "wikipedia": {
         "langs": 91,
         "article_kb": 126,
-        "pageviews_12mo": 2024833
+        "pageviews_12mo": 2024833,
+        "pageviews_12mo_total": 3157184,
+        "pageviews_by_lang": {
+          "en": 2024833,
+          "es": 212162,
+          "de": 118048,
+          "fr": 129898,
+          "it": 100471,
+          "pt": 87413,
+          "ja": 93627,
+          "ru": 150664,
+          "zh": 63767,
+          "ar": 87197,
+          "ko": 11649,
+          "tr": 25274,
+          "nl": 20990,
+          "pl": 31191
+        }
       },
       "ios_app": {
         "present": true,
@@ -2301,7 +2694,24 @@
       "wikipedia": {
         "langs": 62,
         "article_kb": 36,
-        "pageviews_12mo": 433954
+        "pageviews_12mo": 433954,
+        "pageviews_12mo_total": 811470,
+        "pageviews_by_lang": {
+          "en": 433954,
+          "es": 24967,
+          "de": 13165,
+          "fr": 208060,
+          "it": 31878,
+          "pt": 18296,
+          "ja": 12536,
+          "ru": 26267,
+          "zh": 6808,
+          "ar": 14412,
+          "ko": 2684,
+          "tr": 4497,
+          "nl": 4410,
+          "pl": 9536
+        }
       },
       "ios_app": {
         "present": true,
@@ -2400,7 +2810,24 @@
       "wikipedia": {
         "langs": 49,
         "article_kb": 16,
-        "pageviews_12mo": 338262
+        "pageviews_12mo": 338262,
+        "pageviews_12mo_total": 496423,
+        "pageviews_by_lang": {
+          "en": 338262,
+          "es": 11139,
+          "de": 6609,
+          "fr": 75609,
+          "it": 12377,
+          "pt": 6884,
+          "ja": 4589,
+          "ru": 12527,
+          "zh": 5470,
+          "ar": 8795,
+          "ko": 1064,
+          "tr": 7047,
+          "nl": 2901,
+          "pl": 3150
+        }
       },
       "ios_app": {
         "present": false
@@ -2472,7 +2899,24 @@
       "wikipedia": {
         "langs": 58,
         "article_kb": 75,
-        "pageviews_12mo": 544227
+        "pageviews_12mo": 544227,
+        "pageviews_12mo_total": 891543,
+        "pageviews_by_lang": {
+          "en": 544227,
+          "es": 136861,
+          "de": 17543,
+          "fr": 35317,
+          "it": 27629,
+          "pt": 27712,
+          "ja": 18959,
+          "ru": 33433,
+          "zh": 10069,
+          "ar": 14119,
+          "ko": 1780,
+          "tr": 6665,
+          "nl": 7062,
+          "pl": 10167
+        }
       },
       "ios_app": {
         "present": false
@@ -2538,7 +2982,24 @@
       "wikipedia": {
         "langs": 81,
         "article_kb": 67,
-        "pageviews_12mo": 1180786
+        "pageviews_12mo": 1180786,
+        "pageviews_12mo_total": 2705296,
+        "pageviews_by_lang": {
+          "en": 1180786,
+          "es": 258429,
+          "de": 52055,
+          "fr": 505595,
+          "it": 129255,
+          "pt": 119080,
+          "ja": 95520,
+          "ru": 125845,
+          "zh": 37534,
+          "ar": 80430,
+          "ko": 6549,
+          "tr": 61743,
+          "nl": 25123,
+          "pl": 27352
+        }
       },
       "ios_app": {
         "present": true,
@@ -2628,7 +3089,24 @@
       "wikipedia": {
         "langs": 76,
         "article_kb": 158,
-        "pageviews_12mo": 2090977
+        "pageviews_12mo": 2090977,
+        "pageviews_12mo_total": 3162928,
+        "pageviews_by_lang": {
+          "en": 2090977,
+          "es": 170138,
+          "de": 76067,
+          "fr": 113867,
+          "it": 169555,
+          "pt": 111006,
+          "ja": 74566,
+          "ru": 136036,
+          "zh": 48059,
+          "ar": 45271,
+          "ko": 6440,
+          "tr": 70223,
+          "nl": 24115,
+          "pl": 26608
+        }
       },
       "ios_app": {
         "present": true,
@@ -2715,7 +3193,24 @@
       "wikipedia": {
         "langs": 67,
         "article_kb": 77,
-        "pageviews_12mo": 705826
+        "pageviews_12mo": 705826,
+        "pageviews_12mo_total": 1252942,
+        "pageviews_by_lang": {
+          "en": 705826,
+          "es": 153378,
+          "de": 39301,
+          "fr": 81563,
+          "it": 54078,
+          "pt": 29145,
+          "ja": 21294,
+          "ru": 53802,
+          "zh": 15084,
+          "ar": 20183,
+          "ko": 1779,
+          "tr": 13512,
+          "nl": 14503,
+          "pl": 49494
+        }
       },
       "ios_app": {
         "present": false
@@ -2789,7 +3284,24 @@
       "wikipedia": {
         "langs": 71,
         "article_kb": 50,
-        "pageviews_12mo": 517746
+        "pageviews_12mo": 517746,
+        "pageviews_12mo_total": 956041,
+        "pageviews_by_lang": {
+          "en": 517746,
+          "es": 48016,
+          "de": 170131,
+          "fr": 35310,
+          "it": 27573,
+          "pt": 22305,
+          "ja": 34999,
+          "ru": 37343,
+          "zh": 14215,
+          "ar": 13925,
+          "ko": 2663,
+          "tr": 8900,
+          "nl": 10511,
+          "pl": 12404
+        }
       },
       "ios_app": {
         "present": true,
@@ -2877,7 +3389,24 @@
       "wikipedia": {
         "langs": 52,
         "article_kb": 31,
-        "pageviews_12mo": 379318
+        "pageviews_12mo": 379318,
+        "pageviews_12mo_total": 638195,
+        "pageviews_by_lang": {
+          "en": 379318,
+          "es": 21352,
+          "de": 142339,
+          "fr": 12757,
+          "it": 16242,
+          "pt": 7957,
+          "ja": 9785,
+          "ru": 20593,
+          "zh": 7492,
+          "ar": 2745,
+          "ko": 1098,
+          "tr": 3078,
+          "nl": 7147,
+          "pl": 6292
+        }
       },
       "ios_app": {
         "present": false
@@ -2951,7 +3480,24 @@
       "wikipedia": {
         "langs": 78,
         "article_kb": 96,
-        "pageviews_12mo": 1146839
+        "pageviews_12mo": 1146839,
+        "pageviews_12mo_total": 1636648,
+        "pageviews_by_lang": {
+          "en": 1146839,
+          "es": 86007,
+          "de": 37379,
+          "fr": 62796,
+          "it": 60465,
+          "pt": 47041,
+          "ja": 43772,
+          "ru": 60004,
+          "zh": 31160,
+          "ar": 23554,
+          "ko": 3006,
+          "tr": 11703,
+          "nl": 11076,
+          "pl": 11846
+        }
       },
       "ios_app": {
         "present": true,
@@ -3041,8 +3587,25 @@
       },
       "wikipedia": {
         "langs": 143,
-        "article_kb": 231,
-        "pageviews_12mo": 4849687
+        "article_kb": 235,
+        "pageviews_12mo": 4849687,
+        "pageviews_12mo_total": 10223593,
+        "pageviews_by_lang": {
+          "en": 4849687,
+          "es": 1162118,
+          "de": 246720,
+          "fr": 868056,
+          "it": 342937,
+          "pt": 334760,
+          "ja": 283554,
+          "ru": 820560,
+          "zh": 170128,
+          "ar": 669596,
+          "ko": 28939,
+          "tr": 114363,
+          "nl": 87736,
+          "pl": 244439
+        }
       },
       "ios_app": {
         "present": true,
@@ -3141,7 +3704,24 @@
       "wikipedia": {
         "langs": 70,
         "article_kb": 304,
-        "pageviews_12mo": 896834
+        "pageviews_12mo": 896834,
+        "pageviews_12mo_total": 1624369,
+        "pageviews_by_lang": {
+          "en": 896834,
+          "es": 79308,
+          "de": 219362,
+          "fr": 66472,
+          "it": 70614,
+          "pt": 48358,
+          "ja": 57932,
+          "ru": 70264,
+          "zh": 30610,
+          "ar": 32063,
+          "ko": 5860,
+          "tr": 17504,
+          "nl": 12266,
+          "pl": 16922
+        }
       },
       "ios_app": {
         "present": true,
@@ -3231,7 +3811,24 @@
       "wikipedia": {
         "langs": 85,
         "article_kb": 140,
-        "pageviews_12mo": 926567
+        "pageviews_12mo": 926567,
+        "pageviews_12mo_total": 1732773,
+        "pageviews_by_lang": {
+          "en": 926567,
+          "es": 252387,
+          "de": 42676,
+          "fr": 69846,
+          "it": 99877,
+          "pt": 70666,
+          "ja": 40205,
+          "ru": 99482,
+          "zh": 25628,
+          "ar": 42645,
+          "ko": 5279,
+          "tr": 21413,
+          "nl": 14331,
+          "pl": 21771
+        }
       },
       "ios_app": {
         "present": true,
@@ -3324,7 +3921,24 @@
       "wikipedia": {
         "langs": 78,
         "article_kb": 119,
-        "pageviews_12mo": 2604492
+        "pageviews_12mo": 2604492,
+        "pageviews_12mo_total": 3933618,
+        "pageviews_by_lang": {
+          "en": 2604492,
+          "es": 242726,
+          "de": 150188,
+          "fr": 152835,
+          "it": 162491,
+          "pt": 122491,
+          "ja": 159543,
+          "ru": 138775,
+          "zh": 63003,
+          "ar": 44255,
+          "ko": 5356,
+          "tr": 19228,
+          "nl": 32682,
+          "pl": 35553
+        }
       },
       "ios_app": {
         "present": true,
@@ -3419,7 +4033,24 @@
       "wikipedia": {
         "langs": 86,
         "article_kb": 68,
-        "pageviews_12mo": 1489804
+        "pageviews_12mo": 1489804,
+        "pageviews_12mo_total": 2611715,
+        "pageviews_by_lang": {
+          "en": 1489804,
+          "es": 178372,
+          "de": 200440,
+          "fr": 133006,
+          "it": 93060,
+          "pt": 92961,
+          "ja": 105389,
+          "ru": 131384,
+          "zh": 52219,
+          "ar": 48270,
+          "ko": 7924,
+          "tr": 25061,
+          "nl": 27812,
+          "pl": 26013
+        }
       },
       "ios_app": {
         "present": true,
@@ -3516,7 +4147,24 @@
       "wikipedia": {
         "langs": 66,
         "article_kb": 104,
-        "pageviews_12mo": 540828
+        "pageviews_12mo": 540828,
+        "pageviews_12mo_total": 947183,
+        "pageviews_by_lang": {
+          "en": 540828,
+          "es": 35631,
+          "de": 188958,
+          "fr": 28163,
+          "it": 30885,
+          "pt": 15994,
+          "ja": 19979,
+          "ru": 37017,
+          "zh": 13379,
+          "ar": 8755,
+          "ko": 2163,
+          "tr": 5496,
+          "nl": 7492,
+          "pl": 12443
+        }
       },
       "ios_app": {
         "present": false
@@ -3593,7 +4241,24 @@
       "wikipedia": {
         "langs": 96,
         "article_kb": 141,
-        "pageviews_12mo": 1221191
+        "pageviews_12mo": 1221191,
+        "pageviews_12mo_total": 2667799,
+        "pageviews_by_lang": {
+          "en": 1221191,
+          "es": 166676,
+          "de": 69532,
+          "fr": 124889,
+          "it": 537962,
+          "pt": 104760,
+          "ja": 91666,
+          "ru": 179803,
+          "zh": 32799,
+          "ar": 51416,
+          "ko": 5740,
+          "tr": 26201,
+          "nl": 18508,
+          "pl": 36656
+        }
       },
       "ios_app": {
         "present": true,
@@ -3682,7 +4347,24 @@
       "wikipedia": {
         "langs": 101,
         "article_kb": 75,
-        "pageviews_12mo": 1723903
+        "pageviews_12mo": 1723903,
+        "pageviews_12mo_total": 4598127,
+        "pageviews_by_lang": {
+          "en": 1723903,
+          "es": 451703,
+          "de": 81550,
+          "fr": 206131,
+          "it": 1059379,
+          "pt": 212888,
+          "ja": 163303,
+          "ru": 221639,
+          "zh": 62950,
+          "ar": 176016,
+          "ko": 9870,
+          "tr": 136744,
+          "nl": 34999,
+          "pl": 57052
+        }
       },
       "ios_app": {
         "present": true,
@@ -3776,7 +4458,24 @@
       "wikipedia": {
         "langs": 65,
         "article_kb": 38,
-        "pageviews_12mo": 54389
+        "pageviews_12mo": 54389,
+        "pageviews_12mo_total": 468932,
+        "pageviews_by_lang": {
+          "en": 54389,
+          "es": 38366,
+          "de": 22360,
+          "fr": 40105,
+          "it": 201759,
+          "pt": 19987,
+          "ja": 14996,
+          "ru": 32377,
+          "zh": 12634,
+          "ar": 7911,
+          "ko": 2006,
+          "tr": 6630,
+          "nl": 6372,
+          "pl": 9040
+        }
       },
       "ios_app": {
         "present": false
@@ -3835,7 +4534,7 @@
       "entity_type": "Club",
       "website": "https://pisasportingclub.com/en/",
       "domain": "pisasportingclub.com",
-      "wikipedia_slug": "Pisa_S.C._1909",
+      "wikipedia_slug": "Pisa_Sporting_Club",
       "domain_first_year": 2009,
       "http": {
         "cdn": "Cloudflare",
@@ -3852,9 +4551,26 @@
         ]
       },
       "wikipedia": {
-        "langs": null,
-        "article_kb": null,
-        "pageviews_12mo": 0
+        "langs": 41,
+        "article_kb": 24,
+        "pageviews_12mo": 3673,
+        "pageviews_12mo_total": 517597,
+        "pageviews_by_lang": {
+          "en": 3673,
+          "es": 68460,
+          "de": 22614,
+          "fr": 37059,
+          "it": 275923,
+          "pt": 15725,
+          "ja": 15714,
+          "ru": 38961,
+          "zh": 8273,
+          "ar": 7088,
+          "ko": 1512,
+          "tr": 2717,
+          "nl": 9814,
+          "pl": 10064
+        }
       },
       "ios_app": {
         "present": true,
@@ -3945,7 +4661,24 @@
       "wikipedia": {
         "langs": 96,
         "article_kb": 96,
-        "pageviews_12mo": 715884
+        "pageviews_12mo": 715884,
+        "pageviews_12mo_total": 1647475,
+        "pageviews_by_lang": {
+          "en": 715884,
+          "es": 98570,
+          "de": 51216,
+          "fr": 75598,
+          "it": 372753,
+          "pt": 62355,
+          "ja": 50774,
+          "ru": 95033,
+          "zh": 25685,
+          "ar": 31699,
+          "ko": 3187,
+          "tr": 21570,
+          "nl": 17573,
+          "pl": 25578
+        }
       },
       "ios_app": {
         "present": false
@@ -4025,7 +4758,24 @@
       "wikipedia": {
         "langs": 67,
         "article_kb": 67,
-        "pageviews_12mo": 411689
+        "pageviews_12mo": 411689,
+        "pageviews_12mo_total": 857190,
+        "pageviews_by_lang": {
+          "en": 411689,
+          "es": 41586,
+          "de": 33222,
+          "fr": 22662,
+          "it": 231261,
+          "pt": 24131,
+          "ja": 18587,
+          "ru": 31288,
+          "zh": 5127,
+          "ar": 10088,
+          "ko": 2209,
+          "tr": 6850,
+          "nl": 7768,
+          "pl": 10722
+        }
       },
       "ios_app": {
         "present": true,
@@ -4117,7 +4867,24 @@
       "wikipedia": {
         "langs": 96,
         "article_kb": 105,
-        "pageviews_12mo": 1206873
+        "pageviews_12mo": 1206873,
+        "pageviews_12mo_total": 2881101,
+        "pageviews_by_lang": {
+          "en": 1206873,
+          "es": 268025,
+          "de": 351651,
+          "fr": 126740,
+          "it": 139374,
+          "pt": 142302,
+          "ja": 142535,
+          "ru": 138152,
+          "zh": 112323,
+          "ar": 71492,
+          "ko": 7742,
+          "tr": 97297,
+          "nl": 33182,
+          "pl": 43413
+        }
       },
       "ios_app": {
         "present": true,
@@ -4213,7 +4980,24 @@
       "wikipedia": {
         "langs": 83,
         "article_kb": 111,
-        "pageviews_12mo": 831070
+        "pageviews_12mo": 831070,
+        "pageviews_12mo_total": 1897251,
+        "pageviews_by_lang": {
+          "en": 831070,
+          "es": 147623,
+          "de": 77150,
+          "fr": 108188,
+          "it": 387968,
+          "pt": 57880,
+          "ja": 53399,
+          "ru": 100717,
+          "zh": 20838,
+          "ar": 26488,
+          "ko": 4012,
+          "tr": 18413,
+          "nl": 18558,
+          "pl": 44947
+        }
       },
       "ios_app": {
         "present": true,
@@ -4307,7 +5091,24 @@
       "wikipedia": {
         "langs": 63,
         "article_kb": 39,
-        "pageviews_12mo": 476644
+        "pageviews_12mo": 476644,
+        "pageviews_12mo_total": 829967,
+        "pageviews_by_lang": {
+          "en": 476644,
+          "es": 26078,
+          "de": 112383,
+          "fr": 31975,
+          "it": 41325,
+          "pt": 14601,
+          "ja": 47759,
+          "ru": 26871,
+          "zh": 13015,
+          "ar": 11897,
+          "ko": 3669,
+          "tr": 6360,
+          "nl": 6080,
+          "pl": 11310
+        }
       },
       "ios_app": {
         "present": true,
@@ -4417,7 +5218,24 @@
       "wikipedia": {
         "langs": 74,
         "article_kb": 59,
-        "pageviews_12mo": 466985
+        "pageviews_12mo": 466985,
+        "pageviews_12mo_total": 923189,
+        "pageviews_by_lang": {
+          "en": 466985,
+          "es": 397,
+          "de": 251809,
+          "fr": 25460,
+          "it": 30250,
+          "pt": 27396,
+          "ja": 29943,
+          "ru": 31855,
+          "zh": 10082,
+          "ar": 10010,
+          "ko": 1983,
+          "tr": 8533,
+          "nl": 11673,
+          "pl": 16813
+        }
       },
       "ios_app": {
         "present": true,
@@ -4502,7 +5320,24 @@
       "wikipedia": {
         "langs": 80,
         "article_kb": 86,
-        "pageviews_12mo": 542980
+        "pageviews_12mo": 542980,
+        "pageviews_12mo_total": 1213941,
+        "pageviews_by_lang": {
+          "en": 542980,
+          "es": 78749,
+          "de": 28757,
+          "fr": 53248,
+          "it": 315307,
+          "pt": 36260,
+          "ja": 37137,
+          "ru": 56654,
+          "zh": 14908,
+          "ar": 13990,
+          "ko": 3630,
+          "tr": 9530,
+          "nl": 9084,
+          "pl": 13707
+        }
       },
       "ios_app": {
         "present": true,
@@ -4593,7 +5428,24 @@
       "wikipedia": {
         "langs": 68,
         "article_kb": 149,
-        "pageviews_12mo": 753866
+        "pageviews_12mo": 753866,
+        "pageviews_12mo_total": 1353105,
+        "pageviews_by_lang": {
+          "en": 753866,
+          "es": 72866,
+          "de": 24713,
+          "fr": 207156,
+          "it": 96180,
+          "pt": 34054,
+          "ja": 23534,
+          "ru": 56847,
+          "zh": 18298,
+          "ar": 21768,
+          "ko": 3844,
+          "tr": 19770,
+          "nl": 10659,
+          "pl": 9550
+        }
       },
       "ios_app": {
         "present": true,
@@ -4697,7 +5549,24 @@
       "wikipedia": {
         "langs": 63,
         "article_kb": 68,
-        "pageviews_12mo": 1473568
+        "pageviews_12mo": 1473568,
+        "pageviews_12mo_total": 1995242,
+        "pageviews_by_lang": {
+          "en": 1473568,
+          "es": 70357,
+          "de": 46021,
+          "fr": 61337,
+          "it": 61550,
+          "pt": 46558,
+          "ja": 61258,
+          "ru": 68177,
+          "zh": 40260,
+          "ar": 20736,
+          "ko": 3601,
+          "tr": 7456,
+          "nl": 18582,
+          "pl": 15781
+        }
       },
       "ios_app": {
         "present": true,
@@ -4796,7 +5665,24 @@
       "wikipedia": {
         "langs": 67,
         "article_kb": 61,
-        "pageviews_12mo": 556265
+        "pageviews_12mo": 556265,
+        "pageviews_12mo_total": 888406,
+        "pageviews_by_lang": {
+          "en": 556265,
+          "es": 101674,
+          "de": 24978,
+          "fr": 27824,
+          "it": 35356,
+          "pt": 20499,
+          "ja": 25776,
+          "ru": 39357,
+          "zh": 12376,
+          "ar": 16298,
+          "ko": 2692,
+          "tr": 8380,
+          "nl": 6963,
+          "pl": 9968
+        }
       },
       "ios_app": {
         "present": true,
@@ -4883,7 +5769,24 @@
       "wikipedia": {
         "langs": 115,
         "article_kb": 198,
-        "pageviews_12mo": 2644033
+        "pageviews_12mo": 2644033,
+        "pageviews_12mo_total": 5835532,
+        "pageviews_by_lang": {
+          "en": 2644033,
+          "es": 520277,
+          "de": 722839,
+          "fr": 347415,
+          "it": 253093,
+          "pt": 266678,
+          "ja": 211816,
+          "ru": 361314,
+          "zh": 120287,
+          "ar": 162571,
+          "ko": 12764,
+          "tr": 73421,
+          "nl": 53537,
+          "pl": 85487
+        }
       },
       "ios_app": {
         "present": true,
@@ -4962,7 +5865,24 @@
       "wikipedia": {
         "langs": 75,
         "article_kb": 79,
-        "pageviews_12mo": 17568
+        "pageviews_12mo": 17568,
+        "pageviews_12mo_total": 555641,
+        "pageviews_by_lang": {
+          "en": 17568,
+          "es": 120287,
+          "de": 27148,
+          "fr": 69259,
+          "it": 55723,
+          "pt": 23732,
+          "ja": 48922,
+          "ru": 79582,
+          "zh": 40655,
+          "ar": 33313,
+          "ko": 4578,
+          "tr": 10803,
+          "nl": 13694,
+          "pl": 10377
+        }
       },
       "ios_app": {
         "present": true,
@@ -5045,7 +5965,24 @@
       "wikipedia": {
         "langs": 48,
         "article_kb": 16,
-        "pageviews_12mo": 405132
+        "pageviews_12mo": 405132,
+        "pageviews_12mo_total": 654399,
+        "pageviews_by_lang": {
+          "en": 405132,
+          "es": 25114,
+          "de": 8648,
+          "fr": 109566,
+          "it": 18042,
+          "pt": 8407,
+          "ja": 23975,
+          "ru": 23369,
+          "zh": 6120,
+          "ar": 11121,
+          "ko": 1194,
+          "tr": 4133,
+          "nl": 4941,
+          "pl": 4637
+        }
       },
       "ios_app": {
         "present": false
@@ -5106,7 +6043,24 @@
       "wikipedia": {
         "langs": 75,
         "article_kb": 93,
-        "pageviews_12mo": 727535
+        "pageviews_12mo": 727535,
+        "pageviews_12mo_total": 1490358,
+        "pageviews_by_lang": {
+          "en": 727535,
+          "es": 85261,
+          "de": 297495,
+          "fr": 55093,
+          "it": 56240,
+          "pt": 55144,
+          "ja": 47863,
+          "ru": 62561,
+          "zh": 18421,
+          "ar": 20563,
+          "ko": 3155,
+          "tr": 14102,
+          "nl": 23829,
+          "pl": 23096
+        }
       },
       "ios_app": {
         "present": true,
@@ -5196,7 +6150,24 @@
       "wikipedia": {
         "langs": 119,
         "article_kb": 179,
-        "pageviews_12mo": 4865549
+        "pageviews_12mo": 4865549,
+        "pageviews_12mo_total": 7728751,
+        "pageviews_by_lang": {
+          "en": 4865549,
+          "es": 484992,
+          "de": 166869,
+          "fr": 388670,
+          "it": 299448,
+          "pt": 221835,
+          "ja": 253180,
+          "ru": 408609,
+          "zh": 227026,
+          "ar": 165445,
+          "ko": 15169,
+          "tr": 72298,
+          "nl": 61976,
+          "pl": 97685
+        }
       },
       "ios_app": {
         "present": true,
@@ -5290,7 +6261,24 @@
       "wikipedia": {
         "langs": 58,
         "article_kb": 58,
-        "pageviews_12mo": 462869
+        "pageviews_12mo": 462869,
+        "pageviews_12mo_total": 819442,
+        "pageviews_by_lang": {
+          "en": 462869,
+          "es": 153299,
+          "de": 24678,
+          "fr": 31653,
+          "it": 31829,
+          "pt": 17704,
+          "ja": 11368,
+          "ru": 30278,
+          "zh": 8806,
+          "ar": 20661,
+          "ko": 1380,
+          "tr": 4523,
+          "nl": 8284,
+          "pl": 12110
+        }
       },
       "ios_app": {
         "present": false
@@ -5367,7 +6355,24 @@
       "wikipedia": {
         "langs": 85,
         "article_kb": 110,
-        "pageviews_12mo": 1223896
+        "pageviews_12mo": 1223896,
+        "pageviews_12mo_total": 2254418,
+        "pageviews_by_lang": {
+          "en": 1223896,
+          "es": 312140,
+          "de": 77899,
+          "fr": 119083,
+          "it": 97358,
+          "pt": 78633,
+          "ja": 81365,
+          "ru": 120146,
+          "zh": 27760,
+          "ar": 39747,
+          "ko": 7568,
+          "tr": 21275,
+          "nl": 19576,
+          "pl": 27972
+        }
       },
       "ios_app": {
         "present": true,
@@ -5462,7 +6467,24 @@
       "wikipedia": {
         "langs": 106,
         "article_kb": 252,
-        "pageviews_12mo": 5360656
+        "pageviews_12mo": 5360656,
+        "pageviews_12mo_total": 8821710,
+        "pageviews_by_lang": {
+          "en": 5360656,
+          "es": 751181,
+          "de": 181988,
+          "fr": 403170,
+          "it": 341175,
+          "pt": 219112,
+          "ja": 364408,
+          "ru": 332739,
+          "zh": 202442,
+          "ar": 318491,
+          "ko": 45625,
+          "tr": 125739,
+          "nl": 68388,
+          "pl": 106596
+        }
       },
       "ios_app": {
         "present": true,
@@ -5554,7 +6576,24 @@
       "wikipedia": {
         "langs": 74,
         "article_kb": 50,
-        "pageviews_12mo": 587785
+        "pageviews_12mo": 587785,
+        "pageviews_12mo_total": 1130287,
+        "pageviews_by_lang": {
+          "en": 587785,
+          "es": 69675,
+          "de": 26149,
+          "fr": 54959,
+          "it": 218308,
+          "pt": 35156,
+          "ja": 27890,
+          "ru": 40418,
+          "zh": 15682,
+          "ar": 16561,
+          "ko": 2397,
+          "tr": 7261,
+          "nl": 8791,
+          "pl": 19255
+        }
       },
       "ios_app": {
         "present": true,
@@ -5642,7 +6681,24 @@
       "wikipedia": {
         "langs": 97,
         "article_kb": 163,
-        "pageviews_12mo": 2042558
+        "pageviews_12mo": 2042558,
+        "pageviews_12mo_total": 3219120,
+        "pageviews_by_lang": {
+          "en": 2042558,
+          "es": 192853,
+          "de": 102342,
+          "fr": 137873,
+          "it": 164049,
+          "pt": 93798,
+          "ja": 99720,
+          "ru": 142157,
+          "zh": 64123,
+          "ar": 56457,
+          "ko": 5516,
+          "tr": 36450,
+          "nl": 33392,
+          "pl": 47832
+        }
       },
       "ios_app": {
         "present": true,
@@ -5731,7 +6787,24 @@
       "wikipedia": {
         "langs": 98,
         "article_kb": 126,
-        "pageviews_12mo": 1775883
+        "pageviews_12mo": 1775883,
+        "pageviews_12mo_total": 2595744,
+        "pageviews_by_lang": {
+          "en": 1775883,
+          "es": 126567,
+          "de": 74146,
+          "fr": 86922,
+          "it": 102730,
+          "pt": 78480,
+          "ja": 92684,
+          "ru": 111106,
+          "zh": 49104,
+          "ar": 36162,
+          "ko": 4790,
+          "tr": 17359,
+          "nl": 19039,
+          "pl": 20772
+        }
       },
       "ios_app": {
         "present": true,
@@ -5818,7 +6891,24 @@
       "wikipedia": {
         "langs": 96,
         "article_kb": 133,
-        "pageviews_12mo": 464381
+        "pageviews_12mo": 464381,
+        "pageviews_12mo_total": 5153027,
+        "pageviews_by_lang": {
+          "en": 464381,
+          "es": 682330,
+          "de": 236516,
+          "fr": 1379037,
+          "it": 511651,
+          "pt": 374400,
+          "ja": 233493,
+          "ru": 618763,
+          "zh": 130988,
+          "ar": 252735,
+          "ko": 13895,
+          "tr": 101363,
+          "nl": 57665,
+          "pl": 95810
+        }
       },
       "ios_app": {
         "present": true,
@@ -5911,7 +7001,24 @@
       "wikipedia": {
         "langs": 58,
         "article_kb": 35,
-        "pageviews_12mo": 687916
+        "pageviews_12mo": 687916,
+        "pageviews_12mo_total": 1257071,
+        "pageviews_by_lang": {
+          "en": 687916,
+          "es": 66434,
+          "de": 22297,
+          "fr": 234099,
+          "it": 71226,
+          "pt": 26454,
+          "ja": 23268,
+          "ru": 52985,
+          "zh": 15475,
+          "ar": 28580,
+          "ko": 2254,
+          "tr": 7871,
+          "nl": 9513,
+          "pl": 8699
+        }
       },
       "ios_app": {
         "present": true,
@@ -6001,7 +7108,24 @@
       "wikipedia": {
         "langs": 81,
         "article_kb": 104,
-        "pageviews_12mo": 2090401
+        "pageviews_12mo": 2090401,
+        "pageviews_12mo_total": 2788286,
+        "pageviews_by_lang": {
+          "en": 2090401,
+          "es": 107449,
+          "de": 59430,
+          "fr": 72280,
+          "it": 100301,
+          "pt": 43166,
+          "ja": 98613,
+          "ru": 95370,
+          "zh": 46423,
+          "ar": 27441,
+          "ko": 4695,
+          "tr": 12907,
+          "nl": 11776,
+          "pl": 18034
+        }
       },
       "ios_app": {
         "present": true,
@@ -6092,7 +7216,24 @@
       "wikipedia": {
         "langs": 54,
         "article_kb": 25,
-        "pageviews_12mo": 415103
+        "pageviews_12mo": 415103,
+        "pageviews_12mo_total": 677348,
+        "pageviews_by_lang": {
+          "en": 415103,
+          "es": 28012,
+          "de": 10628,
+          "fr": 115938,
+          "it": 33171,
+          "pt": 12862,
+          "ja": 13711,
+          "ru": 16789,
+          "zh": 6263,
+          "ar": 10904,
+          "ko": 1312,
+          "tr": 4909,
+          "nl": 3728,
+          "pl": 4018
+        }
       },
       "ios_app": {
         "present": false
@@ -6164,7 +7305,24 @@
       "wikipedia": {
         "langs": 80,
         "article_kb": 112,
-        "pageviews_12mo": 684243
+        "pageviews_12mo": 684243,
+        "pageviews_12mo_total": 1336928,
+        "pageviews_by_lang": {
+          "en": 684243,
+          "es": 72954,
+          "de": 222025,
+          "fr": 54004,
+          "it": 51514,
+          "pt": 40141,
+          "ja": 64822,
+          "ru": 59530,
+          "zh": 21563,
+          "ar": 15936,
+          "ko": 4157,
+          "tr": 11872,
+          "nl": 18365,
+          "pl": 15802
+        }
       },
       "ios_app": {
         "present": true,
@@ -6247,7 +7405,24 @@
       "wikipedia": {
         "langs": 54,
         "article_kb": 21,
-        "pageviews_12mo": 377120
+        "pageviews_12mo": 377120,
+        "pageviews_12mo_total": 574766,
+        "pageviews_by_lang": {
+          "en": 377120,
+          "es": 19388,
+          "de": 8411,
+          "fr": 96574,
+          "it": 16519,
+          "pt": 7683,
+          "ja": 9337,
+          "ru": 16247,
+          "zh": 6530,
+          "ar": 2918,
+          "ko": 1698,
+          "tr": 3774,
+          "nl": 3053,
+          "pl": 5514
+        }
       },
       "ios_app": {
         "present": true,
@@ -6351,7 +7526,24 @@
       "wikipedia": {
         "langs": 97,
         "article_kb": 194,
-        "pageviews_12mo": 3893854
+        "pageviews_12mo": 3893854,
+        "pageviews_12mo_total": 6452674,
+        "pageviews_by_lang": {
+          "en": 3893854,
+          "es": 427626,
+          "de": 156288,
+          "fr": 297599,
+          "it": 344837,
+          "pt": 204261,
+          "ja": 270869,
+          "ru": 348928,
+          "zh": 154461,
+          "ar": 124536,
+          "ko": 39947,
+          "tr": 47619,
+          "nl": 60697,
+          "pl": 81152
+        }
       },
       "ios_app": {
         "present": true,
@@ -6440,7 +7632,24 @@
       "wikipedia": {
         "langs": 76,
         "article_kb": 112,
-        "pageviews_12mo": 1145410
+        "pageviews_12mo": 1145410,
+        "pageviews_12mo_total": 1623112,
+        "pageviews_by_lang": {
+          "en": 1145410,
+          "es": 80916,
+          "de": 50145,
+          "fr": 64263,
+          "it": 70559,
+          "pt": 32441,
+          "ja": 36653,
+          "ru": 53028,
+          "zh": 33460,
+          "ar": 17298,
+          "ko": 2609,
+          "tr": 7165,
+          "nl": 17332,
+          "pl": 11833
+        }
       },
       "ios_app": {
         "present": true,
@@ -6535,7 +7744,24 @@
       "wikipedia": {
         "langs": 89,
         "article_kb": 88,
-        "pageviews_12mo": 966125
+        "pageviews_12mo": 966125,
+        "pageviews_12mo_total": 2044266,
+        "pageviews_by_lang": {
+          "en": 966125,
+          "es": 113213,
+          "de": 47397,
+          "fr": 76467,
+          "it": 471746,
+          "pt": 66777,
+          "ja": 73289,
+          "ru": 95575,
+          "zh": 29303,
+          "ar": 27802,
+          "ko": 5144,
+          "tr": 23539,
+          "nl": 13898,
+          "pl": 33991
+        }
       },
       "ios_app": {
         "present": true,
@@ -6618,7 +7844,24 @@
       "wikipedia": {
         "langs": 81,
         "article_kb": 122,
-        "pageviews_12mo": 1612383
+        "pageviews_12mo": 1612383,
+        "pageviews_12mo_total": 2309547,
+        "pageviews_by_lang": {
+          "en": 1612383,
+          "es": 142711,
+          "de": 35305,
+          "fr": 75461,
+          "it": 63683,
+          "pt": 81930,
+          "ja": 75123,
+          "ru": 78806,
+          "zh": 55606,
+          "ar": 35891,
+          "ko": 4533,
+          "tr": 19776,
+          "nl": 11715,
+          "pl": 16624
+        }
       },
       "ios_app": {
         "present": true,
@@ -6714,7 +7957,24 @@
       "wikipedia": {
         "langs": 80,
         "article_kb": 54,
-        "pageviews_12mo": 1109060
+        "pageviews_12mo": 1109060,
+        "pageviews_12mo_total": 1938910,
+        "pageviews_by_lang": {
+          "en": 1109060,
+          "es": 88741,
+          "de": 42746,
+          "fr": 171503,
+          "it": 97598,
+          "pt": 60145,
+          "ja": 81822,
+          "ru": 163737,
+          "zh": 19962,
+          "ar": 33325,
+          "ko": 3635,
+          "tr": 27294,
+          "nl": 15440,
+          "pl": 23902
+        }
       },
       "ios_app": {
         "present": true,
@@ -6816,7 +8076,24 @@
       "wikipedia": {
         "langs": 108,
         "article_kb": 177,
-        "pageviews_12mo": 3910322
+        "pageviews_12mo": 3910322,
+        "pageviews_12mo_total": 6511103,
+        "pageviews_by_lang": {
+          "en": 3910322,
+          "es": 440376,
+          "de": 129950,
+          "fr": 338506,
+          "it": 271290,
+          "pt": 213500,
+          "ja": 244703,
+          "ru": 360789,
+          "zh": 180916,
+          "ar": 225989,
+          "ko": 14816,
+          "tr": 74922,
+          "nl": 46205,
+          "pl": 58819
+        }
       },
       "ios_app": {
         "present": true,
@@ -6905,7 +8182,24 @@
       "wikipedia": {
         "langs": 136,
         "article_kb": 263,
-        "pageviews_12mo": 5299865
+        "pageviews_12mo": 5299865,
+        "pageviews_12mo_total": 11438148,
+        "pageviews_by_lang": {
+          "en": 5299865,
+          "es": 1254145,
+          "de": 301019,
+          "fr": 1010668,
+          "it": 407306,
+          "pt": 425874,
+          "ja": 353226,
+          "ru": 963891,
+          "zh": 187585,
+          "ar": 767833,
+          "ko": 20102,
+          "tr": 165540,
+          "nl": 70075,
+          "pl": 211019
+        }
       },
       "ios_app": {
         "present": true,
@@ -6993,7 +8287,24 @@
       "wikipedia": {
         "langs": 79,
         "article_kb": 52,
-        "pageviews_12mo": 754012
+        "pageviews_12mo": 754012,
+        "pageviews_12mo_total": 1377152,
+        "pageviews_by_lang": {
+          "en": 754012,
+          "es": 203855,
+          "de": 40226,
+          "fr": 65750,
+          "it": 57789,
+          "pt": 40134,
+          "ja": 33124,
+          "ru": 70464,
+          "zh": 22552,
+          "ar": 27753,
+          "ko": 3255,
+          "tr": 13844,
+          "nl": 13971,
+          "pl": 30423
+        }
       },
       "ios_app": {
         "present": true,
@@ -7081,7 +8392,24 @@
       "wikipedia": {
         "langs": 107,
         "article_kb": 113,
-        "pageviews_12mo": 1676524
+        "pageviews_12mo": 1676524,
+        "pageviews_12mo_total": 3890827,
+        "pageviews_by_lang": {
+          "en": 1676524,
+          "es": 270969,
+          "de": 104511,
+          "fr": 176296,
+          "it": 957428,
+          "pt": 143038,
+          "ja": 107031,
+          "ru": 191736,
+          "zh": 36951,
+          "ar": 89202,
+          "ko": 7488,
+          "tr": 44522,
+          "nl": 42677,
+          "pl": 42454
+        }
       },
       "ios_app": {
         "present": true,
@@ -7175,7 +8503,24 @@
       "wikipedia": {
         "langs": 78,
         "article_kb": 65,
-        "pageviews_12mo": 924013
+        "pageviews_12mo": 924013,
+        "pageviews_12mo_total": 1699588,
+        "pageviews_by_lang": {
+          "en": 924013,
+          "es": 218432,
+          "de": 62803,
+          "fr": 98972,
+          "it": 95784,
+          "pt": 53809,
+          "ja": 41524,
+          "ru": 76793,
+          "zh": 30117,
+          "ar": 34278,
+          "ko": 3160,
+          "tr": 15562,
+          "nl": 20396,
+          "pl": 23945
+        }
       },
       "ios_app": {
         "present": false
@@ -7251,7 +8596,24 @@
       "wikipedia": {
         "langs": 122,
         "article_kb": 131,
-        "pageviews_12mo": 4865261
+        "pageviews_12mo": 4865261,
+        "pageviews_12mo_total": 7731944,
+        "pageviews_by_lang": {
+          "en": 4865261,
+          "es": 471330,
+          "de": 225206,
+          "fr": 325561,
+          "it": 255671,
+          "pt": 217225,
+          "ja": 299888,
+          "ru": 396175,
+          "zh": 214853,
+          "ar": 184739,
+          "ko": 21267,
+          "tr": 92796,
+          "nl": 81451,
+          "pl": 80521
+        }
       },
       "ios_app": {
         "present": true,
@@ -7343,7 +8705,24 @@
       "wikipedia": {
         "langs": 81,
         "article_kb": 43,
-        "pageviews_12mo": 629889
+        "pageviews_12mo": 629889,
+        "pageviews_12mo_total": 1413305,
+        "pageviews_by_lang": {
+          "en": 629889,
+          "es": 84734,
+          "de": 33807,
+          "fr": 45118,
+          "it": 431260,
+          "pt": 53330,
+          "ja": 6932,
+          "ru": 61311,
+          "zh": 11086,
+          "ar": 19994,
+          "ko": 2367,
+          "tr": 8557,
+          "nl": 8655,
+          "pl": 16265
+        }
       },
       "ios_app": {
         "present": true,
@@ -7438,7 +8817,24 @@
       "wikipedia": {
         "langs": 136,
         "article_kb": 178,
-        "pageviews_12mo": 5703138
+        "pageviews_12mo": 5703138,
+        "pageviews_12mo_total": 8702075,
+        "pageviews_by_lang": {
+          "en": 5703138,
+          "es": 473235,
+          "de": 157369,
+          "fr": 336306,
+          "it": 293909,
+          "pt": 221493,
+          "ja": 320068,
+          "ru": 501100,
+          "zh": 231801,
+          "ar": 184697,
+          "ko": 31530,
+          "tr": 77957,
+          "nl": 62599,
+          "pl": 106873
+        }
       },
       "ios_app": {
         "present": true,
@@ -7536,7 +8932,24 @@
       "wikipedia": {
         "langs": 76,
         "article_kb": 89,
-        "pageviews_12mo": 1198439
+        "pageviews_12mo": 1198439,
+        "pageviews_12mo_total": 2221749,
+        "pageviews_by_lang": {
+          "en": 1198439,
+          "es": 306701,
+          "de": 55489,
+          "fr": 113884,
+          "it": 134650,
+          "pt": 98561,
+          "ja": 38370,
+          "ru": 115700,
+          "zh": 32778,
+          "ar": 34106,
+          "ko": 4023,
+          "tr": 16573,
+          "nl": 25587,
+          "pl": 46888
+        }
       },
       "ios_app": {
         "present": true,
@@ -7628,7 +9041,24 @@
       "wikipedia": {
         "langs": 80,
         "article_kb": 55,
-        "pageviews_12mo": 561887
+        "pageviews_12mo": 561887,
+        "pageviews_12mo_total": 1120751,
+        "pageviews_by_lang": {
+          "en": 561887,
+          "es": 58892,
+          "de": 222809,
+          "fr": 37803,
+          "it": 50851,
+          "pt": 29928,
+          "ja": 48013,
+          "ru": 43855,
+          "zh": 17674,
+          "ar": 15662,
+          "ko": 2505,
+          "tr": 10067,
+          "nl": 9187,
+          "pl": 11618
+        }
       },
       "ios_app": {
         "present": true,
@@ -7712,8 +9142,25 @@
       },
       "wikipedia": {
         "langs": 70,
-        "article_kb": 87,
-        "pageviews_12mo": 10588
+        "article_kb": 88,
+        "pageviews_12mo": 10588,
+        "pageviews_12mo_total": 536535,
+        "pageviews_by_lang": {
+          "en": 10588,
+          "es": 160021,
+          "de": 76457,
+          "fr": 48532,
+          "it": 53151,
+          "pt": 34474,
+          "ja": 22606,
+          "ru": 57935,
+          "zh": 16736,
+          "ar": 21203,
+          "ko": 3027,
+          "tr": 8612,
+          "nl": 10463,
+          "pl": 12730
+        }
       },
       "ios_app": {
         "present": true,
@@ -7795,7 +9242,24 @@
       "wikipedia": {
         "langs": 74,
         "article_kb": 50,
-        "pageviews_12mo": 482672
+        "pageviews_12mo": 482672,
+        "pageviews_12mo_total": 910080,
+        "pageviews_by_lang": {
+          "en": 482672,
+          "es": 46280,
+          "de": 22205,
+          "fr": 27093,
+          "it": 229063,
+          "pt": 20787,
+          "ja": 17404,
+          "ru": 29354,
+          "zh": 8065,
+          "ar": 205,
+          "ko": 1868,
+          "tr": 10632,
+          "nl": 7022,
+          "pl": 7430
+        }
       },
       "ios_app": {
         "present": true,
@@ -7881,7 +9345,24 @@
       "wikipedia": {
         "langs": 67,
         "article_kb": 52,
-        "pageviews_12mo": 532154
+        "pageviews_12mo": 532154,
+        "pageviews_12mo_total": 876316,
+        "pageviews_by_lang": {
+          "en": 532154,
+          "es": 123375,
+          "de": 18456,
+          "fr": 34585,
+          "it": 31064,
+          "pt": 21295,
+          "ja": 17843,
+          "ru": 42227,
+          "zh": 11187,
+          "ar": 16105,
+          "ko": 1866,
+          "tr": 6846,
+          "nl": 5332,
+          "pl": 13981
+        }
       },
       "ios_app": {
         "present": true,
@@ -7975,7 +9456,24 @@
       "wikipedia": {
         "langs": 58,
         "article_kb": 43,
-        "pageviews_12mo": 201724
+        "pageviews_12mo": 201724,
+        "pageviews_12mo_total": 678189,
+        "pageviews_by_lang": {
+          "en": 201724,
+          "es": 60736,
+          "de": 19665,
+          "fr": 185966,
+          "it": 34624,
+          "pt": 33467,
+          "ja": 23468,
+          "ru": 40743,
+          "zh": 13590,
+          "ar": 28836,
+          "ko": 1799,
+          "tr": 7065,
+          "nl": 7518,
+          "pl": 18988
+        }
       },
       "ios_app": {
         "present": true,
@@ -8061,7 +9559,24 @@
       "wikipedia": {
         "langs": 102,
         "article_kb": 154,
-        "pageviews_12mo": 1939639
+        "pageviews_12mo": 1939639,
+        "pageviews_12mo_total": 4012792,
+        "pageviews_by_lang": {
+          "en": 1939639,
+          "es": 579197,
+          "de": 92310,
+          "fr": 278808,
+          "it": 208226,
+          "pt": 178728,
+          "ja": 130144,
+          "ru": 265533,
+          "zh": 72661,
+          "ar": 117737,
+          "ko": 9767,
+          "tr": 50744,
+          "nl": 32969,
+          "pl": 56329
+        }
       },
       "ios_app": {
         "present": true,
@@ -8142,7 +9657,24 @@
       "wikipedia": {
         "langs": 78,
         "article_kb": 84,
-        "pageviews_12mo": 435381
+        "pageviews_12mo": 435381,
+        "pageviews_12mo_total": 1028593,
+        "pageviews_by_lang": {
+          "en": 435381,
+          "es": 71108,
+          "de": 30860,
+          "fr": 45754,
+          "it": 277629,
+          "pt": 40727,
+          "ja": 22126,
+          "ru": 45259,
+          "zh": 15934,
+          "ar": 11735,
+          "ko": 2922,
+          "tr": 8678,
+          "nl": 8622,
+          "pl": 11858
+        }
       },
       "ios_app": {
         "present": true,
@@ -8232,7 +9764,24 @@
       "wikipedia": {
         "langs": 78,
         "article_kb": 42,
-        "pageviews_12mo": 588355
+        "pageviews_12mo": 588355,
+        "pageviews_12mo_total": 1064861,
+        "pageviews_by_lang": {
+          "en": 588355,
+          "es": 52353,
+          "de": 138435,
+          "fr": 39823,
+          "it": 40377,
+          "pt": 38441,
+          "ja": 44993,
+          "ru": 38250,
+          "zh": 17820,
+          "ar": 17500,
+          "ko": 2657,
+          "tr": 12441,
+          "nl": 16917,
+          "pl": 16499
+        }
       },
       "ios_app": {
         "present": true,
@@ -8296,7 +9845,7 @@
       "entity_type": "Club",
       "website": "https://www.brightonandhovealbion.com/",
       "domain": "brightonandhovealbion.com",
-      "wikipedia_slug": "Brighton_%26_Hove_Albion_F.C.",
+      "wikipedia_slug": "Brighton_&_Hove_Albion_F.C.",
       "domain_first_year": null,
       "http": {
         "cdn": "CloudFront",
@@ -8311,9 +9860,26 @@
         "locale_list": []
       },
       "wikipedia": {
-        "langs": 1,
-        "article_kb": 0,
-        "pageviews_12mo": 1400077
+        "langs": 71,
+        "article_kb": 63,
+        "pageviews_12mo": 1400077,
+        "pageviews_12mo_total": 2039815,
+        "pageviews_by_lang": {
+          "en": 1400077,
+          "es": 93203,
+          "de": 54177,
+          "fr": 70386,
+          "it": 60966,
+          "pt": 46529,
+          "ja": 138402,
+          "ru": 74623,
+          "zh": 20840,
+          "ar": 31303,
+          "ko": 3939,
+          "tr": 14703,
+          "nl": 19316,
+          "pl": 11351
+        }
       },
       "ios_app": {
         "present": true,
@@ -8399,7 +9965,24 @@
       "wikipedia": {
         "langs": 66,
         "article_kb": 67,
-        "pageviews_12mo": 489590
+        "pageviews_12mo": 489590,
+        "pageviews_12mo_total": 902538,
+        "pageviews_by_lang": {
+          "en": 489590,
+          "es": 148538,
+          "de": 26385,
+          "fr": 46244,
+          "it": 37096,
+          "pt": 25677,
+          "ja": 13500,
+          "ru": 45096,
+          "zh": 12088,
+          "ar": 21171,
+          "ko": 1650,
+          "tr": 5601,
+          "nl": 10835,
+          "pl": 19067
+        }
       },
       "ios_app": {
         "present": true,
@@ -8488,7 +10071,24 @@
       "wikipedia": {
         "langs": 114,
         "article_kb": 148,
-        "pageviews_12mo": 2030603
+        "pageviews_12mo": 2030603,
+        "pageviews_12mo_total": 4617639,
+        "pageviews_by_lang": {
+          "en": 2030603,
+          "es": 338304,
+          "de": 113861,
+          "fr": 232393,
+          "it": 804971,
+          "pt": 175237,
+          "ja": 204234,
+          "ru": 306656,
+          "zh": 99514,
+          "ar": 142342,
+          "ko": 10816,
+          "tr": 57712,
+          "nl": 36566,
+          "pl": 64430
+        }
       },
       "ios_app": {
         "present": true,
@@ -8581,7 +10181,24 @@
       "wikipedia": {
         "langs": 75,
         "article_kb": 97,
-        "pageviews_12mo": 633879
+        "pageviews_12mo": 633879,
+        "pageviews_12mo_total": 1256282,
+        "pageviews_by_lang": {
+          "en": 633879,
+          "es": 84408,
+          "de": 25061,
+          "fr": 30416,
+          "it": 256368,
+          "pt": 46182,
+          "ja": 61001,
+          "ru": 56475,
+          "zh": 8593,
+          "ar": 17576,
+          "ko": 2896,
+          "tr": 11386,
+          "nl": 8819,
+          "pl": 13222
+        }
       },
       "ios_app": {
         "present": true,
@@ -8669,7 +10286,24 @@
       "wikipedia": {
         "langs": 67,
         "article_kb": 65,
-        "pageviews_12mo": 485352
+        "pageviews_12mo": 485352,
+        "pageviews_12mo_total": 832668,
+        "pageviews_by_lang": {
+          "en": 485352,
+          "es": 119464,
+          "de": 20915,
+          "fr": 32796,
+          "it": 33639,
+          "pt": 19478,
+          "ja": 13524,
+          "ru": 32117,
+          "zh": 10391,
+          "ar": 12657,
+          "ko": 1842,
+          "tr": 5563,
+          "nl": 6486,
+          "pl": 38444
+        }
       },
       "ios_app": {
         "present": true,
@@ -8759,7 +10393,24 @@
       "wikipedia": {
         "langs": 55,
         "article_kb": 89,
-        "pageviews_12mo": 1016295
+        "pageviews_12mo": 1016295,
+        "pageviews_12mo_total": 1608270,
+        "pageviews_by_lang": {
+          "en": 1016295,
+          "es": 108492,
+          "de": 48259,
+          "fr": 208412,
+          "it": 49644,
+          "pt": 30491,
+          "ja": 25164,
+          "ru": 52131,
+          "zh": 21051,
+          "ar": 14120,
+          "ko": 2705,
+          "tr": 8885,
+          "nl": 4486,
+          "pl": 18135
+        }
       },
       "ios_app": {
         "present": true,
@@ -8856,7 +10507,24 @@
       "wikipedia": {
         "langs": 114,
         "article_kb": 165,
-        "pageviews_12mo": 2486463
+        "pageviews_12mo": 2486463,
+        "pageviews_12mo_total": 6129442,
+        "pageviews_by_lang": {
+          "en": 2486463,
+          "es": 653305,
+          "de": 169175,
+          "fr": 416640,
+          "it": 1001409,
+          "pt": 260209,
+          "ja": 193507,
+          "ru": 446448,
+          "zh": 94484,
+          "ar": 170347,
+          "ko": 11841,
+          "tr": 96480,
+          "nl": 41211,
+          "pl": 87923
+        }
       },
       "ios_app": {
         "present": true,
@@ -8949,7 +10617,24 @@
       "wikipedia": {
         "langs": 96,
         "article_kb": 86,
-        "pageviews_12mo": 2353850
+        "pageviews_12mo": 2353850,
+        "pageviews_12mo_total": 5724503,
+        "pageviews_by_lang": {
+          "en": 2353850,
+          "es": 1221643,
+          "de": 127140,
+          "fr": 378914,
+          "it": 151291,
+          "pt": 241689,
+          "ja": 186720,
+          "ru": 297148,
+          "zh": 93142,
+          "ar": 437674,
+          "ko": 11462,
+          "tr": 70886,
+          "nl": 47293,
+          "pl": 105651
+        }
       },
       "ios_app": {
         "present": true,

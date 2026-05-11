@@ -389,10 +389,55 @@ def parse_sitemap(domain: str) -> dict:
             "locale_list": sorted(locales)}
 
 
+# Major Wikipedia languages to sum pageviews across. Covers >85% of
+# all Wikipedia traffic and the home languages of every league in
+# our slate. Order doesn't matter — we sum whichever exist.
+_WIKI_TOP_LANGS = ["en", "es", "de", "fr", "it", "pt", "ja",
+                   "ru", "zh", "ar", "ko", "tr", "nl", "pl"]
+
+
+def _wiki_pageviews(lang_code: str, slug: str, window_days: int = 370) -> int | None:
+    """Trailing 12-month sum of pageviews for one article on one
+    Wikipedia language edition. Returns None on miss/error so the
+    caller can distinguish 'no data' from 'zero views'."""
+    if not slug:
+        return None
+    try:
+        end = datetime.now(timezone.utc).replace(day=1)
+        start = end - timedelta(days=window_days)
+        from urllib.parse import quote as _q
+        r = requests.get(
+            f"https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/"
+            f"{lang_code}.wikipedia/all-access/all-agents/"
+            f"{_q(slug, safe='')}/monthly/"
+            f"{start.strftime('%Y%m%d')}00/{end.strftime('%Y%m%d')}00",
+            headers=HEADERS, timeout=15,
+        )
+        if r.status_code != 200:
+            return None
+        d = r.json()
+        items = d.get("items", []) if isinstance(d, dict) else []
+        return sum(i.get("views", 0) for i in items)
+    except Exception:
+        return None
+
+
 def wikipedia(slug: str) -> dict:
-    out = {"langs": None, "article_kb": None, "pageviews_12mo": None}
+    """Fetch Wikipedia signals for one article.
+
+    Now returns BOTH the EN-only pageviews (kept for back-compat)
+    AND the multi-language total — summing pageviews across every
+    major language edition where the article exists. This corrects
+    the global-interest proxy for non-English-fanbase clubs (e.g.
+    SSC Napoli's Italian Wiki article gets way more traffic than
+    its English one).
+    """
+    out = {"langs": None, "article_kb": None, "pageviews_12mo": None,
+           "pageviews_12mo_total": None, "pageviews_by_lang": {}}
     if not slug:
         return out
+    # 1. Fetch langlinks + size
+    article_titles: dict[str, str] = {"en": slug}
     try:
         r = requests.get(
             "https://en.wikipedia.org/w/api.php",
@@ -407,22 +452,27 @@ def wikipedia(slug: str) -> dict:
             p = pages[0]
             out["langs"] = len(p.get("langlinks", [])) + 1
             out["article_kb"] = round((p.get("length") or 0) / 1024)
+            for ll in (p.get("langlinks") or []):
+                lc = ll.get("lang")
+                title = ll.get("*")
+                if lc and title:
+                    article_titles[lc] = title
     except Exception:
         pass
-    try:
-        end = datetime.now(timezone.utc).replace(day=1)
-        start = end - timedelta(days=370)
-        r = requests.get(
-            f"https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/"
-            f"en.wikipedia/all-access/all-agents/{slug}/monthly/"
-            f"{start.strftime('%Y%m%d')}00/{end.strftime('%Y%m%d')}00",
-            headers=HEADERS, timeout=20,
-        )
-        d = r.json()
-        items = d.get("items", []) if isinstance(d, dict) else []
-        out["pageviews_12mo"] = sum(i.get("views", 0) for i in items)
-    except Exception:
-        pass
+
+    # 2. Pageviews per language — restrict to top-traffic Wikipedias
+    by_lang: dict[str, int] = {}
+    for lc in _WIKI_TOP_LANGS:
+        title = article_titles.get(lc)
+        if not title:
+            continue
+        v = _wiki_pageviews(lc, title)
+        if v is not None and v > 0:
+            by_lang[lc] = v
+
+    out["pageviews_by_lang"] = by_lang
+    out["pageviews_12mo"] = by_lang.get("en")
+    out["pageviews_12mo_total"] = sum(by_lang.values()) if by_lang else None
     return out
 
 
