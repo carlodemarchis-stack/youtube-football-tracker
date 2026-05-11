@@ -14,7 +14,7 @@
       "website": "https://www.comofootball.com/en/",
       "domain": "comofootball.com",
       "wikipedia_slug": "Como_1907",
-      "domain_first_year": 2019,
+      "domain_first_year": null,
       "http": {
         "cdn": "Cloudflare",
         "security_headers_present": 2,
@@ -112,6 +112,16 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [],
+        "features": {},
+        "feature_locations": {},
+        "external_partners": [
+          "developers.cloudflare.com",
+          "www.cloudflare.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -124,7 +134,7 @@
       "website": "https://www.uslecce.it/en/",
       "domain": "uslecce.it",
       "wikipedia_slug": "U.S._Lecce",
-      "domain_first_year": 1999,
+      "domain_first_year": null,
       "http": {
         "cdn": "Unknown",
         "security_headers_present": 2,
@@ -218,6 +228,28 @@
           "it"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "abbonamenti-25-26.uslecce.it",
+          "program.uslecce.it",
+          "uslecce.it"
+        ],
+        "features": {
+          "ticketing": true,
+          "academy": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "drautomobiles.com",
+          "epicoplay.com",
+          "t.me",
+          "www.betitalypay.it",
+          "www.bpp.it",
+          "www.deghi.it",
+          "www.usleccestore.it"
+        ],
+        "sections": []
       }
     },
     {
@@ -230,7 +262,7 @@
       "website": "https://uscremonese.it/",
       "domain": "uscremonese.it",
       "wikipedia_slug": "U.S._Cremonese",
-      "domain_first_year": 2002,
+      "domain_first_year": null,
       "http": {
         "cdn": "Unknown",
         "security_headers_present": 0,
@@ -310,6 +342,27 @@
           "it"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "store.uscremonese.it",
+          "uscremonese.it"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "academy": true,
+          "newsletter": true
+        },
+        "feature_locations": {
+          "shop": "store.uscremonese.it"
+        },
+        "external_partners": [
+          "losportcremonese.it",
+          "uscremonese.ticketone.it",
+          "www.ticketone.it"
+        ],
+        "sections": []
       }
     },
     {
@@ -322,7 +375,7 @@
       "website": "https://www.aja.fr/",
       "domain": "aja.fr",
       "wikipedia_slug": "AJ_Auxerre",
-      "domain_first_year": 2001,
+      "domain_first_year": null,
       "http": {
         "cdn": "Unknown",
         "security_headers_present": 6,
@@ -417,6 +470,36 @@
           "fr"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "aja.fr",
+          "billetterie.aja.fr",
+          "boutique.aja.fr"
+        ],
+        "features": {
+          "ticketing": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "adviseenergie.com",
+          "epreuves.fff.fr",
+          "gmpg.org",
+          "jeannin-automobiles.com",
+          "www.acadomia.fr",
+          "www.ajauxerre.cn",
+          "www.auxerre.fr",
+          "www.banquepopulaire.fr",
+          "www.cichy-manutention.fr",
+          "www.groupama.fr",
+          "www.jussieu-secours.fr",
+          "www.macron.com",
+          "www.remorques-louault.com",
+          "www.schiever.com",
+          "www.servistores.com",
+          "www.yonne.fr"
+        ],
+        "sections": []
       }
     },
     {
@@ -429,7 +512,7 @@
       "website": "https://www.scfreiburg.com/en/",
       "domain": "scfreiburg.com",
       "wikipedia_slug": "SC_Freiburg",
-      "domain_first_year": 1998,
+      "domain_first_year": null,
       "http": {
         "cdn": "Unknown",
         "security_headers_present": 0,
@@ -525,6 +608,37 @@
           "fr"
         ],
         "source": "hreflang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "scfreiburg.com",
+          "shop.scfreiburg.com"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "membership": true,
+          "newsletter": true
+        },
+        "feature_locations": {
+          "shop": "shop.scfreiburg.com"
+        },
+        "external_partners": [
+          "bsky.app",
+          "www.11teamsports.com",
+          "www.bgv.de",
+          "www.edeka.de",
+          "www.europapark.de",
+          "www.jobrad.org",
+          "www.lexware.de",
+          "www.lotto-bw.de",
+          "www.microsoft.com",
+          "www.mozilla.org",
+          "www.rothaus.de",
+          "www.twitch.tv",
+          "www.weberhaus.de"
+        ],
+        "sections": []
       }
     },
     {
@@ -537,7 +651,7 @@
       "website": "https://www.valenciacf.com/en",
       "domain": "valenciacf.com",
       "wikipedia_slug": "Valencia_CF",
-      "domain_first_year": 2000,
+      "domain_first_year": null,
       "http": {
         "cdn": "Cloudflare",
         "security_headers_present": 2,
@@ -635,6 +749,37 @@
           "es"
         ],
         "source": "hreflang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "abonados.valenciacf.com",
+          "entradas.valenciacf.com",
+          "reservas.valenciacf.com",
+          "shop.valenciacf.com",
+          "valenciacf.com"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "membership": true,
+          "academy": true,
+          "foundation": true
+        },
+        "feature_locations": {
+          "shop": "shop.valenciacf.com"
+        },
+        "external_partners": [
+          "divinaseguros.com",
+          "eu.puma.com",
+          "use.typekit.net",
+          "vjs.zencdn.net",
+          "www.caixabank.es",
+          "www.cervezaturia.es",
+          "www.coca-cola.com",
+          "www.skoda.es",
+          "www.tmgrupoinmobiliario.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -647,7 +792,7 @@
       "website": "https://www.fcaugsburg.de/en/",
       "domain": "fcaugsburg.de",
       "wikipedia_slug": "FC_Augsburg",
-      "domain_first_year": 1998,
+      "domain_first_year": null,
       "http": {
         "cdn": "Unknown",
         "security_headers_present": 1,
@@ -742,6 +887,36 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "fcaugsburg.de"
+        ],
+        "features": {
+          "ticketing": true,
+          "streaming": true,
+          "foundation": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "calovo.de",
+          "emea.mizuno.com",
+          "fca.de",
+          "giphy.com",
+          "krasniqi-solar.de",
+          "logos.fantv.media",
+          "wwkarena.com",
+          "www.audi.de",
+          "www.brimo-immobilien.de",
+          "www.gruenbeck.de",
+          "www.lotto-bayern.de",
+          "www.segmueller.de",
+          "www.siegmund.com",
+          "www.sw-augsburg.de",
+          "www.vrbank-hg.de",
+          "www.wwk.de"
+        ],
+        "sections": []
       }
     },
     {
@@ -754,7 +929,7 @@
       "website": "https://www.om.fr/en",
       "domain": "om.fr",
       "wikipedia_slug": "Olympique_de_Marseille",
-      "domain_first_year": 2015,
+      "domain_first_year": null,
       "http": {
         "cdn": "Vercel",
         "security_headers_present": 1,
@@ -860,6 +1035,49 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "billetterie.om.fr",
+          "boutique.om.fr",
+          "om.fr",
+          "sso.om.fr",
+          "sur.om.fr"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "streaming": true,
+          "membership": true,
+          "academy": true,
+          "newsletter": true,
+          "foundation": true,
+          "careers": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "join.igraal.com",
+          "mysublimecotedivoire.com",
+          "okoeurope.com",
+          "olympique-de-marseille.taleez.com",
+          "saytv.net",
+          "www.api-restauration.com",
+          "www.chabrand.net",
+          "www.doretdeplatineshop.com",
+          "www.ea.com",
+          "www.etoro.com",
+          "www.groupeonet.com",
+          "www.heiwa-france.com",
+          "www.intersport.fr",
+          "www.mcdonalds.fr",
+          "www.paulsmith.com",
+          "www.randstad.fr",
+          "www.snapchat.com",
+          "www.thetaedgecloud.com",
+          "www.twitch.tv",
+          "www.unibet.fr"
+        ],
+        "sections": []
       }
     },
     {
@@ -872,7 +1090,7 @@
       "website": "https://www.ogcnice.com/en/",
       "domain": "ogcnice.com",
       "wikipedia_slug": "OGC_Nice",
-      "domain_first_year": null,
+      "domain_first_year": 2000,
       "http": {
         "cdn": "Unknown",
         "security_headers_present": 0,
@@ -956,6 +1174,31 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "api.ogcnice.com",
+          "billetterie.ogcnice.com",
+          "contact.ogcnice.com",
+          "ogcnice.com",
+          "programme-pouvoir-achat.ogcnice.com"
+        ],
+        "features": {
+          "ticketing": true,
+          "museum_tour": true,
+          "academy": true,
+          "careers": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "ineosgrenadier.com",
+          "ogcn.fr",
+          "robinhood.com",
+          "www.nicematin.com",
+          "www.ogcnice-assets.com",
+          "www.snapchat.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -968,7 +1211,7 @@
       "website": "https://www.stadebrestois.com/",
       "domain": "stadebrestois.com",
       "wikipedia_slug": "Stade_Brestois_29",
-      "domain_first_year": null,
+      "domain_first_year": 2009,
       "http": {
         "cdn": "Unknown",
         "security_headers_present": 1,
@@ -1053,6 +1296,15 @@
           "fr"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [],
+        "features": {},
+        "feature_locations": {},
+        "external_partners": [
+          "statcounter.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -1159,6 +1411,54 @@
           "it"
         ],
         "source": "sitemap"
+      },
+      "content": {
+        "owned_subdomains": [
+          "camp.juventus.com",
+          "careers.juventus.com",
+          "juventus.com",
+          "officialfanclub.juventus.com",
+          "store.juventus.com",
+          "weareyouth.juventus.com"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "streaming": true,
+          "membership": true,
+          "museum_tour": true,
+          "academy": true,
+          "newsletter": true,
+          "investor_relations": true,
+          "foundation": true,
+          "careers": true
+        },
+        "feature_locations": {
+          "shop": "store.juventus.com",
+          "membership": "officialfanclub.juventus.com",
+          "academy": "camp.juventus.com",
+          "careers": "careers.juventus.com"
+        },
+        "external_partners": [
+          "ganten.com.cn",
+          "visitdetroit.com",
+          "www.adidas.co.uk",
+          "www.allianz.com",
+          "www.balocco.it",
+          "www.cygames.co.jp",
+          "www.jeep-official.it",
+          "www.twitch.tv",
+          "x.ea.com"
+        ],
+        "sections": [
+          "faq",
+          "first-team-men",
+          "first-team-men-matches",
+          "first-team-women",
+          "jofc",
+          "jtv-first-team-men",
+          "site"
+        ]
       }
     },
     {
@@ -1239,6 +1539,15 @@
           "en"
         ],
         "source": "country"
+      },
+      "content": {
+        "owned_subdomains": [],
+        "features": {},
+        "feature_locations": {},
+        "external_partners": [
+          "use.typekit.net"
+        ],
+        "sections": []
       }
     },
     {
@@ -1350,6 +1659,24 @@
           "es"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "abonados.realoviedo.es",
+          "entradas.realoviedo.es",
+          "realoviedo.es"
+        ],
+        "features": {
+          "ticketing": true,
+          "streaming": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "realoviedo.shop",
+          "statics-maker.llt-services.com",
+          "www.twitch.tv"
+        ],
+        "sections": []
       }
     },
     {
@@ -1458,6 +1785,22 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "botiga.gironafc.cat",
+          "gironafc.cat"
+        ],
+        "features": {
+          "ticketing": true,
+          "membership": true,
+          "academy": true,
+          "foundation": true,
+          "careers": true
+        },
+        "feature_locations": {},
+        "external_partners": [],
+        "sections": []
       }
     },
     {
@@ -1470,7 +1813,7 @@
       "website": "https://www.eintracht.de/",
       "domain": "eintracht.de",
       "wikipedia_slug": "Eintracht_Frankfurt",
-      "domain_first_year": null,
+      "domain_first_year": 2000,
       "http": {
         "cdn": "Netlify",
         "security_headers_present": 1,
@@ -1565,6 +1908,34 @@
           "de"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "design.eintracht.de",
+          "en.eintracht.de",
+          "klub.eintracht.de",
+          "media.eintracht.de",
+          "stores.eintracht.de",
+          "tv.eintracht.de"
+        ],
+        "features": {
+          "streaming": true,
+          "museum_tour": true,
+          "newsletter": true,
+          "press_media": true,
+          "careers": true
+        },
+        "feature_locations": {
+          "streaming": "tv.eintracht.de",
+          "press_media": "media.eintracht.de"
+        },
+        "external_partners": [
+          "use.typekit.net",
+          "www.pinterest.de",
+          "www.twitch.tv",
+          "www3.smartadserver.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -1577,7 +1948,7 @@
       "website": "https://www.chelseafc.com/en",
       "domain": "chelseafc.com",
       "wikipedia_slug": "Chelsea_F.C.",
-      "domain_first_year": null,
+      "domain_first_year": 1999,
       "http": {
         "cdn": "Unknown",
         "security_headers_present": 2,
@@ -1679,6 +2050,22 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "streaming": true,
+          "museum_tour": true,
+          "academy": true,
+          "foundation": true,
+          "podcast": true,
+          "careers": true
+        },
+        "feature_locations": {},
+        "external_partners": [],
+        "sections": []
       }
     },
     {
@@ -1691,7 +2078,7 @@
       "website": "https://www.realsociedad.eus/en",
       "domain": "realsociedad.eus",
       "wikipedia_slug": "Real_Sociedad",
-      "domain_first_year": null,
+      "domain_first_year": 2017,
       "http": {
         "cdn": "CloudFront",
         "security_headers_present": 4,
@@ -1795,6 +2182,38 @@
           "zh"
         ],
         "source": "hreflang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "cdn.realsociedad.eus",
+          "kelerespazioa.realsociedad.eus",
+          "realsociedad.eus",
+          "realzaleprograma.realsociedad.eus",
+          "rsstore.realsociedad.eus",
+          "ticketing.realsociedad.eus"
+        ],
+        "features": {
+          "ticketing": true,
+          "membership": true,
+          "academy": true
+        },
+        "feature_locations": {
+          "ticketing": "ticketing.realsociedad.eus"
+        },
+        "external_partners": [
+          "baghdadicapital.com",
+          "browsehappy.com",
+          "bstadium.es",
+          "go.nordvpn.net",
+          "go.saily.site",
+          "www.cocacola.es",
+          "www.keler.eus",
+          "www.kutxabank.es",
+          "www.macron.com",
+          "www.socios.com",
+          "www.weibo.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -1917,6 +2336,43 @@
           "fr"
         ],
         "source": "hreflang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "billetterie.parisfc.fr",
+          "boutique.parisfc.fr",
+          "parisfc.fr"
+        ],
+        "features": {
+          "shop": true,
+          "streaming": true,
+          "newsletter": true,
+          "foundation": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "33f0b980.sibforms.com",
+          "ensemble.aesio.fr",
+          "fr.nttdata.com",
+          "mediaserver.entainpartners.com",
+          "vic-transport.fr",
+          "www.adidas.fr",
+          "www.agence-profil.com",
+          "www.bahrain.bh",
+          "www.circet.fr",
+          "www.delupay.com",
+          "www.heinekenfrance.fr",
+          "www.iledefrance.fr",
+          "www.leparisien.fr",
+          "www.paris.fr",
+          "www.parisaeroport.fr",
+          "www.peinturesdeparis.com",
+          "www.redbull.com",
+          "www.renault.fr",
+          "www.rtl.fr",
+          "www.snickersworkwear.fr"
+        ],
+        "sections": []
       }
     },
     {
@@ -1929,7 +2385,7 @@
       "website": "https://www.bvb.de/eng",
       "domain": "bvb.de",
       "wikipedia_slug": "Borussia_Dortmund",
-      "domain_first_year": 1996,
+      "domain_first_year": null,
       "http": {
         "cdn": "Cloudflare",
         "security_headers_present": 3,
@@ -2025,6 +2481,53 @@
           "en"
         ],
         "source": "hreflang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "account.bvb.de",
+          "bvb.de",
+          "shop.bvb.de",
+          "tv.bvb.de"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "streaming": true,
+          "membership": true,
+          "museum_tour": true,
+          "academy": true,
+          "foundation": true,
+          "podcast": true,
+          "magazine": true,
+          "careers": true
+        },
+        "feature_locations": {
+          "shop": "shop.bvb.de",
+          "streaming": "tv.bvb.de"
+        },
+        "external_partners": [
+          "21.de",
+          "abdifarma.de",
+          "bonkcoin.com",
+          "de.solaxpower.com",
+          "drinkprime.com",
+          "eu.puma.com",
+          "fifa.rivals.game",
+          "hero-software.de",
+          "kobler.com.vn",
+          "mahsa.edu.my",
+          "naga.com",
+          "pluto.tv",
+          "sports.bwin.de",
+          "ullrich-anlagenbau.de",
+          "www.adesso.de",
+          "www.atlasschuhe.de",
+          "www.brinkhoffs.de",
+          "www.bvbonlineshop.com",
+          "www.cocacolaep.com",
+          "www.coinbase.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -2037,7 +2540,7 @@
       "website": "https://www.whufc.com/",
       "domain": "whufc.com",
       "wikipedia_slug": "West_Ham_United_F.C.",
-      "domain_first_year": 2000,
+      "domain_first_year": null,
       "http": {
         "cdn": "Cloudflare",
         "security_headers_present": 2,
@@ -2139,6 +2642,47 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "shop.whufc.com",
+          "whufc.com"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "streaming": true,
+          "museum_tour": true,
+          "academy": true,
+          "foundation": true,
+          "careers": true
+        },
+        "feature_locations": {
+          "shop": "shop.whufc.com"
+        },
+        "external_partners": [
+          "arcsystems.co.uk",
+          "brewdog.com",
+          "lprisks.co.uk",
+          "nemiroff.vodka",
+          "paulrobinson.co.uk",
+          "quickbooks.intuit.com",
+          "saluscyber.com",
+          "securepubads.g.doubleclick.net",
+          "www.corpay.com",
+          "www.eticketing.co.uk",
+          "www.etoro.com",
+          "www.itdglobal.com",
+          "www.jeton.com",
+          "www.lycamobile.co.uk",
+          "www.modibodi.co.uk",
+          "www.p1travel.com",
+          "www.redbull.com",
+          "www.snapchat.com",
+          "www.thekingdombank.com",
+          "www.umbro.co.uk"
+        ],
+        "sections": []
       }
     },
     {
@@ -2248,6 +2792,13 @@
           "fr"
         ],
         "source": "sitemap"
+      },
+      "content": {
+        "owned_subdomains": [],
+        "features": {},
+        "feature_locations": {},
+        "external_partners": [],
+        "sections": []
       }
     },
     {
@@ -2355,6 +2906,33 @@
           "de"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "bildungsakademie.vfb.de",
+          "service.vfb.de",
+          "shop.vfb.de",
+          "tickets.vfb.de",
+          "vfb.de",
+          "vfbtv.vfb.de"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "streaming": true,
+          "membership": true,
+          "foundation": true
+        },
+        "feature_locations": {
+          "shop": "shop.vfb.de",
+          "ticketing": "tickets.vfb.de"
+        },
+        "external_partners": [
+          "giphy.com",
+          "www.mercedes-benz-arena-stuttgart.de",
+          "www.mhparena-stuttgart.de"
+        ],
+        "sections": []
       }
     },
     {
@@ -2463,6 +3041,19 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [],
+        "features": {
+          "streaming": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "app.usercentrics.eu",
+          "eu.puma.com",
+          "www.congstar.de"
+        ],
+        "sections": []
       }
     },
     {
@@ -2552,6 +3143,30 @@
           "fr"
         ],
         "source": "country"
+      },
+      "content": {
+        "owned_subdomains": [
+          "boutique.fcmetz.com",
+          "fcmetz.com"
+        ],
+        "features": {
+          "academy": true,
+          "newsletter": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "groupe-resilium.com",
+          "www.axia-interim.fr",
+          "www.caravenue.com",
+          "www.e.leclerc",
+          "www.eurometropolemetz.eu",
+          "www.lcr.fr",
+          "www.moselle.fr",
+          "www.nacongaming.com",
+          "www.technitoit.com",
+          "www.twitch.tv"
+        ],
+        "sections": []
       }
     },
     {
@@ -2564,7 +3179,7 @@
       "website": "https://www.newcastleunited.com/",
       "domain": "newcastleunited.com",
       "wikipedia_slug": "Newcastle_United_F.C.",
-      "domain_first_year": null,
+      "domain_first_year": 1999,
       "http": {
         "cdn": "Cloudflare",
         "security_headers_present": 2,
@@ -2666,6 +3281,41 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "book.newcastleunited.com",
+          "newcastleunited.com",
+          "shop.newcastleunited.com"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "streaming": true,
+          "membership": true,
+          "museum_tour": true,
+          "academy": true,
+          "foundation": true,
+          "careers": true
+        },
+        "feature_locations": {
+          "shop": "shop.newcastleunited.com"
+        },
+        "external_partners": [
+          "inpost.co.uk",
+          "maps.app.goo.gl",
+          "sela.sa",
+          "www.adidas.co.uk",
+          "www.betmgm.co.uk",
+          "www.carling.com",
+          "www.fenwick.co.uk",
+          "www.guinness.com",
+          "www.jdsports.co.uk",
+          "www.noon.com",
+          "www.redbull.com",
+          "www.saudia.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -2678,7 +3328,7 @@
       "website": "https://www.fcnantes.com/",
       "domain": "fcnantes.com",
       "wikipedia_slug": "FC_Nantes",
-      "domain_first_year": null,
+      "domain_first_year": 1999,
       "http": {
         "cdn": "CloudFront",
         "security_headers_present": 0,
@@ -2782,6 +3432,43 @@
           "fr"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "auth.fcnantes.com",
+          "billetterie.fcnantes.com",
+          "boutique.fcnantes.com",
+          "entreprises.fcnantes.com",
+          "fcnantes.com",
+          "forums.fcnantes.com"
+        ],
+        "features": {
+          "ticketing": true,
+          "newsletter": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "app.eleclercbassegoulaine.fr",
+          "fcnantes.bfsp.app",
+          "groupe-millet.com",
+          "hellfest.fr",
+          "ligue1.com",
+          "plus.ligue1.com",
+          "www.anvolia.com",
+          "www.cens44.fr",
+          "www.creditmutuel.fr",
+          "www.groupeafd.com",
+          "www.lelorec.fr",
+          "www.lna-sante.com",
+          "www.macron.com",
+          "www.nantesmetropole.fr",
+          "www.pays-de-loire-automobiles.com",
+          "www.prestige-sodexo.com",
+          "www.reseau-le-saint.com",
+          "www.synergie.fr",
+          "www.vst.coop"
+        ],
+        "sections": []
       }
     },
     {
@@ -2873,6 +3560,29 @@
           "fr"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "angers-sco.fr",
+          "billetterie.angers-sco.fr",
+          "boutique.angers-sco.fr",
+          "footsal.angers-sco.fr",
+          "handball.angers-sco.fr"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "streaming": true,
+          "newsletter": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "www.angers-sco-association.fr",
+          "www.latoll-angers.fr",
+          "www.nike.com",
+          "youtu.be"
+        ],
+        "sections": []
       }
     },
     {
@@ -2885,7 +3595,7 @@
       "website": "https://www.deportivoalaves.com/",
       "domain": "deportivoalaves.com",
       "wikipedia_slug": "Deportivo_Alavés",
-      "domain_first_year": null,
+      "domain_first_year": 2013,
       "http": {
         "cdn": "?",
         "security_headers_present": null,
@@ -2954,7 +3664,8 @@
           "es"
         ],
         "source": "manual"
-      }
+      },
+      "content": {}
     },
     {
       "youtube_channel_id": "UCQsH5XtIc9hONE1BQjucM0g",
@@ -2966,7 +3677,7 @@
       "website": "https://www.ligue1.com/",
       "domain": "ligue1.com",
       "wikipedia_slug": "Ligue_1",
-      "domain_first_year": null,
+      "domain_first_year": 2008,
       "http": {
         "cdn": "Unknown",
         "security_headers_present": 0,
@@ -3061,6 +3772,36 @@
           "ca"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "ligue1.com"
+        ],
+        "features": {},
+        "feature_locations": {},
+        "external_partners": [
+          "11type.lfp.fr",
+          "fclweb.fr",
+          "mpg.football",
+          "mpp.football",
+          "parisfc.fr",
+          "paufc.fr",
+          "sdk.privacy-center.org",
+          "www.aja.fr",
+          "www.amiensfootball.com",
+          "www.angers-sco.fr",
+          "www.asmonaco.com",
+          "www.asnl.net",
+          "www.asse.fr",
+          "www.clermontfoot.com",
+          "www.eaguingamp.com",
+          "www.estac.fr",
+          "www.fc-annecy.fr",
+          "www.fcmetz.com",
+          "www.fcnantes.com",
+          "www.gf38.fr"
+        ],
+        "sections": []
       }
     },
     {
@@ -3073,7 +3814,7 @@
       "website": "https://www.nottinghamforest.co.uk/",
       "domain": "nottinghamforest.co.uk",
       "wikipedia_slug": "Nottingham_Forest_F.C.",
-      "domain_first_year": null,
+      "domain_first_year": 1998,
       "http": {
         "cdn": "CloudFront",
         "security_headers_present": 2,
@@ -3165,6 +3906,13 @@
           "en"
         ],
         "source": "country"
+      },
+      "content": {
+        "owned_subdomains": [],
+        "features": {},
+        "feature_locations": {},
+        "external_partners": [],
+        "sections": []
       }
     },
     {
@@ -3177,7 +3925,7 @@
       "website": "https://www.rayovallecano.es/",
       "domain": "rayovallecano.es",
       "wikipedia_slug": "Rayo_Vallecano",
-      "domain_first_year": null,
+      "domain_first_year": 1999,
       "http": {
         "cdn": "Unknown",
         "security_headers_present": 3,
@@ -3256,6 +4004,20 @@
           "es"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "rayovallecano.es"
+        ],
+        "features": {
+          "ticketing": true,
+          "academy": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "www.digimobil.es"
+        ],
+        "sections": []
       }
     },
     {
@@ -3268,7 +4030,7 @@
       "website": "https://www.tsg-hoffenheim.de/",
       "domain": "tsg-hoffenheim.de",
       "wikipedia_slug": "TSG_1899_Hoffenheim",
-      "domain_first_year": null,
+      "domain_first_year": 2001,
       "http": {
         "cdn": "Unknown",
         "security_headers_present": 0,
@@ -3361,6 +4123,29 @@
           "en"
         ],
         "source": "hreflang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "esports.tsg-hoffenheim.de",
+          "marke.tsg-hoffenheim.de",
+          "s3.tsg-hoffenheim.de",
+          "shop.tsg-hoffenheim.de",
+          "tsg-hoffenheim.de"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "newsletter": true
+        },
+        "feature_locations": {
+          "shop": "shop.tsg-hoffenheim.de"
+        },
+        "external_partners": [
+          "calovo.de",
+          "giphy.com",
+          "onefootball.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -3373,7 +4158,7 @@
       "website": "https://fc-heidenheim.de/",
       "domain": "fc-heidenheim.de",
       "wikipedia_slug": "1._FC_Heidenheim",
-      "domain_first_year": null,
+      "domain_first_year": 2007,
       "http": {
         "cdn": "Unknown",
         "security_headers_present": 1,
@@ -3452,6 +4237,41 @@
           "de"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "assets.fc-heidenheim.de"
+        ],
+        "features": {
+          "ticketing": true,
+          "streaming": true,
+          "membership": true,
+          "newsletter": true,
+          "careers": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "cutt.ly",
+          "eu.puma.com",
+          "liha-werbung.de",
+          "voith.com",
+          "www.11teamsports.com",
+          "www.bierschneider.de",
+          "www.dazn.com",
+          "www.graustich.com",
+          "www.hartmann.info",
+          "www.ksk-heidenheim.de",
+          "www.lotto-bw.de",
+          "www.merchandising-onlineshop.com",
+          "www.roma.de",
+          "www.stadtwerke-heidenheim.de",
+          "www.stuttgarter-hofbraeu.de",
+          "www.ticket-onlineshop.com",
+          "www.twitch.tv",
+          "www.varta-ag.com",
+          "www.zeiss.de"
+        ],
+        "sections": []
       }
     },
     {
@@ -3558,6 +4378,48 @@
           "en"
         ],
         "source": "country"
+      },
+      "content": {
+        "owned_subdomains": [
+          "fulhamfc.com",
+          "riverside.fulhamfc.com",
+          "shop.fulhamfc.com"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "streaming": true,
+          "membership": true,
+          "academy": true,
+          "foundation": true,
+          "careers": true
+        },
+        "feature_locations": {
+          "shop": "shop.fulhamfc.com"
+        },
+        "external_partners": [
+          "arenaclub.com",
+          "arwen.ai",
+          "boncharge.com",
+          "budweiser.co.uk",
+          "dupliq.co.uk",
+          "ebury.com",
+          "ffc.mobi",
+          "mws.com",
+          "nemiroff.vodka",
+          "rebel-kitchen.com",
+          "remaker.co.uk",
+          "resources.premierleague.com",
+          "s3.eu-west-1.amazonaws.com",
+          "silverhandestate.com",
+          "uk.kineticasports.com",
+          "www.adidas.co.uk",
+          "www.allelitewrestling.com",
+          "www.arexa.com",
+          "www.arnoldclark.com",
+          "www.aspinaloflondon.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -3675,6 +4537,53 @@
           "ja"
         ],
         "source": "hreflang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "agrupaciojugadors.fcbarcelona.com",
+          "barcaacademy.fcbarcelona.com",
+          "barcainnovationhub.fcbarcelona.com",
+          "barcavision.fcbarcelona.com",
+          "espaibarca.fcbarcelona.com",
+          "fcbarcelona.com",
+          "foundation.fcbarcelona.com",
+          "frmforms.fcbarcelona.com",
+          "go.fcbarcelona.com",
+          "one.fcbarcelona.com",
+          "penyes.fcbarcelona.com",
+          "players.fcbarcelona.com",
+          "store.fcbarcelona.com",
+          "support.fcbarcelona.com"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "streaming": true,
+          "membership": true,
+          "museum_tour": true,
+          "academy": true,
+          "newsletter": true,
+          "foundation": true
+        },
+        "feature_locations": {
+          "shop": "store.fcbarcelona.com",
+          "foundation": "foundation.fcbarcelona.com"
+        },
+        "external_partners": [
+          "barcamobile.com",
+          "canaleticfcbarcelona.integrityline.com",
+          "discord.com",
+          "open.spotify.com",
+          "www.fcbarcelona.cat",
+          "www.fcbarcelona.cn",
+          "www.fcbarcelona.es",
+          "www.fcbarcelona.fr",
+          "www.fcbarcelona.jp",
+          "www.fcbrookies.cat",
+          "www.nike.com",
+          "www.philips.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -3687,7 +4596,7 @@
       "website": "https://rbleipzig.com/en/",
       "domain": "rbleipzig.com",
       "wikipedia_slug": "RB_Leipzig",
-      "domain_first_year": 2009,
+      "domain_first_year": 2021,
       "http": {
         "cdn": "Unknown",
         "security_headers_present": 1,
@@ -3782,6 +4691,24 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "rbleipzig.com"
+        ],
+        "features": {
+          "ticketing": true,
+          "streaming": true,
+          "membership": true,
+          "museum_tour": true,
+          "academy": true,
+          "newsletter": true,
+          "foundation": true,
+          "careers": true
+        },
+        "feature_locations": {},
+        "external_partners": [],
+        "sections": []
       }
     },
     {
@@ -3892,6 +4819,23 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "sevillafc.es"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "streaming": true,
+          "membership": true,
+          "academy": true,
+          "foundation": true,
+          "podcast": true
+        },
+        "feature_locations": {},
+        "external_partners": [],
+        "sections": []
       }
     },
     {
@@ -4004,6 +4948,30 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "cpfc.co.uk",
+          "shop.cpfc.co.uk"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "streaming": true,
+          "membership": true,
+          "academy": true,
+          "foundation": true,
+          "careers": true
+        },
+        "feature_locations": {
+          "shop": "shop.cpfc.co.uk"
+        },
+        "external_partners": [
+          "media-cdn.cortextech.io",
+          "media-cdn.incrowdsports.com",
+          "www.eticketing.co.uk"
+        ],
+        "sections": []
       }
     },
     {
@@ -4016,7 +4984,7 @@
       "website": "https://www.bayer04.de/",
       "domain": "bayer04.de",
       "wikipedia_slug": "Bayer_04_Leverkusen",
-      "domain_first_year": 1996,
+      "domain_first_year": null,
       "http": {
         "cdn": "Unknown",
         "security_headers_present": 3,
@@ -4114,6 +5082,25 @@
           "pt"
         ],
         "source": "hreflang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "bayer04.de",
+          "cdn-werkself-prod.bayer04.de",
+          "cdn.bayer04.de",
+          "tv.bayer04.de"
+        ],
+        "features": {
+          "streaming": true,
+          "newsletter": true
+        },
+        "feature_locations": {
+          "streaming": "tv.bayer04.de"
+        },
+        "external_partners": [
+          "bayer0401.webtrekk.net"
+        ],
+        "sections": []
       }
     },
     {
@@ -4209,6 +5196,38 @@
           "es"
         ],
         "source": "sitemap"
+      },
+      "content": {
+        "owned_subdomains": [
+          "fc-union-berlin.de"
+        ],
+        "features": {
+          "ticketing": true,
+          "streaming": true,
+          "membership": true,
+          "museum_tour": true,
+          "academy": true,
+          "press_media": true,
+          "foundation": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "avaay.de",
+          "eiserner-strom.de",
+          "fanartikel.union-zeughaus.de",
+          "fc-union-stiftung.de",
+          "tickets.union-zeughaus.de",
+          "www.adidas.de",
+          "www.aftv-online.de",
+          "www.altefoersterei.berlin",
+          "www.etoro.com",
+          "www.hometogo.de",
+          "www.kermi.com",
+          "www.raisin.com",
+          "www.rewe.de",
+          "www.wisag.de"
+        ],
+        "sections": []
       }
     },
     {
@@ -4318,6 +5337,42 @@
           "it"
         ],
         "source": "hreflang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "account.asroma.com",
+          "asroma.com",
+          "asromacard.asroma.com",
+          "assets.asroma.com",
+          "camp.asroma.com",
+          "changeowner.asroma.com",
+          "concorsi.asroma.com",
+          "fanzone.asroma.com",
+          "media.asroma.com",
+          "scuolacalcio.asroma.com",
+          "store.asroma.com"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "academy": true,
+          "newsletter": true,
+          "press_media": true,
+          "foundation": true,
+          "careers": true
+        },
+        "feature_locations": {
+          "shop": "store.asroma.com",
+          "academy": "camp.asroma.com",
+          "press_media": "media.asroma.com"
+        },
+        "external_partners": [
+          "asroma.altamiraweb.com",
+          "eurobet.live",
+          "www.adidas.it",
+          "www.fantoken.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -4427,6 +5482,20 @@
           "en"
         ],
         "source": "og:locale"
+      },
+      "content": {
+        "owned_subdomains": [
+          "en.legaseriea.it"
+        ],
+        "features": {
+          "ticketing": true,
+          "academy": true,
+          "newsletter": true,
+          "foundation": true
+        },
+        "feature_locations": {},
+        "external_partners": [],
+        "sections": []
       }
     },
     {
@@ -4522,6 +5591,35 @@
           "it"
         ],
         "source": "hreflang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "myaccount.sassuolocalcio.it",
+          "sassuolocalcio.it",
+          "store.sassuolocalcio.it"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "academy": true
+        },
+        "feature_locations": {
+          "shop": "store.sassuolocalcio.it"
+        },
+        "external_partners": [
+          "confindustriaceramica.it",
+          "gmpg.org",
+          "www.adesital.it",
+          "www.azetagomma.com",
+          "www.casalgrandepadana.it",
+          "www.comerindustries.com",
+          "www.florim.com",
+          "www.fratelliberetta.com",
+          "www.giocodigitale.game",
+          "www.kinto-mobility.eu",
+          "www.modula.eu"
+        ],
+        "sections": []
       }
     },
     {
@@ -4534,7 +5632,7 @@
       "website": "https://pisasportingclub.com/en/",
       "domain": "pisasportingclub.com",
       "wikipedia_slug": "Pisa_Sporting_Club",
-      "domain_first_year": 2009,
+      "domain_first_year": null,
       "http": {
         "cdn": "Cloudflare",
         "security_headers_present": 1,
@@ -4632,6 +5730,33 @@
           "it"
         ],
         "source": "hreflang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "pisasportingclub.com",
+          "store.pisasportingclub.com"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "streaming": true,
+          "academy": true
+        },
+        "feature_locations": {
+          "shop": "store.pisasportingclub.com"
+        },
+        "external_partners": [
+          "bwin.tv",
+          "romiltec.it",
+          "www.adidas.it",
+          "www.bet365scores.it",
+          "www.cetilar.com",
+          "www.infront.sport",
+          "www.iubenda.com",
+          "www.nuovaedicola.com",
+          "www.twitch.tv"
+        ],
+        "sections": []
       }
     },
     {
@@ -4727,6 +5852,39 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "sslazio.it"
+        ],
+        "features": {
+          "ticketing": true,
+          "membership": true,
+          "museum_tour": true,
+          "academy": true,
+          "newsletter": true,
+          "podcast": true,
+          "magazine": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "asroma.vivaticket.it",
+          "emea.mizuno.com",
+          "mediaverse.sslazio.hiway.media",
+          "perleicombattiamo.it",
+          "polymarket.com",
+          "sslazio.vivaticket.it",
+          "www.aeroitalia.com",
+          "www.enel.it",
+          "www.eurobet.live",
+          "www.groupama.it",
+          "www.konami.com",
+          "www.laziostylestore.com",
+          "www.sslaziomuseum.com",
+          "www.tim.it",
+          "www.vivaticket.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -4739,7 +5897,7 @@
       "website": "https://www.hellasverona.it/en/",
       "domain": "hellasverona.it",
       "wikipedia_slug": "Hellas_Verona_FC",
-      "domain_first_year": null,
+      "domain_first_year": 1998,
       "http": {
         "cdn": "Unknown",
         "security_headers_present": 1,
@@ -4836,6 +5994,19 @@
           "it"
         ],
         "source": "country"
+      },
+      "content": {
+        "owned_subdomains": [],
+        "features": {
+          "ticketing": true,
+          "membership": true,
+          "academy": true,
+          "newsletter": true,
+          "foundation": true
+        },
+        "feature_locations": {},
+        "external_partners": [],
+        "sections": []
       }
     },
     {
@@ -4951,6 +6122,31 @@
           "pt"
         ],
         "source": "hreflang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "bundesliga.com",
+          "commonground.bundesliga.com",
+          "redirect.bundesliga.com",
+          "virtual.bundesliga.com"
+        ],
+        "features": {
+          "newsletter": true,
+          "careers": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "buli.page.link",
+          "bundesliga-fantasy.go.link",
+          "bundesliga.go.link",
+          "dfl.de",
+          "sorare.com",
+          "www.dfl.de",
+          "www.ea.com",
+          "www.funny-frisch.de",
+          "www.topps.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -5062,6 +6258,36 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "en.atalanta.it",
+          "hospitality.atalanta.it",
+          "investorrelations.atalanta.it",
+          "store.atalanta.it",
+          "widgets-sdp.atalanta.it"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "museum_tour": true,
+          "academy": true,
+          "newsletter": true,
+          "investor_relations": true,
+          "magazine": true
+        },
+        "feature_locations": {
+          "shop": "store.atalanta.it"
+        },
+        "external_partners": [
+          "acqualete.it",
+          "snaifun.it",
+          "urlsand.esvalabs.com",
+          "www.gewiss.com",
+          "www.googletagservices.com",
+          "www.newbalance.it"
+        ],
+        "sections": []
       }
     },
     {
@@ -5074,7 +6300,7 @@
       "website": "https://www.mainz05.de/en/",
       "domain": "mainz05.de",
       "wikipedia_slug": "1._FSV_Mainz_05",
-      "domain_first_year": null,
+      "domain_first_year": 1998,
       "http": {
         "cdn": "Cloudflare",
         "security_headers_present": 1,
@@ -5187,6 +6413,41 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "handball.mainz05.de",
+          "mainz05.de",
+          "servicecenter.mainz05.de",
+          "shop.mainz05.de",
+          "tischtennis.mainz05.de"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "membership": true,
+          "academy": true,
+          "newsletter": true,
+          "careers": true
+        },
+        "feature_locations": {
+          "shop": "shop.mainz05.de"
+        },
+        "external_partners": [
+          "job-impulse.com",
+          "www.bitburger.de",
+          "www.entega.de",
+          "www.etoro.com",
+          "www.fenster-profis.de",
+          "www.idm-energie.at",
+          "www.jako.de",
+          "www.lotto-rlp.de",
+          "www.mewa.de",
+          "www.novonordisk.de",
+          "www.platinum.com",
+          "www.schott.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -5291,6 +6552,33 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [],
+        "features": {
+          "ticketing": true,
+          "membership": true,
+          "academy": true,
+          "newsletter": true,
+          "press_media": true,
+          "foundation": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "fc-fanshop.de",
+          "fc.de",
+          "gaffel.de",
+          "www.bundesliga.com",
+          "www.devk.de",
+          "www.fc-mitgliedschaft.fc.de",
+          "www.ford.de",
+          "www.hummelsport.de",
+          "www.rewe.de",
+          "www.rheinenergie.com",
+          "www.telekom.de",
+          "www.ticket-onlineshop.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -5399,6 +6687,36 @@
           "it"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "genoacfc.it"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "academy": true,
+          "foundation": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "cds.it",
+          "genoacfc.vivaticket.it",
+          "gmpg.org",
+          "open.spotify.com",
+          "pulsee.it",
+          "t.me",
+          "www.ceres.com",
+          "www.fondazionegenoa.com",
+          "www.genoaacademy.it",
+          "www.genoacamp.it",
+          "www.infront.sport",
+          "www.kappa.com",
+          "www.nopanic-agency.com",
+          "www.norsan.it",
+          "www.twow.it"
+        ],
+        "sections": []
       }
     },
     {
@@ -5518,6 +6836,19 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "billetterie.losc.fr",
+          "losc.fr"
+        ],
+        "features": {
+          "ticketing": true,
+          "careers": true
+        },
+        "feature_locations": {},
+        "external_partners": [],
+        "sections": []
       }
     },
     {
@@ -5636,6 +6967,22 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "streaming": true,
+          "museum_tour": true,
+          "academy": true,
+          "press_media": true,
+          "foundation": true,
+          "careers": true
+        },
+        "feature_locations": {},
+        "external_partners": [],
+        "sections": []
       }
     },
     {
@@ -5742,6 +7089,23 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "rcdmallorca.es"
+        ],
+        "features": {
+          "ticketing": true,
+          "streaming": true,
+          "museum_tour": true,
+          "academy": true,
+          "foundation": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "bit.ly"
+        ],
+        "sections": []
       }
     },
     {
@@ -5836,7 +7200,8 @@
           "ar"
         ],
         "source": "manual"
-      }
+      },
+      "content": {}
     },
     {
       "youtube_channel_id": "UCeOCuVSSweaEj6oVtJZEKQw",
@@ -5936,6 +7301,13 @@
           "en"
         ],
         "source": "country"
+      },
+      "content": {
+        "owned_subdomains": [],
+        "features": {},
+        "feature_locations": {},
+        "external_partners": [],
+        "sections": []
       }
     },
     {
@@ -5948,7 +7320,7 @@
       "website": "https://www.hac-foot.com/",
       "domain": "hac-foot.com",
       "wikipedia_slug": "Le_Havre_AC",
-      "domain_first_year": 2001,
+      "domain_first_year": null,
       "http": {
         "cdn": "Unknown",
         "security_headers_present": 3,
@@ -6014,6 +7386,34 @@
           "fr"
         ],
         "source": "hreflang"
+      },
+      "content": {
+        "owned_subdomains": [],
+        "features": {},
+        "feature_locations": {},
+        "external_partners": [
+          "billetterie.hac.football",
+          "billetterie2.hac.football",
+          "boutique.hac.football",
+          "df-industrie.com",
+          "et2i.net",
+          "groupesaintclair.fr",
+          "hac.football",
+          "lehavre.fr",
+          "moncompte.hac.football",
+          "plus.ligue1.com",
+          "use.typekit.net",
+          "www.cma-cgm.fr",
+          "www.herve-thermique.com",
+          "www.lehavreseinemetropole.fr",
+          "www.normandie.fr",
+          "www.paris-normandie.fr",
+          "www.parmentier-habitat.fr",
+          "www.seinemaritime.fr",
+          "www.sim-emploi.fr",
+          "www.sols-europe.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -6121,6 +7521,49 @@
           "en"
         ],
         "source": "hreflang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "hsv.de",
+          "id.hsv.de",
+          "shop.hsv.de",
+          "tv.hsv.de"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "streaming": true,
+          "membership": true,
+          "museum_tour": true,
+          "academy": true
+        },
+        "feature_locations": {
+          "shop": "shop.hsv.de",
+          "streaming": "tv.hsv.de"
+        },
+        "external_partners": [
+          "buxtrade.de",
+          "eur03.safelinks.protection.outlook.com",
+          "hsv-kruell.de",
+          "hsv.official-vip.com",
+          "tours.bemotion-360.de",
+          "www.11teamsports.com",
+          "www.bet365.de",
+          "www.bundesliga.com",
+          "www.dfb.de",
+          "www.floatinghomes.de",
+          "www.hansemerkur.de",
+          "www.hapag-lloyd.com",
+          "www.koenig.de",
+          "www.nxp.com",
+          "www.orthomol.com",
+          "www.rewe.de",
+          "www.s-bahn-hamburg.de",
+          "www.shell.de",
+          "www.sparda-bank-hamburg.de",
+          "www.stulz.de"
+        ],
+        "sections": []
       }
     },
     {
@@ -6133,7 +7576,7 @@
       "website": "https://www.arsenal.com/",
       "domain": "arsenal.com",
       "wikipedia_slug": "Arsenal_F.C.",
-      "domain_first_year": 1997,
+      "domain_first_year": null,
       "http": {
         "cdn": "Unknown",
         "security_headers_present": 2,
@@ -6232,6 +7675,46 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "arsenal.com",
+          "arsenaldirect.arsenal.com",
+          "cn.arsenal.com",
+          "hospitality.arsenal.com"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "streaming": true,
+          "membership": true,
+          "museum_tour": true,
+          "academy": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "e.weibo.com",
+          "football.comave.com",
+          "pcb.incrowdsports.com",
+          "sync.ecal.com",
+          "uk.athleticbrewing.com",
+          "uk.hotels.com",
+          "uk.nttdata.com",
+          "uk.stanley1913.com",
+          "www.adidas.co.uk",
+          "www.asahisuperdry.com",
+          "www.bitpanda.com",
+          "www.chivas.com",
+          "www.coca-cola.com",
+          "www.deel.com",
+          "www.emirates.com",
+          "www.eticketing.co.uk",
+          "www.guinness.com",
+          "www.konami.com",
+          "www.lavazza.co.uk",
+          "www.loreal-paris.co.uk"
+        ],
+        "sections": []
       }
     },
     {
@@ -6244,7 +7727,7 @@
       "website": "https://www.elchecf.es/",
       "domain": "elchecf.es",
       "wikipedia_slug": "Elche_CF",
-      "domain_first_year": 2002,
+      "domain_first_year": null,
       "http": {
         "cdn": "Unknown",
         "security_headers_present": 3,
@@ -6323,6 +7806,19 @@
           "es"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "elchecf.es",
+          "tienda.elchecf.es"
+        ],
+        "features": {
+          "ticketing": true,
+          "academy": true
+        },
+        "feature_locations": {},
+        "external_partners": [],
+        "sections": []
       }
     },
     {
@@ -6335,7 +7831,7 @@
       "website": "https://www.athletic-club.eus/en",
       "domain": "athletic-club.eus",
       "wikipedia_slug": "Athletic_Bilbao",
-      "domain_first_year": null,
+      "domain_first_year": 2018,
       "http": {
         "cdn": "Cloudflare",
         "security_headers_present": 2,
@@ -6436,6 +7932,37 @@
           "eu"
         ],
         "source": "hreflang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "account.athletic-club.eus",
+          "athletic-club.eus",
+          "contenidos.athletic-club.eus",
+          "fundazioa.athletic-club.eus",
+          "play.athletic-club.eus",
+          "sanmames.athletic-club.eus",
+          "shop.athletic-club.eus"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "streaming": true,
+          "membership": true,
+          "museum_tour": true,
+          "academy": true,
+          "press_media": true,
+          "foundation": true
+        },
+        "feature_locations": {
+          "shop": "shop.athletic-club.eus",
+          "streaming": "play.athletic-club.eus"
+        },
+        "external_partners": [
+          "share.feeberse.com",
+          "stage.acfootballexperiences.eus",
+          "thinkingfootballfilmfestival.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -6547,6 +8074,39 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "account.premierleague.com",
+          "draft.premierleague.com",
+          "fplchallenge.premierleague.com",
+          "premierleague.com",
+          "shop.premierleague.com"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "streaming": true,
+          "press_media": true,
+          "podcast": true
+        },
+        "feature_locations": {
+          "shop": "shop.premierleague.com"
+        },
+        "external_partners": [
+          "preml.ge",
+          "puma.com",
+          "rezzil.com",
+          "sport.averydennison.com",
+          "uk.topps.com",
+          "unlocked.microsoft.com",
+          "www.coca-cola.com",
+          "www.ea.com",
+          "www.footballmanager.com",
+          "www.guinness.com",
+          "www.snapchat.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -6652,6 +8212,36 @@
           "it"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "udinese.it"
+        ],
+        "features": {
+          "ticketing": true,
+          "membership": true,
+          "academy": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "manuelcaffe.it",
+          "onemissiononeplanet.it",
+          "open.spotify.com",
+          "secure.widget.cloud.opta.net",
+          "udinese.cdn.xpl.io",
+          "whistleblowersoftware.com",
+          "www.asem.it",
+          "www.banca360fvg.it",
+          "www.bet365scores.it",
+          "www.bluenergygroup.it",
+          "www.infront.sport",
+          "www.iubenda.com",
+          "www.macron.com",
+          "www.progressprofiles.com",
+          "www.turismofvg.it",
+          "www.twitch.tv"
+        ],
+        "sections": []
       }
     },
     {
@@ -6758,6 +8348,48 @@
           "en"
         ],
         "source": "country"
+      },
+      "content": {
+        "owned_subdomains": [
+          "avfc.co.uk",
+          "careers.avfc.co.uk",
+          "members.avfc.co.uk",
+          "membership.avfc.co.uk",
+          "rewards.avfc.co.uk",
+          "shop.avfc.co.uk",
+          "tickets.avfc.co.uk",
+          "video.avfc.co.uk"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "streaming": true,
+          "membership": true,
+          "museum_tour": true,
+          "academy": true,
+          "foundation": true,
+          "careers": true
+        },
+        "feature_locations": {
+          "shop": "shop.avfc.co.uk",
+          "ticketing": "tickets.avfc.co.uk",
+          "membership": "members.avfc.co.uk",
+          "careers": "careers.avfc.co.uk"
+        },
+        "external_partners": [
+          "bwc.nhs.uk",
+          "ebury.com",
+          "open.spotify.com",
+          "seatgeek.com",
+          "use.typekit.net",
+          "www.adidas.co.uk",
+          "www.coca-cola.com",
+          "www.destinationvillapark.com",
+          "www.elgouna.com",
+          "www.esentire.com",
+          "www.jdsports.co.uk"
+        ],
+        "sections": []
       }
     },
     {
@@ -6862,6 +8494,13 @@
           "en"
         ],
         "source": "country"
+      },
+      "content": {
+        "owned_subdomains": [],
+        "features": {},
+        "feature_locations": {},
+        "external_partners": [],
+        "sections": []
       }
     },
     {
@@ -6969,6 +8608,41 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "museum_tour": true,
+          "academy": true,
+          "podcast": true,
+          "careers": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "all.accor.com",
+          "api.psg.fr",
+          "bere.al",
+          "beyonddevelopments.ae",
+          "billetterie.psg.fr",
+          "ced.sascdn.com",
+          "discord.com",
+          "ligue1.fr",
+          "media.psg.fr",
+          "myparis.psg.fr",
+          "onefootball.com",
+          "podcasts.psg.fr",
+          "stadiumtour.psg.fr",
+          "store.psg.fr",
+          "usastore.psg.fr",
+          "visitqatar.com",
+          "www.aspetar.com",
+          "www.beinsports.com",
+          "www.bitpanda.com",
+          "www.ea.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -6981,7 +8655,7 @@
       "website": "https://www.rclens.fr/en",
       "domain": "rclens.fr",
       "wikipedia_slug": "RC_Lens",
-      "domain_first_year": 2000,
+      "domain_first_year": null,
       "http": {
         "cdn": "CloudFront",
         "security_headers_present": 0,
@@ -7077,6 +8751,17 @@
           "fr"
         ],
         "source": "hreflang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "rclens.fr"
+        ],
+        "features": {
+          "streaming": true
+        },
+        "feature_locations": {},
+        "external_partners": [],
+        "sections": []
       }
     },
     {
@@ -7187,6 +8872,47 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "leedsunited.com",
+          "tickets.leedsunited.com",
+          "video.leedsunited.com"
+        ],
+        "features": {
+          "ticketing": true,
+          "membership": true,
+          "museum_tour": true,
+          "academy": true,
+          "newsletter": true,
+          "foundation": true
+        },
+        "feature_locations": {
+          "ticketing": "tickets.leedsunited.com"
+        },
+        "external_partners": [
+          "amtauto.co.uk",
+          "astonish.co.uk",
+          "bit.ly",
+          "employmenthero.com",
+          "hisense.co.uk",
+          "leodisstairlifts.co.uk",
+          "lpddoors.co.uk",
+          "maps.app.goo.gl",
+          "no.co",
+          "nordvpn.com",
+          "seatgeek.com",
+          "securepubads.g.doubleclick.net",
+          "www.adidas.co.uk",
+          "www.boxt.co.uk",
+          "www.burflex.co.uk",
+          "www.elevensportsmedia.com",
+          "www.fantokens.com",
+          "www.flamingoland.co.uk",
+          "www.ginetta.com",
+          "www.heineken.co.uk"
+        ],
+        "sections": []
       }
     },
     {
@@ -7276,6 +9002,22 @@
           "fr"
         ],
         "source": "country"
+      },
+      "content": {
+        "owned_subdomains": [
+          "moncompte.toulousefc.com",
+          "toulousefc.com"
+        ],
+        "features": {
+          "newsletter": true,
+          "podcast": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "ligue1plus.fr",
+          "sdk.privacy-center.org"
+        ],
+        "sections": []
       }
     },
     {
@@ -7374,6 +9116,20 @@
           "de"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [],
+        "features": {
+          "ticketing": true,
+          "streaming": true,
+          "membership": true,
+          "newsletter": true,
+          "foundation": true,
+          "podcast": true
+        },
+        "feature_locations": {},
+        "external_partners": [],
+        "sections": []
       }
     },
     {
@@ -7495,6 +9251,40 @@
           "fr"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "bancdemerlus.fclorient.bzh",
+          "billetterie.fclorient.bzh",
+          "boutique.fclorient.bzh",
+          "entreprises.fclorient.bzh",
+          "fclorient.bzh"
+        ],
+        "features": {
+          "ticketing": true,
+          "newsletter": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "tyrex-cyber.com",
+          "u-emploi.com",
+          "worldoftanks.eu",
+          "www.acadomia.fr",
+          "www.bmw-littoral-latitude.fr",
+          "www.breizhcola.bzh",
+          "www.cite-marine.fr",
+          "www.cmb.fr",
+          "www.groupeactual.eu",
+          "www.hotel-bb.com",
+          "www.jean-floch.com",
+          "www.joma-sport.com",
+          "www.lorient-agglo.bzh",
+          "www.mapab.fr",
+          "www.morbihan.fr",
+          "www.ouest-france.fr",
+          "www.voyelle.fr"
+        ],
+        "sections": []
       }
     },
     {
@@ -7603,6 +9393,50 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "shop.tottenhamhotspur.com",
+          "tottenhamhotspur.com"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "streaming": true,
+          "membership": true,
+          "museum_tour": true,
+          "academy": true,
+          "foundation": true,
+          "podcast": true,
+          "magazine": true,
+          "careers": true
+        },
+        "feature_locations": {
+          "shop": "shop.tottenhamhotspur.com"
+        },
+        "external_partners": [
+          "www.aia.com",
+          "www.antglobal.com",
+          "www.betmgm.co.uk",
+          "www.bppulse.com",
+          "www.cadbury.co.uk",
+          "www.castrol.com",
+          "www.coca-cola.com",
+          "www.ea.com",
+          "www.eticketing.co.uk",
+          "www.expressvpn.com",
+          "www.hpe.com",
+          "www.hsbc.co.uk",
+          "www.kraken.com",
+          "www.kumhotire.com",
+          "www.monsterenergy.com",
+          "www.nike.com",
+          "www.pravha.co.uk",
+          "www.salesforce.com",
+          "www.scienceinsport.com",
+          "www.si.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -7713,6 +9547,34 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "burnleyfootballclub.com",
+          "careers.burnleyfootballclub.com"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "streaming": true,
+          "museum_tour": true,
+          "academy": true,
+          "foundation": true,
+          "magazine": true,
+          "careers": true
+        },
+        "feature_locations": {
+          "careers": "careers.burnleyfootballclub.com"
+        },
+        "external_partners": [
+          "burnleyfc.freshdesk.com",
+          "castore.com",
+          "media-cdn.incrowdsports.com",
+          "shop.burnleyfc.com",
+          "www.eticketing.co.uk",
+          "www.incrowdsports.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -7815,6 +9677,33 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "acffiorentina.com",
+          "cambionome.acffiorentina.com",
+          "ticketing.acffiorentina.com"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "membership": true,
+          "academy": true,
+          "podcast": true
+        },
+        "feature_locations": {
+          "ticketing": "ticketing.acffiorentina.com"
+        },
+        "external_partners": [
+          "acffiorentina.vivaticket.it",
+          "use.typekit.net",
+          "wa.me",
+          "www.betwayscores.it",
+          "www.estra.it",
+          "www.fiorentinastore.com",
+          "www.twitch.tv"
+        ],
+        "sections": []
       }
     },
     {
@@ -7919,6 +9808,53 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "ads.wolves.co.uk",
+          "coaching.wolves.co.uk",
+          "events.wolves.co.uk",
+          "foundation.wolves.co.uk",
+          "help.wolves.co.uk",
+          "honved.wolves.co.uk",
+          "la.wolves.co.uk",
+          "myhighlights.wolves.co.uk",
+          "shop.wolves.co.uk",
+          "tv.wolves.co.uk",
+          "wolves.co.uk",
+          "worldwide.wolves.co.uk"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "streaming": true,
+          "museum_tour": true,
+          "academy": true,
+          "foundation": true
+        },
+        "feature_locations": {
+          "shop": "shop.wolves.co.uk",
+          "streaming": "tv.wolves.co.uk",
+          "foundation": "foundation.wolves.co.uk"
+        },
+        "external_partners": [
+          "affiliate-partners.onelink.me",
+          "ql.e-c.al",
+          "sudu.co.uk",
+          "wolvesesports.com",
+          "www.betmgm.co.uk",
+          "www.debet.co.uk",
+          "www.eticketing.co.uk",
+          "www.jdsports.co.uk",
+          "www.mneglobal.com",
+          "www.monsterenergy.com",
+          "www.tradewill.com",
+          "www.twitch.tv",
+          "www.visitlauderdale.com",
+          "www.wolvesfpa.com",
+          "yi.nzc.am"
+        ],
+        "sections": []
       }
     },
     {
@@ -8047,6 +9983,40 @@
           "ru"
         ],
         "source": "hreflang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "asmonaco.com",
+          "billetterie.asmonaco.com",
+          "business.asmonaco.com",
+          "shop.asmonaco.com"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "membership": true,
+          "academy": true
+        },
+        "feature_locations": {
+          "shop": "shop.asmonaco.com"
+        },
+        "external_partners": [
+          "asmonaco.bfsp.app",
+          "emea.mizuno.com",
+          "football.comave.com",
+          "fr.apm.mc",
+          "ligue1.com",
+          "sports.gouv.cd",
+          "twigaworld.com",
+          "www.bang-olufsen.com",
+          "www.etoro.com",
+          "www.fomindustrie.com",
+          "www.renault.fr",
+          "www.teddy-smith.com",
+          "www.triangle.fr",
+          "www.vbet.fr"
+        ],
+        "sections": []
       }
     },
     {
@@ -8153,6 +10123,15 @@
           "en"
         ],
         "source": "country"
+      },
+      "content": {
+        "owned_subdomains": [],
+        "features": {
+          "streaming": true
+        },
+        "feature_locations": {},
+        "external_partners": [],
+        "sections": []
       }
     },
     {
@@ -8165,7 +10144,7 @@
       "website": "https://www.realmadrid.com/en",
       "domain": "realmadrid.com",
       "wikipedia_slug": "Real_Madrid_CF",
-      "domain_first_year": 2000,
+      "domain_first_year": null,
       "http": {
         "cdn": "Akamai",
         "security_headers_present": 1,
@@ -8258,6 +10237,13 @@
           "es"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [],
+        "features": {},
+        "feature_locations": {},
+        "external_partners": [],
+        "sections": []
       }
     },
     {
@@ -8361,6 +10347,29 @@
           "es"
         ],
         "source": "country"
+      },
+      "content": {
+        "owned_subdomains": [
+          "espanyolmedia.rcdespanyol.com",
+          "rcdespanyol.com",
+          "shop.rcdespanyol.com",
+          "tickets.rcdespanyol.com"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "membership": true,
+          "academy": true,
+          "foundation": true
+        },
+        "feature_locations": {
+          "shop": "shop.rcdespanyol.com",
+          "ticketing": "tickets.rcdespanyol.com"
+        },
+        "external_partners": [
+          "use.fontawesome.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -8373,7 +10382,7 @@
       "website": "https://sscnapoli.it/en/",
       "domain": "sscnapoli.it",
       "wikipedia_slug": "SSC_Napoli",
-      "domain_first_year": 2001,
+      "domain_first_year": null,
       "http": {
         "cdn": "Cloudflare",
         "security_headers_present": 3,
@@ -8471,6 +10480,37 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "cdn.sscnapoli.it",
+          "sscnapoli.it",
+          "store.sscnapoli.it"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "membership": true,
+          "academy": true,
+          "press_media": true
+        },
+        "feature_locations": {
+          "shop": "store.sscnapoli.it"
+        },
+        "external_partners": [
+          "bit.ly",
+          "gmpg.org",
+          "sscnapoli.ticketone.it",
+          "www.acquasorgesana.it",
+          "www.armani.com",
+          "www.bper.it",
+          "www.coca-cola.com",
+          "www.ea.com",
+          "www.msccrociere.it",
+          "www.p1travel.com",
+          "www.shop.ipzs.it"
+        ],
+        "sections": []
       }
     },
     {
@@ -8567,6 +10607,33 @@
           "es"
         ],
         "source": "hreflang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "campusytorneos.villarrealcf.es",
+          "login.villarrealcf.es",
+          "shop.villarrealcf.es",
+          "villarrealcf.es"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "membership": true,
+          "academy": true,
+          "newsletter": true,
+          "foundation": true
+        },
+        "feature_locations": {
+          "shop": "shop.villarrealcf.es"
+        },
+        "external_partners": [
+          "fundacionvillarrealcf.org",
+          "id.sportsalliance.com",
+          "member-external.proticketing.com",
+          "tickets.oneboxtds.com",
+          "www.twitch.tv"
+        ],
+        "sections": []
       }
     },
     {
@@ -8579,7 +10646,7 @@
       "website": "https://www.liverpoolfc.com/",
       "domain": "liverpoolfc.com",
       "wikipedia_slug": "Liverpool_F.C.",
-      "domain_first_year": 2000,
+      "domain_first_year": null,
       "http": {
         "cdn": "CloudFront",
         "security_headers_present": 0,
@@ -8674,6 +10741,26 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "liverpoolfc.com"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "streaming": true,
+          "museum_tour": true,
+          "academy": true,
+          "foundation": true,
+          "magazine": true,
+          "careers": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "www.sc.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -8783,6 +10870,42 @@
           "it"
         ],
         "source": "hreflang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "bolognafc.it",
+          "mybfc.bolognafc.it"
+        ],
+        "features": {
+          "ticketing": true,
+          "streaming": true,
+          "museum_tour": true,
+          "academy": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "alessandroberselli.com",
+          "bestunion.queue-it.net",
+          "granarolo.it",
+          "infissigroup.com",
+          "sambadigital.com",
+          "weibo.com",
+          "www.aon.com",
+          "www.asterixsrl.it",
+          "www.bancadibologna.it",
+          "www.bestunion.it",
+          "www.betwayscores.it",
+          "www.bolognafcstore.com",
+          "www.ceramicarondine.it",
+          "www.comet.it",
+          "www.dbtechnologies.com",
+          "www.elisabettafranchi.com",
+          "www.filicorizecchini.com",
+          "www.granarolo.it",
+          "www.gruppohera.it",
+          "www.heritancehotels.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -8903,6 +11026,29 @@
           "zh"
         ],
         "source": "sitemap"
+      },
+      "content": {
+        "owned_subdomains": [
+          "auctions.manutd.com",
+          "manutd.com",
+          "store.manutd.com",
+          "tickets.manutd.com"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "membership": true,
+          "museum_tour": true,
+          "academy": true,
+          "podcast": true,
+          "magazine": true
+        },
+        "feature_locations": {
+          "shop": "store.manutd.com",
+          "ticketing": "tickets.manutd.com"
+        },
+        "external_partners": [],
+        "sections": []
       }
     },
     {
@@ -9012,6 +11158,50 @@
           "es"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "cloud.mc.realbetisbalompie.es",
+          "en.realbetisbalompie.es",
+          "jp.realbetisbalompie.es",
+          "realbetisbalompie.es",
+          "shop.realbetisbalompie.es",
+          "socios.realbetisbalompie.es",
+          "sso.realbetisbalompie.es",
+          "tickets.realbetisbalompie.es",
+          "voluntarios.realbetisbalompie.es"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "streaming": true,
+          "membership": true,
+          "academy": true
+        },
+        "feature_locations": {
+          "shop": "shop.realbetisbalompie.es",
+          "ticketing": "tickets.realbetisbalompie.es"
+        },
+        "external_partners": [
+          "bit.ly",
+          "driverevel.com",
+          "fontarel.es",
+          "forevergreen.es",
+          "greeproducts.es",
+          "kingroyal.media",
+          "scientifficnutrition.com",
+          "sorare.com",
+          "www.asisa.es",
+          "www.ausglobaluk.com",
+          "www.caixabank.es",
+          "www.cocacola.es",
+          "www.cruzcampo.es",
+          "www.helloprima.es",
+          "www.repsol.com",
+          "www.thetrainline.com",
+          "www.volvocars.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -9116,6 +11306,15 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [],
+        "features": {},
+        "feature_locations": {},
+        "external_partners": [
+          "vercel.link"
+        ],
+        "sections": []
       }
     },
     {
@@ -9211,7 +11410,8 @@
           "gl"
         ],
         "source": "manual"
-      }
+      },
+      "content": {}
     },
     {
       "youtube_channel_id": "UCKPvGWyCL62gKy-i_Fz_CJA",
@@ -9316,6 +11516,36 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "cagliaricalcio.com",
+          "store.cagliaricalcio.com"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "museum_tour": true,
+          "academy": true,
+          "press_media": true,
+          "podcast": true
+        },
+        "feature_locations": {
+          "shop": "store.cagliaricalcio.com"
+        },
+        "external_partners": [
+          "gmpg.org",
+          "use.typekit.net",
+          "www.aeroitalia.com",
+          "www.bancosardegna.it",
+          "www.bet365scores.it",
+          "www.crai-supermercati.it",
+          "www.doppiomalto.com",
+          "www.eyesportshop.com",
+          "www.leroymerlin.it",
+          "www.sardegnaturismo.it"
+        ],
+        "sections": []
       }
     },
     {
@@ -9328,7 +11558,7 @@
       "website": "https://www.getafecf.com/en",
       "domain": "getafecf.com",
       "wikipedia_slug": "Getafe_CF",
-      "domain_first_year": 2002,
+      "domain_first_year": null,
       "http": {
         "cdn": "Unknown",
         "security_headers_present": 3,
@@ -9427,6 +11657,21 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "getafecf.com",
+          "tienda.getafecf.com"
+        ],
+        "features": {
+          "ticketing": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "l10preunestawamb.blob.core.windows.net",
+          "weibo.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -9530,6 +11775,24 @@
           "fr"
         ],
         "source": "hreflang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "billetterie.staderennais.com",
+          "billetterie2.staderennais.com",
+          "histoire.staderennais.com",
+          "staderennais.com"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "academy": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "plus.ligue1.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -9628,6 +11891,44 @@
           "es"
         ],
         "source": "hreflang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "en.atleticodemadrid.com"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "membership": true,
+          "museum_tour": true,
+          "academy": true,
+          "foundation": true,
+          "podcast": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "atleticodemadrid.integrityline.com",
+          "atletilab.com",
+          "campusatleticodemadrid.com",
+          "fans.atleticodemadrid.com",
+          "football.comave.com",
+          "hyundai.es",
+          "indiparkatleti.com",
+          "secure.widget.cloud.opta.net",
+          "shop.atleticodemadrid.com",
+          "sites.atleticodemadrid.com",
+          "tickets.oneboxtds.com",
+          "tour-museum.atleticodemadrid.com",
+          "visitrwanda.com",
+          "wa.me",
+          "www.atleticodemadrid.com",
+          "www.cocacola.es",
+          "www.ea.com",
+          "www.hyundai.com",
+          "www.kraken.com",
+          "www.movistar.es"
+        ],
+        "sections": []
       }
     },
     {
@@ -9640,7 +11941,7 @@
       "website": "https://www.torinofc.it/en/",
       "domain": "torinofc.it",
       "wikipedia_slug": "Torino_FC",
-      "domain_first_year": 2007,
+      "domain_first_year": null,
       "http": {
         "cdn": "Unknown",
         "security_headers_present": 2,
@@ -9735,6 +12036,43 @@
           "it"
         ],
         "source": "hreflang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "be.torinofc.it",
+          "cambionominativo.torinofc.it",
+          "camp.torinofc.it",
+          "giftcard.torinofc.it",
+          "torinofc.it",
+          "tv.torinofc.it"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "streaming": true,
+          "academy": true,
+          "newsletter": true
+        },
+        "feature_locations": {
+          "streaming": "tv.torinofc.it",
+          "academy": "camp.torinofc.it"
+        },
+        "external_partners": [
+          "auto.suzuki.it",
+          "ediliziacrobatica.com",
+          "t.me",
+          "torinofcstore.com",
+          "weibo.com",
+          "www.acrobatica.it",
+          "www.bet365scores.it",
+          "www.enel.it",
+          "www.inalpi.it",
+          "www.jdsports.com",
+          "www.joma-sport.com",
+          "www.monsterenergy.com",
+          "www.panealba.it"
+        ],
+        "sections": []
       }
     },
     {
@@ -9833,6 +12171,26 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "shop.vfl-wolfsburg.de",
+          "vfl-wolfsburg.de"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true
+        },
+        "feature_locations": {
+          "shop": "shop.vfl-wolfsburg.de"
+        },
+        "external_partners": [
+          "use.typekit.net",
+          "www.mobileye.com",
+          "www.nike.com",
+          "www.vw.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -9936,6 +12294,25 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "shop.brightonandhovealbion.com",
+          "tickets.brightonandhovealbion.com"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "streaming": true
+        },
+        "feature_locations": {
+          "shop": "shop.brightonandhovealbion.com",
+          "ticketing": "tickets.brightonandhovealbion.com"
+        },
+        "external_partners": [
+          "www.americanexpress.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -10039,6 +12416,25 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "levanteud.com",
+          "ticketing.levanteud.com"
+        ],
+        "features": {
+          "ticketing": true,
+          "museum_tour": true,
+          "academy": true,
+          "foundation": true
+        },
+        "feature_locations": {
+          "ticketing": "ticketing.levanteud.com"
+        },
+        "external_partners": [
+          "www.marcosautomocion.es"
+        ],
+        "sections": []
       }
     },
     {
@@ -10150,6 +12546,52 @@
           "it"
         ],
         "source": "sitemap"
+      },
+      "content": {
+        "owned_subdomains": [
+          "acmilan.com",
+          "booking.acmilan.com",
+          "help.acmilan.com",
+          "store.acmilan.com",
+          "tickets.acmilan.com"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "membership": true,
+          "museum_tour": true,
+          "academy": true,
+          "foundation": true,
+          "podcast": true,
+          "careers": true
+        },
+        "feature_locations": {
+          "shop": "store.acmilan.com",
+          "ticketing": "tickets.acmilan.com"
+        },
+        "external_partners": [
+          "alhammadi.com",
+          "bio.link",
+          "cfi.trade",
+          "eneoseurope.com",
+          "football.comave.com",
+          "l.mws.com",
+          "www.acquasantacroce.it",
+          "www.asus.com",
+          "www.bancobpm.it",
+          "www.bitpanda.com",
+          "www.bmw.com",
+          "www.bud.it",
+          "www.clivet.com",
+          "www.coca-cola.com",
+          "www.concorsogrenademilan.it",
+          "www.corpay.com",
+          "www.emirates.com",
+          "www.enel.it",
+          "www.fantokens.com",
+          "www.fondazionemilan.org"
+        ],
+        "sections": []
       }
     },
     {
@@ -10253,6 +12695,39 @@
           "it"
         ],
         "source": "hreflang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "parmacalcio1913.com",
+          "shop.parmacalcio1913.com"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "museum_tour": true,
+          "academy": true,
+          "newsletter": true,
+          "press_media": true,
+          "foundation": true
+        },
+        "feature_locations": {
+          "shop": "shop.parmacalcio1913.com"
+        },
+        "external_partners": [
+          "muchbetter.com",
+          "parmacalcio1913.integrityline.com",
+          "twitch.tv",
+          "wpml.org",
+          "www.admiralbet.news",
+          "www.credit-agricole.it",
+          "www.gassalesenergia.it",
+          "www.inx.aero",
+          "www.kinto-mobility.eu",
+          "www.moby.it",
+          "www.parma-academy.it",
+          "www.prometeon.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -10364,6 +12839,44 @@
           "eu"
         ],
         "source": "hreflang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "abonados.osasuna.es",
+          "entradas.osasuna.es",
+          "entradas.staging.osasuna.es",
+          "login.osasuna.es",
+          "tienda.osasuna.es"
+        ],
+        "features": {
+          "ticketing": true,
+          "streaming": true,
+          "foundation": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "aitiyu.com",
+          "cryptofundtrader.com",
+          "gfmservicios.com",
+          "ktech.edu.kw",
+          "kubet-casino.com",
+          "sorare.com",
+          "tauromotorcar.es",
+          "www.caixabank.es",
+          "www.coca-cola.com",
+          "www.cun.es",
+          "www.damik.es",
+          "www.digimobil.es",
+          "www.fundacionosasuna.com",
+          "www.halconviajes.com",
+          "www.jaylo.eu",
+          "www.kosner.es",
+          "www.macron.com",
+          "www.saltokihome.com",
+          "www.sanmiguel.com",
+          "www.weibo.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -10474,6 +12987,27 @@
           "zh"
         ],
         "source": "hreflang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "qg.rcstrasbourgalsace.fr",
+          "rcstrasbourgalsace.fr",
+          "support.rcstrasbourgalsace.fr"
+        ],
+        "features": {
+          "ticketing": true,
+          "museum_tour": true,
+          "academy": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "b3198018.smushcdn.com",
+          "gmpg.org",
+          "www.adidas.fr",
+          "www.winamax.fr",
+          "www.youtube-nocookie.com"
+        ],
+        "sections": []
       }
     },
     {
@@ -10588,6 +13122,38 @@
           "zh"
         ],
         "source": "sitemap"
+      },
+      "content": {
+        "owned_subdomains": [
+          "changeowner.inter.it",
+          "hospitality.inter.it",
+          "inter.it",
+          "intercampus.inter.it",
+          "loyalty.inter.it",
+          "matchdayprogramme.inter.it",
+          "store.inter.it",
+          "trasferte.inter.it",
+          "wallet.inter.it"
+        ],
+        "features": {
+          "shop": true,
+          "ticketing": true,
+          "streaming": true,
+          "academy": true,
+          "investor_relations": true,
+          "magazine": true
+        },
+        "feature_locations": {
+          "shop": "store.inter.it"
+        },
+        "external_partners": [
+          "t.me",
+          "weibo.com",
+          "www.parkforfun.com",
+          "www.snapchat.com",
+          "www.twitch.tv"
+        ],
+        "sections": []
       }
     },
     {
@@ -10695,6 +13261,46 @@
           "en"
         ],
         "source": "html-lang"
+      },
+      "content": {
+        "owned_subdomains": [
+          "apim.laliga.com",
+          "assets.laliga.com",
+          "business-school.laliga.com",
+          "laliga.com",
+          "laligaplus.laliga.com",
+          "miliga.laliga.com"
+        ],
+        "features": {
+          "ticketing": true,
+          "newsletter": true,
+          "foundation": true,
+          "careers": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "aficionesunidas.laliga.es",
+          "en.realbetisbalompie.es",
+          "laligabares.com",
+          "laligafantasymarca.onelink.me",
+          "lpff.es",
+          "vk.com",
+          "www.athletic-club.eus",
+          "www.deportivoalaves.com",
+          "www.elchecf.es",
+          "www.fcbarcelona.com",
+          "www.getafecf.com",
+          "www.gironafc.cat",
+          "www.laligastore.com",
+          "www.levanteud.com",
+          "www.marcasrenombradas.com",
+          "www.osasuna.es",
+          "www.rayovallecano.es",
+          "www.rccelta.es",
+          "www.rcdespanyol.com",
+          "www.rcdmallorca.es"
+        ],
+        "sections": []
       }
     }
   ]

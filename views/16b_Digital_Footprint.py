@@ -635,9 +635,10 @@ def render_z3(c: dict) -> None:
     st.caption(league or "—")
 
     # ── Tabs: Overview (summary) + one tab per section ───────────
-    tab_overview, tab_perf, tab_stack, tab_aud, tab_app, tab_gaps, tab_cmp = st.tabs([
+    (tab_overview, tab_perf, tab_stack, tab_aud, tab_content,
+     tab_app, tab_gaps, tab_cmp) = st.tabs([
         "Overview", "⚡ Performance", "🏗️ Stack", "🌍 Audience",
-        "📱 Mobile app", "🔍 Gaps", "⚖️ Compare",
+        "📚 Content", "📱 Mobile app", "🔍 Gaps", "⚖️ Compare",
     ])
 
     # ── Overview tab — narrative card + 5-card highlight strip ───
@@ -1024,6 +1025,159 @@ def render_z3(c: dict) -> None:
                 unsafe_allow_html=True,
             )
 
+    # ── Content & features tab ────────────────────────────────────
+    with tab_content:
+        ct = c.get("content") or {}
+        owned = ct.get("owned_subdomains") or []
+        feats = ct.get("features") or {}
+        feat_loc = ct.get("feature_locations") or {}
+        partners = ct.get("external_partners") or []
+        sections = ct.get("sections") or []
+
+        # Feature catalog — display order + label + emoji
+        FEATURE_CATALOG = [
+            ("shop",              "🛒",  "Shop / e-commerce"),
+            ("ticketing",         "🎟️",  "Ticketing"),
+            ("streaming",         "📺",  "Streaming / club TV"),
+            ("membership",        "🏆",  "Membership / fan club"),
+            ("museum_tour",       "🏛️",  "Museum / stadium tour"),
+            ("academy",           "🎓",  "Academy / youth"),
+            ("newsletter",        "📧",  "Newsletter"),
+            ("press_media",       "📰",  "Press / media centre"),
+            ("podcast",           "🎙️",  "Podcast"),
+            ("magazine",          "📖",  "Magazine / programme"),
+            ("foundation",        "🤝",  "Foundation / CSR"),
+            ("investor_relations","📈",  "Investor relations"),
+            ("careers",           "💼",  "Careers"),
+        ]
+
+        # Sanity check: empty content (e.g. WAF-blocked site)
+        if not (owned or feats or partners):
+            st.info(
+                f"No content fingerprint available for {name}'s site "
+                "(probe couldn't load the page, or homepage HTML is "
+                "JS-only with no link signals)."
+            )
+        else:
+            # 1) Feature catalog — 13 rows, 2 columns
+            present_n = sum(1 for f, _, _ in FEATURE_CATALOG if feats.get(f))
+            st.markdown(
+                f"<div style='font-size:11px;color:#888;text-transform:uppercase;"
+                f"letter-spacing:0.5px;margin-bottom:6px'>"
+                f"Features detected · {present_n}/{len(FEATURE_CATALOG)}</div>",
+                unsafe_allow_html=True,
+            )
+            # Compute "how many peers also have it" for context
+            peer_features = [(p.get("content") or {}).get("features") or {} for p in peers]
+            def _peer_share(key: str) -> str:
+                if not peer_features: return ""
+                hits = sum(1 for pf in peer_features if pf.get(key))
+                return f"{hits}/{len(peers)} in {league}"
+            rows = []
+            for key, emoji, label in FEATURE_CATALOG:
+                present = feats.get(key, False)
+                loc = feat_loc.get(key)
+                if present:
+                    icon = "<span style='color:#00CC96;font-weight:600'>✓</span>"
+                    label_color = "#FAFAFA"
+                else:
+                    icon = "<span style='color:#444'>—</span>"
+                    label_color = "#666"
+                # Linkify location if it looks like a subdomain
+                if loc:
+                    loc_html = (f" · <a href='https://{loc}' target='_blank' "
+                                 f"rel='noopener' style='color:#58A6FF;"
+                                 f"text-decoration:none'>{loc}</a>")
+                else:
+                    loc_html = ""
+                share = _peer_share(key)
+                share_html = (f"<span style='color:#666;font-size:11px;"
+                               f"margin-left:8px'>{share}</span>" if share else "")
+                rows.append(
+                    "<tr>"
+                    f"<td style='padding:4px 10px 4px 0;width:24px;text-align:center'>{icon}</td>"
+                    f"<td style='padding:4px 10px 4px 0;width:24px;font-size:16px'>{emoji}</td>"
+                    f"<td style='padding:4px 14px 4px 0;color:{label_color}'>"
+                    f"<b>{label}</b>{loc_html}</td>"
+                    f"<td style='padding:4px 0;text-align:right'>{share_html}</td>"
+                    "</tr>"
+                )
+            st.markdown(
+                "<table style='border-collapse:collapse;width:100%;"
+                "max-width:680px;font-size:13px;margin:6px 0 18px 0'>"
+                + "".join(rows) +
+                "</table>",
+                unsafe_allow_html=True,
+            )
+
+            # 2) Owned digital estate — subdomain inventory
+            if owned:
+                st.markdown(
+                    f"<div style='font-size:11px;color:#888;text-transform:uppercase;"
+                    f"letter-spacing:0.5px;margin:8px 0 6px 0'>"
+                    f"Owned digital estate · {len(owned)} {'subdomain' if len(owned)==1 else 'subdomains'} "
+                    f"found on homepage</div>",
+                    unsafe_allow_html=True,
+                )
+                # Try to label each subdomain via reverse-lookup in feat_loc
+                loc_to_feat = {v: (lbl, emo) for k, v, in feat_loc.items()
+                               for fk, emo, lbl in FEATURE_CATALOG if fk == k}
+                chips = []
+                for s in owned:
+                    info = loc_to_feat.get(s)
+                    chip_label = (f"<b style='color:#FAFAFA'>{s}</b>"
+                                   + (f" <span style='color:#888;font-size:11px'>"
+                                      f"{info[1]} {info[0]}</span>" if info else ""))
+                    chips.append(
+                        f"<a href='https://{s}' target='_blank' rel='noopener' "
+                        f"style='display:inline-block;background:#1a1c24;"
+                        f"border:1px solid #2a2c34;border-radius:4px;"
+                        f"padding:6px 10px;margin:2px 4px 2px 0;"
+                        f"text-decoration:none;font-size:12px'>{chip_label}</a>"
+                    )
+                st.markdown("".join(chips), unsafe_allow_html=True)
+
+            # 3) Partner / sponsor surface
+            if partners:
+                st.markdown(
+                    f"<div style='font-size:11px;color:#888;text-transform:uppercase;"
+                    f"letter-spacing:0.5px;margin:18px 0 6px 0'>"
+                    f"Partner / sponsor surface · {len(partners)} external "
+                    f"{'site' if len(partners)==1 else 'sites'} linked from homepage</div>",
+                    unsafe_allow_html=True,
+                )
+                chips = []
+                for p in partners:
+                    chips.append(
+                        f"<a href='https://{p}' target='_blank' rel='noopener' "
+                        f"style='display:inline-block;background:#1a1c24;"
+                        f"border:1px solid #2a2c34;border-radius:4px;"
+                        f"padding:5px 10px;margin:2px 4px 2px 0;color:#888;"
+                        f"text-decoration:none;font-size:12px'>{p}</a>"
+                    )
+                st.markdown("".join(chips), unsafe_allow_html=True)
+                st.caption("Includes kit-maker, shirt sponsors, technical "
+                            "partners, museum/tour partners, etc. — anyone "
+                            "with an outbound link on the homepage.")
+
+            # 4) Sitemap-index sections (when available)
+            if sections:
+                st.markdown(
+                    f"<div style='font-size:11px;color:#888;text-transform:uppercase;"
+                    f"letter-spacing:0.5px;margin:18px 0 6px 0'>"
+                    f"Sitemap sections · {len(sections)}</div>",
+                    unsafe_allow_html=True,
+                )
+                section_chips = "".join(
+                    f"<span style='display:inline-block;background:#1a1c24;"
+                    f"border-radius:4px;padding:4px 10px;margin:2px 4px 2px 0;"
+                    f"color:#888;font-size:12px'>{s}</span>"
+                    for s in sections
+                )
+                st.markdown(section_chips, unsafe_allow_html=True)
+                st.caption("From the homepage's sitemap-index — proxy for "
+                            "how the site organizes its content.")
+
         # ── App story ─────────────────────────────────────────────────
     with tab_app:
         if not app.get("present"):
@@ -1397,6 +1551,37 @@ layered probe (most reliable signal wins):
 7. **Country fallback** — last-resort assumption (UK → `en`).
 
 ---
+
+### 📚 Content tab
+
+What the site offers beyond just having a homepage. Three layers:
+
+- **Features detected** — a 13-row matrix (shop, ticketing,
+  streaming, membership, museum, academy, newsletter, press,
+  podcast, magazine, foundation, investor relations, careers).
+  ✓ in green when present; the right column shows
+  "{N}/{league_size} in {league}" so you can see whether the
+  club is ahead of or behind league norms on each feature.
+  Where a feature lives on its own subdomain (e.g.
+  `store.juventus.com` for the shop), the URL is shown next to
+  the row and click-through goes to the site.
+- **Owned digital estate** — the list of subdomains found on
+  the homepage. Each chip links to the property. The number is
+  itself a signal — Juventus runs 5–6 distinct owned properties;
+  smaller clubs run 1.
+- **Partner / sponsor surface** — external sites linked from
+  the homepage (kit makers, shirt sponsors, technical partners,
+  tour partners). Higher count usually means a more developed
+  commercial portfolio.
+- **Sitemap sections** — the sub-sitemap names from the
+  sitemap-index (e.g. `first-team-men`, `first-team-women`,
+  `jtv-first-team-men`, `jofc`). Proxy for how the editorial
+  team organizes content.
+
+Method: features are fingerprinted from homepage HTML (keyword
+patterns + own-subdomain prefix matching). Same caveats as the
+Stack tab — clubs whose homepage is a JS-only shell may return
+empty results.
 
 ### 📱 Mobile app tab — iOS only
 

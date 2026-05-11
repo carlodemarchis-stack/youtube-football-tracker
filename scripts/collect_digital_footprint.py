@@ -477,6 +477,121 @@ def _wiki_pageviews(lang_code: str, slug: str, window_days: int = 370) -> int | 
         return None
 
 
+def content_taxonomy(website: str, domain: str) -> dict:
+    """Detect what the site offers beyond just being a website.
+
+    Returns:
+      owned_subdomains    list[str]    e.g. ["store","tickets","membership"]
+      features            dict[str,bool]   keyed by canonical feature name
+      feature_locations   dict[str,str]    feature → URL (own subdomain or
+                                            external vendor)
+      external_partners   list[str]    sponsor / partner hostnames seen in
+                                        homepage links (secondary signal)
+      sections            list[str]    sub-sitemap names (from sitemap index)
+    """
+    if not website or not domain:
+        return {}
+    try:
+        r = requests.get(website, headers=HEADERS, timeout=20,
+                         allow_redirects=True)
+        html = r.text[:500_000]
+    except Exception:
+        return {}
+
+    # 1. Pull every distinct host referenced from homepage links
+    hosts = set(_re.findall(r'href="https?://([^/"]+)/', html))
+    own_subs = sorted({h for h in hosts
+                        if h.endswith("." + domain) or h.endswith("." + domain.replace("www.", ""))
+                        or h == domain or h == "www." + domain})
+    own_subs = [h[len("www."):] if h.startswith("www.") else h for h in own_subs]
+    own_subs = sorted(set(own_subs))
+
+    # External hosts (filter common noise: social media, analytics, CDNs)
+    NOISE = {"youtube.com","twitter.com","x.com","facebook.com","instagram.com",
+              "tiktok.com","linkedin.com","threads.net","whatsapp.com",
+              "google.com","googletagmanager.com","gstatic.com","fonts.googleapis.com",
+              "cookielaw.org","onetrust.com","cdn.jsdelivr.net","cdnjs.cloudflare.com",
+              "apple.com","itunes.apple.com","play.google.com",
+              "schema.org","w3.org"}
+    external = sorted({h for h in hosts
+                        if h not in NOISE
+                        and not any(n in h for n in NOISE)
+                        and domain not in h
+                        and not h.startswith("img.") and not h.startswith("cdn.")})
+
+    # 2. Feature detection — keyword patterns on the homepage HTML
+    #    + own-subdomain detection. Each feature has a list of "yes-if-matched"
+    #    patterns (regex) PLUS a list of canonical own-subdomain prefixes.
+    FEATURES = [
+        ("shop",        [r"\bstore\.", r"\bshop\.", r"/(en|it|es|de|fr)/shop\b"],
+                        ["store", "shop"]),
+        ("ticketing",   [r"\bticket", r"biglietti", r"vivaticket"],
+                        ["tickets", "ticketing"]),
+        ("streaming",   [r"jtv|club[-_]?tv|tv\.", r"\bstream", r"watch[-_]?live"],
+                        ["tv", "jtv", "watch", "play"]),
+        ("membership",  [r"\bmembership\b", r"fan[-_]?club", r"socios"],
+                        ["membership", "officialfanclub", "fanclub", "members"]),
+        ("museum_tour", [r"\bmuseum\b", r"stadium[-_]?tour", r"stadium[-_]?visit"],
+                        ["museum"]),
+        ("academy",     [r"\bacademy\b", r"primavera", r"under[-_]?(?:15|16|17|18|19|20|21|23)"],
+                        ["academy", "camp", "weareyouth", "scuolacalcio"]),
+        ("newsletter",  [r"\bnewsletter\b", r"email[-_]?signup", r"subscribe[-_]?email"],
+                        []),
+        ("press_media", [r"\bpress[-_]?release\b", r"/(en|it|es|de|fr)/(press|media)\b", r"media[-_]?centre"],
+                        ["press", "media"]),
+        ("investor_relations", [r"investor[-_]?relations\b"],
+                        ["investor", "ir"]),
+        ("foundation",  [r"\bfoundation\b", r"fondazion", r"sustainability", r"\bcsr\b"],
+                        ["foundation", "fondazione", "fundacion", "stiftung"]),
+        ("podcast",     [r"\bpodcast\b"],
+                        ["podcast"]),
+        ("magazine",    [r"\bmagazine\b", r"matchday[-_]?programme"],
+                        []),
+        ("careers",     [r"\bcareers?\b", r"\bjobs\b", r"work[-_]?with[-_]?us"],
+                        ["careers", "jobs"]),
+    ]
+    features: dict[str, bool] = {}
+    feature_locations: dict[str, str] = {}
+    for name, patterns, sub_prefixes in FEATURES:
+        # Subdomain hit is high-confidence: store.juventus.com → has shop
+        for s in own_subs:
+            host_label = s.split(".")[0]
+            if host_label in sub_prefixes:
+                features[name] = True
+                feature_locations[name] = s
+                break
+        else:
+            # Fall back to regex match on homepage HTML
+            for p in patterns:
+                if _re.search(p, html, _re.I):
+                    features[name] = True
+                    break
+
+    # 3. Sitemap-index sections (best-effort)
+    sections: list[str] = []
+    for sm_url in [f"https://www.{domain}/{loc}/xml-sitemap/sitemap.xml" for loc in ("en","it","es","de","fr")] + \
+                   [f"https://www.{domain}/sitemap.xml",
+                    f"https://{domain}/sitemap.xml"]:
+        try:
+            r = requests.get(sm_url, headers=HEADERS, timeout=10)
+            if r.status_code != 200:
+                continue
+            sub_sms = _re.findall(r'<loc>[^<]*sitemap_([^<.]+)\.xml</loc>', r.text)
+            if sub_sms:
+                sections = sorted(set(sub_sms))
+                break
+        except Exception:
+            continue
+
+    return {
+        "owned_subdomains": own_subs,
+        "features": features,
+        "feature_locations": feature_locations,
+        "external_partners": external[:20],  # cap noise
+        "sections": sections,
+    }
+
+
 def wikipedia(slug: str) -> dict:
     """Fetch Wikipedia signals for one article.
 
@@ -764,6 +879,7 @@ def collect_one(ch: dict) -> dict:
                                                     tech_stack(website)) if website else {},
         "sitemap":            sm,
         "locales":            detect_locales(website, sm.get("locale_list"), ch.get("country"), ch.get("youtube_channel_id")) if website else {},
+        "content":            content_taxonomy(website, domain) if website else {},
         "wikipedia":          wikipedia(wiki_slug),
         "ios_app":            ios_app(app_query, app_country),
         "crux_phone":         crux(origin, "PHONE") if origin else {},
