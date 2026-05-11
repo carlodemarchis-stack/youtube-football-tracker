@@ -159,7 +159,12 @@ def _flat_table(channels: list[dict], header: str = "") -> None:
         sec = _safe(c, "http", "security_headers_present")
         sec_s = f"{sec}/6" if sec is not None else "—"
         pages = _safe(c, "sitemap", "pages")
-        loc = _safe(c, "sitemap", "locales")
+        # Prefer the layered locales detector over the raw sitemap
+        # regex — falls back through hreflang → sitemap → html lang.
+        loc_data = c.get("locales") or {}
+        loc = loc_data.get("count")
+        loc_langs = loc_data.get("langs") or []
+        loc_src = loc_data.get("source") or ""
         cx = c.get("crux_phone") or {}
         lcp = cx.get("lcp_p75")
         inp = cx.get("inp_p75")
@@ -198,8 +203,13 @@ def _flat_table(channels: list[dict], header: str = "") -> None:
             f"<td style='text-align:right'>{cdn}</td>"
             f"<td style='text-align:right'>{sec_s}</td>"
             f"<td style='text-align:right'>{fmt_num(pages) if pages else '—'}</td>"
-            f"<td style='text-align:right'>{loc if loc else '—'}</td>"
-            f"<td style='text-align:right'>{_rate_lcp(lcp)} {_fmt_ms(lcp)}</td>"
+            # Cell shows count; hover reveals the actual language codes
+            # and the source layer (hreflang / sitemap / html-lang).
+            + (f"<td style='text-align:right' title='{', '.join(loc_langs)} "
+               f"(via {loc_src})'>{loc}</td>"
+               if loc and loc_langs else
+               f"<td style='text-align:right'>{loc if loc else '—'}</td>")
+            + f"<td style='text-align:right'>{_rate_lcp(lcp)} {_fmt_ms(lcp)}</td>"
             f"<td style='text-align:right'>{_rate_inp(inp)} {_fmt_ms(inp)}</td>"
             f"<td style='text-align:right'>{a11y if a11y is not None else '—'}</td>"
             f"<td style='text-align:right'>{seo if seo is not None else '—'}</td>"
@@ -275,7 +285,7 @@ def _flat_table(channels: list[dict], header: str = "") -> None:
         "title='Total URLs found across the site’s sitemap.xml (and any sub-sitemaps). Content depth proxy.'>"
         "Pages</th>"
         "<th style='text-align:right' "
-        "title='Locale codes detected in the sitemap path (e.g. /en/, /it/) — count of language editions offered.'>"
+        "title='Number of language editions the site offers. Detected via layered probe: 1) hreflang tags in &lt;head&gt; (most reliable), 2) sitemap path codes /xx/ when 2-12 distinct, 3) <html lang> fallback for single-locale sites. Hover the cell to see the language list + source.'>"
         "Loc</th>"
         "<th style='text-align:right' "
         "title='Largest Contentful Paint, p75 across real Chrome users on mobile (last 28 days, CrUX). 🟢 ≤2.5s · 🟡 ≤4s · 🔴 >4s'>"
@@ -350,16 +360,22 @@ def render_z3(c: dict) -> None:
         return ""
 
     pages = _safe(c, "sitemap", "pages")
-    locales = _safe(c, "sitemap", "locales")
+    locales_data = c.get("locales") or {}
+    locales = locales_data.get("count")
+    locales_langs = locales_data.get("langs") or []
+    locales_src = locales_data.get("source") or ""
     sec_p = _safe(c, "http", "security_headers_present")
     wiki_langs = _safe(c, "wikipedia", "langs")
     wiki_views = _safe(c, "wikipedia", "pageviews_12mo")
 
     st.markdown("**Web overview**")
+    locales_val = str(locales) if locales else "—"
+    locales_sub = (f"{'/'.join(locales_langs)}  · via {locales_src}"
+                   if locales_langs else "")
     st.markdown(kpi_row([
         ("Pages",  fmt_num(pages) if pages else "—",
             rank_of(lambda c: _safe(c, "sitemap", "pages"))),
-        ("Locales", str(locales) if locales else "—", ""),
+        ("Locales", locales_val, locales_sub),
         ("Sec headers", f"{sec_p}/6" if sec_p is not None else "—", ""),
         ("Wiki langs", str(wiki_langs) if wiki_langs else "—",
             rank_of(lambda c: _safe(c, "wikipedia", "langs"))),
@@ -549,8 +565,18 @@ with st.expander("📖 What every column means", expanded=False):
 - **Pages** — total URLs across the site's `sitemap.xml` (and any
   sub-sitemaps). Heuristic — some clubs use non-standard sitemap
   locations and return "—".
-- **Loc** — number of locale codes detected in sitemap paths
-  (`/en/`, `/it/`, …) — count of language editions offered.
+- **Loc** — number of language editions the site offers. Detected
+  via a layered probe (most reliable signal wins):
+  1. `<link rel="alternate" hreflang="xx">` declarations in the
+     homepage head — Google's structured signal for international
+     sites. Used when ≥ 2 codes are found.
+  2. `/xx/` path codes in the sitemap — only when between 2 and 12
+     distinct codes (above that = false positives from URL slugs).
+  3. `<html lang="xx">` attribute — fallback for single-locale
+     sites; count = 1.
+  4. "—" when none of the above worked.
+  Hover any cell to see the **language list and which source layer
+  was used**.
 
 ### Real users (green header) — from CrUX
 Real Chrome users on **mobile**, p75 across the last 28 days. p75

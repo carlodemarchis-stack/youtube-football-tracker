@@ -76,6 +76,13 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -146,6 +153,13 @@
         "evidence": [
           "WordPress: …e.it/wp-content/themes/uslecce/…"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "it"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -202,6 +216,13 @@
           "<meta generator>: WordPress 6.9.4",
           "WordPress: …ef=\"/wp-content/uploads/2024/08…"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "it"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -285,6 +306,13 @@
           "<meta generator>: WP Rocket 3.19.0.1",
           "WordPress: …a.fr/wp-content/themes/webqam/d…"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "fr"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -367,6 +395,15 @@
         "evidence": [
           "<meta generator>: TYPO3 CMS"
         ]
+      },
+      "locales": {
+        "count": 3,
+        "langs": [
+          "de",
+          "en",
+          "fr"
+        ],
+        "source": "hreflang"
       }
     },
     {
@@ -451,6 +488,15 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": 3,
+        "langs": [
+          "ca",
+          "en",
+          "es"
+        ],
+        "source": "hreflang"
       }
     },
     {
@@ -534,6 +580,13 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -628,6 +681,13 @@
         "evidence": [
           "Next.js: …ref=\"/_next/static/chunks/0db9epy…"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -708,6 +768,13 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -788,6 +855,13 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "fr"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -877,6 +951,14 @@
         "vendor_chain": [
           "Deltatre"
         ]
+      },
+      "locales": {
+        "count": 2,
+        "langs": [
+          "en",
+          "it"
+        ],
+        "source": "sitemap"
       }
     },
     {
@@ -942,6 +1024,11 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": null,
+        "langs": [],
+        "source": "unknown"
       }
     },
     {
@@ -1029,6 +1116,13 @@
         "evidence": [
           "Next.js: …ref=\"/_next/static/css/2c07b34c6d…"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "es"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -1113,6 +1207,13 @@
         "evidence": [
           "Next.js: …ref=\"/_next/static/css/2c07b34c6d…"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -1196,6 +1297,13 @@
         "evidence": [
           "<meta generator>: Gatsby 4.25.9"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "de"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -1286,6 +1394,13 @@
         "vendor_chain": [
           "Stadion"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -1373,6 +1488,18 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": 6,
+        "langs": [
+          "en",
+          "es",
+          "eu",
+          "fr",
+          "ja",
+          "zh"
+        ],
+        "source": "hreflang"
       }
     },
     {
@@ -1458,6 +1585,14 @@
           "<meta generator>: WPML ver:4.7.6 stt:1,4;",
           "WordPress: …c.fr/wp-content/themes/fc-paris…"
         ]
+      },
+      "locales": {
+        "count": 2,
+        "langs": [
+          "en",
+          "fr"
+        ],
+        "source": "hreflang"
       }
     },
     {
@@ -1541,6 +1676,14 @@
         "evidence": [
           "AEM: …ref=\"/etc.clientlibs/bvbweb/clientli…"
         ]
+      },
+      "locales": {
+        "count": 2,
+        "langs": [
+          "de",
+          "en"
+        ],
+        "source": "hreflang"
       }
     },
     {
@@ -1631,6 +1774,13 @@
           "Stadion",
           "Contentful"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -1715,6 +1865,14 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": 2,
+        "langs": [
+          "en",
+          "fr"
+        ],
+        "source": "sitemap"
       }
     },
     {
@@ -1798,6 +1956,13 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "de"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -1882,6 +2047,13 @@
         "evidence": [
           "Next.js: …ref=\"/_next/static/css/55b8650486…"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -1947,6 +2119,11 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": null,
+        "langs": [],
+        "source": "unknown"
       }
     },
     {
@@ -2037,6 +2214,13 @@
           "Stadion",
           "Contentful"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -2129,6 +2313,13 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "fr"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -2184,6 +2375,13 @@
         "evidence": [
           "WordPress: …o.fr/wp-content/themes/sco/styl…"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "fr"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -2229,7 +2427,8 @@
         "best_practices": 50,
         "seo": 77
       },
-      "tech": {}
+      "tech": {},
+      "locales": {}
     },
     {
       "youtube_channel_id": "UCQsH5XtIc9hONE1BQjucM0g",
@@ -2300,6 +2499,13 @@
         "evidence": [
           "Next.js: …ref=\"/_next/static/css/f32f9225cd…"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "ca"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -2380,6 +2586,11 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": null,
+        "langs": [],
+        "source": "unknown"
       }
     },
     {
@@ -2447,6 +2658,13 @@
         "evidence": [
           "Next.js: …ref=\"/_next/static/css/2c07b34c6d…"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "es"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -2527,6 +2745,14 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": 2,
+        "langs": [
+          "de",
+          "en"
+        ],
+        "source": "hreflang"
       }
     },
     {
@@ -2594,6 +2820,13 @@
         "evidence": [
           "<meta generator>: TYPO3 CMS"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "de"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -2676,6 +2909,11 @@
         "evidence": [
           "Nuxt: …html data-n-head-ssr>   <head> …"
         ]
+      },
+      "locales": {
+        "count": null,
+        "langs": [],
+        "source": "unknown"
       }
     },
     {
@@ -2766,6 +3004,17 @@
         "vendor_chain": [
           "Pulselive"
         ]
+      },
+      "locales": {
+        "count": 5,
+        "langs": [
+          "ca",
+          "en",
+          "es",
+          "fr",
+          "ja"
+        ],
+        "source": "hreflang"
       }
     },
     {
@@ -2837,6 +3086,13 @@
         "evidence": [
           "Next.js: …ref=\"/_next/static/css/2ea687dacf…"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -2915,6 +3171,13 @@
         "vendor_chain": [
           "Hiway Media"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -3003,6 +3266,13 @@
         "vendor_chain": [
           "InCrowd"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -3086,6 +3356,16 @@
         "evidence": [
           "Angular: …ng\">[_nghost-ng-c3519508287]{di…"
         ]
+      },
+      "locales": {
+        "count": 4,
+        "langs": [
+          "de",
+          "en",
+          "es",
+          "pt"
+        ],
+        "source": "hreflang"
       }
     },
     {
@@ -3155,6 +3435,15 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": 3,
+        "langs": [
+          "de",
+          "en",
+          "es"
+        ],
+        "source": "sitemap"
       }
     },
     {
@@ -3239,6 +3528,14 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": 2,
+        "langs": [
+          "en",
+          "it"
+        ],
+        "source": "hreflang"
       }
     },
     {
@@ -3324,6 +3621,11 @@
         "vendor_chain": [
           "Deltatre"
         ]
+      },
+      "locales": {
+        "count": null,
+        "langs": [],
+        "source": "unknown"
       }
     },
     {
@@ -3394,6 +3696,14 @@
           "<meta generator>: WordPress 6.9.4",
           "WordPress: …o.it/wp-content/uploads/2026/03…"
         ]
+      },
+      "locales": {
+        "count": 2,
+        "langs": [
+          "en",
+          "it"
+        ],
+        "source": "hreflang"
       }
     },
     {
@@ -3467,6 +3777,14 @@
           "<meta generator>: WordPress 6.9.4",
           "WordPress: ….com/wp-content/uploads/2020/03…"
         ]
+      },
+      "locales": {
+        "count": 2,
+        "langs": [
+          "en",
+          "it"
+        ],
+        "source": "hreflang"
       }
     },
     {
@@ -3538,6 +3856,13 @@
         "vendor_chain": [
           "Hiway Media"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -3623,6 +3948,11 @@
         "evidence": [
           "Nuxt: …html data-n-head-ssr>   <head >…"
         ]
+      },
+      "locales": {
+        "count": null,
+        "langs": [],
+        "source": "unknown"
       }
     },
     {
@@ -3708,6 +4038,19 @@
         "evidence": [
           "Angular: …pper[_ngcontent-ng-c1749368904]…"
         ]
+      },
+      "locales": {
+        "count": 7,
+        "langs": [
+          "ar",
+          "de",
+          "en",
+          "es",
+          "fr",
+          "ja",
+          "pt"
+        ],
+        "source": "hreflang"
       }
     },
     {
@@ -3795,6 +4138,13 @@
         "vendor_chain": [
           "Deltatre"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -3896,6 +4246,13 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -3972,6 +4329,13 @@
         "vendor_chain": [
           "Contentful"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -4044,6 +4408,13 @@
           "<meta generator>: WordPress 6.9.4",
           "WordPress: …c.it/wp-content/themes/genoa/as…"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "it"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -4139,6 +4510,13 @@
           "<meta generator>: Drupal 11 (https://www.drupal.org)",
           "Drupal: …ame=\"Generator\" content=\"Drupal 11 (https://ww…"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -4233,6 +4611,13 @@
         "vendor_chain": [
           "Stadion"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -4315,6 +4700,13 @@
         "evidence": [
           "Next.js: …ref=\"/_next/static/css/2c07b34c6d…"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -4377,7 +4769,8 @@
         "best_practices": 100,
         "seo": 100
       },
-      "tech": {}
+      "tech": {},
+      "locales": {}
     },
     {
       "youtube_channel_id": "UCeOCuVSSweaEj6oVtJZEKQw",
@@ -4457,6 +4850,11 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": null,
+        "langs": [],
+        "source": "unknown"
       }
     },
     {
@@ -4510,6 +4908,14 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": 2,
+        "langs": [
+          "en",
+          "fr"
+        ],
+        "source": "hreflang"
       }
     },
     {
@@ -4592,6 +4998,14 @@
         "evidence": [
           "<meta generator>: TYPO3 CMS"
         ]
+      },
+      "locales": {
+        "count": 2,
+        "langs": [
+          "de",
+          "en"
+        ],
+        "source": "hreflang"
       }
     },
     {
@@ -4679,6 +5093,13 @@
         "vendor_chain": [
           "InCrowd"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -4746,6 +5167,13 @@
         "evidence": [
           "Next.js: …ref=\"/_next/static/css/2c07b34c6d…"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "es"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -4833,6 +5261,15 @@
         "evidence": [
           "<meta generator>: Astro v4.2.0"
         ]
+      },
+      "locales": {
+        "count": 3,
+        "langs": [
+          "en",
+          "es",
+          "eu"
+        ],
+        "source": "hreflang"
       }
     },
     {
@@ -4920,6 +5357,13 @@
         "vendor_chain": [
           "Pulselive"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -5001,6 +5445,13 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "it"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -5083,6 +5534,11 @@
         "evidence": [
           "Nuxt: …html data-n-head-ssr>   <head> …"
         ]
+      },
+      "locales": {
+        "count": null,
+        "langs": [],
+        "source": "unknown"
       }
     },
     {
@@ -5163,6 +5619,11 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": null,
+        "langs": [],
+        "source": "unknown"
       }
     },
     {
@@ -5234,6 +5695,13 @@
           "Umbraco: …g.fr/umbraco/akqa/api/v1.0/…",
           "Next.js: …ref=\"/_next/static/media/Virage_B…"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -5317,6 +5785,14 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": 2,
+        "langs": [
+          "en",
+          "fr"
+        ],
+        "source": "hreflang"
       }
     },
     {
@@ -5407,6 +5883,13 @@
           "Stadion",
           "Contentful"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -5472,6 +5955,11 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": null,
+        "langs": [],
+        "source": "unknown"
       }
     },
     {
@@ -5554,6 +6042,13 @@
         "evidence": [
           "Next.js: …ref=\"/_next/static/css/d41eb9d79e…"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "de"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -5651,6 +6146,13 @@
           "<meta generator>: WP Rocket 3.19.3",
           "WordPress: ….bzh/wp-includes/css/dist/block-…"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "fr"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -5739,6 +6241,13 @@
         "vendor_chain": [
           "Pulselive"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -5813,6 +6322,13 @@
         "vendor_chain": [
           "InCrowd"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -5895,6 +6411,13 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -5975,6 +6498,13 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -6076,6 +6606,16 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": 4,
+        "langs": [
+          "fr",
+          "it",
+          "mc",
+          "ru"
+        ],
+        "source": "hreflang"
       }
     },
     {
@@ -6158,6 +6698,11 @@
         "evidence": [
           "Next.js: …chday/_next/static/css/9b692fd3af…"
         ]
+      },
+      "locales": {
+        "count": null,
+        "langs": [],
+        "source": "unknown"
       }
     },
     {
@@ -6239,6 +6784,13 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "es"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -6322,6 +6874,11 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": null,
+        "langs": [],
+        "source": "unknown"
       }
     },
     {
@@ -6396,6 +6953,13 @@
           "<meta generator>: WPML ver:4.9.2.1 stt:59,1,27;",
           "WordPress: …i.it/wp-content/uploads/2024/05…"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -6455,6 +7019,14 @@
           "<meta generator>: WPML ver:4.9.2.1 stt:1,2,66;",
           "WordPress: …f.es/wp-content/themes/smart-ma…"
         ]
+      },
+      "locales": {
+        "count": 2,
+        "langs": [
+          "en",
+          "es"
+        ],
+        "source": "hreflang"
       }
     },
     {
@@ -6538,6 +7110,13 @@
           "Drupal: …c.com/sites/default/files/styles/sm/publi…",
           "Next.js: …src=\"/_next/static/chunks/polyfil…"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -6622,6 +7201,13 @@
         "evidence": [
           "WordPress: …c.it/wp-content/uploads/2019/01…"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -6715,6 +7301,16 @@
           "Stadion",
           "Contentful"
         ]
+      },
+      "locales": {
+        "count": 4,
+        "langs": [
+          "ar",
+          "en",
+          "ko",
+          "zh"
+        ],
+        "source": "sitemap"
       }
     },
     {
@@ -6800,6 +7396,11 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": null,
+        "langs": [],
+        "source": "unknown"
       }
     },
     {
@@ -6880,6 +7481,13 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -6938,7 +7546,8 @@
       "psi": {
         "error": "Lighthouse returned error: FAILED_DOCUMENT_REQUEST. Lighthouse was unable to rel"
       },
-      "tech": {}
+      "tech": {},
+      "locales": {}
     },
     {
       "youtube_channel_id": "UCKPvGWyCL62gKy-i_Fz_CJA",
@@ -7011,6 +7620,13 @@
           "<meta generator>: WordPress 6.9.4",
           "WordPress: ….com/wp-content/themes/cagliari…"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -7098,6 +7714,13 @@
         "evidence": [
           "Next.js: …ref=\"/_next/static/css/2c07b34c6d…"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -7180,6 +7803,14 @@
         "evidence": [
           "Drupal: …ref=\"/sites/default/files/css/css_Vru-m7F…"
         ]
+      },
+      "locales": {
+        "count": 2,
+        "langs": [
+          "en",
+          "fr"
+        ],
+        "source": "hreflang"
       }
     },
     {
@@ -7249,6 +7880,14 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": 2,
+        "langs": [
+          "en",
+          "es"
+        ],
+        "source": "hreflang"
       }
     },
     {
@@ -7331,6 +7970,14 @@
         "evidence": [
           "Drupal: …fc.it/sites/default/files/loghi-squadre/l…"
         ]
+      },
+      "locales": {
+        "count": 2,
+        "langs": [
+          "en",
+          "it"
+        ],
+        "source": "hreflang"
       }
     },
     {
@@ -7413,6 +8060,13 @@
         "evidence": [
           "<meta generator>: TYPO3 CMS"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -7496,6 +8150,13 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -7583,6 +8244,13 @@
         "evidence": [
           "Next.js: …ref=\"/_next/static/css/2c07b34c6d…"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     },
     {
@@ -7669,6 +8337,14 @@
         "evidence": [
           "Kentico Kontent: …u-01.kc-usercontent.com:443/1293c890-5…"
         ]
+      },
+      "locales": {
+        "count": 2,
+        "langs": [
+          "en",
+          "it"
+        ],
+        "source": "sitemap"
       }
     },
     {
@@ -7755,6 +8431,14 @@
           "<meta generator>: WordPress 6.9.4",
           "WordPress: ….com/wp-content/uploads/_ogs/pa…"
         ]
+      },
+      "locales": {
+        "count": 2,
+        "langs": [
+          "en",
+          "it"
+        ],
+        "source": "hreflang"
       }
     },
     {
@@ -7840,6 +8524,15 @@
         "framework": null,
         "extras": [],
         "evidence": []
+      },
+      "locales": {
+        "count": 3,
+        "langs": [
+          "en",
+          "es",
+          "eu"
+        ],
+        "source": "hreflang"
       }
     },
     {
@@ -7923,6 +8616,16 @@
           "<meta generator>: All in One SEO (AIOSEO) 4.8.9",
           "WordPress: …8018/wp-content/themes/rcsa2022…"
         ]
+      },
+      "locales": {
+        "count": 4,
+        "langs": [
+          "de",
+          "en",
+          "fr",
+          "zh"
+        ],
+        "source": "hreflang"
       }
     },
     {
@@ -8011,6 +8714,15 @@
         "evidence": [
           "Next.js: …ref=\"/_next/static/css/2d2198966a…"
         ]
+      },
+      "locales": {
+        "count": 3,
+        "langs": [
+          "en",
+          "it",
+          "zh"
+        ],
+        "source": "sitemap"
       }
     },
     {
@@ -8094,6 +8806,13 @@
         "evidence": [
           "Next.js: …ref=\"/_next/static/css/aa0cf51cd8…"
         ]
+      },
+      "locales": {
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "html-lang"
       }
     }
   ]

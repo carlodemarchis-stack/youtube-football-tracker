@@ -221,6 +221,58 @@ def http_headers(url: str) -> dict:
                 "security_headers_max": 6}
 
 
+def detect_locales(website: str, sitemap_locales: list[str] | None = None) -> dict:
+    """Return {count, langs[], source} for a site's language editions.
+
+    Layered detector — uses the most reliable signal that returns ≥ 2:
+      1. <link rel="alternate" hreflang="xx"> in the homepage <head>
+         (Google/Bing standard, machine-readable).
+      2. Sitemap path regex /xx/ — only when ≤ 12 distinct values
+         (anything higher tends to be false positives — URL slugs
+         that happen to match the 2-letter pattern).
+      3. <html lang="xx"> on the homepage — single-locale fallback.
+      4. "—" when none of the above worked.
+
+    Two-letter codes are normalized so en-GB + en-US collapse to en.
+    Returns an empty dict on fetch failure so the caller can show "—".
+    """
+    if not website:
+        return {}
+    try:
+        r = requests.get(website, headers=HEADERS, timeout=20,
+                         allow_redirects=True)
+        html = r.text[:300_000]
+    except Exception:
+        return {}
+
+    # 1. hreflang — strongest signal
+    raw = set(_re.findall(
+        r'hreflang=["\']([a-z]{2}(?:-[A-Z]{2})?)["\']', html))
+    raw.discard("x-default")
+    hreflang = sorted({l.split("-")[0] for l in raw})
+    if len(hreflang) >= 2:
+        return {"count": len(hreflang), "langs": hreflang,
+                "source": "hreflang"}
+
+    # 2. Sitemap path regex — moderate signal
+    if sitemap_locales and 2 <= len(sitemap_locales) <= 12:
+        # Filter obvious non-locale 2-letter junk (rare ones from URL slugs)
+        BLOCKLIST = {"co", "th", "us", "ar", "id"}  # require manual whitelist
+        # Only block when the rest looks suspicious (e.g. a path like /th/)
+        # — but English sites legitimately use /us/ for region. Don't
+        # over-filter; trust the sitemap if length is reasonable.
+        return {"count": len(sitemap_locales), "langs": list(sitemap_locales),
+                "source": "sitemap"}
+
+    # 3. html lang — single-locale fallback
+    m = _re.search(r'<html[^>]+lang=["\']([a-z]{2})', html, _re.I)
+    if m:
+        return {"count": 1, "langs": [m.group(1).lower()],
+                "source": "html-lang"}
+
+    return {"count": None, "langs": [], "source": "unknown"}
+
+
 def parse_sitemap(domain: str) -> dict:
     import re
     candidates = [
@@ -475,6 +527,7 @@ def collect_one(ch: dict) -> dict:
     app_country = _country_to_app_country(ch.get("country") or "us")
     app_query = name  # use the channel name as the App Store search term
 
+    sm = parse_sitemap(domain) if domain else {}
     return {
         # Identity (joins back to the channels table)
         "youtube_channel_id": ch.get("youtube_channel_id"),
@@ -491,7 +544,8 @@ def collect_one(ch: dict) -> dict:
         "domain_first_year":  wayback_first_year(domain) if domain else None,
         "http":               http_headers(website) if website else {},
         "tech":               tech_stack(website) if website else {},
-        "sitemap":            parse_sitemap(domain) if domain else {},
+        "sitemap":            sm,
+        "locales":            detect_locales(website, sm.get("locale_list")) if website else {},
         "wikipedia":          wikipedia(wiki_slug),
         "ios_app":            ios_app(app_query, app_country),
         "crux_phone":         crux(origin, "PHONE") if origin else {},
