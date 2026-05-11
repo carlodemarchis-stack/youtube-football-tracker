@@ -454,6 +454,18 @@ def _z3_rank(value, peers: list[dict], extractor, *, higher_better: bool = True)
     return 0, len(vals)
 
 
+def _rank_pill(rank: int, total: int, league: str = "") -> str:
+    """Format a rank subtitle. Rank 1 gets green + 🏆; other ranks
+    stay grey/default. Used everywhere ranks are shown on Z3."""
+    if not rank or not total:
+        return ""
+    in_lg = f" in {league}" if league else ""
+    if rank == 1:
+        return (f"<span style='color:#00CC96;font-weight:600'>"
+                f"🏆 #{rank} of {total}{in_lg}</span>")
+    return f"#{rank} of {total}{in_lg}"
+
+
 def _z3_median(peers: list[dict], extractor) -> float | None:
     vals = [extractor(p) for p in peers]
     vals = sorted(v for v in vals if v is not None)
@@ -638,13 +650,13 @@ def render_z3(c: dict) -> None:
         st.markdown(kpi_row([
             (f"LCP {_rate_lcp(_lcp)}",
                 _fmt_ms(_lcp) if _lcp else "—",
-                f"#{_lcp_r[0]} of {_lcp_r[1]} in {league}" if _lcp_r[0] else ""),
+                _rank_pill(_lcp_r[0], _lcp_r[1], league)),
             ("Wiki views (12mo)",
                 fmt_num(_wv) if _wv else "—",
-                f"#{_wv_r[0]} of {_wv_r[1]} in {league}" if _wv_r[0] else ""),
+                _rank_pill(_wv_r[0], _wv_r[1], league)),
             ("iOS rating",
                 f"{_r:.1f}★" if _r else "—",
-                f"#{_r_r[0]} of {_r_r[1]} in {league}" if _r_r[0] else ""),
+                _rank_pill(_r_r[0], _r_r[1], league)),
             ("Site locales", str(_loc) if _loc else "—", ""),
             ("Primary vendor", _vendor or "—",
                 "Sport-tech / platform"),
@@ -684,7 +696,8 @@ def render_z3(c: dict) -> None:
                     f"letter-spacing:0.5px'>LCP (p75 mobile)</div>"
                     f"<div style='font-size:32px;font-weight:700'>{lcp_emoji} {lcp/1000:.2f}s</div>"
                     f"<div style='color:#888;font-size:12px'>"
-                    f"{'#' + str(lcp_rank[0]) + ' of ' + str(lcp_rank[1]) + ' in ' + league + ' · ' if lcp_rank[0] else ''}"
+                    f"{_rank_pill(lcp_rank[0], lcp_rank[1], league)}"
+                    f"{' · ' if lcp_rank[0] and gap_text else ''}"
                     f"{gap_text}</div>",
                     unsafe_allow_html=True,
                 )
@@ -716,7 +729,8 @@ def render_z3(c: dict) -> None:
                     f"letter-spacing:0.5px'>INP (tap latency p75)</div>"
                     f"<div style='font-size:32px;font-weight:700'>{inp_emoji} {int(inp)} ms</div>"
                     f"<div style='color:#888;font-size:12px'>"
-                    f"{'#' + str(inp_rank[0]) + ' of ' + str(inp_rank[1]) + ' in ' + league + ' · ' if inp_rank[0] else ''}"
+                    f"{_rank_pill(inp_rank[0], inp_rank[1], league)}"
+                    f"{' · ' if inp_rank[0] and gap_text else ''}"
                     f"{gap_text}</div>",
                     unsafe_allow_html=True,
                 )
@@ -750,14 +764,20 @@ def render_z3(c: dict) -> None:
                 a11y = psi.get("a11y"); seo = psi.get("seo"); bp = psi.get("best_practices")
                 a11y_r = _z3_rank(a11y, peers, lambda p: _safe(p, "psi", "a11y"))
                 seo_r  = _z3_rank(seo,  peers, lambda p: _safe(p, "psi", "seo"))
+                def _short_rank(r):
+                    """Compact '#1/21' rank, green when #1."""
+                    if not r[0]: return ""
+                    if r[0] == 1:
+                        return f" <span style='color:#00CC96;font-weight:600'>🏆 #1/{r[1]}</span>"
+                    return f" #{r[0]}/{r[1]}"
                 st.markdown(
                     f"<div style='display:flex;gap:24px;margin-top:6px;"
                     f"font-size:12px;color:#888'>"
                     f"<span>Lighthouse (synthetic): "
                     f"<b style='color:#FAFAFA'>A11y {a11y}</b>"
-                    f"{'  #' + str(a11y_r[0]) + '/' + str(a11y_r[1]) if a11y_r[0] else ''}"
+                    f"{_short_rank(a11y_r)}"
                     f" · <b style='color:#FAFAFA'>SEO {seo}</b>"
-                    f"{'  #' + str(seo_r[0]) + '/' + str(seo_r[1]) if seo_r[0] else ''}"
+                    f"{_short_rank(seo_r)}"
                     f" · BP {bp}</span></div>",
                     unsafe_allow_html=True,
                 )
@@ -833,8 +853,7 @@ def render_z3(c: dict) -> None:
                     f"</tr>"
                 )
             tot_rank = _z3_rank(total, peers, _wiki_views)
-            rank_label = (f"#{tot_rank[0]} of {tot_rank[1]} in {league}"
-                           if tot_rank[0] else "")
+            rank_label = _rank_pill(tot_rank[0], tot_rank[1], league)
             st.markdown(
                 f"<div style='display:flex;align-items:baseline;gap:14px;"
                 f"margin-bottom:6px'>"
@@ -903,13 +922,14 @@ def render_z3(c: dict) -> None:
 
             col1, col2 = st.columns(2)
             with col1:
+                rating_rank_html = _rank_pill(rating_r[0], rating_r[1], league)
                 st.markdown(
                     f"<div style='font-size:11px;color:#888;text-transform:uppercase;"
                     f"letter-spacing:0.5px'>Rating</div>"
                     f"<div style='font-size:32px;font-weight:700'>{rating_disp}</div>"
                     f"<div style='color:#888;font-size:12px'>"
                     f"{fmt_num(rating_n) + ' ratings' if rating_n else ''}"
-                    f"{' · #' + str(rating_r[0]) + ' of ' + str(rating_r[1]) + ' in ' + league if rating_r[0] else ''}"
+                    f"{(' · ' + rating_rank_html) if rating_rank_html else ''}"
                     f"</div>",
                     unsafe_allow_html=True,
                 )
@@ -997,28 +1017,60 @@ def render_z3(c: dict) -> None:
                 v, _, _, _ = _unique_pages(p)
                 return fmt_num(v) if v else "—"
 
+            # Each row: (label, formatter→displayed, raw_extractor, higher_better).
+            # The "winning" side gets a green text color; the loser
+            # stays white. Ties = both white.
+            def _pages_raw(p):
+                v, _, _, _ = _unique_pages(p)
+                return v
             comparisons = [
-                ("Real LCP (mobile)",  _fmt_lcp(c),        _fmt_lcp(peer)),
-                ("Real INP (mobile)",  _fmt_inp(c),        _fmt_inp(peer)),
-                ("Wiki views (12mo)",  fmt_num(_wiki_views(c) or 0),
-                                       fmt_num(_wiki_views(peer) or 0)),
-                ("Wiki languages",     str(_safe(c, "wikipedia", "langs") or "—"),
-                                       str(_safe(peer, "wikipedia", "langs") or "—")),
-                ("Site pages",         _fmt_pages(c),      _fmt_pages(peer)),
-                ("Site locales",       str((c.get('locales') or {}).get('count') or "—"),
-                                       str((peer.get('locales') or {}).get('count') or "—")),
-                ("iOS rating",         _fmt_rating(c),     _fmt_rating(peer)),
-                ("Lighthouse A11y",    str(_safe(c, "psi", "a11y") or "—"),
-                                       str(_safe(peer, "psi", "a11y") or "—")),
+                ("Real LCP (mobile)",  _fmt_lcp,
+                    lambda p: _safe(p, "crux_phone", "lcp_p75"), False),
+                ("Real INP (mobile)",  _fmt_inp,
+                    lambda p: _safe(p, "crux_phone", "inp_p75"), False),
+                ("Wiki views (12mo)",  lambda p: fmt_num(_wiki_views(p) or 0),
+                    lambda p: _wiki_views(p), True),
+                ("Wiki languages",     lambda p: str(_safe(p, "wikipedia", "langs") or "—"),
+                    lambda p: _safe(p, "wikipedia", "langs"), True),
+                ("Site pages",         _fmt_pages,
+                    _pages_raw, True),
+                ("Site locales",       lambda p: str((p.get('locales') or {}).get('count') or "—"),
+                    lambda p: (p.get('locales') or {}).get('count'), True),
+                ("iOS rating",         _fmt_rating,
+                    lambda p: _safe(p, "ios_app", "rating"), True),
+                ("Lighthouse A11y",    lambda p: str(_safe(p, "psi", "a11y") or "—"),
+                    lambda p: _safe(p, "psi", "a11y"), True),
             ]
-            rows = "".join(
-                f"<tr>"
-                f"<td style='padding:5px 14px 5px 0;color:#888;font-size:12px'>{lbl}</td>"
-                f"<td style='padding:5px 14px;color:#FAFAFA'>{va}</td>"
-                f"<td style='padding:5px 0;color:#FAFAFA'>{vb}</td>"
-                f"</tr>"
-                for lbl, va, vb in comparisons
-            )
+
+            def _winner(va, vb, higher_better):
+                """Return ('a', 'b', 'tie', or 'none') for who wins."""
+                if va is None and vb is None: return "none"
+                if va is None: return "b"
+                if vb is None: return "a"
+                if va == vb: return "tie"
+                if higher_better:
+                    return "a" if va > vb else "b"
+                return "a" if va < vb else "b"
+
+            GREEN = "#00CC96"
+            rows_html = []
+            for lbl, fmt, raw, higher in comparisons:
+                disp_a = fmt(c)
+                disp_b = fmt(peer)
+                ra = raw(c); rb = raw(peer)
+                w = _winner(ra, rb, higher)
+                color_a = GREEN if w == "a" else "#FAFAFA"
+                color_b = GREEN if w == "b" else "#FAFAFA"
+                weight_a = 600 if w == "a" else 400
+                weight_b = 600 if w == "b" else 400
+                rows_html.append(
+                    f"<tr>"
+                    f"<td style='padding:5px 14px 5px 0;color:#888;font-size:12px'>{lbl}</td>"
+                    f"<td style='padding:5px 14px;color:{color_a};font-weight:{weight_a}'>{disp_a}</td>"
+                    f"<td style='padding:5px 0;color:{color_b};font-weight:{weight_b}'>{disp_b}</td>"
+                    f"</tr>"
+                )
+            rows = "".join(rows_html)
             st.markdown(
                 f"<table style='border-collapse:collapse;margin:6px 0;font-size:14px'>"
                 f"<thead><tr>"
