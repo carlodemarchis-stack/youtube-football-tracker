@@ -221,7 +221,18 @@ def http_headers(url: str) -> dict:
                 "security_headers_max": 6}
 
 
-def detect_locales(website: str, sitemap_locales: list[str] | None = None) -> dict:
+# Country code → primary language code. Used as the lowest-trust
+# fallback when a site is a JS-only shell that exposes no HTML
+# locale signal at all (very common in modern Premier League sites).
+_COUNTRY_TO_LANG = {
+    "IT": "it", "GB": "en", "EN": "en", "UK": "en",
+    "ES": "es", "DE": "de", "FR": "fr", "US": "en",
+    "PT": "pt", "NL": "nl", "BE": "nl",
+}
+
+
+def detect_locales(website: str, sitemap_locales: list[str] | None = None,
+                   country: str | None = None) -> dict:
     """Return {count, langs[], source} for a site's language editions.
 
     Layered detector — uses the most reliable signal that returns ≥ 2:
@@ -242,6 +253,7 @@ def detect_locales(website: str, sitemap_locales: list[str] | None = None) -> di
         r = requests.get(website, headers=HEADERS, timeout=20,
                          allow_redirects=True)
         html = r.text[:300_000]
+        hdrs = {k.lower(): v for k, v in r.headers.items()}
     except Exception:
         return {}
 
@@ -256,19 +268,38 @@ def detect_locales(website: str, sitemap_locales: list[str] | None = None) -> di
 
     # 2. Sitemap path regex — moderate signal
     if sitemap_locales and 2 <= len(sitemap_locales) <= 12:
-        # Filter obvious non-locale 2-letter junk (rare ones from URL slugs)
-        BLOCKLIST = {"co", "th", "us", "ar", "id"}  # require manual whitelist
-        # Only block when the rest looks suspicious (e.g. a path like /th/)
-        # — but English sites legitimately use /us/ for region. Don't
-        # over-filter; trust the sitemap if length is reasonable.
         return {"count": len(sitemap_locales), "langs": list(sitemap_locales),
                 "source": "sitemap"}
 
-    # 3. html lang — single-locale fallback
+    # 3. html lang attribute — single-locale fallback
     m = _re.search(r'<html[^>]+lang=["\']([a-z]{2})', html, _re.I)
     if m:
         return {"count": 1, "langs": [m.group(1).lower()],
                 "source": "html-lang"}
+
+    # 4. og:locale — Facebook Open Graph standard, used by some
+    #    sites that skip html lang (e.g. Lega Serie A homepage).
+    m = _re.search(
+        r'property=["\']og:locale["\'][^>]+content=["\']([a-z]{2})',
+        html, _re.I)
+    if m:
+        return {"count": 1, "langs": [m.group(1).lower()],
+                "source": "og:locale"}
+
+    # 5. Content-Language HTTP header
+    if hdrs.get("content-language"):
+        v = hdrs["content-language"][:2].lower()
+        if v.isalpha():
+            return {"count": 1, "langs": [v], "source": "http-header"}
+
+    # 6. Country fallback — last-resort assumption for JS-only sites
+    #    that ship an empty HTML shell (common in Premier League).
+    #    Source label is "country" so consumers know it's lower trust.
+    if country:
+        cc = (country or "").upper()
+        lang = _COUNTRY_TO_LANG.get(cc)
+        if lang:
+            return {"count": 1, "langs": [lang], "source": "country"}
 
     return {"count": None, "langs": [], "source": "unknown"}
 
@@ -545,7 +576,7 @@ def collect_one(ch: dict) -> dict:
         "http":               http_headers(website) if website else {},
         "tech":               tech_stack(website) if website else {},
         "sitemap":            sm,
-        "locales":            detect_locales(website, sm.get("locale_list")) if website else {},
+        "locales":            detect_locales(website, sm.get("locale_list"), ch.get("country")) if website else {},
         "wikipedia":          wikipedia(wiki_slug),
         "ios_app":            ios_app(app_query, app_country),
         "crux_phone":         crux(origin, "PHONE") if origin else {},

@@ -1026,9 +1026,11 @@
         "evidence": []
       },
       "locales": {
-        "count": null,
-        "langs": [],
-        "source": "unknown"
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "country"
       }
     },
     {
@@ -2121,9 +2123,11 @@
         "evidence": []
       },
       "locales": {
-        "count": null,
-        "langs": [],
-        "source": "unknown"
+        "count": 1,
+        "langs": [
+          "fr"
+        ],
+        "source": "country"
       }
     },
     {
@@ -2588,9 +2592,11 @@
         "evidence": []
       },
       "locales": {
-        "count": null,
-        "langs": [],
-        "source": "unknown"
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "country"
       }
     },
     {
@@ -2911,9 +2917,11 @@
         ]
       },
       "locales": {
-        "count": null,
-        "langs": [],
-        "source": "unknown"
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "country"
       }
     },
     {
@@ -3623,9 +3631,11 @@
         ]
       },
       "locales": {
-        "count": null,
-        "langs": [],
-        "source": "unknown"
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "og:locale"
       }
     },
     {
@@ -3950,9 +3960,11 @@
         ]
       },
       "locales": {
-        "count": null,
-        "langs": [],
-        "source": "unknown"
+        "count": 1,
+        "langs": [
+          "it"
+        ],
+        "source": "country"
       }
     },
     {
@@ -4852,9 +4864,11 @@
         "evidence": []
       },
       "locales": {
-        "count": null,
-        "langs": [],
-        "source": "unknown"
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "country"
       }
     },
     {
@@ -5536,9 +5550,11 @@
         ]
       },
       "locales": {
-        "count": null,
-        "langs": [],
-        "source": "unknown"
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "country"
       }
     },
     {
@@ -5621,9 +5637,11 @@
         "evidence": []
       },
       "locales": {
-        "count": null,
-        "langs": [],
-        "source": "unknown"
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "country"
       }
     },
     {
@@ -5899,7 +5917,7 @@
       "league": "Ligue 1",
       "country": "FR",
       "entity_type": "Club",
-      "website": "https://www.toulousefc.com/en/",
+      "website": "https://www.toulousefc.com/",
       "domain": "toulousefc.com",
       "wikipedia_slug": "Toulouse_FC",
       "domain_first_year": null,
@@ -5957,9 +5975,11 @@
         "evidence": []
       },
       "locales": {
-        "count": null,
-        "langs": [],
-        "source": "unknown"
+        "count": 1,
+        "langs": [
+          "fr"
+        ],
+        "source": "country"
       }
     },
     {
@@ -6700,9 +6720,11 @@
         ]
       },
       "locales": {
-        "count": null,
-        "langs": [],
-        "source": "unknown"
+        "count": 1,
+        "langs": [
+          "en"
+        ],
+        "source": "country"
       }
     },
     {
@@ -6876,9 +6898,11 @@
         "evidence": []
       },
       "locales": {
-        "count": null,
-        "langs": [],
-        "source": "unknown"
+        "count": 1,
+        "langs": [
+          "es"
+        ],
+        "source": "country"
       }
     },
     {
@@ -7203,11 +7227,12 @@
         ]
       },
       "locales": {
-        "count": 1,
+        "count": 2,
         "langs": [
-          "en"
+          "en",
+          "it"
         ],
-        "source": "html-lang"
+        "source": "hreflang"
       }
     },
     {
@@ -7320,7 +7345,7 @@
       "league": "La Liga",
       "country": "ES",
       "entity_type": "Club",
-      "website": "https://www.realbetisbalompie.es/en",
+      "website": "https://www.realbetisbalompie.es/",
       "domain": "realbetisbalompie.es",
       "wikipedia_slug": "Real_Betis",
       "domain_first_year": null,
@@ -7398,9 +7423,11 @@
         "evidence": []
       },
       "locales": {
-        "count": null,
-        "langs": [],
-        "source": "unknown"
+        "count": 1,
+        "langs": [
+          "es"
+        ],
+        "source": "html-lang"
       }
     },
     {
