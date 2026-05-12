@@ -3745,9 +3745,10 @@
       },
       "tech": {},
       "locales": {
-        "count": 1,
+        "count": 2,
         "langs": [
-          "es"
+          "es",
+          "en"
         ],
         "source": "manual"
       },
@@ -12705,11 +12706,13 @@
         ]
       },
       "locales": {
-        "count": 1,
+        "count": 3,
         "langs": [
-          "en"
+          "es",
+          "en",
+          "va"
         ],
-        "source": "html-lang"
+        "source": "manual"
       },
       "content": {
         "owned_subdomains": [

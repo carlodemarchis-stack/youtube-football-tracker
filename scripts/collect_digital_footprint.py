@@ -293,8 +293,8 @@ _COUNTRY_TO_LANG = {
 LOCALE_OVERRIDES: dict[str, list[str]] = {
     # FC Bayern München — fcbayern.com offers EN, DE, ES, FR, AR
     "UCZkcxFIsqW5htimoUQKA0iA": ["de", "en", "es", "fr", "ar"],
-    # Deportivo Alavés — Spanish-only site
-    "UC5yHOZPDde9RWodH5bn4QgA": ["es"],
+    # Deportivo Alavés — ES + EN
+    "UC5yHOZPDde9RWodH5bn4QgA": ["es", "en"],
     # RC Celta — site on .gal domain, primary Spanish with Galician
     "UCCJLVZYqRb_85b2Flpg04cg": ["es", "gl"],
     # Real Madrid — JS-rendered language switcher exposes 5 locales
@@ -312,6 +312,8 @@ LOCALE_OVERRIDES: dict[str, list[str]] = {
     "UC34fUqq4rxJc0cj5Hart0zQ": ["es", "en"],
     # RCD Mallorca — ES + EN + CA (Catalan)
     "UCZ4KmAXw0xsSbTovdqB736A": ["es", "en", "ca"],
+    # Levante UD — ES + EN + VA (Valencian / Catalan)
+    "UCvOegN2N1FGPPv4xBNN2F9A": ["es", "en", "va"],
 }
 
 
