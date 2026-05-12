@@ -2803,10 +2803,51 @@
         "source": "sitemap"
       },
       "content": {
-        "owned_subdomains": [],
-        "features": {},
-        "feature_locations": {},
-        "external_partners": [],
+        "owned_subdomains": [
+          "auth.ol.fr",
+          "billetterie.ol.fr",
+          "boutique.ol.fr",
+          "entreprises.ol.fr",
+          "faq.ol.fr",
+          "ol.fr",
+          "olplay.ol.fr"
+        ],
+        "features": {
+          "academy": true,
+          "careers": true,
+          "foundation": true,
+          "museum_tour": true,
+          "radio": true,
+          "shop": true,
+          "ticketing": true
+        },
+        "feature_locations": {
+          "shop": "boutique.ol.fr",
+          "ticketing": "billetterie.ol.fr"
+        },
+        "external_partners": [
+          "finance.eaglefootballgroup.com",
+          "football.comave.com",
+          "jeunesse-sports.gouv.cg",
+          "lyonna.is",
+          "mgmotor.fr",
+          "olentreprises.com",
+          "opnr.fr",
+          "staffmatch.com",
+          "www.adidas.fr",
+          "www.aushopping.com",
+          "www.betclic.fr",
+          "www.ecaeurope.com",
+          "www.emirates.com",
+          "www.etoro.com",
+          "www.groupama.fr",
+          "www.lfp.fr",
+          "www.olvallee.fr",
+          "www.stanleyoutillage.fr",
+          "www.sword-group.com",
+          "www.thetrainline.com",
+          "www.uefa.com"
+        ],
         "sections": []
       }
     },
@@ -3673,7 +3714,38 @@
         ],
         "source": "manual"
       },
-      "content": {}
+      "content": {
+        "owned_subdomains": [
+          "deportivoalaves.com",
+          "entradas.deportivoalaves.com"
+        ],
+        "features": {
+          "academy": true,
+          "foundation": true,
+          "membership": true,
+          "museum_tour": true,
+          "newsletter": true,
+          "shop": true,
+          "ticketing": true
+        },
+        "feature_locations": {
+          "ticketing": "entradas.deportivoalaves.com"
+        },
+        "external_partners": [
+          "business.safety.google",
+          "contenidos.imq.es",
+          "form.typeform.com",
+          "member-external.proticketing.com",
+          "tickets.oneboxtds.com",
+          "www.adesso.es",
+          "www.baskoniaalavesstore.com",
+          "www.cookiebot.com",
+          "www.digimobil.es",
+          "www.hoteles-silken.com",
+          "www.zikotz.com"
+        ],
+        "sections": []
+      }
     },
     {
       "youtube_channel_id": "UCQsH5XtIc9hONE1BQjucM0g",
@@ -7225,7 +7297,48 @@
         ],
         "source": "manual"
       },
-      "content": {}
+      "content": {
+        "owned_subdomains": [
+          "fcbayern.com",
+          "online.fcbayern.com"
+        ],
+        "features": {
+          "membership": true,
+          "museum_tour": true,
+          "newsletter": true,
+          "podcast": true,
+          "press_media": true,
+          "streaming": true,
+          "ticketing": true
+        },
+        "feature_locations": {},
+        "external_partners": [
+          "allianz-arena.com",
+          "easports.com",
+          "fan-banking.vb-rb.de",
+          "fc.bayern",
+          "fcbayern.whistleblowing-software.com",
+          "onefootball.com",
+          "schwarz-digits.de",
+          "www.adidas.de",
+          "www.allianz-arena.com",
+          "www.allianz.com",
+          "www.audi.com",
+          "www.betano.com",
+          "www.bitpanda.com",
+          "www.bundesliga.com",
+          "www.drutex.eu",
+          "www.ecaeurope.com",
+          "www.einhell.de",
+          "www.emirates.com",
+          "www.paulaner.com",
+          "www.sap.com",
+          "www.snapchat.com",
+          "www.telekom.com",
+          "www.viessmann.de"
+        ],
+        "sections": []
+      }
     },
     {
       "youtube_channel_id": "UCeOCuVSSweaEj6oVtJZEKQw",
@@ -10277,10 +10390,65 @@
         "source": "html-lang"
       },
       "content": {
-        "owned_subdomains": [],
-        "features": {},
-        "feature_locations": {},
-        "external_partners": [],
+        "owned_subdomains": [
+          "bernabeu.realmadrid.com",
+          "memorabilia.realmadrid.com",
+          "play.realmadrid.com",
+          "realmadrid.com",
+          "shop.realmadrid.com",
+          "signin.realmadrid.com",
+          "us.shop.realmadrid.com"
+        ],
+        "features": {
+          "academy": true,
+          "careers": true,
+          "foundation": true,
+          "magazine": true,
+          "membership": true,
+          "museum_tour": true,
+          "newsletter": true,
+          "radio": true,
+          "shop": true,
+          "streaming": true,
+          "ticketing": true
+        },
+        "feature_locations": {
+          "museum_tour": "bernabeu.realmadrid.com",
+          "shop": "shop.realmadrid.com",
+          "streaming": "play.realmadrid.com"
+        },
+        "external_partners": [
+          "afrikabanque.ci",
+          "appgallery.huawei.com",
+          "cookiepedia.co.uk",
+          "en.linglong.cn",
+          "eu.medical.canon",
+          "formacion.realmadridfundacion.org",
+          "global.roborock.com",
+          "madridistas.com",
+          "onefootball.com",
+          "platinum.madridistas.com",
+          "realmadrid.globalsuitesolutions.com",
+          "solandecabras.es",
+          "uk.hisense.com",
+          "www.abbott.com",
+          "www.adidas.co.uk",
+          "www.adobe.com",
+          "www.ajegroup.com",
+          "www.bantrab.com.gt",
+          "www.bmw.com",
+          "www.cisco.com",
+          "www.coca-cola.com",
+          "www.codere.es",
+          "www.corpay.com",
+          "www.daktronics.com",
+          "www.ea.com",
+          "www.emirates.com",
+          "www.hp.com",
+          "www.hth936.com",
+          "www.kress.com",
+          "www.louisvuitton.com"
+        ],
         "sections": []
       }
     },
@@ -11451,7 +11619,59 @@
         ],
         "source": "manual"
       },
-      "content": {}
+      "content": {
+        "owned_subdomains": [
+          "celtistas.rccelta.es",
+          "rccelta.es",
+          "shop.rccelta.es",
+          "sso.rccelta.es"
+        ],
+        "features": {
+          "careers": true,
+          "foundation": true,
+          "membership": true,
+          "press_media": true,
+          "radio": true,
+          "shop": true,
+          "ticketing": true
+        },
+        "feature_locations": {
+          "shop": "shop.rccelta.es"
+        },
+        "external_partners": [
+          "bicodexeado.es",
+          "business.safety.google",
+          "cabreiroa.es",
+          "celta360.gal",
+          "celtamotor.concesionariobmw.es",
+          "elpulpo.com",
+          "estrellagalicia.es",
+          "fundacioncelta.gal",
+          "jpfinancial.es",
+          "maisenerxia.com",
+          "mws.com",
+          "rio1923.gal",
+          "riodegalicia.es",
+          "scientifficnutrition.com",
+          "sorare.com",
+          "sygna.es",
+          "tickets.oneboxtds.com",
+          "vimeo.com",
+          "vuz.com",
+          "weibo.com",
+          "www.2playbook.com",
+          "www.abanca.com",
+          "www.autosgonzalez.es",
+          "www.cocacola.es",
+          "www.cookiebot.com",
+          "www.hummel.es",
+          "www.opticadiagonal.com",
+          "www.podoactiva.com",
+          "www.recalvi.es",
+          "www.snapchat.com"
+        ],
+        "sections": []
+      }
     },
     {
       "youtube_channel_id": "UCKPvGWyCL62gKy-i_Fz_CJA",
