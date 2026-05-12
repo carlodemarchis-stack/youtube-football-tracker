@@ -1391,8 +1391,7 @@ render_page_subtitle(
     f"{skipped_msg}",
     updated_raw=snap.get("generated_at"),
     caveat="Trustable signals only — Lighthouse Performance score omitted. "
-           "CrUX = real Chrome users (last 28 days). "
-           "Add more channels via Admin → Channel Management (set website + Wikipedia slug).",
+           "CrUX = real Chrome users (last 28 days).",
 )
 
 if g_club_name:
