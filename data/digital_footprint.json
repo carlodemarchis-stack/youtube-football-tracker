@@ -11571,19 +11571,24 @@
       "league": "La Liga",
       "country": "ES",
       "entity_type": "Club",
-      "website": "https://rccelta.gal/en/",
-      "domain": "rccelta.gal",
+      "website": "https://rccelta.es/",
+      "domain": "rccelta.es",
       "wikipedia_slug": "Celta_Vigo",
       "domain_first_year": null,
       "http": {
-        "cdn": "?",
-        "security_headers_present": null,
-        "security_headers_max": 6
+        "cdn": "Unknown",
+        "security_headers_present": 3,
+        "security_headers_max": 6,
+        "hsts": true,
+        "final_url": "https://rccelta.es/"
       },
       "sitemap": {
-        "pages": null,
-        "locales": null,
-        "locale_list": []
+        "pages": 19429,
+        "locales": 2,
+        "locale_list": [
+          "en",
+          "gl"
+        ]
       },
       "wikipedia": {
         "langs": 70,
@@ -11640,16 +11645,27 @@
         "ttfb_p75": 1212.0
       },
       "crux_combined": {
-        "lcp_p75": 3828.0,
-        "fcp_p75": 3878.0,
-        "inp_p75": 133.0,
+        "lcp_p75": 3904.0,
+        "fcp_p75": 4234.0,
+        "inp_p75": 136.0,
         "cls_p75": 0.0,
-        "ttfb_p75": 1181.0
+        "ttfb_p75": 858.0
       },
       "psi": {
-        "error": "Lighthouse returned error: FAILED_DOCUMENT_REQUEST. Lighthouse was unable to rel"
+        "a11y": 90,
+        "best_practices": 96,
+        "seo": 85
       },
-      "tech": {},
+      "tech": {
+        "vendor": null,
+        "cms": "WordPress",
+        "framework": null,
+        "extras": [],
+        "evidence": [
+          "<meta generator>: WordPress 5.4",
+          "WordPress: …s/wp/wp-includes/css/dist/block-…"
+        ]
+      },
       "locales": {
         "count": 2,
         "langs": [
@@ -11662,51 +11678,23 @@
         "owned_subdomains": [
           "celtistas.rccelta.es",
           "rccelta.es",
-          "shop.rccelta.es",
-          "sso.rccelta.es"
+          "shop.rccelta.es"
         ],
         "features": {
-          "careers": true,
-          "foundation": true,
-          "membership": true,
-          "press_media": true,
-          "radio": true,
           "shop": true,
-          "ticketing": true
+          "ticketing": true,
+          "foundation": true,
+          "radio": true
         },
         "feature_locations": {
           "shop": "shop.rccelta.es"
         },
         "external_partners": [
-          "bicodexeado.es",
-          "business.safety.google",
-          "cabreiroa.es",
           "celta360.gal",
-          "celtamotor.concesionariobmw.es",
-          "elpulpo.com",
-          "estrellagalicia.es",
           "fundacioncelta.gal",
-          "jpfinancial.es",
-          "maisenerxia.com",
-          "mws.com",
           "rio1923.gal",
-          "riodegalicia.es",
-          "scientifficnutrition.com",
-          "sorare.com",
-          "sygna.es",
           "tickets.oneboxtds.com",
-          "vimeo.com",
-          "vuz.com",
           "weibo.com",
-          "www.2playbook.com",
-          "www.abanca.com",
-          "www.autosgonzalez.es",
-          "www.cocacola.es",
-          "www.cookiebot.com",
-          "www.hummel.es",
-          "www.opticadiagonal.com",
-          "www.podoactiva.com",
-          "www.recalvi.es",
           "www.snapchat.com"
         ],
         "sections": []
