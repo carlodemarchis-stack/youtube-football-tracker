@@ -300,6 +300,8 @@ LOCALE_OVERRIDES: dict[str, list[str]] = {
     # Real Madrid — JS-rendered language switcher exposes 5 locales
     # (the site doesn't declare hreflang; switcher is React-only)
     "UCWV3obpZVGgJ3j9FVhEjF2Q": ["es", "en", "fr", "de", "pt"],
+    # FC Augsburg — DE + EN
+    "UCMH-8bjKSpk1eNVwN2U8VLA": ["de", "en"],
 }
 
 
