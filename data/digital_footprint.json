@@ -6119,11 +6119,12 @@
         ]
       },
       "locales": {
-        "count": 1,
+        "count": 2,
         "langs": [
-          "it"
+          "it",
+          "en"
         ],
-        "source": "country"
+        "source": "manual"
       },
       "content": {
         "owned_subdomains": [],
