@@ -1210,19 +1210,19 @@
       "league": "Ligue 1",
       "country": "FR",
       "entity_type": "Club",
-      "website": "https://www.stadebrestois.com/",
-      "domain": "stadebrestois.com",
+      "website": "https://www.sb29.bzh/",
+      "domain": "sb29.bzh",
       "wikipedia_slug": "Stade_Brestois_29",
-      "domain_first_year": 2009,
+      "domain_first_year": null,
       "http": {
         "cdn": "Unknown",
         "security_headers_present": 1,
         "security_headers_max": 6,
-        "hsts": false,
-        "final_url": "https://www.stadebrestois.com/"
+        "hsts": true,
+        "final_url": "https://www.sb29.bzh/"
       },
       "sitemap": {
-        "pages": null,
+        "pages": 3767,
         "locales": null,
         "locale_list": []
       },
@@ -1272,18 +1272,30 @@
         "store_url": "https://apps.apple.com/fr/app/stade-brestois-29/id1309482791?uo=4"
       },
       "crux_phone": {
-        "error": "chrome ux report data not found"
+        "lcp_p75": 1768.0,
+        "fcp_p75": 1725.0,
+        "inp_p75": 109.0,
+        "cls_p75": 0.0,
+        "ttfb_p75": 559.0
       },
       "crux_desktop": {
-        "error": "chrome ux report data not found"
+        "lcp_p75": 1290.0,
+        "fcp_p75": 1185.0,
+        "inp_p75": 42.0,
+        "cls_p75": 0.0004,
+        "ttfb_p75": 373.0
       },
       "crux_combined": {
-        "error": "chrome ux report data not found"
+        "lcp_p75": 1695.0,
+        "fcp_p75": 1641.0,
+        "inp_p75": 100.0,
+        "cls_p75": 0.0001,
+        "ttfb_p75": 534.0
       },
       "psi": {
-        "a11y": 96,
-        "best_practices": 73,
-        "seo": 91
+        "a11y": 75,
+        "best_practices": 96,
+        "seo": 92
       },
       "tech": {
         "vendor": null,
@@ -1300,11 +1312,34 @@
         "source": "html-lang"
       },
       "content": {
-        "owned_subdomains": [],
-        "features": {},
+        "owned_subdomains": [
+          "billetterie.sb29.bzh",
+          "boutique.sb29.bzh",
+          "cdn-2.sb29.bzh"
+        ],
+        "features": {
+          "ticketing": true,
+          "streaming": true,
+          "newsletter": true
+        },
         "feature_locations": {},
         "external_partners": [
-          "statcounter.com"
+          "billetterie.webgazelle.net",
+          "boutique.sb29.com",
+          "browser-update.org",
+          "landing.bfsp.app",
+          "ligue1.fr",
+          "www.adidas.fr",
+          "www.arkea.com",
+          "www.brest.fr",
+          "www.cognix-systems.com",
+          "www.groupe-queguiner.fr",
+          "www.guyotenvironnement.com",
+          "www.jacquesbervas.fr",
+          "www.lesaint-sa.fr",
+          "www.sicastpol.fr",
+          "www.sill-entreprises.com",
+          "youtu.be"
         ],
         "sections": []
       }
