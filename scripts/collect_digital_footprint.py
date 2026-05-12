@@ -297,6 +297,9 @@ LOCALE_OVERRIDES: dict[str, list[str]] = {
     "UC5yHOZPDde9RWodH5bn4QgA": ["es"],
     # RC Celta — site on .gal domain, primary Spanish with Galician
     "UCCJLVZYqRb_85b2Flpg04cg": ["es", "gl"],
+    # Real Madrid — JS-rendered language switcher exposes 5 locales
+    # (the site doesn't declare hreflang; switcher is React-only)
+    "UCWV3obpZVGgJ3j9FVhEjF2Q": ["es", "en", "fr", "de", "pt"],
 }
 
 

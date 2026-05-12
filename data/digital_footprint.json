@@ -10383,11 +10383,15 @@
         "evidence": []
       },
       "locales": {
-        "count": 1,
+        "count": 5,
         "langs": [
-          "es"
+          "es",
+          "en",
+          "fr",
+          "de",
+          "pt"
         ],
-        "source": "html-lang"
+        "source": "manual"
       },
       "content": {
         "owned_subdomains": [
