@@ -304,6 +304,8 @@ LOCALE_OVERRIDES: dict[str, list[str]] = {
     "UCMH-8bjKSpk1eNVwN2U8VLA": ["de", "en"],
     # OGC Nice — FR + EN
     "UCAvm8jHWe-8K2kZK-7ynIHA": ["fr", "en"],
+    # 1. FSV Mainz 05 — DE + EN
+    "UCMT1hwsDgOEMhS2dIfD3e6A": ["de", "en"],
 }
 
 
