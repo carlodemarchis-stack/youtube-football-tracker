@@ -11943,11 +11943,12 @@
         ]
       },
       "locales": {
-        "count": 1,
+        "count": 2,
         "langs": [
+          "es",
           "en"
         ],
-        "source": "html-lang"
+        "source": "manual"
       },
       "content": {
         "owned_subdomains": [
