@@ -7219,11 +7219,13 @@
         ]
       },
       "locales": {
-        "count": 1,
+        "count": 3,
         "langs": [
-          "en"
+          "es",
+          "en",
+          "ca"
         ],
-        "source": "html-lang"
+        "source": "manual"
       },
       "content": {
         "owned_subdomains": [

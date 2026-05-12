@@ -310,6 +310,8 @@ LOCALE_OVERRIDES: dict[str, list[str]] = {
     "UCquN7Rmr2Hw-b3UkhtAMp_w": ["it", "en"],
     # Getafe CF — ES + EN
     "UC34fUqq4rxJc0cj5Hart0zQ": ["es", "en"],
+    # RCD Mallorca — ES + EN + CA (Catalan)
+    "UCZ4KmAXw0xsSbTovdqB736A": ["es", "en", "ca"],
 }
 
 
