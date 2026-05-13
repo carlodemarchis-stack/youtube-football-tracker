@@ -17,7 +17,10 @@ import streamlit.components.v1 as _components
 from dotenv import load_dotenv
 
 from src.database import Database
-from src.cached_db import get_all_channels as _cached_channels
+from src.cached_db import (
+    get_all_channels as _cached_channels,
+    read_dashboard_cache as _cached_dc_read,
+)
 from src.analytics import fmt_num, fmt_date, kpi_row
 from src.auth import require_login
 from src.dot import dual_dot
@@ -36,9 +39,19 @@ if not SUPABASE_URL or not SUPABASE_KEY:
     st.stop()
 
 db = Database(SUPABASE_URL, SUPABASE_KEY)
-all_channels = _cached_channels(db)
-wc = [c for c in all_channels
-      if (c.get("competitions") or {}).get("wc2026")]
+# Cache-first read. dashboard_cache.wc2026 is rebuilt at write-time
+# (rebuild_all + the standalone scripts/refresh_wc2026.py) — the page
+# just paints. Live-channel fallback below covers cold-cache state.
+from src.dashboard_cache import scope_all as _scope_all
+_cached = _cached_dc_read(db, "wc2026", _scope_all())
+if _cached and (_cached.get("payload") or {}).get("rows"):
+    wc = (_cached["payload"] or {}).get("rows") or []
+    _cache_age = _cached.get("computed_at") or ""
+else:
+    all_channels = _cached_channels(db)
+    wc = [c for c in all_channels
+          if (c.get("competitions") or {}).get("wc2026")]
+    _cache_age = ""
 
 if not wc:
     st.warning(

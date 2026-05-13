@@ -291,6 +291,13 @@ def rebuild_all(db, log=print) -> None:
     except Exception as e:
         log(f"[dashboard_cache] season_top_no1_videos failed (non-fatal): {e}")
 
+    # 14. wc2026 — 48 qualified federations + FIFA + 6 confederations.
+    #     Page reads this directly instead of filtering channels live.
+    try:
+        refresh_wc2026(db, log=log, channels=chans)
+    except Exception as e:
+        log(f"[dashboard_cache] wc2026 failed (non-fatal): {e}")
+
     log("[dashboard_cache] rebuild done")
 
 
@@ -1132,3 +1139,46 @@ def refresh_season_top_no1_videos(db, log=print, channels: list[dict] | None = N
     """Current-season #1 video per core channel (published >= SEASON_TOP_SINCE)."""
     _refresh_no1_per_channel(db, "season_top_no1_videos", log, channels,
                              since=SEASON_TOP_SINCE)
+
+
+# ── compute: FIFA World Cup 2026 (48 teams + 7 governing bodies) ────────
+def refresh_wc2026(db, log=print, channels: list[dict] | None = None) -> None:
+    """Pre-compute the render-ready payload for the WC 2026 page.
+
+    Same shape the page used to compute live every render: one row per
+    channel with team, confederation, YT identity, basic stats (subs /
+    views / videos / long / shorts / live) + last_fetched. The page
+    just reads + paints; no per-render aggregation.
+
+    Cache key: ('wc2026', 'all').
+    """
+    chans = channels if channels is not None else db.get_all_channels()
+    wc = [c for c in chans if (c.get("competitions") or {}).get("wc2026")]
+    # Keep the same shape the page expects — channel-like dict with
+    # nested `competitions.wc2026`. Lets the view consume cache rows
+    # and live-channel rows interchangeably with no extra branching.
+    rows = []
+    for c in wc:
+        w = (c.get("competitions") or {}).get("wc2026") or {}
+        rows.append({
+            "youtube_channel_id": c.get("youtube_channel_id"),
+            "name":             c.get("name"),
+            "handle":           c.get("handle"),
+            "entity_type":      c.get("entity_type"),
+            "color":            c.get("color"),
+            "color2":           c.get("color2"),
+            "subscriber_count": int(c.get("subscriber_count") or 0),
+            "total_views":      int(c.get("total_views") or 0),
+            "video_count":      int(c.get("video_count") or 0),
+            "long_form_count":  int(c.get("long_form_count") or 0),
+            "shorts_count":     int(c.get("shorts_count") or 0),
+            "live_count":       int(c.get("live_count") or 0),
+            "last_fetched":     c.get("last_fetched"),
+            "competitions":     {"wc2026": w},
+        })
+    # Pre-sort by subscribers desc — the page's default ordering, so the
+    # first paint is already correctly ordered.
+    rows.sort(key=lambda r: -(r["subscriber_count"]))
+    write(db, "wc2026", scope_all(),
+          {"count": len(rows), "rows": rows})
+    log(f"  ✓ wc2026 cache rebuilt — {len(rows)} channels")
