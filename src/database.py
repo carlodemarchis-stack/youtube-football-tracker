@@ -941,6 +941,13 @@ class Database:
             "color": data.get("color", ""),
             "color2": data.get("color2", ""),
         }
+        # Pass-through for optional structured columns (added after the
+        # initial schema). Callers can include any of these in `data`
+        # and we'll forward them to the insert.
+        for opt_col in ("website", "wikipedia_slug", "competitions",
+                         "launched_at", "dob", "socials"):
+            if opt_col in data:
+                row[opt_col] = data[opt_col]
         resp = (
             self.client.table("channels")
             .upsert(row, on_conflict="youtube_channel_id")

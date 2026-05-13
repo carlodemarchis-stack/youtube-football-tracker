@@ -109,6 +109,7 @@ other_pages = [
     st.Page("views/14_Federations.py", title="Federations"),
     st.Page("views/15_Other_Clubs.py", title="Other Clubs"),
     st.Page("views/17_Women.py", title="Women"),
+    st.Page("views/18_WC2026.py", title="FIFA World Cup 2026"),
 ]
 
 # Tier 1.5 — "The Lab": experimental / analytical pages, viewer-tier
@@ -196,7 +197,7 @@ if st.query_params.get("view") == "feed":
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 
-_no_filter_pages = {"Home", "Players", "Federations", "Other Clubs", "Women", "No. 1 Videos"}
+_no_filter_pages = {"Home", "Players", "Federations", "Other Clubs", "Women", "No. 1 Videos", "FIFA World Cup 2026"}
 _show_filter = getattr(pg, "title", "") not in _no_filter_pages
 
 if SUPABASE_URL and SUPABASE_KEY:
