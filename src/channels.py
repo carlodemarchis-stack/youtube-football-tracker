@@ -170,10 +170,10 @@ TEAM_COLORS = {
     # Governing bodies — logo-derived primary + secondary colors.
     # Used by channel_badge to render a dual-dot marker on Z3 / WC2026.
     "FIFA":     ("#326295", "#FFFFFF"),  # FIFA blue + white
-    "UEFA":     ("#0066B1", "#FFFFFF"),  # UEFA light blue + white
+    "UEFA":     ("#C8102E", "#003F87"),  # UEFA red + blue
     "AFC":      ("#F0A91A", "#005A36"),  # orange + green
     "CAF TV":   ("#006B3F", "#FCD116"),  # CAF green + pan-African yellow
-    "Concacaf": ("#E03A3E", "#1E73BE"),  # CONCACAF red + blue
+    "Concacaf": ("#F26522", "#1E73BE"),  # CONCACAF orange + blue
     "CONMEBOL": ("#003F87", "#F4C300"),  # CONMEBOL blue + sun yellow
     "OFC":      ("#0073CF", "#FFFFFF"),  # OFC Pacific blue + white
 }
