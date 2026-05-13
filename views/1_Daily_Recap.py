@@ -711,9 +711,18 @@ if _show_per_league_summary:
     # Per-league per-club video counts — used to determine most-active club per league
     lg_club_counts: dict[str, dict[str, int]] = {}
 
+    # Skip non-club entity types — they don't belong in a per-league
+    # aggregation. Federation / GoverningBody / Player / Other Clubs
+    # / Women Clubs would otherwise leak in as phantom "leagues" via
+    # their country code (e.g. UEFA's country is "EU", which falls
+    # through COUNTRY_TO_LEAGUE and creates a row labelled "EU").
+    _SKIP_TYPES = ("Federation", "GoverningBody", "Player",
+                   "OtherClub", "WomenClub")
     for cid, snap in chan_day.items():
         ch = ch_by_id.get(cid)
         if not ch:
+            continue
+        if ch.get("entity_type") in _SKIP_TYPES:
             continue
         lg = get_league_for_channel(ch)
         if not lg:
@@ -726,6 +735,8 @@ if _show_per_league_summary:
         ch = ch_by_id.get(v["channel_id"])
         if not ch:
             continue
+        if ch.get("entity_type") in _SKIP_TYPES:
+            continue
         lg = get_league_for_channel(ch)
         if lg and lg in lg_agg:
             lg_agg[lg]["new_videos"] += 1
@@ -734,8 +745,9 @@ if _show_per_league_summary:
                 vfmt = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
             lg_agg[lg][vfmt] = lg_agg[lg].get(vfmt, 0) + 1
             # Track per-league, per-channel counts (include league channels;
-            # exclude only tangential entity types — Players/Federations/etc.)
-            if ch.get("entity_type") not in ("Player", "Federation", "OtherClub", "WomenClub"):
+            # exclude only tangential entity types — Players/Federations/
+            # GoverningBody/etc.)
+            if ch.get("entity_type") not in _SKIP_TYPES:
                 lg_club_counts.setdefault(lg, {})[ch["id"]] = \
                     lg_club_counts.setdefault(lg, {}).get(ch["id"], 0) + 1
 
