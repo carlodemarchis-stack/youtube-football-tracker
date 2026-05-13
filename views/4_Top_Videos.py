@@ -113,14 +113,30 @@ else:
         color_field = "channel_name"
         color_map = get_global_color_map()
     elif scope == "All clubs":
-        keep = {n for n, c in ch_by_name.items() if c.get("entity_type") not in ("League", "Player", "Federation", "OtherClub", "WomenClub")}
+        keep = {n for n, c in ch_by_name.items()
+                if c.get("entity_type") not in ("League", "Player",
+                                                 "Federation", "GoverningBody",
+                                                 "OtherClub", "WomenClub")}
         df = df[df["channel_name"].isin(keep)]
-        ch_to_league = {n: league_with_flag(get_league_for_channel(c)) for n, c in ch_by_name.items()}
+        ch_to_league = {n: league_with_flag(get_league_for_channel(c))
+                        for n, c in ch_by_name.items()
+                        if c.get("entity_type") not in ("Player", "Federation",
+                                                         "GoverningBody",
+                                                         "OtherClub", "WomenClub")}
         df["league"] = df["channel_name"].map(ch_to_league).fillna("Other")
         color_field = "league"
         color_map = None
     else:
-        ch_to_league = {n: league_with_flag(get_league_for_channel(c)) for n, c in ch_by_name.items()}
+        # Overall scope — drop tangential-entity videos so their
+        # country codes (FIFA=WW, UEFA=EU, etc.) don't pollute the
+        # league color buckets via "Other".
+        keep = {n for n, c in ch_by_name.items()
+                if c.get("entity_type") not in ("Player", "Federation",
+                                                 "GoverningBody",
+                                                 "OtherClub", "WomenClub")}
+        df = df[df["channel_name"].isin(keep)]
+        ch_to_league = {n: league_with_flag(get_league_for_channel(c))
+                        for n, c in ch_by_name.items() if n in keep}
         df["league"] = df["channel_name"].map(ch_to_league).fillna("Other")
         color_field = "league"
         color_map = None

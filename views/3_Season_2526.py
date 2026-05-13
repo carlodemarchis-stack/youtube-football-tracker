@@ -140,7 +140,8 @@ def _compute_league_stats(channels):
     Federations / OtherClubs / WomenClubs (they have own pages)."""
     stats: dict[str, dict] = {}
     for ch in channels:
-        if ch.get("entity_type") in ("Player", "Federation", "OtherClub", "WomenClub"):
+        if ch.get("entity_type") in ("Player", "Federation", "GoverningBody",
+                                      "OtherClub", "WomenClub"):
             continue
         lg = get_league_for_channel(ch)
         if not lg:

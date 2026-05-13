@@ -299,6 +299,14 @@ if top_views:
         lg_views: dict[str, int] = {}
         for v in top_views:
             ch = ch_by_id.get(v.get("channel_id")) or {}
+            # Skip tangential entities — they don't belong in a
+            # league-by-league breakdown (their country codes would
+            # otherwise pollute the "Other" bucket with FIFA's WW,
+            # UEFA's EU, or individual federations' team codes).
+            if ch.get("entity_type") in ("Player", "Federation",
+                                          "GoverningBody",
+                                          "OtherClub", "WomenClub"):
+                continue
             country = (ch.get("country") or "").upper()
             lg = COUNTRY_TO_LEAGUE.get(country) or "Other"
             lg_counts[lg] = lg_counts.get(lg, 0) + 1

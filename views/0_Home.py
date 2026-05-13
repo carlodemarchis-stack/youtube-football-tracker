@@ -170,8 +170,9 @@ try:
     _league_counts: dict[str, int] = {}
     _league_has_channel: dict[str, bool] = {}
     for _c in _chs:
-        if _c.get("entity_type") in ("Player", "Federation", "OtherClub", "WomenClub"):
-            continue  # Players + Federations live on their own pages
+        if _c.get("entity_type") in ("Player", "Federation", "GoverningBody",
+                                      "OtherClub", "WomenClub"):
+            continue  # tangential entities live on their own pages
         _lg = COUNTRY_TO_LEAGUE.get((_c.get("country") or "").upper(), _c.get("country") or "—")
         if _c.get("entity_type") == "League":
             _league_has_channel[_lg] = True
