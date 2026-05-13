@@ -20,6 +20,7 @@ from src.database import Database
 from src.cached_db import get_all_channels as _cached_channels
 from src.analytics import fmt_num, fmt_date, kpi_row
 from src.auth import require_login
+from src.dot import dual_dot
 
 load_dotenv()
 require_login()
@@ -121,8 +122,11 @@ for c in wc_sorted:
     yt_url = (f"https://www.youtube.com/@{handle}" if handle
                else f"https://www.youtube.com/channel/{yt_id}")
     team = w.get("team") or c.get("country") or c.get("name") or "—"
-    name = c.get("name") or "—"
-    cf = w.get("confederation") or "—"
+    is_gov = c.get("entity_type") == "GoverningBody"
+    # Confederation column reads "—" for governing-body rows (FIFA /
+    # UEFA / AFC / … themselves don't sit *under* a confederation;
+    # they ARE the body).
+    cf = ("" if is_gov else (w.get("confederation") or "—"))
     subs = int(c.get("subscriber_count") or 0)
     views = int(c.get("total_views") or 0)
     videos = int(c.get("video_count") or 0)
@@ -135,18 +139,34 @@ for c in wc_sorted:
         v = "" if val_sort is None else str(val_sort)
         return f"<td style='text-align:{align}' data-val=\"{v}\">{content}</td>"
 
-    flag = TEAM_FLAG.get(team, "")
-    team_with_flag = (f"<span style='display:inline-block;width:24px;"
-                      f"text-align:center;margin-right:8px'>{flag}</span>"
-                      f"{team}") if flag else team
+    # Team-cell marker: dual-dot for governing bodies (using their
+    # logo colors set in TEAM_COLORS), country flag for national
+    # teams, blank otherwise.
+    if is_gov:
+        c1 = c.get("color") or "#636EFA"
+        c2 = c.get("color2") or "#FFFFFF"
+        marker = dual_dot(c1, c2, 14)
+    else:
+        flag = TEAM_FLAG.get(team, "")
+        marker = (f"<span style='display:inline-block;width:14px;"
+                   f"text-align:center'>{flag}</span>") if flag else ""
+
+    # Team column carries the marker + clickable name (one link
+    # serves as both team name and channel link — no separate
+    # "YouTube channel" column).
+    team_cell = (
+        f"<td style='text-align:left' data-val=\"{team.lower()}\">"
+        f"<div style='display:flex;align-items:center;gap:8px'>"
+        f"{marker}"
+        f"<a href='{yt_url}' target='_blank' rel='noopener' "
+        f"style='color:#FAFAFA;text-decoration:none'>{team}</a>"
+        f"</div></td>"
+    )
 
     rows_html.append(
         "<tr>"
-        + td(team, team_with_flag, align="left")
+        + team_cell
         + td(cf, cf, align="left")
-        + (f"<td style='text-align:left' data-val=\"{name.lower()}\">"
-            f"<a href='{yt_url}' target='_blank' rel='noopener' "
-            f"style='color:#FAFAFA;text-decoration:none'>{name}</a></td>")
         + td(subs,   fmt_num(subs))
         + td(views,  fmt_num(views))
         + td(videos, fmt_num(videos))
@@ -158,11 +178,12 @@ for c in wc_sorted:
         + "</tr>"
     )
 
-# Column metadata for the sort JS — (label, type, align)
+# Column metadata for the sort JS — (label, type, align).
+# Team column carries both the dot/flag and the clickable channel
+# name (no separate "YouTube channel" column).
 COLS = [
     ("Team",            "str", "left"),
     ("Confederation",   "str", "left"),
-    ("YouTube channel", "str", "left"),
     ("Subscribers",     "num", "right"),
     ("Total views",     "num", "right"),
     ("Videos",          "num", "right"),
@@ -203,7 +224,7 @@ table_html = (
     "const t=document.querySelector('.wc-tbl');"
     "const tb=t.querySelector('tbody');"
     "const hs=t.querySelectorAll('th[data-col]');"
-    "let cur=3,asc=false;"
+    "let cur=2,asc=false;"
     "function refresh(){"
         "const rows=Array.from(tb.rows);"
         "const isStr=hs[cur].dataset.type==='str';"
