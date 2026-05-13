@@ -170,7 +170,8 @@ TEAM_COLORS = {
 }
 
 SPORTS = ["Football", "Basketball", "Tennis", "Formula 1", "MotoGP", "Rugby", "Volleyball", "Cycling", "Other"]
-ENTITY_TYPES = ["Club", "League", "Federation", "Player", "Media", "Other"]
+ENTITY_TYPES = ["Club", "League", "Federation", "GoverningBody",
+                "Player", "Media", "Other"]
 
 
 def seed_channels(db):

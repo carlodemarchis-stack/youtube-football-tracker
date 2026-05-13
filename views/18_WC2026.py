@@ -38,9 +38,10 @@ db = Database(SUPABASE_URL, SUPABASE_KEY)
 all_channels = _cached_channels(db)
 wc_all = [c for c in all_channels
           if (c.get("competitions") or {}).get("wc2026")]
-# Split governing bodies (FIFA + 6 confederations) from team channels
-gov = [c for c in wc_all
-       if (c.get("competitions") or {}).get("wc2026", {}).get("is_confederation")]
+# Split governing bodies (FIFA + 6 confederations) from team channels.
+# Governing bodies have their own entity_type now ("GoverningBody")
+# alongside Club / League / Federation / Player / Media / Other.
+gov = [c for c in wc_all if c.get("entity_type") == "GoverningBody"]
 wc  = [c for c in wc_all if c not in gov]
 
 if not wc:
