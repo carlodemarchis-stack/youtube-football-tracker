@@ -100,18 +100,38 @@ TEAM_FLAG = {
 }
 
 
+# ── Split channels by role ────────────────────────────────────────
+# - primary  : team + governing_body channels — appear in the main table
+# - alts     : federation channels for countries that already have a
+#              team-brand primary — surfaced via a "+N alt" chip and
+#              an expander below the table
+def _role(c):
+    return (_wc(c) or {}).get("role") or "team"
+
+primary    = [c for c in wc if _role(c) in ("team", "governing_body")]
+alts       = [c for c in wc if _role(c) not in ("team", "governing_body")]
+# Index alts by team name so a row can show its alt channels.
+from collections import defaultdict
+alts_by_team: dict[str, list] = defaultdict(list)
+for c in alts:
+    team = _wc(c).get("team")
+    if team:
+        alts_by_team[team].append(c)
+
 # ── KPI strip ─────────────────────────────────────────────────────
-total_subs   = sum(int(c.get("subscriber_count") or 0) for c in wc)
-total_views  = sum(int(c.get("total_views") or 0)      for c in wc)
-total_videos = sum(int(c.get("video_count") or 0)      for c in wc)
-n_teams      = sum(1 for c in wc if c.get("entity_type") != "GoverningBody")
-n_gov        = sum(1 for c in wc if c.get("entity_type") == "GoverningBody")
+total_subs   = sum(int(c.get("subscriber_count") or 0) for c in primary)
+total_views  = sum(int(c.get("total_views") or 0)      for c in primary)
+total_videos = sum(int(c.get("video_count") or 0)      for c in primary)
+n_teams      = sum(1 for c in primary if c.get("entity_type") != "GoverningBody")
+n_gov        = sum(1 for c in primary if c.get("entity_type") == "GoverningBody")
 avg_vpv      = (total_views // total_videos) if total_videos else 0
+ch_sub = (f"{n_teams} teams + FIFA + {max(n_gov - 1, 0)} confederations"
+          if n_gov else f"{n_teams} teams")
+if alts:
+    ch_sub += f" · +{len(alts)} alt"
 
 st.markdown(kpi_row([
-    ("Channels", str(len(wc)),
-        f"{n_teams} teams + FIFA + {max(n_gov - 1, 0)} confederations"
-        if n_gov else f"{n_teams} teams"),
+    ("Channels", str(len(primary)), ch_sub),
     ("Subscribers", fmt_num(total_subs), ""),
     ("Views",       fmt_num(total_views), ""),
     ("Videos",      fmt_num(total_videos), ""),
@@ -128,7 +148,7 @@ rows_html = []
 # Initial order: subscribers desc — JS-side default sort lands on
 # the same column once it renders, so this just prevents a flash
 # of unsorted rows.
-wc_sorted = sorted(wc,
+wc_sorted = sorted(primary,
                     key=lambda c: -(int(c.get("subscriber_count") or 0)))
 
 for c in wc_sorted:
@@ -167,6 +187,17 @@ for c in wc_sorted:
         marker = (f"<span style='display:inline-block;width:14px;"
                    f"text-align:center'>{flag}</span>") if flag else ""
 
+    # "+N alt" chip when the country has additional WC2026-tagged
+    # channels (e.g. Egypt has a federation channel alongside the
+    # team channel). Counted from alts_by_team; team rows only.
+    n_alt = 0 if is_gov else len(alts_by_team.get(team, []))
+    alt_chip = (f" <span title='{n_alt} alternate official channel"
+                 f"{'' if n_alt == 1 else 's'} for {team} — see expander below' "
+                 f"style='background:#1a1c24;border:1px solid #2a2c34;"
+                 f"border-radius:3px;padding:1px 6px;color:#888;"
+                 f"font-size:11px;margin-left:6px'>+{n_alt} alt</span>"
+                ) if n_alt else ""
+
     # Team column carries the marker + clickable name (one link
     # serves as both team name and channel link — no separate
     # "YouTube channel" column).
@@ -176,6 +207,7 @@ for c in wc_sorted:
         f"{marker}"
         f"<a href='{yt_url}' target='_blank' rel='noopener' "
         f"style='color:#FAFAFA;text-decoration:none'>{team}</a>"
+        f"{alt_chip}"
         f"</div></td>"
     )
 
@@ -270,3 +302,54 @@ st.caption(
     "Click any column header to sort. Click a channel name to open "
     "it on YouTube."
 )
+
+# ── Alternate channels (federation + team where both exist) ──────
+if alts:
+    with st.expander(f"+{len(alts)} alternate official channels "
+                      f"({', '.join(sorted(alts_by_team.keys()))})",
+                      expanded=False):
+        st.caption(
+            "Some federations run two channels — one for the organization "
+            "(federation news, all national teams) and one for the senior "
+            "men's team. The main table above shows the team-brand channel; "
+            "the federation channel for the same country is listed here."
+        )
+        alt_rows = []
+        for c in sorted(alts, key=lambda x: -(int(x.get("subscriber_count") or 0))):
+            w = _wc(c)
+            team = w.get("team") or "?"
+            flag = TEAM_FLAG.get(team, "")
+            handle = (c.get("handle") or "").lstrip("@")
+            yt_id = c.get("youtube_channel_id") or ""
+            yt_url = (f"https://www.youtube.com/@{handle}" if handle
+                       else f"https://www.youtube.com/channel/{yt_id}")
+            subs = int(c.get("subscriber_count") or 0)
+            videos = int(c.get("video_count") or 0)
+            views = int(c.get("total_views") or 0)
+            role = w.get("role") or ""
+            alt_rows.append(
+                "<tr>"
+                f"<td style='padding:6px 12px'>{flag} {team}</td>"
+                f"<td style='padding:6px 12px;color:#888'>{role}</td>"
+                f"<td style='padding:6px 12px'>"
+                f"<a href='{yt_url}' target='_blank' rel='noopener' "
+                f"style='color:#FAFAFA;text-decoration:none'>{c.get('name')}</a></td>"
+                f"<td style='padding:6px 12px;text-align:right'>{fmt_num(subs)}</td>"
+                f"<td style='padding:6px 12px;text-align:right'>{fmt_num(views)}</td>"
+                f"<td style='padding:6px 12px;text-align:right'>{fmt_num(videos)}</td>"
+                "</tr>"
+            )
+        st.markdown(
+            "<table style='border-collapse:collapse;font-size:13px;width:100%;"
+            "color:#FAFAFA'>"
+            "<thead><tr style='border-bottom:1px solid #444;color:#888'>"
+            "<th style='padding:6px 12px;text-align:left'>Country</th>"
+            "<th style='padding:6px 12px;text-align:left'>Role</th>"
+            "<th style='padding:6px 12px;text-align:left'>Channel</th>"
+            "<th style='padding:6px 12px;text-align:right'>Subscribers</th>"
+            "<th style='padding:6px 12px;text-align:right'>Total views</th>"
+            "<th style='padding:6px 12px;text-align:right'>Videos</th>"
+            "</tr></thead>"
+            f"<tbody>{''.join(alt_rows)}</tbody></table>",
+            unsafe_allow_html=True,
+        )
