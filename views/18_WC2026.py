@@ -104,15 +104,18 @@ TEAM_FLAG = {
 total_subs   = sum(int(c.get("subscriber_count") or 0) for c in wc)
 total_views  = sum(int(c.get("total_views") or 0)      for c in wc)
 total_videos = sum(int(c.get("video_count") or 0)      for c in wc)
-confeds      = sorted({_wc(c).get("confederation") for c in wc
-                       if _wc(c).get("confederation")})
+n_teams      = sum(1 for c in wc if c.get("entity_type") != "GoverningBody")
+n_gov        = sum(1 for c in wc if c.get("entity_type") == "GoverningBody")
+avg_vpv      = (total_views // total_videos) if total_videos else 0
 
 st.markdown(kpi_row([
-    ("Channels in snapshot", str(len(wc)), ""),
-    ("Confederations",    str(len(confeds)), " · ".join(confeds)),
-    ("Total subscribers", fmt_num(total_subs), ""),
-    ("Total views",       fmt_num(total_views), ""),
-    ("Total videos",      fmt_num(total_videos), ""),
+    ("Channels", str(len(wc)),
+        f"{n_teams} teams + FIFA + {max(n_gov - 1, 0)} confederations"
+        if n_gov else f"{n_teams} teams"),
+    ("Subscribers", fmt_num(total_subs), ""),
+    ("Views",       fmt_num(total_views), ""),
+    ("Videos",      fmt_num(total_videos), ""),
+    ("Views / video", fmt_num(avg_vpv), ""),
 ]), unsafe_allow_html=True)
 
 
