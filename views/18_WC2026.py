@@ -36,8 +36,12 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 
 db = Database(SUPABASE_URL, SUPABASE_KEY)
 all_channels = _cached_channels(db)
-wc = [c for c in all_channels
-      if (c.get("competitions") or {}).get("wc2026")]
+wc_all = [c for c in all_channels
+          if (c.get("competitions") or {}).get("wc2026")]
+# Split governing bodies (FIFA + 6 confederations) from team channels
+gov = [c for c in wc_all
+       if (c.get("competitions") or {}).get("wc2026", {}).get("is_confederation")]
+wc  = [c for c in wc_all if c not in gov]
 
 if not wc:
     st.warning(
@@ -101,6 +105,57 @@ st.markdown(kpi_row([
     ("Total videos",      fmt_num(total_videos), ""),
 ]), unsafe_allow_html=True)
 
+
+# ── Governing bodies (FIFA + 6 confederations) ───────────────────
+if gov:
+    st.markdown(
+        "<div style='font-size:11px;color:#888;text-transform:uppercase;"
+        "letter-spacing:0.5px;margin:24px 0 8px 0'>"
+        "🏛️ Governing bodies</div>",
+        unsafe_allow_html=True,
+    )
+    # Sort: FIFA first, then by subs desc
+    gov_sorted = sorted(
+        gov,
+        key=lambda c: (
+            0 if (c["competitions"]["wc2026"].get("team") == "FIFA") else 1,
+            -(int(c.get("subscriber_count") or 0))
+        ),
+    )
+    chips = []
+    for c in gov_sorted:
+        w = c["competitions"]["wc2026"]
+        label = w.get("team") or c.get("name") or "—"
+        subs = int(c.get("subscriber_count") or 0)
+        handle = (c.get("handle") or "").lstrip("@")
+        yt_id = c.get("youtube_channel_id") or ""
+        yt_url = (f"https://www.youtube.com/@{handle}" if handle
+                   else f"https://www.youtube.com/channel/{yt_id}")
+        chips.append(
+            f"<a href='{yt_url}' target='_blank' rel='noopener' "
+            f"style='display:inline-block;background:#1a1c24;"
+            f"border:1px solid #2a2c34;border-radius:6px;"
+            f"padding:10px 14px;margin:0 8px 8px 0;"
+            f"text-decoration:none;min-width:130px'>"
+            f"<div style='color:#FAFAFA;font-weight:600;font-size:14px'>{label}</div>"
+            f"<div style='color:#888;font-size:11px;margin-top:2px'>"
+            f"{fmt_num(subs) + ' subs' if subs else '—'}</div>"
+            f"</a>"
+        )
+    st.markdown("".join(chips), unsafe_allow_html=True)
+    st.markdown(
+        "<div style='font-size:11px;color:#888;margin-top:6px;margin-bottom:24px'>"
+        "Click any tile to open the channel on YouTube.</div>",
+        unsafe_allow_html=True,
+    )
+
+
+st.markdown(
+    "<div style='font-size:11px;color:#888;text-transform:uppercase;"
+    "letter-spacing:0.5px;margin:8px 0 8px 0'>"
+    "🏆 48 qualified teams</div>",
+    unsafe_allow_html=True,
+)
 
 # ── Table — one row per team, sortable like the All Channels view ─
 # Each cell carries data-val so the JS sort uses raw numbers, not
