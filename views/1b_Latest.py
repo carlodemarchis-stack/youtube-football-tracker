@@ -269,6 +269,15 @@ else:
     try:
         from src.timeline import render_48h_dots
         from src.channels import LEAGUE_FLAG, LEAGUE_COLOR
+        # Drop tangential-entity videos (Federation / GoverningBody /
+        # Player / etc.) — their country codes (WW/EU/AS/AF/NA/SA/OC,
+        # or per-team values) would otherwise create phantom league
+        # rows like "WW" or "AS" in the timeline.
+        _SKIP_TYPES = ("Player", "Federation", "GoverningBody",
+                       "OtherClub", "WomenClub")
+        _z1_videos = [v for v in latest_raw_unscheduled
+                      if (ch_by_id.get(v.get("channel_id")) or {})
+                         .get("entity_type") not in _SKIP_TYPES]
         def _league_of(v):
             ch = ch_by_id.get(v.get("channel_id")) or {}
             return get_league_for_channel(ch) or "Other"
@@ -286,7 +295,7 @@ else:
             return (f'<span style="display:inline-flex;align-items:center;'
                     f'justify-content:center;width:14px;height:14px;'
                     f'font-size:12px;line-height:1">{flag}</span>')
-        render_48h_dots(latest_raw_unscheduled,
+        render_48h_dots(_z1_videos,
                         channel_resolver=_lg_label,
                         color_resolver=_lg_color,
                         badge_resolver=_lg_badge,
