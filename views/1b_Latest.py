@@ -43,8 +43,13 @@ from src.cached_db import (
     get_last_fetch_time as _cached_last_fetch,
 )
 all_channels = get_global_channels() or _cached_channels(db)
-# Players are isolated — never show in Latest Videos (they have their own page)
-all_channels = [c for c in all_channels if c.get("entity_type") not in ("Player", "Federation", "OtherClub", "WomenClub")]
+# Tangential entities are isolated — never show in Latest Videos
+# (Players / Federations / GoverningBody / OtherClubs / WomenClubs
+# have their own dedicated pages).
+all_channels = [c for c in all_channels
+                if c.get("entity_type") not in ("Player", "Federation",
+                                                 "GoverningBody",
+                                                 "OtherClub", "WomenClub")]
 
 color_map = get_global_color_map()
 dual = get_global_color_map_dual()

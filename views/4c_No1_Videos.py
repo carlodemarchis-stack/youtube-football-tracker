@@ -61,7 +61,7 @@ def _live_top1_per_channel(since: str | None) -> list[dict]:
     core_ids = {
         c["id"] for c in all_channels
         if c.get("entity_type") not in
-           ("Player", "Federation", "OtherClub", "WomenClub")
+           ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub")
         and c.get("id")
     }
     q = (db.client.table("videos")

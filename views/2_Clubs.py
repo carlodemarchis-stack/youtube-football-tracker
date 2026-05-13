@@ -288,7 +288,7 @@ if league is None and _scope == "Overall":
         # subs aren't per-format and likes/comments aren't aggregated.
         import plotly.graph_objects as go
         _pie_chans = [c for c in all_channels
-                      if c.get("entity_type") not in ("Player", "Federation", "OtherClub", "WomenClub")]
+                      if c.get("entity_type") not in ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub")]
         _t_long_v  = sum(int(c.get("lifetime_long_views")  or 0) for c in _pie_chans)
         _t_short_v = sum(int(c.get("lifetime_short_views") or 0) for c in _pie_chans)
         _t_live_v  = sum(int(c.get("lifetime_live_views")  or 0) for c in _pie_chans)
@@ -500,7 +500,7 @@ if league is None and _scope == "Overall":
     # channel record), so the Views and Views/Video groups are single-
     # column and Avg Duration / Engagement are omitted entirely.
     st.subheader("All Channels")
-    _all_clubs = [ch for ch in all_channels if ch.get("entity_type") not in ("Player", "Federation", "OtherClub", "WomenClub")]
+    _all_clubs = [ch for ch in all_channels if ch.get("entity_type") not in ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub")]
     _all_color_map = get_global_color_map()
     _all_dual = get_global_color_map_dual()
 
@@ -678,7 +678,7 @@ elif club is None:
     elif include_league:
         clubs_only = league_channels
     else:
-        clubs_only = [ch for ch in league_channels if ch.get("entity_type") not in ("League", "Player", "Federation", "OtherClub", "WomenClub")]
+        clubs_only = [ch for ch in league_channels if ch.get("entity_type") not in ("League", "Player", "Federation", "GoverningBody", "OtherClub", "WomenClub")]
 
     # League header — same visual signature as render_club_header at Z3.
     if league:
@@ -1036,7 +1036,7 @@ else:
 
     # compute ranks across different metrics, vs league peers and vs all clubs
     from src.filters import get_league_for_channel as _get_lg
-    _clubs = [c for c in all_channels if c.get("entity_type") not in ("League", "Player", "Federation", "OtherClub", "WomenClub")]
+    _clubs = [c for c in all_channels if c.get("entity_type") not in ("League", "Player", "Federation", "GoverningBody", "OtherClub", "WomenClub")]
     _ch_league = _get_lg(channel)
     _peers = [c for c in _clubs if _get_lg(c) == _ch_league]
     _metric_getters = {

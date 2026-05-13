@@ -75,11 +75,11 @@ elif league is not None:
     if get_include_league():
         scope = [c for c in league_channels
                  if c.get("entity_type") not in
-                    ("Player", "Federation", "OtherClub", "WomenClub")]
+                    ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub")]
     else:
         scope = [c for c in league_channels
                  if c.get("entity_type") not in
-                    ("League", "Player", "Federation", "OtherClub", "WomenClub")]
+                    ("League", "Player", "Federation", "GoverningBody", "OtherClub", "WomenClub")]
     _ids = [c["id"] for c in scope]
     _label = league
 
@@ -95,11 +95,11 @@ else:
     elif _scope_label == "All clubs":
         scope = [c for c in all_channels
                  if c.get("entity_type") not in
-                    ("League", "Player", "Federation", "OtherClub", "WomenClub")]
+                    ("League", "Player", "Federation", "GoverningBody", "OtherClub", "WomenClub")]
     else:
         scope = [c for c in all_channels
                  if c.get("entity_type") not in
-                    ("Player", "Federation", "OtherClub", "WomenClub")]
+                    ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub")]
     _ids = [c["id"] for c in scope]
     _label = "All Leagues"
 
@@ -123,7 +123,7 @@ _excluded = None
 if _z1:
     _excluded = [c["id"] for c in all_channels
                  if c.get("entity_type") in
-                    ("Player", "Federation", "OtherClub", "WomenClub")]
+                    ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub")]
 
 top_views = top_likes = top_comments = None
 
@@ -181,7 +181,7 @@ if top_views:
         _core_channels = [
             c for c in all_channels
             if c.get("entity_type") not in
-               ("Player", "Federation", "OtherClub", "WomenClub")
+               ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub")
         ]
         _ch_lg = get_league_for_channel(club)
         _league_cohort = [c for c in _core_channels

@@ -220,7 +220,7 @@ def main() -> int:
     # Coverage report
     chs2 = db.get_all_channels()
     core = [c for c in chs2 if c.get("entity_type") not in
-            ("Player", "Federation", "OtherClub", "WomenClub")]
+            ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub")]
     with_web = sum(1 for c in core if (c.get("website") or "").strip())
     print(f"\nCoverage: {with_web}/{len(core)} core channels have website set "
           f"({100*with_web//len(core)}%).")

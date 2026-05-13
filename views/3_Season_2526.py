@@ -1010,7 +1010,7 @@ if league is None and _scope == "Overall":
             from collections import Counter as _Counter
             _vpd_clubs = [c for c in all_channels
                           if c.get("entity_type") not in
-                             ("Player", "Federation", "OtherClub", "WomenClub")]
+                             ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub")]
             _vpd_ids = [c["id"] for c in _vpd_clubs if c.get("id")]
             _vpd_rows = _fa_vpd(
                 db.client.table("videos")
@@ -1162,7 +1162,7 @@ if league is None and _scope == "Overall":
             from src.database import _fetch_all as _fa_z1
             _z1_clubs = [c for c in all_channels
                          if c.get("entity_type") not in
-                            ("Player", "Federation", "OtherClub", "WomenClub")]
+                            ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub")]
             _z1_ids = [c["id"] for c in _z1_clubs if c.get("id")]
             _z1_rows = _fa_z1(
                 db.client.table("videos")
@@ -1260,7 +1260,7 @@ if league is None and _scope == "Overall":
 
     ch_rows = []
     for ch in all_channels:
-        if ch.get("entity_type") in ("Player", "Federation", "OtherClub", "WomenClub"):
+        if ch.get("entity_type") in ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub"):
             continue  # isolated entity types live on their own pages
         lv = int(ch.get("season_long_views") or 0)
         sv = int(ch.get("season_short_views") or 0)
@@ -1455,7 +1455,7 @@ if club is None:
         if include_league:
             clubs_only = league_channels
         else:
-            clubs_only = [ch for ch in league_channels if ch.get("entity_type") not in ("League", "Player", "Federation", "OtherClub", "WomenClub")]
+            clubs_only = [ch for ch in league_channels if ch.get("entity_type") not in ("League", "Player", "Federation", "GoverningBody", "OtherClub", "WomenClub")]
 
     if not clubs_only:
         st.info("No clubs in this league yet.")

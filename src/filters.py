@@ -383,10 +383,10 @@ def get_channels_for_filter(channels: list[dict], league: str | None) -> list[di
             return [ch for ch in channels if is_club(ch)]
         # Overall: exclude Players + Federations (own pages) but keep leagues
         return [ch for ch in channels
-                if ch.get("entity_type") not in ("Player", "Federation", "OtherClub", "WomenClub")]
+                if ch.get("entity_type") not in ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub")]
     return [
         ch for ch in channels
-        if ch.get("entity_type") not in ("Player", "Federation", "OtherClub", "WomenClub")
+        if ch.get("entity_type") not in ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub")
         and COUNTRY_TO_LEAGUE.get(ch.get("country", ""), ch.get("country", "")) == league
     ]
 

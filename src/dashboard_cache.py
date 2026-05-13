@@ -829,8 +829,8 @@ def refresh_latest_vibe(db, log=print, channels: list[dict] | None = None) -> No
         from src import ai_note as _an2
         chans = channels if channels is not None else db.get_all_channels()
         chans = [c for c in chans
-                 if c.get("entity_type") not in ("Player", "Federation",
-                                                  "OtherClub", "WomenClub")]
+                 if c.get("entity_type") not in ("Player", "Federation", "GoverningBody",
+                                 "OtherClub", "WomenClub")]
         all_ch_ids = [c["id"] for c in chans]
         log(f"[dashboard_cache] computing latest_vibe / all "
             f"({len(all_ch_ids)} channels)")
@@ -907,7 +907,7 @@ def refresh_publishing_pulse(db, log=print, channels: list[dict] | None = None) 
     chans = channels if channels is not None else db.get_all_channels()
     scope_chans = [c for c in chans
                    if c.get("entity_type") not in
-                      ("Player", "Federation", "OtherClub", "WomenClub")]
+                      ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub")]
     if not scope_chans:
         log("[dashboard_cache] publishing_pulse skipped — no channels in scope")
         return
@@ -1020,10 +1020,10 @@ def refresh_season_top(db, log=print, channels: list[dict] | None = None) -> Non
     chans = channels if channels is not None else db.get_all_channels()
     isolated_ids = [c["id"] for c in chans
                     if c.get("entity_type") in
-                       ("Player", "Federation", "OtherClub", "WomenClub")]
+                       ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub")]
     included = [c for c in chans
                 if c.get("entity_type") not in
-                   ("Player", "Federation", "OtherClub", "WomenClub")]
+                   ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub")]
     if not included:
         log("[dashboard_cache] season_top skipped — no channels in scope")
         return
@@ -1075,7 +1075,7 @@ def _refresh_no1_per_channel(
     chans = channels if channels is not None else db.get_all_channels()
     core = [c for c in chans
             if c.get("entity_type") not in
-               ("Player", "Federation", "OtherClub", "WomenClub")
+               ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub")
             and c.get("id")]
     core_ids = {c["id"] for c in core}
     if not core_ids:
