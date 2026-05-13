@@ -54,6 +54,38 @@ def _wc(c):
     return c.get("competitions", {}).get("wc2026", {}) or {}
 
 
+# Team → flag emoji. Keyed by the `team` value in the WC2026 CSV.
+# England + Scotland use the ISO 3166-2 subdivision tag sequence
+# (rather than the UK flag) — they qualify separately.
+TEAM_FLAG = {
+    # CONCACAF
+    "Mexico": "🇲🇽", "United States": "🇺🇸", "Canada": "🇨🇦",
+    "Haiti": "🇭🇹", "Panama": "🇵🇦", "Curaçao": "🇨🇼",
+    # CONMEBOL
+    "Argentina": "🇦🇷", "Brazil": "🇧🇷", "Uruguay": "🇺🇾",
+    "Ecuador": "🇪🇨", "Colombia": "🇨🇴", "Paraguay": "🇵🇾",
+    # UEFA
+    "England": "\U0001F3F4\U000E0067\U000E0062\U000E0065\U000E006E\U000E0067\U000E007F",
+    "France": "🇫🇷", "Germany": "🇩🇪", "Spain": "🇪🇸",
+    "Portugal": "🇵🇹", "Netherlands": "🇳🇱", "Belgium": "🇧🇪",
+    "Croatia": "🇭🇷", "Switzerland": "🇨🇭", "Norway": "🇳🇴",
+    "Scotland": "\U0001F3F4\U000E0067\U000E0062\U000E0073\U000E0063\U000E0074\U000E007F",
+    "Austria": "🇦🇹", "Czechia": "🇨🇿",
+    "Bosnia and Herzegovina": "🇧🇦", "Sweden": "🇸🇪", "Türkiye": "🇹🇷",
+    # CAF
+    "Morocco": "🇲🇦", "Egypt": "🇪🇬", "Algeria": "🇩🇿",
+    "Ghana": "🇬🇭", "Ivory Coast": "🇨🇮", "Tunisia": "🇹🇳",
+    "Senegal": "🇸🇳", "South Africa": "🇿🇦",
+    "DR Congo": "🇨🇩", "Cape Verde": "🇨🇻",
+    # AFC
+    "Iran": "🇮🇷", "Iraq": "🇮🇶", "Saudi Arabia": "🇸🇦",
+    "Jordan": "🇯🇴", "Qatar": "🇶🇦", "Uzbekistan": "🇺🇿",
+    "Japan": "🇯🇵", "South Korea": "🇰🇷",
+    # OFC
+    "Australia": "🇦🇺", "New Zealand": "🇳🇿",
+}
+
+
 # ── KPI strip ─────────────────────────────────────────────────────
 total_subs   = sum(int(c.get("subscriber_count") or 0) for c in wc)
 total_views  = sum(int(c.get("total_views") or 0)      for c in wc)
@@ -102,9 +134,14 @@ for c in wc_sorted:
         v = "" if val_sort is None else str(val_sort)
         return f"<td style='text-align:{align}' data-val=\"{v}\">{content}</td>"
 
+    flag = TEAM_FLAG.get(team, "")
+    team_with_flag = (f"<span style='display:inline-block;width:24px;"
+                      f"text-align:center;margin-right:8px'>{flag}</span>"
+                      f"{team}") if flag else team
+
     rows_html.append(
         "<tr>"
-        + td(team, team, align="left")
+        + td(team, team_with_flag, align="left")
         + td(grp, grp, align="center")
         + td(cf, cf, align="left")
         + (f"<td style='text-align:left' data-val=\"{name.lower()}\">"
