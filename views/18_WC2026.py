@@ -144,14 +144,13 @@ st.markdown(kpi_row([
 # ── Table — one row per team, sortable like the All Channels view ─
 # Each cell carries data-val so the JS sort uses raw numbers, not
 # the formatted display text.
-rows_html = []
-# Initial order: subscribers desc — JS-side default sort lands on
-# the same column once it renders, so this just prevents a flash
-# of unsorted rows.
-wc_sorted = sorted(primary,
-                    key=lambda c: -(int(c.get("subscriber_count") or 0)))
+def td(val_sort, content, *, align="right"):
+    v = "" if val_sort is None else str(val_sort)
+    return f"<td style='text-align:{align}' data-val=\"{v}\">{content}</td>"
 
-for c in wc_sorted:
+
+def _channel_row_html(c, *, show_alt_chip=True):
+    """Render a single <tr> for a channel — shared between primary and alts."""
     w = _wc(c)
     yt_id = c.get("youtube_channel_id") or ""
     handle = (c.get("handle") or "").lstrip("@")
@@ -159,9 +158,6 @@ for c in wc_sorted:
                else f"https://www.youtube.com/channel/{yt_id}")
     team = w.get("team") or c.get("country") or c.get("name") or "—"
     is_gov = c.get("entity_type") == "GoverningBody"
-    # Confederation column reads "—" for governing-body rows (FIFA /
-    # UEFA / AFC / … themselves don't sit *under* a confederation;
-    # they ARE the body).
     cf = ("" if is_gov else (w.get("confederation") or "—"))
     subs = int(c.get("subscriber_count") or 0)
     views = int(c.get("total_views") or 0)
@@ -171,13 +167,6 @@ for c in wc_sorted:
     lives = int(c.get("live_count") or 0)
     last_fetched = c.get("last_fetched") or ""
 
-    def td(val_sort, content, *, align="right"):
-        v = "" if val_sort is None else str(val_sort)
-        return f"<td style='text-align:{align}' data-val=\"{v}\">{content}</td>"
-
-    # Team-cell marker: dual-dot for governing bodies (using their
-    # logo colors set in TEAM_COLORS), country flag for national
-    # teams, blank otherwise.
     if is_gov:
         c1 = c.get("color") or "#636EFA"
         c2 = c.get("color2") or "#FFFFFF"
@@ -187,10 +176,13 @@ for c in wc_sorted:
         marker = (f"<span style='display:inline-block;width:14px;"
                    f"text-align:center'>{flag}</span>") if flag else ""
 
-    # "+N alt" chip when the country has additional WC2026-tagged
-    # channels (e.g. Egypt has a federation channel alongside the
-    # team channel). Counted from alts_by_team; team rows only.
-    n_alt = 0 if is_gov else len(alts_by_team.get(team, []))
+    # Display label: for alts (role=federation) use the actual channel
+    # name so users can tell them apart from the primary row.
+    role = w.get("role") or "team"
+    display_label = team if role in ("team", "governing_body") else (
+        c.get("name") or team)
+
+    n_alt = 0 if (is_gov or not show_alt_chip) else len(alts_by_team.get(team, []))
     alt_chip = (f" <span title='{n_alt} alternate official channel"
                  f"{'' if n_alt == 1 else 's'} for {team} — see expander below' "
                  f"style='background:#1a1c24;border:1px solid #2a2c34;"
@@ -198,20 +190,17 @@ for c in wc_sorted:
                  f"font-size:11px;margin-left:6px'>+{n_alt} alt</span>"
                 ) if n_alt else ""
 
-    # Team column carries the marker + clickable name (one link
-    # serves as both team name and channel link — no separate
-    # "YouTube channel" column).
     team_cell = (
-        f"<td style='text-align:left' data-val=\"{team.lower()}\">"
+        f"<td style='text-align:left' data-val=\"{display_label.lower()}\">"
         f"<div style='display:flex;align-items:center;gap:8px'>"
         f"{marker}"
         f"<a href='{yt_url}' target='_blank' rel='noopener' "
-        f"style='color:#FAFAFA;text-decoration:none'>{team}</a>"
+        f"style='color:#FAFAFA;text-decoration:none'>{display_label}</a>"
         f"{alt_chip}"
         f"</div></td>"
     )
 
-    rows_html.append(
+    return (
         "<tr>"
         + team_cell
         + td(cf, cf, align="left")
@@ -225,6 +214,14 @@ for c in wc_sorted:
               align="right")
         + "</tr>"
     )
+
+
+# Initial order: subscribers desc — JS-side default sort lands on
+# the same column once it renders, so this just prevents a flash
+# of unsorted rows.
+wc_sorted = sorted(primary,
+                    key=lambda c: -(int(c.get("subscriber_count") or 0)))
+rows_html = [_channel_row_html(c) for c in wc_sorted]
 
 # Column metadata for the sort JS — (label, type, align).
 # Team column carries both the dot/flag and the clickable channel
@@ -246,7 +243,7 @@ th_html = "".join(
     for i, (lbl, tp, al) in enumerate(COLS)
 )
 
-table_html = (
+_TABLE_CSS = (
     "<style>"
     "body{margin:0;background:#0E1117;color:#FAFAFA;"
     "font-family:'Source Sans Pro',sans-serif}"
@@ -262,41 +259,49 @@ table_html = (
     ".wc-tbl tr:hover td{background:#1a1c24}"
     ".wc-tbl a{color:inherit;text-decoration:none}"
     "</style>"
-    "<div class='wc-wrap'>"
-    "<table class='wc-tbl'>"
-    "<thead><tr style='border-bottom:2px solid #444'>"
-    + th_html +
-    "</tr></thead>"
-    f"<tbody>{''.join(rows_html)}</tbody></table></div>"
-    "<script>(function(){"
-    "const t=document.querySelector('.wc-tbl');"
-    "const tb=t.querySelector('tbody');"
-    "const hs=t.querySelectorAll('th[data-col]');"
-    "let cur=2,asc=false;"
-    "function refresh(){"
-        "const rows=Array.from(tb.rows);"
-        "const isStr=hs[cur].dataset.type==='str';"
-        "rows.sort((a,b)=>{"
-            "const va=a.cells[cur].dataset.val||'';"
-            "const vb=b.cells[cur].dataset.val||'';"
-            "let c=isStr?va.localeCompare(vb,undefined,{sensitivity:'base'})"
-                     ":(parseFloat(va)||0)-(parseFloat(vb)||0);"
-            "return asc?c:-c;"
-        "});"
-        "rows.forEach(r=>tb.appendChild(r));"
-        "hs.forEach(h=>{h.classList.remove('active');h.textContent=h.textContent.replace(/ [▲▼]/g,'');});"
-        "hs[cur].classList.add('active');"
-        "hs[cur].textContent+=asc?' ▲':' ▼';"
-    "}"
-    "hs.forEach((h,i)=>{h.addEventListener('click',()=>{"
-        "if(i===cur)asc=!asc;else{cur=i;asc=hs[i].dataset.type==='str';}"
-        "refresh();"
-    "});});"
-    "refresh();"
-    "})();</script>"
 )
+
+
+def _render_wc_table(rows_html: list[str], table_id: str) -> str:
+    return (
+        _TABLE_CSS
+        + f"<div class='wc-wrap'><table class='wc-tbl' id='{table_id}'>"
+        "<thead><tr style='border-bottom:2px solid #444'>"
+        + th_html +
+        "</tr></thead>"
+        f"<tbody>{''.join(rows_html)}</tbody></table></div>"
+        "<script>(function(){"
+        f"const t=document.getElementById('{table_id}');"
+        "const tb=t.querySelector('tbody');"
+        "const hs=t.querySelectorAll('th[data-col]');"
+        "let cur=2,asc=false;"
+        "function refresh(){"
+            "const rows=Array.from(tb.rows);"
+            "const isStr=hs[cur].dataset.type==='str';"
+            "rows.sort((a,b)=>{"
+                "const va=a.cells[cur].dataset.val||'';"
+                "const vb=b.cells[cur].dataset.val||'';"
+                "let c=isStr?va.localeCompare(vb,undefined,{sensitivity:'base'})"
+                         ":(parseFloat(va)||0)-(parseFloat(vb)||0);"
+                "return asc?c:-c;"
+            "});"
+            "rows.forEach(r=>tb.appendChild(r));"
+            "hs.forEach(h=>{h.classList.remove('active');h.textContent=h.textContent.replace(/ [▲▼]/g,'');});"
+            "hs[cur].classList.add('active');"
+            "hs[cur].textContent+=asc?' ▲':' ▼';"
+        "}"
+        "hs.forEach((h,i)=>{h.addEventListener('click',()=>{"
+            "if(i===cur)asc=!asc;else{cur=i;asc=hs[i].dataset.type==='str';}"
+            "refresh();"
+        "});});"
+        "refresh();"
+        "})();</script>"
+    )
+
+
 iframe_h = min(2000, 36 * len(wc_sorted) + 80)
-_components.html(table_html, height=iframe_h, scrolling=True)
+_components.html(_render_wc_table(rows_html, "wc-tbl-primary"),
+                  height=iframe_h, scrolling=True)
 
 st.caption(
     "Click any column header to sort. Click a channel name to open "
@@ -314,42 +319,10 @@ if alts:
             "men's team. The main table above shows the team-brand channel; "
             "the federation channel for the same country is listed here."
         )
-        alt_rows = []
-        for c in sorted(alts, key=lambda x: -(int(x.get("subscriber_count") or 0))):
-            w = _wc(c)
-            team = w.get("team") or "?"
-            flag = TEAM_FLAG.get(team, "")
-            handle = (c.get("handle") or "").lstrip("@")
-            yt_id = c.get("youtube_channel_id") or ""
-            yt_url = (f"https://www.youtube.com/@{handle}" if handle
-                       else f"https://www.youtube.com/channel/{yt_id}")
-            subs = int(c.get("subscriber_count") or 0)
-            videos = int(c.get("video_count") or 0)
-            views = int(c.get("total_views") or 0)
-            role = w.get("role") or ""
-            alt_rows.append(
-                "<tr>"
-                f"<td style='padding:6px 12px'>{flag} {team}</td>"
-                f"<td style='padding:6px 12px;color:#888'>{role}</td>"
-                f"<td style='padding:6px 12px'>"
-                f"<a href='{yt_url}' target='_blank' rel='noopener' "
-                f"style='color:#FAFAFA;text-decoration:none'>{c.get('name')}</a></td>"
-                f"<td style='padding:6px 12px;text-align:right'>{fmt_num(subs)}</td>"
-                f"<td style='padding:6px 12px;text-align:right'>{fmt_num(views)}</td>"
-                f"<td style='padding:6px 12px;text-align:right'>{fmt_num(videos)}</td>"
-                "</tr>"
-            )
-        st.markdown(
-            "<table style='border-collapse:collapse;font-size:13px;width:100%;"
-            "color:#FAFAFA'>"
-            "<thead><tr style='border-bottom:1px solid #444;color:#888'>"
-            "<th style='padding:6px 12px;text-align:left'>Country</th>"
-            "<th style='padding:6px 12px;text-align:left'>Role</th>"
-            "<th style='padding:6px 12px;text-align:left'>Channel</th>"
-            "<th style='padding:6px 12px;text-align:right'>Subscribers</th>"
-            "<th style='padding:6px 12px;text-align:right'>Total views</th>"
-            "<th style='padding:6px 12px;text-align:right'>Videos</th>"
-            "</tr></thead>"
-            f"<tbody>{''.join(alt_rows)}</tbody></table>",
-            unsafe_allow_html=True,
-        )
+        alts_sorted = sorted(
+            alts, key=lambda x: -(int(x.get("subscriber_count") or 0)))
+        alt_rows_html = [_channel_row_html(c, show_alt_chip=False)
+                         for c in alts_sorted]
+        alt_h = min(2000, 36 * len(alts_sorted) + 80)
+        _components.html(_render_wc_table(alt_rows_html, "wc-tbl-alts"),
+                          height=alt_h, scrolling=True)
