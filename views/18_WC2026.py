@@ -25,8 +25,8 @@ load_dotenv()
 require_login()
 
 st.title("FIFA World Cup 2026")
-st.caption("48 qualified-team federations + FIFA & 6 confederations (55 channels). "
-            "Tagged via competitions.wc2026 on each channel.")
+st.caption("Official YouTube channels of the 48 qualified national "
+            "teams, plus FIFA and the 6 confederations.")
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
@@ -108,11 +108,11 @@ st.markdown(kpi_row([
 # Each cell carries data-val so the JS sort uses raw numbers, not
 # the formatted display text.
 rows_html = []
-# Sort default: by group then team
-def _sort_key(c):
-    w = _wc(c)
-    return (w.get("group") or "Z", w.get("team") or c.get("name") or "")
-wc_sorted = sorted(wc, key=_sort_key)
+# Initial order: subscribers desc — JS-side default sort lands on
+# the same column once it renders, so this just prevents a flash
+# of unsorted rows.
+wc_sorted = sorted(wc,
+                    key=lambda c: -(int(c.get("subscriber_count") or 0)))
 
 for c in wc_sorted:
     w = _wc(c)
@@ -122,7 +122,6 @@ for c in wc_sorted:
                else f"https://www.youtube.com/channel/{yt_id}")
     team = w.get("team") or c.get("country") or c.get("name") or "—"
     name = c.get("name") or "—"
-    grp = w.get("group") or "—"
     cf = w.get("confederation") or "—"
     subs = int(c.get("subscriber_count") or 0)
     views = int(c.get("total_views") or 0)
@@ -144,7 +143,6 @@ for c in wc_sorted:
     rows_html.append(
         "<tr>"
         + td(team, team_with_flag, align="left")
-        + td(grp, grp, align="center")
         + td(cf, cf, align="left")
         + (f"<td style='text-align:left' data-val=\"{name.lower()}\">"
             f"<a href='{yt_url}' target='_blank' rel='noopener' "
@@ -162,17 +160,16 @@ for c in wc_sorted:
 
 # Column metadata for the sort JS — (label, type, align)
 COLS = [
-    ("Team",          "str", "left"),
-    ("Group",         "str", "center"),
-    ("Confederation", "str", "left"),
-    ("Channel",       "str", "left"),
-    ("Subs",          "num", "right"),
-    ("Views",         "num", "right"),
-    ("Videos",        "num", "right"),
-    ("Long",          "num", "right"),
-    ("Shorts",        "num", "right"),
-    ("Live",          "num", "right"),
-    ("Updated",       "str", "right"),
+    ("Team",            "str", "left"),
+    ("Confederation",   "str", "left"),
+    ("YouTube channel", "str", "left"),
+    ("Subscribers",     "num", "right"),
+    ("Total views",     "num", "right"),
+    ("Videos",          "num", "right"),
+    ("Long-form",       "num", "right"),
+    ("Shorts",          "num", "right"),
+    ("Live streams",    "num", "right"),
+    ("Last updated",    "str", "right"),
 ]
 th_html = "".join(
     f"<th data-col='{i}' data-type='{tp}' "
@@ -206,7 +203,7 @@ table_html = (
     "const t=document.querySelector('.wc-tbl');"
     "const tb=t.querySelector('tbody');"
     "const hs=t.querySelectorAll('th[data-col]');"
-    "let cur=4,asc=false;"
+    "let cur=3,asc=false;"
     "function refresh(){"
         "const rows=Array.from(tb.rows);"
         "const isStr=hs[cur].dataset.type==='str';"
@@ -233,8 +230,6 @@ iframe_h = min(2000, 36 * len(wc_sorted) + 80)
 _components.html(table_html, height=iframe_h, scrolling=True)
 
 st.caption(
-    "Click any column header to sort. Subscriber / video stats are "
-    "pulled by the standard daily_federations cron — last refresh "
-    "shown in the Updated column. "
-    "Source CSV: data/wc2026_federation_youtube.csv."
+    "Click any column header to sort. Click a channel name to open "
+    "it on YouTube."
 )
