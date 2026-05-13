@@ -20,6 +20,7 @@ from src.database import Database
 from src.cached_db import get_all_channels as _cached_channels
 from src.analytics import fmt_num, fmt_date, kpi_row
 from src.auth import require_login
+from src.dot import dual_dot
 
 load_dotenv()
 require_login()
@@ -132,14 +133,21 @@ if gov:
         yt_id = c.get("youtube_channel_id") or ""
         yt_url = (f"https://www.youtube.com/@{handle}" if handle
                    else f"https://www.youtube.com/channel/{yt_id}")
+        # Dual-dot from the channel's logo colors (set in TEAM_COLORS)
+        c1 = c.get("color") or "#636EFA"
+        c2 = c.get("color2") or "#FFFFFF"
+        dot = dual_dot(c1, c2, 14)
         chips.append(
             f"<a href='{yt_url}' target='_blank' rel='noopener' "
             f"style='display:inline-block;background:#1a1c24;"
             f"border:1px solid #2a2c34;border-radius:6px;"
             f"padding:10px 14px;margin:0 8px 8px 0;"
             f"text-decoration:none;min-width:130px'>"
-            f"<div style='color:#FAFAFA;font-weight:600;font-size:14px'>{label}</div>"
-            f"<div style='color:#888;font-size:11px;margin-top:2px'>"
+            f"<div style='display:flex;align-items:center;gap:8px'>"
+            f"{dot}"
+            f"<span style='color:#FAFAFA;font-weight:600;font-size:14px'>{label}</span>"
+            f"</div>"
+            f"<div style='color:#888;font-size:11px;margin-top:4px;margin-left:22px'>"
             f"{fmt_num(subs) + ' subs' if subs else '—'}</div>"
             f"</a>"
         )
