@@ -47,21 +47,26 @@ db = admin_db()
 # youtube_quota_log) to the env var name. The env var name IS the label
 # the operator recognises, so we use it directly. The last-3-chars
 # suffix is shown in its own column for quick disambiguation.
+# Display order: main → daily → heavy → interactive → backup.
+# Cards / rows render in this order (not by units descending), so the
+# operator's eye lands in a predictable place each visit.
 _ENV_VAR_NAMES = [
     "YOUTUBE_API_KEY",
     "YOUTUBE_API_KEY_DAILY",
     "YOUTUBE_API_KEY_HEAVY",
-    "YOUTUBE_API_KEY_BACKUP",
     "YOUTUBE_API_KEY_INTERACTIVE",
+    "YOUTUBE_API_KEY_BACKUP",
 ]
 KEY_LABELS: dict[str, str] = {}  # key_tail -> env var name
 KEY_SUFFIX: dict[str, str] = {}  # key_tail -> last-3 chars of the key value
-for env_name in _ENV_VAR_NAMES:
+KEY_ORDER:  dict[str, int] = {}  # key_tail -> sort index (0 = top)
+for _i, env_name in enumerate(_ENV_VAR_NAMES):
     v = os.environ.get(env_name, "").strip()
     if v:
         tail4 = v[-4:]
         KEY_LABELS[tail4] = env_name
         KEY_SUFFIX[tail4] = v[-3:]
+        KEY_ORDER[tail4] = _i
 
 
 def _fetch_rows(since: _dt.date):
@@ -129,8 +134,9 @@ def _color(pct: int) -> str:
 
 if by_key_today:
     cards = []
+    # Stable env-var order, unknown tails at the end
     for tail, b in sorted(by_key_today.items(),
-                          key=lambda kv: -kv[1]["units"]):
+                          key=lambda kv: (KEY_ORDER.get(kv[0], 999), kv[0])):
         env_name = KEY_LABELS.get(tail, f"unknown ({tail})")
         suffix = KEY_SUFFIX.get(tail, tail[-3:] if tail else "")
         pct = _pct(b["units"])
@@ -163,9 +169,14 @@ if today_rows:
         "<th style='padding:6px 12px;text-align:left'>Last used (UTC)</th>"
         "</tr></thead><tbody>"
     ]
+    # Sort by env-var order, then by units desc within each key so the
+    # heaviest script under a given key floats to the top.
     for r in sorted(today_rows,
-                     key=lambda x: (-int(x.get("units", 0)),
-                                     x.get("script") or "")):
+                     key=lambda x: (
+                         KEY_ORDER.get(x.get("key_tail") or "", 999),
+                         -int(x.get("units", 0)),
+                         x.get("script") or "",
+                     )):
         tail = r["key_tail"]
         env_name = KEY_LABELS.get(tail, f"unknown ({tail})")
         suffix = KEY_SUFFIX.get(tail, tail[-3:] if tail else "")
@@ -203,12 +214,10 @@ if rows:
                .sum()
                .pivot(index="date", columns="key_tail", values="units")
                .fillna(0))
-    # Stable column ordering: configured keys first, by env order
+    # Stable column ordering: same order as the cards above
     cols = []
     seen = set()
-    for env_name in ["YOUTUBE_API_KEY", "YOUTUBE_API_KEY_DAILY",
-                      "YOUTUBE_API_KEY_HEAVY", "YOUTUBE_API_KEY_BACKUP",
-                      "YOUTUBE_API_KEY_INTERACTIVE"]:
+    for env_name in _ENV_VAR_NAMES:
         v = os.environ.get(env_name, "").strip()
         if not v:
             continue
