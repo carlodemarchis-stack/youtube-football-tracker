@@ -32,7 +32,16 @@ def send_ntfy(
         return False
     headers = {"Priority": priority}
     if title:
-        headers["Title"] = title
+        # ntfy.sh reads the Title header but HTTP headers must be
+        # latin-1-encodable. Em-dashes / smart quotes etc. would raise
+        # 'latin-1 can't encode character'. Strip down to safe ASCII
+        # (UTF-8 in the body is fine — that's where most of our text
+        # lives anyway).
+        try:
+            title.encode("latin-1")
+            headers["Title"] = title
+        except UnicodeEncodeError:
+            headers["Title"] = title.encode("ascii", "replace").decode("ascii")
     if tags:
         headers["Tags"] = tags
     try:

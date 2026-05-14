@@ -11,6 +11,12 @@ from collections import defaultdict
 import isodate
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+# Pre-import here at module load (NOT inside the atexit hook) — supabase
+# pulls in httpx which registers its own atexit handlers on first import.
+# Doing that during interpreter shutdown raises "can't register atexit
+# after shutdown" and silently drops every flush. See the misleading
+# "[quota_log] flush failed (table missing?)" symptom this used to print.
+from supabase import create_client as _sb_create_client
 
 from .quota_alert import send_ntfy
 
@@ -201,7 +207,7 @@ def _maybe_send_daily_summary(sb, today_pt: str) -> None:
             lines.append(f"• {label}: {b['units']:,} u / {pct}% · {b['calls']:,} calls")
         send_ntfy(
             "\n".join(lines),
-            title=f"YT quota — {yesterday_pt}",
+            title=f"YT quota - {yesterday_pt}",
             priority="default",
             tags="bar_chart,youtube",
         )
@@ -228,8 +234,7 @@ def _flush_quota_log() -> None:
                or os.environ.get("SUPABASE_KEY", "").strip())
         if not url or not key:
             return
-        from supabase import create_client
-        sb = create_client(url, key)
+        sb = _sb_create_client(url, key)
 
         # If this flush spans into a new PT day relative to yesterday's
         # data, fire one summary notification (atomic via PK conflict).
@@ -330,7 +335,7 @@ class YouTubeClient:
                 send_ntfy(
                     f"🚨 YouTube API: ALL keys exhausted "
                     f"(last={key_tail}). Production reads are now failing.",
-                    title="YTFT quota — ALL KEYS DEAD",
+                    title="YTFT quota - ALL KEYS DEAD",
                     priority="urgent",
                     tags="rotating_light,youtube",
                 )
@@ -350,7 +355,7 @@ class YouTubeClient:
             send_ntfy(
                 f"⚠️ YouTube API key …{old_tail} hit quota — "
                 f"switched to backup …{new_tail}",
-                title="YTFT quota — key rotated",
+                title="YTFT quota - key rotated",
                 priority="high",
                 tags="warning,youtube",
             )
