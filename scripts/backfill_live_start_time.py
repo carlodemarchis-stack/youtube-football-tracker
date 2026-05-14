@@ -19,6 +19,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from src.database import Database
+from src.youtube_api import YouTubeClient
 
 YT_KEY = os.environ.get("YOUTUBE_API_KEY", "").strip()
 SB_URL = os.environ.get("SUPABASE_URL", "").strip()
@@ -28,9 +29,9 @@ if not (YT_KEY and SB_URL and SB_KEY):
     print("Set YOUTUBE_API_KEY, SUPABASE_URL, SUPABASE_KEY in .env")
     sys.exit(1)
 
-from googleapiclient.discovery import build
-
-youtube = build("youtube", "v3", developerKey=YT_KEY)
+# Route through YouTubeClient so this script benefits from quota
+# tracking, ntfy alerts, and BACKUP-key failover like everything else.
+yt = YouTubeClient(YT_KEY)
 db = Database(SB_URL, SB_KEY)
 
 # Fetch all live videos from DB. Paginated — there are easily >1000
@@ -59,17 +60,12 @@ for i in range(0, len(to_backfill), 50):
     batch = to_backfill[i:i + 50]
     yt_ids = [v["youtube_video_id"] for v in batch]
 
-    resp = youtube.videos().list(
-        part="liveStreamingDetails",
-        id=",".join(yt_ids),
-    ).execute()
-
-    yt_data = {}
-    for item in resp.get("items", []):
-        live_details = item.get("liveStreamingDetails", {})
-        actual = live_details.get("actualStartTime") or live_details.get("scheduledStartTime")
-        if actual:
-            yt_data[item["id"]] = actual
+    # Goes through YouTubeClient.get_video_details() which already
+    # parses liveStreamingDetails.actualStartTime / scheduledStartTime
+    # into the "actual_start_time" field. Same cost (1 unit/batch).
+    details = yt.get_video_details(yt_ids)
+    yt_data = {d["youtube_video_id"]: d["actual_start_time"]
+               for d in details if d.get("actual_start_time")}
 
     for v in batch:
         yt_id = v["youtube_video_id"]
