@@ -1,13 +1,173 @@
 from __future__ import annotations
 
+import atexit
+import datetime as _dt
 import os
+import re
 import sys
+import threading
+from collections import defaultdict
 
 import isodate
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 from .quota_alert import send_ntfy
+
+
+# ─── Quota tracking (Approach A from the design doc) ──────────────
+# Each YouTubeClient counts units consumed per key during its lifetime.
+# A single atexit hook flushes the accumulated counters to the
+# youtube_quota_log table as one upsert per (date, key_tail, script).
+# The cost table covers the methods we actually call. Anything not in
+# the table defaults to 1 unit — that's the official YouTube default
+# for cheap list endpoints.
+# Reference: https://developers.google.com/youtube/v3/determine_quota_cost
+_METHOD_COST: dict[str, int] = {
+    "channels.list":      1,
+    "playlistItems.list": 1,
+    "videos.list":        1,
+    "search.list":      100,
+}
+
+_QUOTA_RE_RESOURCE = re.compile(r"/youtube/v3/([A-Za-z0-9_]+)")
+
+
+def _infer_method(req) -> str:
+    """Pull a 'channels.list' style identifier out of an HttpRequest by
+    looking at its uri and HTTP method. We use it both for cost
+    accounting and to attribute calls in the quota log."""
+    try:
+        uri = getattr(req, "uri", "") or ""
+        m = _QUOTA_RE_RESOURCE.search(uri)
+        resource = m.group(1) if m else "unknown"
+        verb = (getattr(req, "method", "") or "GET").upper()
+        action = {"GET": "list", "POST": "insert",
+                  "PUT": "update", "DELETE": "delete"}.get(verb, "list")
+        return f"{resource}.{action}"
+    except Exception:
+        return "unknown"
+
+
+def _detect_script_name() -> str:
+    """'streamlit' for Streamlit views, basename of argv[0] for cron
+    scripts, 'unknown' as a fallback. Used as a third axis in the
+    quota log so we can see WHICH job ate the budget."""
+    try:
+        # Streamlit sets these on import; cheaper than importing streamlit
+        if os.environ.get("STREAMLIT_SERVER_PORT") or "streamlit" in sys.argv[0].lower():
+            return "streamlit"
+        argv0 = sys.argv[0] if sys.argv else ""
+        if argv0:
+            base = os.path.basename(argv0)
+            # Strip .py for readability
+            return base[:-3] if base.endswith(".py") else base
+    except Exception:
+        pass
+    return "unknown"
+
+
+# Process-wide counters. Keyed by key_tail (last 4 chars), value is a
+# small dict the atexit flusher writes out. We carry script name on
+# the bucket too so two scripts in the same process (rare, but happens
+# in tests) don't collide. We also dedupe by date in case a process
+# straddles UTC midnight.
+class _QuotaCounters:
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._buckets: dict[tuple, dict] = {}
+        # key: (date_str, key_tail, script)
+        # val: {"units":int, "calls":int, "rotations_from":int,
+        #       "rotations_to":int, "first_used_at":dt, "last_used_at":dt}
+
+    def _bucket(self, key_tail: str, script: str) -> dict:
+        date = _dt.datetime.utcnow().date().isoformat()
+        k = (date, key_tail, script)
+        b = self._buckets.get(k)
+        if b is None:
+            now = _dt.datetime.utcnow()
+            b = {
+                "date": date, "key_tail": key_tail, "script": script,
+                "units": 0, "calls": 0,
+                "rotations_from": 0, "rotations_to": 0,
+                "first_used_at": now, "last_used_at": now,
+            }
+            self._buckets[k] = b
+        return b
+
+    def record_call(self, key_tail: str, script: str, units: int) -> None:
+        with self._lock:
+            b = self._bucket(key_tail, script)
+            b["units"] += units
+            b["calls"] += 1
+            b["last_used_at"] = _dt.datetime.utcnow()
+
+    def record_rotation(self, from_tail: str, to_tail: str, script: str) -> None:
+        with self._lock:
+            self._bucket(from_tail, script)["rotations_from"] += 1
+            self._bucket(to_tail,   script)["rotations_to"]   += 1
+
+    def snapshot_and_clear(self) -> list[dict]:
+        with self._lock:
+            rows = list(self._buckets.values())
+            self._buckets = {}
+            return rows
+
+
+_COUNTERS = _QuotaCounters()
+
+
+def _flush_quota_log() -> None:
+    """atexit hook: best-effort flush of accumulated counters to the
+    youtube_quota_log table. Never raises — alerting must not break
+    process shutdown. Skipped silently if Supabase env or the table
+    isn't available (e.g. pre-migration)."""
+    rows = _COUNTERS.snapshot_and_clear()
+    if not rows:
+        return
+    try:
+        url = os.environ.get("SUPABASE_URL", "").strip()
+        # Prefer service-role key (bypasses RLS) but accept anon for
+        # local dev — the table has a permissive write policy in v22.
+        key = (os.environ.get("SUPABASE_SERVICE_KEY", "").strip()
+               or os.environ.get("SUPABASE_KEY", "").strip())
+        if not url or not key:
+            return
+        from supabase import create_client
+        sb = create_client(url, key)
+        # We upsert by (date, key_tail, script). The per-process bucket
+        # already aggregates within a run, but multiple processes will
+        # write to the same composite key — so we read-modify-write to
+        # accumulate across runs in the same day.
+        for r in rows:
+            existing = sb.table("youtube_quota_log").select("*").match({
+                "date": r["date"],
+                "key_tail": r["key_tail"],
+                "script": r["script"],
+            }).execute()
+            prev = (existing.data or [{}])[0]
+            payload = {
+                "date":  r["date"],
+                "key_tail": r["key_tail"],
+                "script": r["script"],
+                "units":           int(prev.get("units", 0)) + r["units"],
+                "calls":           int(prev.get("calls", 0)) + r["calls"],
+                "rotations_from":  int(prev.get("rotations_from", 0)) + r["rotations_from"],
+                "rotations_to":    int(prev.get("rotations_to", 0)) + r["rotations_to"],
+                "first_used_at":   prev.get("first_used_at") or r["first_used_at"].isoformat(),
+                "last_used_at":    r["last_used_at"].isoformat(),
+            }
+            sb.table("youtube_quota_log").upsert(payload).execute()
+    except Exception as e:
+        # Table may not exist yet (pre-migration) — don't crash exit.
+        try:
+            print(f"[quota_log] flush failed (table missing?): {e}",
+                  file=sys.stderr)
+        except Exception:
+            pass
+
+
+atexit.register(_flush_quota_log)
 
 
 def _is_quota_exceeded(err: HttpError) -> bool:
@@ -51,8 +211,12 @@ class YouTubeClient:
         self._keys: list[str] = [api_key] + [k for k in backups if k]
         self._idx: int = 0
         self._alerts_fired: set[int] = set()  # to avoid duplicate alerts
+        self._script: str = _detect_script_name()
         self.youtube = build(
             "youtube", "v3", developerKey=self._keys[self._idx])
+
+    def _current_tail(self) -> str:
+        return self._keys[self._idx][-4:]
 
     # ── Quota-failover plumbing ──────────────────────────────────────
     def _rotate_key(self, error: Exception) -> bool:
@@ -71,9 +235,14 @@ class YouTubeClient:
                     tags="rotating_light,youtube",
                 )
             return False
-        old_tail = self._keys[self._idx][-6:]
+        old_tail6 = self._keys[self._idx][-6:]
+        old_tail4 = self._keys[self._idx][-4:]
         self._idx += 1
-        new_tail = self._keys[self._idx][-6:]
+        new_tail6 = self._keys[self._idx][-6:]
+        new_tail4 = self._keys[self._idx][-4:]
+        old_tail, new_tail = old_tail6, new_tail6
+        # Quota-log: record rotation on both sides
+        _COUNTERS.record_rotation(old_tail4, new_tail4, self._script)
         # One alert per (key_index, rotation) so reruns don't spam
         marker = f"rotated_to_{self._idx}"
         if marker not in self._alerts_fired:
@@ -98,12 +267,19 @@ class YouTubeClient:
         and returns an unexecuted HttpRequest. We rebuild the request after
         each rotation because the request is bound to the previous client."""
         while True:
+            req = make_request(self.youtube)
+            method = _infer_method(req)
+            cost = _METHOD_COST.get(method, 1)
             try:
-                return make_request(self.youtube).execute()
+                resp = req.execute()
             except HttpError as e:
                 if _is_quota_exceeded(e) and self._rotate_key(e):
                     continue
                 raise
+            # Record only on success — failed calls don't consume quota
+            # (HttpError responses are billed but very rare in practice).
+            _COUNTERS.record_call(self._current_tail(), self._script, cost)
+            return resp
 
     def resolve_handle(self, handle: str) -> dict | None:
         """Resolve a YouTube handle (e.g. @sscnapoli) to channel info."""
