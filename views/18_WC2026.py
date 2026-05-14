@@ -154,8 +154,14 @@ def _channel_row_html(c, *, show_alt_chip=True):
     w = _wc(c)
     yt_id = c.get("youtube_channel_id") or ""
     handle = (c.get("handle") or "").lstrip("@")
-    yt_url = (f"https://www.youtube.com/@{handle}" if handle
-               else f"https://www.youtube.com/channel/{yt_id}")
+    # Explicit override in competitions.wc2026.youtube_url wins
+    # (used for channels where the @handle URL doesn't resolve
+    # to the right destination — e.g. legacy /TFF style).
+    yt_url = (
+        w.get("youtube_url")
+        or (f"https://www.youtube.com/@{handle}" if handle
+            else f"https://www.youtube.com/channel/{yt_id}")
+    )
     team = w.get("team") or c.get("country") or c.get("name") or "—"
     is_gov = c.get("entity_type") == "GoverningBody"
     cf = ("" if is_gov else (w.get("confederation") or "—"))
