@@ -43,19 +43,25 @@ st.caption(
 
 db = admin_db()
 
-# Map env var names → key tail so we can label rows by purpose
-# instead of cryptic last-4 chars only.
-KEY_LABELS: dict[str, str] = {}
-for env_name, label in [
-    ("YOUTUBE_API_KEY",             "main (Auto)"),
-    ("YOUTUBE_API_KEY_DAILY",       "daily snapshot"),
-    ("YOUTUBE_API_KEY_HEAVY",       "heavy backfill"),
-    ("YOUTUBE_API_KEY_BACKUP",      "backup"),
-    ("YOUTUBE_API_KEY_INTERACTIVE", "interactive (local)"),
-]:
+# Map key_tail (last 4 chars of the API key value — what's stored in
+# youtube_quota_log) to the env var name. The env var name IS the label
+# the operator recognises, so we use it directly. The last-3-chars
+# suffix is shown in its own column for quick disambiguation.
+_ENV_VAR_NAMES = [
+    "YOUTUBE_API_KEY",
+    "YOUTUBE_API_KEY_DAILY",
+    "YOUTUBE_API_KEY_HEAVY",
+    "YOUTUBE_API_KEY_BACKUP",
+    "YOUTUBE_API_KEY_INTERACTIVE",
+]
+KEY_LABELS: dict[str, str] = {}  # key_tail -> env var name
+KEY_SUFFIX: dict[str, str] = {}  # key_tail -> last-3 chars of the key value
+for env_name in _ENV_VAR_NAMES:
     v = os.environ.get(env_name, "").strip()
     if v:
-        KEY_LABELS[v[-4:]] = f"{label}  ·  …{v[-4:]}"
+        tail4 = v[-4:]
+        KEY_LABELS[tail4] = env_name
+        KEY_SUFFIX[tail4] = v[-3:]
 
 
 def _fetch_rows(since: _dt.date):
@@ -125,14 +131,16 @@ if by_key_today:
     cards = []
     for tail, b in sorted(by_key_today.items(),
                           key=lambda kv: -kv[1]["units"]):
-        label = KEY_LABELS.get(tail, f"unknown · …{tail}")
+        env_name = KEY_LABELS.get(tail, f"unknown ({tail})")
+        suffix = KEY_SUFFIX.get(tail, tail[-3:] if tail else "")
         pct = _pct(b["units"])
         subtitle = (
+            f"suffix …{suffix} · "
             f"{b['calls']:,} calls · "
             f"{pct}% of 10,000"
             + (f" · {b['rotations_from']}↪" if b["rotations_from"] else "")
         )
-        cards.append((label, f"{b['units']:,}", subtitle))
+        cards.append((env_name, f"{b['units']:,}", subtitle))
     st.markdown(kpi_row(cards), unsafe_allow_html=True)
 else:
     st.info("No quota data logged yet today. Counters will appear here "
@@ -145,7 +153,8 @@ if today_rows:
         "<table style='border-collapse:collapse;font-size:13px;width:100%;"
         "color:#FAFAFA;border:0'>"
         "<thead><tr style='border-bottom:1px solid #444;color:#888'>"
-        "<th style='padding:6px 12px;text-align:left'>Key</th>"
+        "<th style='padding:6px 12px;text-align:left'>Env var</th>"
+        "<th style='padding:6px 12px;text-align:left'>Key suffix</th>"
         "<th style='padding:6px 12px;text-align:left'>Script</th>"
         "<th style='padding:6px 12px;text-align:right'>Units</th>"
         "<th style='padding:6px 12px;text-align:right'>Calls</th>"
@@ -158,13 +167,15 @@ if today_rows:
                      key=lambda x: (-int(x.get("units", 0)),
                                      x.get("script") or "")):
         tail = r["key_tail"]
-        label = KEY_LABELS.get(tail, f"…{tail}")
+        env_name = KEY_LABELS.get(tail, f"unknown ({tail})")
+        suffix = KEY_SUFFIX.get(tail, tail[-3:] if tail else "")
         pct = _pct(int(r.get("units", 0)))
         color = _color(pct)
         last = (r.get("last_used_at") or "")[:19].replace("T", " ")
         table_html.append(
             "<tr>"
-            f"<td style='padding:6px 12px'>{label}</td>"
+            f"<td style='padding:6px 12px;font-family:monospace;font-size:12px'>{env_name}</td>"
+            f"<td style='padding:6px 12px;color:#888;font-family:monospace'>…{suffix}</td>"
             f"<td style='padding:6px 12px;color:#888'>{r.get('script') or '—'}</td>"
             f"<td style='padding:6px 12px;text-align:right;color:{color};"
             f"font-weight:600'>{int(r.get('units',0)):,}</td>"
