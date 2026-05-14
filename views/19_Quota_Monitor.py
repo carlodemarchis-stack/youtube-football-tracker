@@ -129,10 +129,10 @@ if by_key_today:
         pct = _pct(b["units"])
         subtitle = (
             f"{b['calls']:,} calls · "
-            f"{pct}% of 10K"
+            f"{pct}% of 10,000"
             + (f" · {b['rotations_from']}↪" if b["rotations_from"] else "")
         )
-        cards.append((label, fmt_num(b["units"]), subtitle))
+        cards.append((label, f"{b['units']:,}", subtitle))
     st.markdown(kpi_row(cards), unsafe_allow_html=True)
 else:
     st.info("No quota data logged yet today. Counters will appear here "
@@ -167,8 +167,8 @@ if today_rows:
             f"<td style='padding:6px 12px'>{label}</td>"
             f"<td style='padding:6px 12px;color:#888'>{r.get('script') or '—'}</td>"
             f"<td style='padding:6px 12px;text-align:right;color:{color};"
-            f"font-weight:600'>{fmt_num(int(r.get('units',0)))}</td>"
-            f"<td style='padding:6px 12px;text-align:right'>{fmt_num(int(r.get('calls',0)))}</td>"
+            f"font-weight:600'>{int(r.get('units',0)):,}</td>"
+            f"<td style='padding:6px 12px;text-align:right'>{int(r.get('calls',0)):,}</td>"
             f"<td style='padding:6px 12px;text-align:right;color:#888'>"
             f"{r.get('rotations_from',0) or '—'}</td>"
             f"<td style='padding:6px 12px;text-align:right;color:#888'>"
