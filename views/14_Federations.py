@@ -26,6 +26,8 @@ from src.cached_db import (
     get_last_fetch_time as _cached_last_fetch,
     get_recent_videos as _cached_recent,
     read_dashboard_cache as _cached_dc_read,
+    get_last_upload_by_channel as _cached_last_upload_db,
+    get_last_upload_via_youtube as _cached_last_upload_yt,
 )
 from src.analytics import fmt_num, kpi_row
 from src.auth import require_login
@@ -98,40 +100,29 @@ def _subs_per_year(subs: int, launched_iso: str | None) -> int:
         return 0
 
 
-# ── Last-upload lookup ───────────────────────────────────────
-_last_by_cid: dict[str, str] = {}
-try:
-    _last_resp = (
-        _fetch_all(db.client.table("videos")
-        .select("channel_id,published_at")
-        .in_("channel_id", [p["id"] for p in feds])
-        .order("published_at", desc=True)
-        )
-    )
-    for r in _last_resp:
-        cid = r.get("channel_id")
-        if cid and cid not in _last_by_cid:
-            _last_by_cid[cid] = (r.get("published_at") or "")[:10]
-except Exception:
-    pass
-
-# Live YouTube fallback for federations with no videos in DB
-from src.youtube_api import YouTubeClient as _YT
+# ── Last-upload lookup (cached) ──────────────────────────────
+# Pulls the most-recent published_at per channel from our `videos`
+# table; falls through to a YouTube API lookup for federations we
+# haven't ingested videos for yet. Both lookups are wrapped in
+# @st.cache_data with 1h TTL — used to fire ~50 sync YouTube calls
+# per page render (~7-10s) before this was cached.
 from src.dot import dual_dot, channel_badge
-_yt = _YT(os.getenv("YOUTUBE_API_KEY", ""))
-for p in feds:
-    if p["id"] in _last_by_cid:
-        continue
-    yt_cid = p.get("youtube_channel_id")
-    if not yt_cid or not yt_cid.startswith("UC"):
-        continue
-    try:
-        uploads = "UU" + yt_cid[2:]
-        recent = _yt.get_recent_video_entries(uploads, max_results=1)
-        if recent:
-            _last_by_cid[p["id"]] = (recent[0].get("published") or "")[:10]
-    except Exception:
-        pass
+_fed_ids = tuple(sorted(p["id"] for p in feds))
+_last_by_cid = dict(_cached_last_upload_db(db, _fed_ids))
+
+_yt_ids_no_db_videos = tuple(sorted(
+    p.get("youtube_channel_id") or ""
+    for p in feds
+    if p["id"] not in _last_by_cid
+       and (p.get("youtube_channel_id") or "").startswith("UC")
+))
+_yt_results = _cached_last_upload_yt(_yt_ids_no_db_videos)
+# Map YT channel id → our DB id for the merge
+_db_id_by_yt = {p.get("youtube_channel_id"): p["id"] for p in feds}
+for yt_cid, last_iso in _yt_results.items():
+    db_id = _db_id_by_yt.get(yt_cid)
+    if db_id and db_id not in _last_by_cid:
+        _last_by_cid[db_id] = last_iso
 
 
 def _days_since(iso: str) -> int | None:
