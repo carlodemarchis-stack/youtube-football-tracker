@@ -29,8 +29,14 @@ load_dotenv()
 require_login()
 
 st.title("FIFA World Cup 2026")
-st.caption("Official YouTube channels of the 48 qualified national "
-            "teams, plus FIFA and the 6 confederations.")
+st.caption(
+    "Official YouTube channels of the 48 qualified national teams, "
+    "plus FIFA and the 6 confederations. When a country runs more than "
+    "one official channel (e.g. a federation channel and a team-brand "
+    "channel), the stats are summed into the country's row — the +N alt "
+    "chip shows how many extra channels were rolled in, and each one is "
+    "listed individually in the expander below the table."
+)
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
