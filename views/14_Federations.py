@@ -117,7 +117,7 @@ except Exception:
 
 # Live YouTube fallback for federations with no videos in DB
 from src.youtube_api import YouTubeClient as _YT
-from src.dot import dual_dot
+from src.dot import dual_dot, channel_badge
 _yt = _YT(os.getenv("YOUTUBE_API_KEY", ""))
 for p in feds:
     if p["id"] in _last_by_cid:
@@ -183,8 +183,10 @@ st.caption(
 rows_html = ""
 for i, p in enumerate(feds, 1):
     name = p.get("name", "?")
-    c1, c2 = dual.get(name, (color_map.get(name, "#636EFA"), "#FFFFFF"))
-    dot = dual_dot(c1, c2, 14)
+    # Federations get a country flag (resolved from p.country, which
+    # is a mix of ISO codes and full country names). Falls back to the
+    # standard dual-dot if no flag can be resolved.
+    dot = channel_badge(p, color_map, dual, size=14)
     _last_iso = _last_by_cid.get(p["id"], "")
     _days = _days_since(_last_iso)
     _status_label, _ = _status(_days)
@@ -366,8 +368,7 @@ _act_rows_html = ""
 for idx, (_, r) in enumerate(_activity_df.iterrows(), 1):
     pname = r["Federation"]
     pdata = next((pp for pp in feds if pp.get("name") == pname), {})
-    c1, c2 = dual.get(pname, (color_map.get(pname, "#636EFA"), "#FFFFFF"))
-    pdot = dual_dot(c1, c2, 14)
+    pdot = channel_badge(pdata, color_map, dual, size=14)
     handle = pdata.get("handle", "") or ""
     yt_url = f"https://www.youtube.com/{handle}" if handle else ""
     rclick = (f'onclick="window.open(\'{yt_url}\',\'_blank\',\'noopener\')" '
