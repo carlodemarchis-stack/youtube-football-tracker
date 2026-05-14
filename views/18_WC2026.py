@@ -227,6 +227,9 @@ def _channel_row_html(c, *, show_alt_chip=True):
         f"</div></td>"
     )
 
+    # Views per video — handy reach indicator. Sort by raw float so a
+    # channel with 1.2M views / 12 videos beats a channel with 1.2M / 1.5K.
+    vpv = (views / videos) if videos else 0
     return (
         "<tr>"
         + team_cell
@@ -237,6 +240,7 @@ def _channel_row_html(c, *, show_alt_chip=True):
         + td(longs,  fmt_num(longs))
         + td(shorts, fmt_num(shorts))
         + td(lives,  fmt_num(lives))
+        + td(int(vpv), fmt_num(int(vpv)))
         + td(last_fetched, fmt_date(last_fetched) if last_fetched else "—",
               align="right")
         + "</tr>"
@@ -261,7 +265,8 @@ COLS = [
     ("Videos",          "num", "right"),
     ("Long-form",       "num", "right"),
     ("Shorts",          "num", "right"),
-    ("Live streams",    "num", "right"),
+    ("Live",            "num", "right"),
+    ("Views / video",   "num", "right"),
     ("Last updated",    "str", "right"),
 ]
 th_html = "".join(
