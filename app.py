@@ -203,7 +203,12 @@ _show_filter = getattr(pg, "title", "") not in _no_filter_pages
 
 if SUPABASE_URL and SUPABASE_KEY:
     db = Database(SUPABASE_URL, SUPABASE_KEY)
-    all_channels = db.get_all_channels()
+    # Use the cached wrapper (5 min TTL, shared across views) so navigation
+    # doesn't trigger a fresh SELECT * on the channels table every click —
+    # that's a 300-400ms blocking call now that WC2026 added ~60 federation
+    # + governing-body rows (~400KB payload, 223 rows total).
+    from src.cached_db import get_all_channels as _cached_channels_app
+    all_channels = _cached_channels_app(db)
     if all_channels:
         # Always cache the channel list so isolated pages can read it,
         # but only render the league/club filter on pages where it applies.
