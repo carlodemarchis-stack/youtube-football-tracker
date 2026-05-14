@@ -24,17 +24,21 @@ from dotenv import load_dotenv
 from src.analytics import fmt_num, kpi_row
 from src.auth import require_admin
 from src.database import admin_db
+from src.youtube_api import quota_date_iso  # PT-aligned "today"
 
 load_dotenv()
 require_admin()
 
 st.title("YouTube quota monitor")
 st.caption(
-    "Per-day units consumed by each YouTube API key we use. Numbers are "
-    "self-tracked from the YouTubeClient call counter (Approach A) and "
-    "include only this app's consumption — they won't reflect other apps "
-    "sharing the same key. Flushed at process exit; Streamlit columns can "
-    "lag mid-day until the page is restarted."
+    "Per-day units consumed by each YouTube API key we use. Days are "
+    "anchored to **midnight Pacific Time** (the same reset window "
+    "YouTube uses for its quota counter), so buckets here match what "
+    "you see in Google Cloud Console. Numbers are self-tracked from the "
+    "YouTubeClient call counter and include only this app's "
+    "consumption — they won't reflect other apps sharing the same key. "
+    "Flushed at process exit; Streamlit columns can lag mid-day until "
+    "the page is restarted."
 )
 
 db = admin_db()
@@ -74,13 +78,15 @@ def _fetch_rows(since: _dt.date):
         return []
 
 
-# 14-day window
-today  = _dt.datetime.utcnow().date()
+# 14-day window. "Today" is in Pacific Time because YouTube's quota
+# counter resets at midnight PT — using UTC here would split one
+# Google "day" across two of our buckets during late-PT hours.
+today_iso = quota_date_iso()
+today  = _dt.date.fromisoformat(today_iso)
 since  = today - _dt.timedelta(days=13)
 rows   = _fetch_rows(since)
 
 # ─── Aggregate today per key_tail ─────────────────────────────────
-today_iso = today.isoformat()
 today_rows = [r for r in rows if r.get("date") == today_iso]
 by_key_today: dict[str, dict] = defaultdict(
     lambda: {"units": 0, "calls": 0, "rotations_from": 0,

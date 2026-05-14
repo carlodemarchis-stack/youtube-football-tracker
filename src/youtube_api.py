@@ -15,6 +15,26 @@ from googleapiclient.errors import HttpError
 from .quota_alert import send_ntfy
 
 
+# YouTube Data API quota resets at midnight Pacific Time (America/Los_Angeles).
+# Anchoring our day boundary to PT keeps our buckets aligned with Google's.
+try:
+    from zoneinfo import ZoneInfo  # py 3.9+
+    _PT_TZ = ZoneInfo("America/Los_Angeles")
+except Exception:  # pragma: no cover — extremely old Python
+    _PT_TZ = None  # type: ignore[assignment]
+
+
+def quota_date_iso() -> str:
+    """The current YouTube-quota day, formatted YYYY-MM-DD.
+    Today in America/Los_Angeles — NOT in UTC — so our buckets roll
+    over at the same instant as Google's daily counter."""
+    if _PT_TZ is not None:
+        return _dt.datetime.now(_PT_TZ).date().isoformat()
+    # Fallback: assume PT = UTC-8 (close enough during PST; off by 1h
+    # during DST shoulders but we never had zoneinfo missing in prod).
+    return (_dt.datetime.utcnow() - _dt.timedelta(hours=8)).date().isoformat()
+
+
 # ─── Quota tracking (Approach A from the design doc) ──────────────
 # Each YouTubeClient counts units consumed per key during its lifetime.
 # A single atexit hook flushes the accumulated counters to the
@@ -81,7 +101,7 @@ class _QuotaCounters:
         #       "rotations_to":int, "first_used_at":dt, "last_used_at":dt}
 
     def _bucket(self, key_tail: str, script: str) -> dict:
-        date = _dt.datetime.utcnow().date().isoformat()
+        date = quota_date_iso()
         k = (date, key_tail, script)
         b = self._buckets.get(k)
         if b is None:
