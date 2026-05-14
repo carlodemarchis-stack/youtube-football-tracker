@@ -88,7 +88,10 @@ def _load_chan_snaps(since_iso: str, channel_ids_tuple: tuple[str, ...]) -> list
     extra ~1000 snapshot rows from WC2026 Federation/GoverningBody
     channels over the wire (they were filtered out in Python anyway).
     Lean column set saves another ~60% on the payload."""
+    import sys
     from src.database import _fetch_all
+    print(f"[chan_snaps] CACHE MISS — fetching since={since_iso} "
+          f"#channels={len(channel_ids_tuple)}", file=sys.stderr, flush=True)
     if not channel_ids_tuple:
         return []
     return _fetch_all(
@@ -272,13 +275,15 @@ prev_iso = prev_day.isoformat()
 LOOKBACK_DAYS = 14
 lookback_iso = (day - timedelta(days=LOOKBACK_DAYS)).isoformat()
 
+_t("pre_snap")
 with st.spinner(f"Loading snapshots for {day_iso}…"):
-    # 1) Channel snapshots (cached). We pass _non_player_ids — the set
-    # of all in-scope channels (Club + League across all leagues, with
-    # WC2026 Federations / GoverningBody and the other isolated entity
-    # types already filtered out). The tuple goes into the cache key,
-    # so the same call from any scope hits the same cached payload.
-    chan_snaps = _load_chan_snaps(lookback_iso, tuple(sorted(_non_player_ids)))
+    _channel_ids_tup = tuple(sorted(_non_player_ids))
+    if _DBG:
+        import hashlib as _hl
+        _key_preview = _hl.md5(repr((lookback_iso, _channel_ids_tup)).encode()).hexdigest()[:8]
+        st.caption(f"⏱️ cache key for chan_snaps: `{_key_preview}` "
+                    f"(should be identical across refreshes)")
+    chan_snaps = _load_chan_snaps(lookback_iso, _channel_ids_tup)
 _t("chan_snaps")
 
 # Snapshots strictly on `day`, optionally filtered to selected channel(s)
