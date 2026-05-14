@@ -60,9 +60,23 @@ dual = get_global_color_map_dual()
 
 # ── Cached data loaders (5 min TTL — data changes after daily cron) ─
 @st.cache_data(ttl=3600, show_spinner=False)
-def _load_chan_snaps(since_iso: str) -> list[dict]:
-    """Cache the 14-day channel snapshots — only changes after daily cron."""
-    return db.get_all_snapshots(since_date=since_iso)
+def _load_chan_snaps(since_iso: str, channel_ids_tuple: tuple[str, ...]) -> list[dict]:
+    """Cache the 14-day channel snapshots — only changes after daily cron.
+    Server-side filter to the in-scope channels so we don't drag the
+    extra ~1000 snapshot rows from WC2026 Federation/GoverningBody
+    channels over the wire (they were filtered out in Python anyway).
+    Lean column set saves another ~60% on the payload."""
+    from src.database import _fetch_all
+    if not channel_ids_tuple:
+        return []
+    return _fetch_all(
+        db.client.table("channel_snapshots")
+        .select("captured_date,channel_id,subscriber_count,total_views,"
+                "video_count,long_form_count,shorts_count,live_count")
+        .gte("captured_date", since_iso)
+        .in_("channel_id", list(channel_ids_tuple))
+        .order("captured_date")
+    )
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -237,8 +251,12 @@ LOOKBACK_DAYS = 14
 lookback_iso = (day - timedelta(days=LOOKBACK_DAYS)).isoformat()
 
 with st.spinner(f"Loading snapshots for {day_iso}…"):
-    # 1) Channel snapshots (cached)
-    chan_snaps = _load_chan_snaps(lookback_iso)
+    # 1) Channel snapshots (cached). We pass _non_player_ids — the set
+    # of all in-scope channels (Club + League across all leagues, with
+    # WC2026 Federations / GoverningBody and the other isolated entity
+    # types already filtered out). The tuple goes into the cache key,
+    # so the same call from any scope hits the same cached payload.
+    chan_snaps = _load_chan_snaps(lookback_iso, tuple(sorted(_non_player_ids)))
 
 # Snapshots strictly on `day`, optionally filtered to selected channel(s)
 chan_day = {
