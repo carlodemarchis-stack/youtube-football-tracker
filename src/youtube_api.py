@@ -137,6 +137,81 @@ class _QuotaCounters:
 _COUNTERS = _QuotaCounters()
 
 
+def _maybe_send_daily_summary(sb, today_pt: str) -> None:
+    """If this is the first flush of today (PT), send an ntfy summary
+    of yesterday's totals. De-duped via an __alert sentinel row written
+    into youtube_quota_log itself — composite-PK conflict makes the
+    'I'll send the alert' decision atomic across concurrent processes."""
+    yesterday_pt = (_dt.date.fromisoformat(today_pt)
+                    - _dt.timedelta(days=1)).isoformat()
+    # Try to claim the slot. .insert() (not upsert) — on duplicate PK
+    # we lose the race and the other process will send (or already did).
+    try:
+        sb.table("youtube_quota_log").insert({
+            "date": yesterday_pt,
+            "key_tail": "__alert",
+            "script": "summary",
+            "units": 0, "calls": 0,
+            "rotations_from": 0, "rotations_to": 0,
+        }).execute()
+    except Exception:
+        return  # already sent (or table missing) — nothing to do
+
+    # We won the slot — aggregate yesterday's real rows and notify.
+    try:
+        r = (sb.table("youtube_quota_log").select("*")
+             .eq("date", yesterday_pt)
+             .neq("key_tail", "__alert").execute())
+        rows = r.data or []
+        if not rows:
+            return  # nothing logged yesterday, skip
+        from collections import defaultdict
+        by_tail = defaultdict(lambda: {"units": 0, "calls": 0})
+        for row in rows:
+            t = row.get("key_tail")
+            by_tail[t]["units"] += int(row.get("units") or 0)
+            by_tail[t]["calls"] += int(row.get("calls") or 0)
+
+        # Map key_tail → env var name for the message (only the names
+        # that are configured in this process's env)
+        env_label: dict[str, str] = {}
+        for env_name in ("YOUTUBE_API_KEY", "YOUTUBE_API_KEY_DAILY",
+                          "YOUTUBE_API_KEY_HEAVY",
+                          "YOUTUBE_API_KEY_INTERACTIVE",
+                          "YOUTUBE_API_KEY_BACKUP"):
+            v = os.environ.get(env_name, "").strip()
+            if v:
+                env_label[v[-4:]] = env_name
+
+        total_units = sum(b["units"] for b in by_tail.values())
+        total_calls = sum(b["calls"] for b in by_tail.values())
+        # Compose plain-text body (ntfy renders newlines)
+        lines = [
+            f"📊 YT quota summary for {yesterday_pt} (PT)",
+            f"Total: {total_units:,} units · {total_calls:,} calls",
+            "",
+        ]
+        # Stable order: by env-var declaration
+        order = {tail: i for i, tail in enumerate(env_label.keys())}
+        for tail, b in sorted(by_tail.items(),
+                                key=lambda kv: (order.get(kv[0], 999),
+                                                -kv[1]["units"])):
+            label = env_label.get(tail, f"unknown(…{tail})")
+            pct = min(100, int(round(b["units"] * 100 / 10000)))
+            lines.append(f"• {label}: {b['units']:,} u / {pct}% · {b['calls']:,} calls")
+        send_ntfy(
+            "\n".join(lines),
+            title=f"YT quota — {yesterday_pt}",
+            priority="default",
+            tags="bar_chart,youtube",
+        )
+    except Exception as e:
+        try:
+            print(f"[quota_log] daily-summary send failed: {e}", file=sys.stderr)
+        except Exception:
+            pass
+
+
 def _flush_quota_log() -> None:
     """atexit hook: best-effort flush of accumulated counters to the
     youtube_quota_log table. Never raises — alerting must not break
@@ -155,6 +230,11 @@ def _flush_quota_log() -> None:
             return
         from supabase import create_client
         sb = create_client(url, key)
+
+        # If this flush spans into a new PT day relative to yesterday's
+        # data, fire one summary notification (atomic via PK conflict).
+        _maybe_send_daily_summary(sb, quota_date_iso())
+
         # We upsert by (date, key_tail, script). The per-process bucket
         # already aggregates within a run, but multiple processes will
         # write to the same composite key — so we read-modify-write to

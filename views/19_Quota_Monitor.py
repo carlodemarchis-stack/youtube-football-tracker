@@ -94,11 +94,15 @@ for _i, env_name in enumerate(_ENV_VAR_NAMES):
 
 def _fetch_rows(since: _dt.date):
     """Read youtube_quota_log rows since the given date. Returns list
-    of dicts. Empty if the table doesn't exist yet (pre-migration)."""
+    of dicts. Empty if the table doesn't exist yet (pre-migration).
+    Internal __alert sentinel rows are filtered out — they're used by
+    the daily-summary de-dup logic in _flush_quota_log() and don't
+    represent actual usage."""
     try:
         r = db.client.table("youtube_quota_log") \
             .select("*") \
             .gte("date", since.isoformat()) \
+            .neq("key_tail", "__alert") \
             .execute()
         return r.data or []
     except Exception as e:
@@ -228,34 +232,60 @@ else:
 
 # ─── 14-day history chart per key ─────────────────────────────────
 st.subheader("Last 14 days — per key")
+# Filter out the internal __alert sentinel rows (used by the daily-summary
+# de-dup logic in src.youtube_api._flush_quota_log) — they're not real
+# consumption data.
+rows = [r for r in rows if r.get("key_tail") != "__alert"]
 if rows:
     import pandas as pd
+    import plotly.express as px
 
     df = pd.DataFrame(rows)
     df["date"] = pd.to_datetime(df["date"])
     daily = (df.groupby(["date", "key_tail"], as_index=False)["units"]
-               .sum()
-               .pivot(index="date", columns="key_tail", values="units")
-               .fillna(0))
-    # Stable column ordering: same order as the cards above
-    cols = []
+               .sum())
+
+    # Stable ordering for the legend (matches the KPI cards above)
+    tail_order: list[str] = []
     seen = set()
     for env_name in _ENV_VAR_NAMES:
         v = os.environ.get(env_name, "").strip()
         if not v:
             continue
         tail = v[-4:]
-        if tail in daily.columns and tail not in seen:
-            cols.append(tail)
+        if tail in set(daily["key_tail"]) and tail not in seen:
+            tail_order.append(tail)
             seen.add(tail)
-    # Add any unconfigured tails at the end
-    for t in daily.columns:
+    for t in daily["key_tail"].unique():
         if t not in seen:
-            cols.append(t)
-    daily = daily[cols]
-    # Rename for legend readability
-    daily.columns = [KEY_LABELS.get(t, f"…{t}") for t in daily.columns]
-    st.bar_chart(daily, height=320)
+            tail_order.append(t)
+            seen.add(t)
+
+    # Friendly env-var name for the legend
+    daily["env_var"] = daily["key_tail"].map(
+        lambda t: KEY_LABELS.get(t, f"unknown ({t})"))
+    env_order = [KEY_LABELS.get(t, f"unknown ({t})") for t in tail_order]
+
+    fig = px.bar(
+        daily,
+        x="date", y="units",
+        color="env_var",
+        barmode="group",  # unstacked — one bar per key per day, side-by-side
+        category_orders={"env_var": env_order},
+        labels={"env_var": "API key", "units": "Units", "date": ""},
+    )
+    fig.update_layout(
+        height=360,
+        plot_bgcolor="#0E1117",
+        paper_bgcolor="#0E1117",
+        font=dict(color="#FAFAFA"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+        margin=dict(t=40, l=0, r=0, b=20),
+    )
+    fig.update_xaxes(gridcolor="#262730", tickformat="%b %d")
+    fig.update_yaxes(gridcolor="#262730")
+    st.plotly_chart(fig, use_container_width=True)
+
     with st.expander("Raw data"):
         st.dataframe(df.sort_values(["date", "key_tail"], ascending=False),
                      hide_index=True, use_container_width=True)
