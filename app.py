@@ -85,70 +85,81 @@ st.set_page_config(
 )
 
 # ── Navigation ────────────────────────────────────────────────
+# Each st.Page sets an explicit url_path so we can robustly distinguish
+# pages with duplicate titles (e.g. "All Channels" appears in both the
+# Top-5 Leagues group and the FIFA World Cup 2026 group).
+
 # Tier 0 — public (visible to everyone, including not signed in)
 public_pages = [
-    st.Page("views/0_Home.py", title="Home", default=True),
+    st.Page("views/0_Home.py", title="Home", url_path="home", default=True),
 ]
 
-# Tier 1 — viewer (any signed-in user)
+# Tier 1 — viewer (any signed-in user) — "Top 5 Leagues" group
 viewer_pages = [
-    st.Page("views/1_Daily_Recap.py", title="Daily Recap"),
-    st.Page("views/1b_Latest.py", title="Latest Videos"),
-    st.Page("views/3_Season_2526.py", title="Season (25/26)"),
-    st.Page("views/3b_Season_Top_Videos.py", title="Season Top"),
-    st.Page("views/2_Clubs.py", title="All Channels"),
-    st.Page("views/4_Top_Videos.py", title="All-Time Top"),
-    st.Page("views/4c_No1_Videos.py", title="No. 1 Videos"),
+    st.Page("views/1_Daily_Recap.py",       title="Daily Recap",     url_path="daily-recap"),
+    st.Page("views/1b_Latest.py",           title="Latest Videos",   url_path="latest-videos"),
+    st.Page("views/3_Season_2526.py",       title="Season (25/26)",  url_path="season-2526"),
+    st.Page("views/3b_Season_Top_Videos.py",title="Season Top",      url_path="season-top"),
+    st.Page("views/2_Clubs.py",             title="All Channels",    url_path="all-channels"),
+    st.Page("views/4_Top_Videos.py",        title="All-Time Top",    url_path="all-time-top"),
+    st.Page("views/4c_No1_Videos.py",       title="No. 1 Videos",    url_path="no1-videos"),
 ]
 
 # Tier 1.7 — "Others": tangential entity types we track but don't
 # blend into the main club/league views (Players, Federations,
 # OtherClubs, WomenClubs). Their data is isolated by design.
 other_pages = [
-    st.Page("views/13_Players.py", title="Players"),
-    st.Page("views/14_Federations.py", title="Federations"),
-    st.Page("views/15_Other_Clubs.py", title="Other Clubs"),
-    st.Page("views/17_Women.py", title="Women"),
-    st.Page("views/18_WC2026.py", title="FIFA World Cup 2026"),
+    st.Page("views/13_Players.py",     title="Players",     url_path="players"),
+    st.Page("views/14_Federations.py", title="Federations", url_path="federations"),
+    st.Page("views/15_Other_Clubs.py", title="Other Clubs", url_path="other-clubs"),
+    st.Page("views/17_Women.py",       title="Women",       url_path="women"),
+]
+
+# Tier 1.8 — FIFA World Cup 2026 sub-app. Own sidebar group so it
+# reads as a distinct product surface.
+wc2026_pages = [
+    st.Page("views/18_WC2026.py", title="All Channels", url_path="wc2026"),
 ]
 
 # Tier 1.5 — "The Lab": experimental / analytical pages, viewer-tier
 # (no invite needed). Carved out into its own sidebar family so users
 # know these are exploratory features, not core data.
 lab_pages = [
-    st.Page("views/4b_Outliers.py", title="Outliers"),
-    st.Page("views/16_Socials.py", title="Other Social"),
-    st.Page("views/16b_Digital_Footprint.py", title="Digital Footprint"),
+    st.Page("views/4b_Outliers.py",            title="Outliers",          url_path="outliers"),
+    st.Page("views/16_Socials.py",             title="Other Social",      url_path="other-social"),
+    st.Page("views/16b_Digital_Footprint.py",  title="Digital Footprint", url_path="digital-footprint"),
 ]
 
 # Tier 2 — premium (promote users via User Management)
 # Viewers see these with a 🔒 suffix; clicking shows an upgrade CTA.
 premium_pages_unlocked = [
-    st.Page("views/5_Club_Comparison.py", title="Compare"),
-    st.Page("views/6_AI_Analysis.py", title="AI Analysis"),
-    st.Page("views/10_Ask_Data.py", title="Ask Data"),
+    st.Page("views/5_Club_Comparison.py", title="Compare",     url_path="compare"),
+    st.Page("views/6_AI_Analysis.py",     title="AI Analysis", url_path="ai-analysis"),
+    st.Page("views/10_Ask_Data.py",       title="Ask Data",    url_path="ask-data"),
 ]
 premium_pages_locked = [
-    st.Page("views/5_Club_Comparison.py", title="Compare 🔒"),
-    st.Page("views/6_AI_Analysis.py", title="AI Analysis 🔒"),
-    st.Page("views/10_Ask_Data.py", title="Ask Data 🔒"),
+    st.Page("views/5_Club_Comparison.py", title="Compare 🔒",     url_path="compare"),
+    st.Page("views/6_AI_Analysis.py",     title="AI Analysis 🔒", url_path="ai-analysis"),
+    st.Page("views/10_Ask_Data.py",       title="Ask Data 🔒",    url_path="ask-data"),
 ]
 
 # Tier 3 — admin only
 admin_pages = [
-    st.Page("views/7_Refresh_Data.py", title="Data"),
-    st.Page("views/8_Channel_Management.py", title="Channel Management"),
-    st.Page("views/9_User_Management.py", title="User Management"),
-    st.Page("views/11_Snapshot_Debug.py", title="Snapshot Debug"),
-    st.Page("views/19_Quota_Monitor.py", title="Quota Monitor"),
+    st.Page("views/7_Refresh_Data.py",       title="Data",                url_path="data"),
+    st.Page("views/8_Channel_Management.py", title="Channel Management",  url_path="channel-mgmt"),
+    st.Page("views/9_User_Management.py",    title="User Management",     url_path="user-mgmt"),
+    st.Page("views/11_Snapshot_Debug.py",    title="Snapshot Debug",      url_path="snapshot-debug"),
+    st.Page("views/19_Quota_Monitor.py",     title="Quota Monitor",       url_path="quota-monitor"),
 ]
 
 nav = {"": public_pages}
 if is_logged_in():
-    nav[""] = public_pages + viewer_pages
-    # Order: The Lab (analytical) → Others (isolated entity types) →
-    # Invite-only → Admin. Lab first because it's the more interesting
-    # place to land; Others is where the player/federation/etc detail lives.
+    # Home stays at the top with no group label; everything else lives
+    # under named groups so the sidebar reads as a clear table of
+    # contents.
+    nav[""] = public_pages
+    nav["Top 5 Leagues"] = viewer_pages
+    nav["FIFA World Cup 2026"] = wc2026_pages
     nav["The Lab"] = lab_pages
     nav["Others"] = other_pages
 if is_premium():
@@ -198,8 +209,14 @@ if st.query_params.get("view") == "feed":
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 
-_no_filter_pages = {"Home", "Players", "Federations", "Other Clubs", "Women", "No. 1 Videos", "FIFA World Cup 2026"}
-_show_filter = getattr(pg, "title", "") not in _no_filter_pages
+# Match by URL path instead of title so two pages sharing a title
+# (e.g. "All Channels" appears in both Top 5 Leagues and FIFA World
+# Cup 2026 groups) can be distinguished.
+_no_filter_url_paths = {
+    "home", "players", "federations", "other-clubs",
+    "women", "no1-videos", "wc2026",
+}
+_show_filter = getattr(pg, "url_path", "") not in _no_filter_url_paths
 
 if SUPABASE_URL and SUPABASE_KEY:
     db = Database(SUPABASE_URL, SUPABASE_KEY)
