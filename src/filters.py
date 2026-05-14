@@ -313,8 +313,25 @@ def get_global_color_map_dual() -> dict[str, tuple[str, str]]:
     return _load_colors()
 
 
+# Entity types whose channels never appear in the per-club / per-league
+# charts — they have their own pages and pick colors there (WC2026 uses
+# ch.get("color") with a fallback, Players page renders flat lists, etc.).
+# Excluding them from _load_colors means we don't issue a flood of
+# UPDATE statements on every page render trying to assign chart colors
+# to channels that will never be plotted.
+_NO_CHART_COLOR_TYPES = frozenset(
+    ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub")
+)
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
 def _load_colors() -> dict[str, tuple[str, str]]:
-    """Load or auto-assign both primary and secondary colors for all channels."""
+    """Load or auto-assign both primary and secondary colors for all channels.
+
+    Cached at 30-min TTL: the assignment is deterministic given the
+    channel set, and the per-call DB updates (when a new club is added)
+    are a one-time cost the next admin save will trigger again anyway.
+    """
     from src.analytics import CHANNEL_PALETTE
     from src.channels import TEAM_COLORS
     all_channels = get_global_channels()
@@ -326,6 +343,14 @@ def _load_colors() -> dict[str, tuple[str, str]]:
             from src.database import Database
             db = Database(url, key)
             all_channels = db.get_all_channels()
+
+    # Only consider channels that actually need a chart color. Federation /
+    # GoverningBody / Player / OtherClub / WomenClub rows are rendered
+    # outside the per-club color map and don't need an assignment — used
+    # to cost ~130ms × 50 channels = ~6-8 seconds per page render after
+    # WC2026 added 50 federation rows without preset colors.
+    all_channels = [c for c in all_channels
+                    if c.get("entity_type") not in _NO_CHART_COLOR_TYPES]
 
     color_map: dict[str, tuple[str, str]] = {}
     used_colors: set[str] = set()

@@ -38,25 +38,6 @@ require_login()
 
 st.title("Daily Recap")
 
-# ── Debug timing (only when ?debug=1 in the URL) ──────────────────
-# Lets us see in production whether @st.cache_data is hitting or
-# every refresh actually re-runs the same queries. Records {label:
-# elapsed_ms} for each measured section and pretty-prints near the
-# bottom of the page.
-import time as _time
-_DBG = st.query_params.get("debug") == "1"
-_DBG_LOG: list[tuple[str, float]] = []
-_t_start = _time.perf_counter()
-
-def _t(label: str):
-    """Context manager-ish marker: appends (label, ms_since_last_mark)."""
-    now = _time.perf_counter()
-    last = _DBG_LOG[-1][1] if _DBG_LOG else _t_start
-    elapsed_ms = (now - (last if isinstance(last, float) else _t_start)) * 1000
-    _DBG_LOG.append((label, now))
-    if _DBG:
-        st.caption(f"⏱️ `{label}` — {elapsed_ms:.0f}ms")
-
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 if not SUPABASE_URL or not SUPABASE_KEY:
@@ -64,15 +45,12 @@ if not SUPABASE_URL or not SUPABASE_KEY:
     st.stop()
 
 db = Database(SUPABASE_URL, SUPABASE_KEY)
-_t("Database()")
 all_channels = get_global_channels() or _cached_channels(db)
-_t("all_channels")
 if not all_channels:
     st.warning("No channel data yet. Run a refresh first.")
     st.stop()
 
 _daily_updated = _cached_last_fetch(db, "daily")
-_t("last_fetch")
 render_page_subtitle("Daily activity and new videos", updated_raw=_daily_updated)
 
 ch_by_id = {c["id"]: c for c in all_channels}
@@ -88,10 +66,7 @@ def _load_chan_snaps(since_iso: str, channel_ids_tuple: tuple[str, ...]) -> list
     extra ~1000 snapshot rows from WC2026 Federation/GoverningBody
     channels over the wire (they were filtered out in Python anyway).
     Lean column set saves another ~60% on the payload."""
-    import sys
     from src.database import _fetch_all
-    print(f"[chan_snaps] CACHE MISS — fetching since={since_iso} "
-          f"#channels={len(channel_ids_tuple)}", file=sys.stderr, flush=True)
     if not channel_ids_tuple:
         return []
     return _fetch_all(
@@ -275,16 +250,8 @@ prev_iso = prev_day.isoformat()
 LOOKBACK_DAYS = 14
 lookback_iso = (day - timedelta(days=LOOKBACK_DAYS)).isoformat()
 
-_t("pre_snap")
 with st.spinner(f"Loading snapshots for {day_iso}…"):
-    _channel_ids_tup = tuple(sorted(_non_player_ids))
-    if _DBG:
-        import hashlib as _hl
-        _key_preview = _hl.md5(repr((lookback_iso, _channel_ids_tup)).encode()).hexdigest()[:8]
-        st.caption(f"⏱️ cache key for chan_snaps: `{_key_preview}` "
-                    f"(should be identical across refreshes)")
-    chan_snaps = _load_chan_snaps(lookback_iso, _channel_ids_tup)
-_t("chan_snaps")
+    chan_snaps = _load_chan_snaps(lookback_iso, tuple(sorted(_non_player_ids)))
 
 # Snapshots strictly on `day`, optionally filtered to selected channel(s)
 chan_day = {
@@ -370,7 +337,6 @@ _day_end_cet = _day_start_cet + timedelta(days=1)
 start_ts = _day_start_cet.astimezone(timezone.utc).isoformat()
 end_ts = _day_end_cet.astimezone(timezone.utc).isoformat()
 new_video_rows = _load_new_videos(start_ts, end_ts, _fc_tuple)
-_t("new_video_rows")
 
 # ── Compute per-channel deltas ────────────────────────────────
 def _ch_delta(cid: str, field: str) -> int | None:
@@ -1141,7 +1107,6 @@ _top_n = 10 if ONE_CLUB else 20
 # returns only top-N rows). Fall back to computing from vmap_day/vmap_prev
 # if the table is empty (before backfill has run).
 _top_deltas = _load_top_video_deltas(day_iso, _top_n, _fc_tuple)
-_t("top_deltas")
 
 if _top_deltas:
     trending = [
@@ -1236,27 +1201,4 @@ else:
     </table>
     {yt_popup_js()}
     """, height=video_table_height(min(_top_n, len(trending))), scrolling=True)
-
-
-# ── Debug footer (only when ?debug=1) ─────────────────────────────
-if _DBG:
-    _total_ms = (_time.perf_counter() - _t_start) * 1000
-    st.divider()
-    st.caption(f"⏱️ **Total render time: {_total_ms:.0f}ms** "
-                f"(Cmd+R should drop to <100ms once cache is warm — "
-                f"if it stays above 1000ms after a refresh, caching is broken)")
-    # Per-section breakdown
-    _rows = []
-    _prev = _t_start
-    for label, ts in _DBG_LOG:
-        _ms = (ts - _prev) * 1000
-        _rows.append(f"<tr><td>{label}</td><td style=\"text-align:right\">{_ms:.0f} ms</td></tr>")
-        _prev = ts
-    st.markdown(
-        "<table style=\"font-size:12px;border-collapse:collapse\">"
-        "<thead><tr><th>Section</th><th>Time</th></tr></thead><tbody>"
-        + "".join(_rows) +
-        "</tbody></table>",
-        unsafe_allow_html=True,
-    )
 
