@@ -1,7 +1,26 @@
 from __future__ import annotations
 
+import os
+import sys
+
 import isodate
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
+
+from .quota_alert import send_ntfy
+
+
+def _is_quota_exceeded(err: HttpError) -> bool:
+    """Detect quotaExceeded / dailyLimitExceeded errors from the YouTube API."""
+    try:
+        if getattr(err.resp, "status", None) != 403:
+            return False
+        content = (err.content or b"").decode("utf-8", errors="ignore")
+        return ("quotaExceeded" in content
+                or "dailyLimitExceeded" in content
+                or "rateLimitExceeded" in content)
+    except Exception:
+        return False
 
 
 class YouTubeClient:
@@ -18,16 +37,81 @@ class YouTubeClient:
         """Derive a playlist ID from a channel ID by replacing the 'UC' prefix."""
         return prefix + channel_id[2:]
 
-    def __init__(self, api_key: str):
-        self.youtube = build("youtube", "v3", developerKey=api_key)
+    def __init__(self, api_key: str, *, backups: list[str] | None = None):
+        # Key pool: primary first, then any backups. On quota-exceeded
+        # we rotate to the next key, fire one ntfy alert per rotation,
+        # and retry the call transparently. When no backups are passed
+        # explicitly we pick up YOUTUBE_API_KEY_BACKUP from the env so
+        # existing call sites get failover for free.
+        if backups is None:
+            backups = []
+            env_backup = os.environ.get("YOUTUBE_API_KEY_BACKUP", "").strip()
+            if env_backup and env_backup != api_key:
+                backups.append(env_backup)
+        self._keys: list[str] = [api_key] + [k for k in backups if k]
+        self._idx: int = 0
+        self._alerts_fired: set[int] = set()  # to avoid duplicate alerts
+        self.youtube = build(
+            "youtube", "v3", developerKey=self._keys[self._idx])
+
+    # ── Quota-failover plumbing ──────────────────────────────────────
+    def _rotate_key(self, error: Exception) -> bool:
+        """Swap to the next API key. Returns True if rotation happened,
+        False if all keys are exhausted. Sends an ntfy alert on rotation."""
+        if self._idx + 1 >= len(self._keys):
+            # All exhausted — alert once, then let the error bubble up
+            if "exhausted" not in self._alerts_fired:
+                self._alerts_fired.add("exhausted")
+                key_tail = self._keys[self._idx][-6:]
+                send_ntfy(
+                    f"🚨 YouTube API: ALL keys exhausted "
+                    f"(last={key_tail}). Production reads are now failing.",
+                    title="YTFT quota — ALL KEYS DEAD",
+                    priority="urgent",
+                    tags="rotating_light,youtube",
+                )
+            return False
+        old_tail = self._keys[self._idx][-6:]
+        self._idx += 1
+        new_tail = self._keys[self._idx][-6:]
+        # One alert per (key_index, rotation) so reruns don't spam
+        marker = f"rotated_to_{self._idx}"
+        if marker not in self._alerts_fired:
+            self._alerts_fired.add(marker)
+            send_ntfy(
+                f"⚠️ YouTube API key …{old_tail} hit quota — "
+                f"switched to backup …{new_tail}",
+                title="YTFT quota — key rotated",
+                priority="high",
+                tags="warning,youtube",
+            )
+        # Rebuild the client against the new key
+        self.youtube = build(
+            "youtube", "v3", developerKey=self._keys[self._idx])
+        print(f"[YouTubeClient] rotated key …{old_tail} → …{new_tail}",
+              file=sys.stderr)
+        return True
+
+    def _call(self, make_request):
+        """Execute make_request(self.youtube).execute() with quota failover.
+        make_request is a callable that takes the current youtube client
+        and returns an unexecuted HttpRequest. We rebuild the request after
+        each rotation because the request is bound to the previous client."""
+        while True:
+            try:
+                return make_request(self.youtube).execute()
+            except HttpError as e:
+                if _is_quota_exceeded(e) and self._rotate_key(e):
+                    continue
+                raise
 
     def resolve_handle(self, handle: str) -> dict | None:
         """Resolve a YouTube handle (e.g. @sscnapoli) to channel info."""
         handle = handle.strip().lstrip("@")
-        resp = self.youtube.channels().list(
+        resp = self._call(lambda yt: yt.channels().list(
             part="snippet,statistics,contentDetails",
             forHandle=handle,
-        ).execute()
+        ))
         if not resp.get("items"):
             return None
         item = resp["items"][0]
@@ -47,10 +131,10 @@ class YouTubeClient:
         }
 
     def get_channel_stats(self, channel_id: str) -> dict:
-        resp = self.youtube.channels().list(
+        resp = self._call(lambda yt: yt.channels().list(
             part="snippet,statistics,contentDetails",
             id=channel_id,
-        ).execute()
+        ))
         if not resp.get("items"):
             return {}
         item = resp["items"][0]
@@ -78,12 +162,15 @@ class YouTubeClient:
         video_ids = []
         next_page = None
         while len(video_ids) < max_results:
-            resp = self.youtube.playlistItems().list(
+            _pl_id = uploads_playlist_id
+            _max = min(50, max_results - len(video_ids))
+            _tok = next_page
+            resp = self._call(lambda yt: yt.playlistItems().list(
                 part="contentDetails",
-                playlistId=uploads_playlist_id,
-                maxResults=min(50, max_results - len(video_ids)),
-                pageToken=next_page,
-            ).execute()
+                playlistId=_pl_id,
+                maxResults=_max,
+                pageToken=_tok,
+            ))
             for item in resp.get("items", []):
                 video_ids.append(item["contentDetails"]["videoId"])
             next_page = resp.get("nextPageToken")
@@ -97,11 +184,13 @@ class YouTubeClient:
         Costs 1 quota unit. Used as a drop-in replacement when the public RSS
         endpoint is down/deprecated."""
         try:
-            resp = self.youtube.playlistItems().list(
+            _pl_id = uploads_playlist_id
+            _max = max(1, min(50, max_results))
+            resp = self._call(lambda yt: yt.playlistItems().list(
                 part="snippet,contentDetails",
-                playlistId=uploads_playlist_id,
-                maxResults=max(1, min(50, max_results)),
-            ).execute()
+                playlistId=_pl_id,
+                maxResults=_max,
+            ))
         except Exception:
             return []
         out = []
@@ -124,12 +213,14 @@ class YouTubeClient:
         video_ids = []
         next_page = None
         while True:
-            resp = self.youtube.playlistItems().list(
+            _pl_id = uploads_playlist_id
+            _tok = next_page
+            resp = self._call(lambda yt: yt.playlistItems().list(
                 part="contentDetails",
-                playlistId=uploads_playlist_id,
+                playlistId=_pl_id,
                 maxResults=50,
-                pageToken=next_page,
-            ).execute()
+                pageToken=_tok,
+            ))
             for item in resp.get("items", []):
                 published = item["contentDetails"].get("videoPublishedAt", "")
                 if published < since:
@@ -150,12 +241,14 @@ class YouTubeClient:
             next_page = None
             while True:
                 try:
-                    resp = self.youtube.playlistItems().list(
+                    _pl_id = pl_id
+                    _tok = next_page
+                    resp = self._call(lambda yt: yt.playlistItems().list(
                         part="contentDetails",
-                        playlistId=pl_id,
+                        playlistId=_pl_id,
                         maxResults=50,
-                        pageToken=next_page,
-                    ).execute()
+                        pageToken=_tok,
+                    ))
                 except Exception:
                     break  # Playlist may not exist for some channels
                 for item in resp.get("items", []):
@@ -173,9 +266,10 @@ class YouTubeClient:
         for key, prefix in [("long", self.PREFIX_LONG), ("shorts", self.PREFIX_SHORTS), ("live", self.PREFIX_LIVE)]:
             pl_id = self._playlist_id(channel_id, prefix)
             try:
-                resp = self.youtube.playlistItems().list(
-                    part="contentDetails", playlistId=pl_id, maxResults=1,
-                ).execute()
+                _pl_id = pl_id
+                resp = self._call(lambda yt: yt.playlistItems().list(
+                    part="contentDetails", playlistId=_pl_id, maxResults=1,
+                ))
                 counts[key] = resp.get("pageInfo", {}).get("totalResults", 0)
             except Exception:
                 pass
@@ -191,12 +285,14 @@ class YouTubeClient:
             next_page = None
             while True:
                 try:
-                    resp = self.youtube.playlistItems().list(
+                    _pl_id = pl_id
+                    _tok = next_page
+                    resp = self._call(lambda yt: yt.playlistItems().list(
                         part="contentDetails",
-                        playlistId=pl_id,
+                        playlistId=_pl_id,
                         maxResults=50,
-                        pageToken=next_page,
-                    ).execute()
+                        pageToken=_tok,
+                    ))
                 except Exception:
                     break
                 for item in resp.get("items", []):
@@ -218,14 +314,17 @@ class YouTubeClient:
         video_ids = []
         next_page = None
         while len(video_ids) < max_results:
-            resp = self.youtube.search().list(
+            _cid = channel_id
+            _max = min(50, max_results - len(video_ids))
+            _tok = next_page
+            resp = self._call(lambda yt: yt.search().list(
                 part="id",
-                channelId=channel_id,
+                channelId=_cid,
                 type="video",
                 order="viewCount",
-                maxResults=min(50, max_results - len(video_ids)),
-                pageToken=next_page,
-            ).execute()
+                maxResults=_max,
+                pageToken=_tok,
+            ))
             for item in resp.get("items", []):
                 video_ids.append(item["id"]["videoId"])
             next_page = resp.get("nextPageToken")
@@ -238,10 +337,11 @@ class YouTubeClient:
         total = len(video_ids)
         for i in range(0, total, 50):
             batch = video_ids[i : i + 50]
-            resp = self.youtube.videos().list(
+            _ids = ",".join(batch)
+            resp = self._call(lambda yt: yt.videos().list(
                 part="snippet,statistics,contentDetails,liveStreamingDetails",
-                id=",".join(batch),
-            ).execute()
+                id=_ids,
+            ))
             for item in resp.get("items", []):
                 # Defensive: skip items that came back without an id. This
                 # has been seen in rare cases (deleted/private/region-locked
