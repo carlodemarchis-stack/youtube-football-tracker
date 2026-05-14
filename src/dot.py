@@ -97,6 +97,22 @@ _COUNTRY_FLAG = {
 }
 
 
+def flag_span(flag: str, size: int = 14) -> str:
+    """Standard rendering wrapper for a flag emoji inside a table row.
+
+    Same fixed-width box dimensions as dual_dot() so columns stay
+    aligned regardless of which marker fills the cell. Critically does
+    NOT force a small font-size — that was breaking the England /
+    Scotland subdivision-tag sequences which need the table's natural
+    font (14px+) to render. The flag emoji inherits the table cell's
+    font-size and centers itself in the box.
+    """
+    return (
+        f'<span style="display:inline-block;width:{size}px;'
+        f"text-align:center;line-height:1\">{flag}</span>"
+    )
+
+
 def channel_badge(channel: dict, color_map: dict | None, dual_map: dict | None,
                   size: int = 14) -> str:
     """Return the right marker for a row in a channel table.
@@ -116,11 +132,7 @@ def channel_badge(channel: dict, color_map: dict | None, dual_map: dict | None,
         flag = flag_for_channel(channel) if et == "Federation" else \
                _COUNTRY_FLAG.get(((channel.get("country") or "")).upper())
         if flag:
-            return (
-                f'<span style="display:inline-flex;align-items:center;'
-                f'justify-content:center;width:{size}px;height:{size}px;'
-                f'font-size:{max(size - 2, 10)}px;line-height:1">{flag}</span>'
-            )
+            return flag_span(flag, size)
     name = (channel or {}).get("name", "")
     if dual_map and name in dual_map:
         c1, c2 = dual_map[name]

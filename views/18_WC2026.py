@@ -23,7 +23,7 @@ from src.cached_db import (
 )
 from src.analytics import fmt_num, fmt_date, kpi_row
 from src.auth import require_login
-from src.dot import dual_dot
+from src.dot import dual_dot, flag_span
 
 load_dotenv()
 require_login()
@@ -202,8 +202,7 @@ def _channel_row_html(c, *, show_alt_chip=True):
         marker = dual_dot(c1, c2, 14)
     else:
         flag = TEAM_FLAG.get(team, "")
-        marker = (f"<span style='display:inline-block;width:14px;"
-                   f"text-align:center'>{flag}</span>") if flag else ""
+        marker = flag_span(flag, 14) if flag else ""
 
     # Display label: for alts (role=federation) use the actual channel
     # name so users can tell them apart from the primary row.
