@@ -119,9 +119,11 @@ for c in alts:
         alts_by_team[team].append(c)
 
 # ── KPI strip ─────────────────────────────────────────────────────
-total_subs   = sum(int(c.get("subscriber_count") or 0) for c in primary)
-total_views  = sum(int(c.get("total_views") or 0)      for c in primary)
-total_videos = sum(int(c.get("video_count") or 0)      for c in primary)
+# Include alts so the global totals match the per-row sums shown
+# in the table (alts roll into the primary row).
+total_subs   = sum(int(c.get("subscriber_count") or 0) for c in wc)
+total_views  = sum(int(c.get("total_views") or 0)      for c in wc)
+total_videos = sum(int(c.get("video_count") or 0)      for c in wc)
 n_teams      = sum(1 for c in primary if c.get("entity_type") != "GoverningBody")
 n_gov        = sum(1 for c in primary if c.get("entity_type") == "GoverningBody")
 avg_vpv      = (total_views // total_videos) if total_videos else 0
@@ -173,6 +175,19 @@ def _channel_row_html(c, *, show_alt_chip=True):
     lives = int(c.get("live_count") or 0)
     last_fetched = c.get("last_fetched") or ""
 
+    # Roll alt-channel stats into the primary row so the table shows
+    # combined reach per country. Only on primary rows (the alts
+    # expander still shows each channel individually).
+    role = w.get("role") or "team"
+    if show_alt_chip and role in ("team", "governing_body"):
+        for a in alts_by_team.get(team, []):
+            subs   += int(a.get("subscriber_count") or 0)
+            views  += int(a.get("total_views")      or 0)
+            videos += int(a.get("video_count")      or 0)
+            longs  += int(a.get("long_form_count")  or 0)
+            shorts += int(a.get("shorts_count")     or 0)
+            lives  += int(a.get("live_count")       or 0)
+
     if is_gov:
         c1 = c.get("color") or "#636EFA"
         c2 = c.get("color2") or "#FFFFFF"
@@ -184,7 +199,6 @@ def _channel_row_html(c, *, show_alt_chip=True):
 
     # Display label: for alts (role=federation) use the actual channel
     # name so users can tell them apart from the primary row.
-    role = w.get("role") or "team"
     display_label = team if role in ("team", "governing_body") else (
         c.get("name") or team)
 
