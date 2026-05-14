@@ -15,6 +15,7 @@ from src.database import Database
 from src.cached_db import (
     get_all_channels as _cached_channels,
     get_last_fetch_time as _cached_last_fetch,
+    read_dashboard_cache as _cached_dc_read,
 )
 from src.analytics import fmt_num, yt_popup_js, CATEGORY_COLORS, kpi_row
 try:
