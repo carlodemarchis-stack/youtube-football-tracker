@@ -326,11 +326,20 @@ _NO_CHART_COLOR_TYPES = frozenset(
 
 @st.cache_data(ttl=1800, show_spinner=False)
 def _load_colors() -> dict[str, tuple[str, str]]:
-    """Load or auto-assign both primary and secondary colors for all channels.
+    """Map channel name → (primary, secondary) colors for ALL channels.
 
-    Cached at 30-min TTL: the assignment is deterministic given the
-    channel set, and the per-call DB updates (when a new club is added)
-    are a one-time cost the next admin save will trigger again anyway.
+    Two-tier behaviour to avoid the 8-second-freeze trap:
+      1. Read whatever's already in `ch.color` / `ch.color2` for every
+         channel, regardless of entity_type. Federations, Players,
+         OtherClubs etc. show up here with their existing colors —
+         the per-row dual-dot badges on those pages render correctly.
+      2. Auto-assign + DB-persist a color ONLY for Club/League rows
+         that don't have one yet. Other entity types fall back to a
+         neutral grey in the consumer when missing — they don't get
+         randomized palette entries assigned at page-render time
+         (that was the source of the WC2026 slowdown).
+
+    Cached at 30-min TTL.
     """
     from src.analytics import CHANNEL_PALETTE
     from src.channels import TEAM_COLORS
@@ -344,16 +353,9 @@ def _load_colors() -> dict[str, tuple[str, str]]:
             db = Database(url, key)
             all_channels = db.get_all_channels()
 
-    # Only consider channels that actually need a chart color. Federation /
-    # GoverningBody / Player / OtherClub / WomenClub rows are rendered
-    # outside the per-club color map and don't need an assignment — used
-    # to cost ~130ms × 50 channels = ~6-8 seconds per page render after
-    # WC2026 added 50 federation rows without preset colors.
-    all_channels = [c for c in all_channels
-                    if c.get("entity_type") not in _NO_CHART_COLOR_TYPES]
-
     color_map: dict[str, tuple[str, str]] = {}
     used_colors: set[str] = set()
+    # Channels that genuinely need a palette slot (only Club/League)
     needs_color: list[dict] = []
 
     for ch in all_channels:
@@ -362,8 +364,12 @@ def _load_colors() -> dict[str, tuple[str, str]]:
             c2 = ch.get("color2") or "#FFFFFF"
             color_map[ch["name"]] = (c1, c2)
             used_colors.add(c1)
-        else:
+        elif ch.get("entity_type") not in _NO_CHART_COLOR_TYPES:
+            # Only Club/League rows trigger the auto-assign + DB write
             needs_color.append(ch)
+        # Else: Player/Federation/etc. without color — leave out of the
+        # map; the consumer falls back to neutral grey (#888) or its
+        # own per-entity default.
 
     if needs_color:
         import os
