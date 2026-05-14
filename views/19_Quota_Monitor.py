@@ -41,6 +41,29 @@ st.caption(
     "the page is restarted."
 )
 
+# ── Current PT quota day (audit indicator) ────────────────────────
+try:
+    from zoneinfo import ZoneInfo as _ZI
+    _pt_now = _dt.datetime.now(_ZI("America/Los_Angeles"))
+    _utc_now = _dt.datetime.now(_dt.timezone.utc)
+    st.markdown(
+        f"<div style='background:#1a1c24;border-left:3px solid #58A6FF;"
+        f"padding:8px 14px;margin:8px 0 14px 0;font-size:13px;color:#FAFAFA'>"
+        f"<b>Current quota day (PT):</b> "
+        f"<code style='background:transparent;color:#58A6FF;font-size:14px'>"
+        f"{_pt_now.date().isoformat()}</code> &nbsp;·&nbsp; "
+        f"<span style='color:#888'>PT now: {_pt_now.strftime('%H:%M:%S %Z')}"
+        f" &nbsp;·&nbsp; UTC now: {_utc_now.strftime('%H:%M:%S UTC')}</span>"
+        f"<br><span style='color:#888;font-size:11px'>"
+        f"All writes today are bucketed under this PT date — "
+        f"rolls over to the next day at 00:00 PT (08:00 UTC during PST, "
+        f"07:00 UTC during PDT).</span>"
+        f"</div>",
+        unsafe_allow_html=True,
+    )
+except Exception:
+    pass
+
 db = admin_db()
 
 # Map key_tail (last 4 chars of the API key value — what's stored in
