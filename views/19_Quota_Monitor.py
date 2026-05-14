@@ -283,7 +283,10 @@ if rows:
         margin=dict(t=40, l=0, r=0, b=20),
     )
     fig.update_xaxes(gridcolor="#262730", tickformat="%b %d")
-    fig.update_yaxes(gridcolor="#262730")
+    # Fix the Y-axis to the per-key daily quota ceiling so bars are
+    # comparable across days and a bar visibly hitting the top means
+    # the key actually maxed out.
+    fig.update_yaxes(gridcolor="#262730", range=[0, 10000], dtick=2000)
     st.plotly_chart(fig, use_container_width=True)
 
     with st.expander("Raw data"):
