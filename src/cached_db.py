@@ -11,8 +11,9 @@ which is correct here (same project, same key).
 
 TTLs are chosen so a stale read is cheap (numbers are off by minutes, not
 hours) but cron-driven updates show up reasonably fast:
-  - channels list:   5 min  — changes only when admin adds a channel
-  - recent videos:   60 sec — refreshed by the hourly RSS cron
+  - channels list:  30 min — changes only when admin adds a channel,
+                            and the admin page invalidates explicitly
+  - recent videos:  60 sec — refreshed by the hourly RSS cron
   - dashboard_cache: 60 sec — refreshed by daily/hourly crons
 """
 from __future__ import annotations
@@ -20,9 +21,11 @@ from __future__ import annotations
 import streamlit as st
 
 
-@st.cache_data(ttl=300, show_spinner=False)
+@st.cache_data(ttl=1800, show_spinner=False)
 def get_all_channels(_db) -> list[dict]:
-    """Cached wrapper for db.get_all_channels()."""
+    """Cached wrapper for db.get_all_channels(). 30-min TTL because the
+    channels list only changes when an admin adds/edits one — the
+    Channel Management page calls st.cache_data.clear() after writes."""
     return _db.get_all_channels() or []
 
 

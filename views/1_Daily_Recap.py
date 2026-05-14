@@ -209,7 +209,7 @@ prev_day = day - timedelta(days=1)
 if g_league is None and g_club is None:
     try:
         from src import dashboard_cache as _dc
-        _note_row = _dc.read(db, "daily_note", day.isoformat())
+        _note_row = _cached_dc_read(db, "daily_note", day.isoformat())
         if _note_row and _note_row.get("payload"):
             _p = _note_row["payload"]
             # Prefer pre-decorated HTML (with badge injection); fall back to
@@ -575,7 +575,7 @@ if len(_all_dates) >= 2:
     }
 
     # Try persisted cache (only for all + per-league; ONE_CLUB falls through)
-    _cached = None if ONE_CLUB else _dc.read(db, "format_trend", _scope_key)
+    _cached = None if ONE_CLUB else _cached_dc_read(db, "format_trend", _scope_key)
     if _cached and _cached.get("payload"):
         for r in (_cached["payload"].get("rows") or []):
             d = r.get("date")
