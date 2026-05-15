@@ -58,6 +58,46 @@ ch_by_id = {c["id"]: c for c in all_channels}
 color_map = get_global_color_map()
 dual = get_global_color_map_dual()
 
+# ── Standardized video-list left cell (CONVENTIONS §6-B) ──────────
+# thumbnail + 3-row stack: Channel / Title / context. Only the left
+# identity is standardized — each table keeps its own data columns
+# and whatever it already had inline (context_html) unchanged.
+_VCELL_CSS = (
+    ".v-row{display:flex;align-items:flex-start;gap:10px}"
+    ".v-info{min-width:0;display:flex;flex-direction:column;"
+    "justify-content:space-between;height:62px;flex:1}"
+    ".v-channel{font-size:12px;display:flex;align-items:center;gap:6px;"
+    "white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"
+    f".v-title{{color:{_T.TEXT};text-decoration:none;font-size:13px;"
+    "line-height:1.25;font-weight:700;display:-webkit-box;"
+    "-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;"
+    "text-overflow:ellipsis}"
+    ".v-meta{font-size:12px;white-space:nowrap;overflow:hidden;"
+    "text-overflow:ellipsis}"
+)
+
+
+def _video_left_cell(v: dict, context_html: str = "") -> str:
+    ch = ch_by_id.get(v.get("channel_id")) or {}
+    badge = channel_badge(ch, color_map, dual, 14)
+    yt = f"https://www.youtube.com/watch?v={v.get('youtube_video_id', '')}"
+    thumb = v.get("thumbnail_url") or ""
+    title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;")
+    meta = f'<div class="v-meta">{context_html}</div>' if context_html else ""
+    return (
+        '<td style="padding:6px 12px;vertical-align:top">'
+        '<div class="v-row">'
+        f'<a href="{yt}" target="_blank" rel="noopener">'
+        f'<img src="{thumb}" style="width:110px;height:62px;'
+        'object-fit:cover;border-radius:4px;display:block;flex-shrink:0"></a>'
+        '<div class="v-info">'
+        f'<div class="v-channel">{badge} '
+        f'<span style="color:{_T.MUTED_2}">{ch.get("name", "?")}</span></div>'
+        f'<a href="{yt}" target="_blank" rel="noopener" class="v-title">{title}</a>'
+        f'{meta}'
+        '</div></div></td>'
+    )
+
 
 # ── Cached data loaders (5 min TTL — data changes after daily cron) ─
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -834,8 +874,7 @@ if ONE_CLUB:
             except Exception:
                 pub_time = _pub_raw[11:16]
             rows += f"""<tr data-fmt="{fmt}" onclick="window.open('{yt_url}','_blank','noopener')" style="cursor:pointer">
-                <td style="padding:6px 12px"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px"></td>
-                <td style="padding:6px 12px"><a href="{yt_url}" target="_blank" style="color:{_T.TEXT};text-decoration:none">{title}</a></td>
+                {_video_left_cell(v)}
                 <td style="padding:6px 12px"><span style="color:{fmt_color}">{fmt_label}</span></td>
                 <td style="padding:6px 12px">{v.get('category') or ''}</td>
                 <td style="padding:6px 12px;text-align:right">{fmt_num(int(v.get('view_count') or 0))}</td>
@@ -850,9 +889,10 @@ if ONE_CLUB:
           .nc th {{ padding:6px 12px; border-bottom:2px solid {_T.BORDER_STRONG}; text-align:left; }}
           .nc td {{ border-bottom:1px solid {_T.BORDER}; vertical-align:middle; }}
           .nc tr:hover td {{ background:{_T.SURFACE}; }}
+          {_VCELL_CSS}
         </style>
         <table class="nc"><thead><tr>
-          <th></th><th>Title</th><th>Format</th><th>Theme</th>
+          <th>Video</th><th>Format</th><th>Theme</th>
           <th style="text-align:right">Views</th>
           <th style="text-align:right">Likes</th>
           <th style="text-align:right">Comments</th>
@@ -1061,17 +1101,11 @@ if new_video_rows and not ONE_CLUB:
         views = int(v.get("view_count") or 0)
         likes = int(v.get("like_count") or 0)
         comments = int(v.get("comment_count") or 0)
-        _mw_rows += f"""<tr data-fmt="{fmt}">
+        _ctx = (f'<span style="color:{fmt_color}">{fmt_label}</span>'
+                f'{cat_span}')
+        _mw_rows += f"""<tr data-fmt="{fmt}" onclick="window.open('{yt_url}','_blank','noopener')" style="cursor:pointer">
             <td style="padding:6px 12px;text-align:right;color:{_T.MUTED};vertical-align:top">{i}</td>
-            <td style="padding:6px 12px;vertical-align:top"><a href="{yt_url}" target="_blank"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px;display:block"></a></td>
-            <td style="padding:6px 12px;vertical-align:top">
-                <div style="display:flex;flex-direction:column;justify-content:space-between;height:62px">
-                  <a href="{yt_url}" target="_blank" style="color:{_T.TEXT};text-decoration:none;font-weight:700"><br>{title}</a>
-                  <div style="color:{_T.MUTED_2};font-size:12px;display:flex;align-items:center;gap:6px">
-                    {ch_dot}<span>{ch.get('name', '?')} · <span style="color:{fmt_color}">{fmt_label}</span>{cat_span}</span>
-                  </div>
-                </div>
-            </td>
+            {_video_left_cell(v, _ctx)}
             <td style="padding:6px 12px;text-align:right;font-weight:600">{fmt_num(views)}</td>
             <td style="padding:6px 12px;text-align:right">{fmt_num(likes)}</td>
             <td style="padding:6px 12px;text-align:right">{fmt_num(comments)}</td>
@@ -1084,11 +1118,11 @@ if new_video_rows and not ONE_CLUB:
       .mw th {{ padding:6px 12px; border-bottom:2px solid {_T.BORDER_STRONG}; text-align:left; }}
       .mw td {{ border-bottom:1px solid {_T.BORDER}; vertical-align:middle; }}
       .mw tr:hover td {{ background:{_T.SURFACE}; }}
+      {_VCELL_CSS}
     </style>
     <table class="mw">
       <thead><tr>
         <th style="text-align:right">#</th>
-        <th></th>
         <th>Video</th>
         <th style="text-align:right">Views</th>
         <th style="text-align:right">Likes</th>
@@ -1167,17 +1201,11 @@ else:
         _cat_color_t = CATEGORY_COLORS.get(_cat_t, _T.MUTED)
         _cat_html_t = (f' · <span style="color:{_cat_color_t}">{_cat_t}</span>'
                        if _cat_t and _cat_t != "Other" else "")
-        _tv_rows += f"""<tr data-fmt="{fmt}">
+        _ctx = (f'<span style="color:{fmt_color}">{fmt_label}</span>'
+                f' · {pub}{_cat_html_t}')
+        _tv_rows += f"""<tr data-fmt="{fmt}" onclick="window.open('{yt_url}','_blank','noopener')" style="cursor:pointer">
             <td style="padding:6px 12px;text-align:right;color:{_T.MUTED};vertical-align:top">{i}</td>
-            <td style="padding:6px 12px;vertical-align:top"><a href="{yt_url}" target="_blank"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px;display:block"></a></td>
-            <td style="padding:6px 12px;vertical-align:top">
-                <div style="display:flex;flex-direction:column;justify-content:space-between;height:62px">
-                  <a href="{yt_url}" target="_blank" style="color:{_T.TEXT};text-decoration:none;font-weight:700"><br>{title}</a>
-                  <div style="color:{_T.MUTED_2};font-size:12px;display:flex;align-items:center;gap:6px">
-                    {ch_dot}<span>{ch.get('name', '?')} · <span style="color:{fmt_color}">{fmt_label}</span> · {pub}{_cat_html_t}</span>
-                  </div>
-                </div>
-            </td>
+            {_video_left_cell(v, _ctx)}
             <td style="padding:6px 12px;text-align:right;color:{_T.POS};font-weight:600">+{fmt_num(t['delta'])}</td>
             <td style="padding:6px 12px;text-align:right">{fmt_num(t['views'])}</td>
         </tr>"""
@@ -1189,11 +1217,11 @@ else:
       .tv th {{ padding:6px 12px; border-bottom:2px solid {_T.BORDER_STRONG}; text-align:left; }}
       .tv td {{ border-bottom:1px solid {_T.BORDER}; vertical-align:middle; }}
       .tv tr:hover td {{ background:{_T.SURFACE}; }}
+      {_VCELL_CSS}
     </style>
     <table class="tv">
       <thead><tr>
         <th style="text-align:right">#</th>
-        <th></th>
         <th>Video</th>
         <th style="text-align:right">Δ Views</th>
         <th style="text-align:right">Total Views</th>
