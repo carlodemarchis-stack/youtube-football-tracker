@@ -14,6 +14,7 @@ import streamlit.components.v1 as components
 
 from src.analytics import fmt_num, yt_popup_js, CATEGORY_COLORS, video_table_height
 from src.dot import channel_badge
+from src import theme as _T
 from src.filters import get_global_color_map, get_global_color_map_dual
 
 
@@ -97,7 +98,8 @@ def render_top_season_videos_table(
             return f
         return "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
 
-    _COLOR = {"long": "#636EFA", "short": "#00CC96", "live": "#FFA15A"}
+    # Format colors per CONVENTIONS §1 (Long=ACCENT, Shorts=POS, Live=WARN).
+    _COLOR = {"long": _T.ACCENT, "short": _T.POS, "live": _T.WARN}
     _LABEL = {"long": "Long", "short": "Shorts", "live": "Live"}
 
     color_map = get_global_color_map() or {}
@@ -113,84 +115,91 @@ def render_top_season_videos_table(
     for i, v in enumerate(vids, 1):
         ch = channels_by_id.get(v.get("channel_id")) or v.get("channels") or {}
         ch_name = ch.get("name", "?")
-        ch_dot = channel_badge(ch, color_map, dual_map, 12)
+        ch_badge = channel_badge(ch, color_map, dual_map, 14)
         yt_url = f"https://www.youtube.com/watch?v={v['youtube_video_id']}"
         thumb = v.get("thumbnail_url") or ""
         _f = _fmt_of_local(v)
         fmt_label = _LABEL[_f]
         fmt_color = _COLOR[_f]
+        dur_s = _dur_local(v.get("duration_seconds", 0))
         pub = (v.get("published_at") or "")[:10]
         title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;")
-        _cat = (v.get("category") or "").replace("<", "&lt;")
-        _cat_color = CATEGORY_COLORS.get(_cat, "#888")
-        _cat_span = (f' · <span style="color:{_cat_color}">{_cat}</span>'
-                     if _cat and _cat != "Other" else "")
-        _meta = (
-            f'<span style="display:inline-flex;align-items:center;gap:6px">'
-            f'{ch_dot}<span style="color:#FAFAFA">{ch_name}</span></span>'
-            f' · <span style="color:{fmt_color}">{fmt_label}</span>'
-            f' · {_dur_local(v.get("duration_seconds", 0))}'
-            f' · <span style="color:#888">{pub}</span>'
+        cat = (v.get("category") or "").replace("<", "&lt;")
+        _cat_color = CATEGORY_COLORS.get(cat, _T.MUTED)
+        _cat_span = (f' · <span style="color:{_cat_color}">{cat}</span>'
+                     if cat and cat != "Other" else "")
+        # 3rd row — attributes stay inline (format · duration · date · cat).
+        _context = (
+            f'<span style="color:{fmt_color}">{fmt_label}</span>'
+            f' · {dur_s}'
+            f' · <span style="color:{_T.MUTED}">{pub}</span>'
             f'{_cat_span}'
         )
-        rows += f"""<tr data-fmt="{_f}" onclick="window.open('{yt_url}','_blank','noopener')" style="cursor:pointer">
-            <td style="padding:6px 12px;text-align:right;color:#888">{i}</td>
+        rows += f"""<tr onclick="window.open('{yt_url}','_blank','noopener')" style="cursor:pointer">
+            <td style="padding:6px 12px;text-align:right;color:{_T.MUTED};vertical-align:top">{i}</td>
             <td style="padding:6px 12px;vertical-align:top"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px;display:block"></td>
             <td style="padding:6px 12px;vertical-align:top">
-              <div style="display:flex;flex-direction:column;justify-content:space-between;height:62px">
-                <a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none;font-weight:700"><br>{title}</a>
-                <div style="font-size:12px">{_meta}</div>
+              <div class="v-info">
+                <div class="v-channel">{ch_badge} <span style="color:{_T.MUTED_2}">{ch_name}</span></div>
+                <a href="{yt_url}" target="_blank" rel="noopener" class="v-title">{title}</a>
+                <div class="v-meta">{_context}</div>
               </div>
             </td>
             <td style="padding:6px 12px;text-align:right">{fmt_num(int(v.get('view_count') or 0))}</td>
             <td style="padding:6px 12px;text-align:right">{fmt_num(int(v.get('like_count') or 0))}</td>
             <td style="padding:6px 12px;text-align:right">{fmt_num(int(v.get('comment_count') or 0))}</td>
         </tr>"""
+
+    _THEAD = (
+        "<thead><tr>"
+        '<th style="text-align:right">#</th>'
+        "<th></th>"
+        "<th>Video</th>"
+        '<th style="text-align:right">Views</th>'
+        '<th style="text-align:right">Likes</th>'
+        '<th style="text-align:right">Comments</th>'
+        "</tr></thead>"
+    )
     natural = video_table_height(len(vids))
     if max_height is not None and natural > max_height:
-        # Wrap the table in a scrollable container; keep the header
-        # sticky so the user can scroll without losing context.
+        # Scrollable container; sticky header keeps context on scroll.
         body_html = (
-            '<div style="max-height:{cap}px;overflow-y:auto">'
+            f'<div style="max-height:{max_height - 16}px;overflow-y:auto">'
             '<table class="top-vids">'
-            '<thead><tr>'
-            '<th style="text-align:right">#</th>'
-            '<th></th>'
-            '<th>Video</th>'
-            '<th style="text-align:right">Views</th>'
-            '<th style="text-align:right">Likes</th>'
-            '<th style="text-align:right">Comments</th>'
-            '</tr></thead>'
-            f'<tbody>{rows}</tbody>'
-            '</table></div>'
-        ).format(cap=max_height - 16)  # leave room for the iframe chrome
+            + _THEAD +
+            f'<tbody>{rows}</tbody></table></div>'
+        )
         height_used = max_height
         scrolling = False
     else:
         body_html = (
             '<table class="top-vids">'
-            '<thead><tr>'
-            '<th style="text-align:right">#</th>'
-            '<th></th>'
-            '<th>Video</th>'
-            '<th style="text-align:right">Views</th>'
-            '<th style="text-align:right">Likes</th>'
-            '<th style="text-align:right">Comments</th>'
-            '</tr></thead>'
-            f'<tbody>{rows}</tbody>'
-            '</table>'
+            + _THEAD +
+            f'<tbody>{rows}</tbody></table>'
         )
         height_used = natural
         scrolling = False
 
     components.html(f"""
     <style>
-        .top-vids {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
-                     font-family:"Source Sans Pro",sans-serif; }}
-        .top-vids th {{ padding:6px 12px; border-bottom:2px solid #444; text-align:left;
-                        background:#0E1117; position:sticky; top:0; z-index:1; }}
-        .top-vids td {{ border-bottom:1px solid #262730; }}
-        .top-vids tr:hover td {{ background:#1a1c24; }}
+        .top-vids {{ width:100%; border-collapse:collapse; font-size:14px;
+                     color:{_T.TEXT}; font-family:"Source Sans Pro",sans-serif; }}
+        .top-vids th {{ padding:8px 12px; border-bottom:2px solid {_T.BORDER_STRONG};
+                        text-align:left; background:{_T.BG}; position:sticky;
+                        top:0; z-index:1; }}
+        .top-vids td {{ border-bottom:1px solid {_T.BORDER}; }}
+        .top-vids tr:hover td {{ background:{_T.SURFACE}; }}
+        .top-vids .v-info {{ min-width:0; display:flex; flex-direction:column;
+                             justify-content:space-between; height:62px; }}
+        .top-vids .v-channel {{ font-size:12px; display:flex; align-items:center;
+                                gap:6px; white-space:nowrap; overflow:hidden;
+                                text-overflow:ellipsis; }}
+        .top-vids .v-title {{ color:{_T.TEXT}; text-decoration:none; font-size:13px;
+                              line-height:1.25; font-weight:700; display:-webkit-box;
+                              -webkit-line-clamp:1; -webkit-box-orient:vertical;
+                              overflow:hidden; text-overflow:ellipsis; }}
+        .top-vids .v-meta {{ font-size:12px; white-space:nowrap; overflow:hidden;
+                             text-overflow:ellipsis; }}
     </style>
     {body_html}
     {yt_popup_js()}

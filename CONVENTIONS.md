@@ -153,19 +153,27 @@ and should itself match this, not the other way round). Its hallmarks:
 **B. Video lists — a different template, not a stats table.**
 Thumbnail / video-row layouts (Latest Videos, the feed mosaic,
 top-video lists). Do **not** retrofit them onto the stats-table
-pattern. Canonical row shape:
+pattern.
 
-- **Left cell = thumbnail + a 3-line stack** (in this order):
+**The only standardized part is the left cell** = thumbnail + a
+**3-line stack** (in this order):
   1. **Channel** — marker (flag / dual-dot, §1+§7) + channel name.
   2. **Title** — bold, links to the video; may carry an inline flag
      (player / country) after the text.
   3. **Context line — case-dependent**: e.g. format chip (`Shorts`)
-     · category (`Goals & Skills`). Varies or is omitted per page;
-     this is the only line that changes by context.
-- **Right side = metric columns**, right-aligned, sortable, header
-  with ▲/▼: typically `Duration · Views · Likes · Comments · Age`
-  (Views→Likes→Comments per §2; Duration/Age are video-list extras).
-- Whole row is click-to-watch (overlay/new tab).
+     · category · duration · date. Varies per page; the only line
+     whose content changes by context.
+
+**Everything else stays as each page already has it.** Right-side
+columns, which attributes are columns vs. inline, sortability, a
+rank `#` — all page-specific; **do not standardize, reorder, sort, or
+"upgrade" them**. A *curated ranking* (Season Top, All-Time Top,
+No.1) keeps its fixed columns and inline attributes and is **not**
+click-sortable — the order is the point. A Latest-Videos-style
+*explorer* may be sortable; that's its own choice, not a rule to
+spread.
+
+Whole row is click-to-watch (overlay / new tab).
 
 **C. Side-by-side (50/50) pairs.** Two related tables on one row
 (e.g. "biggest view gains" + "most videos published"). A sanctioned
