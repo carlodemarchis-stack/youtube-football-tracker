@@ -115,38 +115,46 @@ Status legend: ✅ enforced via shared code · 📝 documented, applied by hand
 
 ---
 
-## 6. Tables  ✅ stats `src/wc_table.py` · 📝 others
+## 6. Tables  📝 (pattern is the rule, not a specific module)
 
 Three **distinct table families** — keep each internally consistent;
 never force one into another.
 
-**A. Stats tables — canonical: the Top-5 "All Channels" style.**
-The default for any ranked metric table (All Channels, WC2026,
-Others, etc.):
-- **Horizontally scrollable when wide** (the `.wc-wrap` wrapper) —
-  never squash or drop columns to fit.
-- **Sortable**: clickable headers with ▲/▼, `data-val` raw sort keys
-  (number / lowercased string, *not* the display text),
-  numeric-vs-string aware, a sensible default sort column.
-- **Grouped / dual header row when needed** — e.g. a metric group
-  ("Views/Video") spanning its Long/Shorts/Live sub-columns. Supported
-  when the page's data warrants it; don't add it gratuitously.
-- **Identity cell** = marker (flag or dual-dot, §1) + name, and the
-  **name links to the channel** (`youtube_url` → `@handle` →
+**A. Stats tables — canonical reference: the core Top-5 pages'
+table.** The real template is the **"All Channels" table in
+`views/2_Clubs.py`** (`.ac-wrap` / `.ac-table`), mirrored by Season's
+`ch-season`. That *pattern* is the standard for any ranked metric
+table — **not** `src/wc_table.py` (which is just the WC2026 variant
+and should itself match this, not the other way round). Its hallmarks:
+- **Horizontal-scroll wrapper** (`overflow-x:auto` + a table
+  `min-width`) — the table scrolls; columns are never squashed or
+  dropped to fit.
+- **Two-row grouped header**: a top row of `colspan` metric groups,
+  each underlined in its group color (Views `#58A6FF`, Videos
+  `#FFCA3A`, Views/Video `#AB63FA` — these group colors are
+  themselves part of the standard), then a detail row of per-column
+  headers. Use the group row when columns cluster; skip it when flat.
+- **Per-column sortable**: `<th data-col data-type>` + `<td data-val>`
+  (raw number / lowercased string, *not* display text), click toggles
+  ▲/▼ with an `.active` highlight, sensible default sort column.
+- **Identity cell** = marker (flag or dual-dot, §1) + name; name
+  **links to the channel** (`youtube_url` → `@handle` →
   `/channel/<id>`).
-- **Composite `L / S / Li`** cells non-sortable; numeric metric
-  columns sortable (§2).
-- Theme colors only; header / hover / active styling from the shared
-  component.
-- Implemented via `src/wc_table.py`. Hand-rolled stats tables converge
-  onto it **opportunistically** — only when already editing that page,
-  never at the cost of that page's meaning (ask if unsure).
+- **Composite `L / S / Li`** cells non-sortable; numeric columns
+  sortable (§2). Theme colors, row-hover, transparent bg.
+- **The pattern is the rule, not any one module.** A hand-rolled
+  table that already matches the "All Channels" look is compliant —
+  do **not** rewrite it just to share code (that's the churn we're
+  avoiding). When building a *new* stats table or substantially
+  reworking one anyway, copy the core pattern (or a shared helper that
+  reproduces it exactly). `wc_table.py` is reconciled toward this
+  reference over time, opportunistically — never page meaning first.
 
 **B. Video lists — a different template, not a stats table.**
 Thumbnail / video-row layouts (Latest Videos, the feed mosaic,
 top-video lists). Keep their own consistent format (thumbnail, title,
 channel marker, inline metrics, click-to-watch). Do **not** retrofit
-them onto the stats-table component.
+them onto the stats-table pattern.
 
 **C. Side-by-side (50/50) pairs.** Two related tables on one row
 (e.g. "biggest view gains" + "most videos published"). A sanctioned
