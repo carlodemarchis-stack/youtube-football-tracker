@@ -124,6 +124,35 @@ for c in wc:
     team_conf.setdefault(t, _wc(c).get("confederation") or "")
 
 
+def _ch_url(c) -> str:
+    """Same URL resolution as the WC2026 All Channels page: explicit
+    competitions.wc2026.youtube_url override → @handle → /channel/<id>."""
+    w = _wc(c)
+    yt_id = c.get("youtube_channel_id") or ""
+    handle = (c.get("handle") or "").lstrip("@")
+    return (
+        w.get("youtube_url")
+        or (f"https://www.youtube.com/@{handle}" if handle
+            else f"https://www.youtube.com/channel/{yt_id}")
+    )
+
+
+# Team → canonical channel URL. Alts fold into the team row, so link
+# the primary (team/governing_body) channel with the most subs; fall
+# back to the biggest alt if a team has no primary.
+def _is_primary(c) -> bool:
+    return (_wc(c).get("role") or "team") in ("team", "governing_body")
+
+
+team_url: dict[str, str] = {}
+for c in sorted(
+    wc,
+    key=lambda x: (0 if _is_primary(x) else 1,
+                   -(int(x.get("subscriber_count") or 0))),
+):
+    team_url.setdefault(_team_of(c), _ch_url(c))
+
+
 @st.cache_data(ttl=1800, show_spinner=False)
 def _load_wc_snapshots(cid_tuple: tuple[str, ...]) -> list[dict]:
     """Paginated read of channel_snapshots for the WC2026 channel ids.
@@ -307,9 +336,9 @@ st.caption(
     "private. Subscriber numbers are YouTube-rounded — directional only."
 )
 
-# ── Biggest movers — one row per country, ranked by Δ views ───────
+# ── Biggest movers — one row per country ──────────────────────────
 st.markdown("---")
-st.subheader(f"🚀 Biggest movers · {fmt_date(first_d)} → {fmt_date(last_d)}")
+st.subheader("🚀 Biggest movers")
 
 _TBL_CSS = (
     "<style>"
@@ -317,10 +346,15 @@ _TBL_CSS = (
     "font-family:'Source Sans Pro',sans-serif}"
     f".mv{{width:100%;border-collapse:collapse;font-size:14px;color:{_T.TEXT}}}"
     ".mv th,.mv td{padding:6px 12px;white-space:nowrap}"
-    f".mv th{{border-bottom:2px solid {_T.BORDER_STRONG};font-weight:600;text-align:right}}"
+    f".mv th{{border-bottom:2px solid {_T.BORDER_STRONG};font-weight:600;"
+    "text-align:right;cursor:pointer;user-select:none}"
+    f".mv th[data-col]:hover{{color:{_T.ACCENT}}}"
+    f".mv th.active{{color:{_T.ACCENT}}}"
     f".mv td{{border-bottom:1px solid {_T.BORDER};text-align:right}}"
     ".mv th.l,.mv td.l{text-align:left}"
     f".mv tr:hover td{{background:{_T.SURFACE}}}"
+    f".mv a{{color:{_T.TEXT};text-decoration:none}}"
+    ".mv a:hover{text-decoration:underline}"
     "</style>"
 )
 
@@ -346,35 +380,76 @@ for i, (team, dv) in enumerate(ranked, 1):
     nv = team_dvids.get(team, 0)
     L, S, Li = team_dl[team], team_ds[team], team_dli[team]
     dsub = team_dsubs.get(team, 0)
+    url = team_url.get(team, "")
+    name_html = (
+        f"<a href='{url}' target='_blank' rel='noopener'>{team}</a>"
+        if url else f"<span>{team}</span>"
+    )
     body += (
-        f"<tr><td>{i}</td>"
-        f"<td class='l'><div style='display:flex;align-items:center;"
-        f"gap:8px'>{_marker(team)}<span>{team}</span></div></td>"
-        f"<td class='l' style='color:{_T.MUTED_2}'>{conf}</td>"
-        f"<td style='color:{_col(dv)};font-weight:600'>{_sg(dv)}</td>"
-        f"<td style='color:{_col(nv)}'>{_sg(nv)}</td>"
-        f"<td style='color:{_T.MUTED}'>{_sg(L)} / {_sg(S)} / {_sg(Li)}</td>"
-        f"<td style='color:{_col(dsub)}'>{_sg(dsub)}</td>"
+        f"<tr><td data-val=\"{i}\">{i}</td>"
+        f"<td class='l' data-val=\"{team.lower()}\">"
+        f"<div style='display:flex;align-items:center;gap:8px'>"
+        f"{_marker(team)}{name_html}</div></td>"
+        f"<td class='l' data-val=\"{conf.lower()}\" "
+        f"style='color:{_T.MUTED_2}'>{conf}</td>"
+        f"<td data-val=\"{dv}\" style='color:{_col(dv)};"
+        f"font-weight:600'>{_sg(dv)}</td>"
+        f"<td data-val=\"{nv}\" style='color:{_col(nv)}'>{_sg(nv)}</td>"
+        f"<td data-val=\"{L}\" style='color:{_T.MUTED}'>"
+        f"{_sg(L)} / {_sg(S)} / {_sg(Li)}</td>"
+        f"<td data-val=\"{dsub}\" style='color:{_col(dsub)}'>{_sg(dsub)}</td>"
         f"</tr>"
     )
 
+_COLS = [
+    ("#", "num", ""), ("Team", "str", "l"), ("Confederation", "str", "l"),
+    ("Δ Views", "num", ""), ("Δ Videos", "num", ""),
+    ("Long / Short / Live", "num", ""), ("Δ Subs", "num", ""),
+]
+_th = "".join(
+    f"<th data-col='{i}' data-type='{tp}'"
+    f"{(' class=' + chr(34) + cls + chr(34)) if cls else ''}>{lbl}</th>"
+    for i, (lbl, tp, cls) in enumerate(_COLS)
+)
 table_html = (
     _TBL_CSS
-    + "<table class='mv'><thead><tr>"
-    "<th>#</th><th class='l'>Team</th><th class='l'>Confederation</th>"
-    "<th>Δ Views</th><th>Δ Videos</th>"
-    "<th>Long / Short / Live</th><th>Δ Subs</th>"
-    f"</tr></thead><tbody>{body}</tbody></table>"
+    + "<table class='mv' id='mv-tbl'><thead><tr>"
+    + _th
+    + f"</tr></thead><tbody>{body}</tbody></table>"
+    + "<script>(function(){"
+    "var t=document.getElementById('mv-tbl');"
+    "var tb=t.querySelector('tbody');"
+    "var hs=t.querySelectorAll('th[data-col]');"
+    "var cur=3,asc=false;"
+    "function refresh(){"
+    "var rows=Array.prototype.slice.call(tb.rows);"
+    "var isStr=hs[cur].dataset.type==='str';"
+    "rows.sort(function(a,b){"
+    "var va=a.cells[cur].dataset.val||'';"
+    "var vb=b.cells[cur].dataset.val||'';"
+    "var c=isStr?va.localeCompare(vb,undefined,{sensitivity:'base'})"
+    ":(parseFloat(va)||0)-(parseFloat(vb)||0);"
+    "return asc?c:-c;});"
+    "rows.forEach(function(r){tb.appendChild(r);});"
+    "hs.forEach(function(h){h.classList.remove('active');"
+    "h.textContent=h.textContent.replace(/ [▲▼]/g,'');});"
+    "hs[cur].classList.add('active');"
+    "hs[cur].textContent+=asc?' ▲':' ▼';}"
+    "hs.forEach(function(h,i){h.addEventListener('click',function(){"
+    "if(i===cur)asc=!asc;else{cur=i;asc=hs[i].dataset.type==='str';}"
+    "refresh();});});"
+    "refresh();})();</script>"
 )
 _components.html(
     table_html,
-    height=min(2000, 37 * len(ranked) + 70),
+    height=min(2000, 37 * len(ranked) + 90),
     scrolling=True,
 )
 
 st.caption(
-    "One row per country, ranked by view gain over the tracked window. "
-    "Δ Videos is the net change in channel video count split into "
-    "long / shorts / live. Alt and federation channels are summed into "
-    "their country's row, matching the All Channels table."
+    "One row per country. Click any column header to sort; click a team "
+    "to open its channel on YouTube. Δ Videos is the net change in "
+    "channel video count split into long / shorts / live. Alt and "
+    "federation channels are summed into their country's row, matching "
+    "the All Channels table."
 )
