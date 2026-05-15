@@ -99,9 +99,33 @@ def _video_left_cell(v: dict, context_html: str = "") -> str:
     )
 
 
-# ── Cached data loaders (5 min TTL — data changes after daily cron) ─
+# ── Cached data loaders ────────────────────────────────────────────
+# The heavy snapshot loaders are cached for 1h, but keyed on a cheap
+# "is there new data?" probe (`_data_version`) so they refill within
+# ~2min of new snapshots landing — by daily cron OR a manual backfill —
+# instead of waiting out a blind 1h TTL. Without this, whichever cache
+# filled before the new snapshot kept serving a stale picture for up to
+# an hour, which surfaced as a "+0 Δ Channel Views" headline every time
+# data arrived late.
+@st.cache_data(ttl=120, show_spinner=False)
+def _data_version() -> str:
+    """Newest captured_date in channel_snapshots — a monotonic change
+    token. One tiny indexed query per ≤2min per server; used only as a
+    cache-key arg for the heavy loaders below (slightly over-eager refill
+    is harmless, staleness is not)."""
+    try:
+        r = (db.client.table("channel_snapshots")
+             .select("captured_date")
+             .order("captured_date", desc=True)
+             .limit(1).execute())
+        return (r.data or [{}])[0].get("captured_date", "") or ""
+    except Exception:
+        return ""
+
+
 @st.cache_data(ttl=3600, show_spinner=False)
-def _load_chan_snaps(since_iso: str, channel_ids_tuple: tuple[str, ...]) -> list[dict]:
+def _load_chan_snaps(since_iso: str, channel_ids_tuple: tuple[str, ...],
+                     data_version: str = "") -> list[dict]:
     """Cache the 14-day channel snapshots — only changes after daily cron.
     Server-side filter to the in-scope channels so we don't drag the
     extra ~1000 snapshot rows from WC2026 Federation/GoverningBody
@@ -121,8 +145,9 @@ def _load_chan_snaps(since_iso: str, channel_ids_tuple: tuple[str, ...]) -> list
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def _load_snapshot_dates() -> list[str]:
-    """Available snapshot dates (for the date-picker default)."""
+def _load_snapshot_dates(data_version: str = "") -> list[str]:
+    """Available snapshot dates (for the date-picker default).
+    `data_version` is a cache-key arg only (see _data_version)."""
     rows = (
         db.client.table("channel_snapshots")
         .select("captured_date")
@@ -241,7 +266,7 @@ else:
 _cet_today = datetime.now(CET).date()
 _cet_yesterday = _cet_today - timedelta(days=1)
 try:
-    _snap_dates = _load_snapshot_dates()
+    _snap_dates = _load_snapshot_dates(_data_version())
     # Find the most recent snapshot on or before CET yesterday
     _valid = [d for d in _snap_dates if d <= _cet_yesterday.isoformat()]
     if _valid:
@@ -292,7 +317,8 @@ LOOKBACK_DAYS = 14
 lookback_iso = (day - timedelta(days=LOOKBACK_DAYS)).isoformat()
 
 with st.spinner(f"Loading snapshots for {day_iso}…"):
-    chan_snaps = _load_chan_snaps(lookback_iso, tuple(sorted(_non_player_ids)))
+    chan_snaps = _load_chan_snaps(lookback_iso, tuple(sorted(_non_player_ids)),
+                                  _data_version())
 
 # Snapshots strictly on `day`, optionally filtered to selected channel(s)
 chan_day = {
@@ -563,9 +589,14 @@ for s in chan_snaps:
 
 _all_dates = sorted(_snap_by_date.keys())
 
-# Exclude today (incomplete data) from the trend chart
+# End the trend at the picked recap day so the chart's right edge always
+# matches the selected date. The picked day is a complete day (the page
+# already treats it as the recap day); anything after it — a newer cron
+# run or CET-today's incomplete data — is excluded. Without the `<= day_iso`
+# bound the chart ignored the picker and always ran to the latest snapshot,
+# which also made it sensitive to per-since_iso cache fill timing.
 _today_iso = datetime.now(CET).date().isoformat()
-_all_dates = [d for d in _all_dates if d < _today_iso]
+_all_dates = [d for d in _all_dates if d <= day_iso and d < _today_iso]
 
 if len(_all_dates) >= 2:
     # Δ Channel Views per day — single-series total (channel_snapshots delta).
@@ -643,7 +674,7 @@ if len(_all_dates) >= 2:
         _trend_start_iso = (datetime.combine(date.fromisoformat(_all_dates[1]),
                                              datetime.min.time(), tzinfo=CET)
                             .astimezone(timezone.utc).isoformat())
-        _trend_end_iso = (datetime.combine(date.fromisoformat(_today_iso),
+        _trend_end_iso = (datetime.combine(day + timedelta(days=1),
                                            datetime.min.time(), tzinfo=CET)
                           .astimezone(timezone.utc).isoformat())
         _videos_in_window = _load_videos_for_format_trend(
