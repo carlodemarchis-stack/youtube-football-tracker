@@ -28,6 +28,7 @@ from src.cached_db import get_all_channels as _cached_channels
 from src.analytics import fmt_num, fmt_date, kpi_row
 from src.auth import require_login
 from src.dot import flag_span, dual_dot
+from src import theme as _T
 
 load_dotenv()
 require_login()
@@ -118,8 +119,8 @@ for c in wc:
     t = _team_of(c)
     if c.get("entity_type") == "GoverningBody":
         team_is_gov[t] = True
-        team_color.setdefault(t, (c.get("color") or "#636EFA",
-                                  c.get("color2") or "#FFFFFF"))
+        team_color.setdefault(t, (c.get("color") or _T.ACCENT,
+                                  c.get("color2") or _T.WHITE))
     team_conf.setdefault(t, _wc(c).get("confederation") or "")
 
 
@@ -271,32 +272,32 @@ st.markdown(kpi_row([
 
 # ── Charts ────────────────────────────────────────────────────────
 _PLOT = dict(
-    plot_bgcolor="#0E1117", paper_bgcolor="#0E1117",
-    font=dict(color="#FAFAFA"), height=340,
+    plot_bgcolor=_T.BG, paper_bgcolor=_T.BG,
+    font=dict(color=_T.TEXT), height=340,
     margin=dict(t=30, l=0, r=0, b=20),
 )
 gc1, gc2 = st.columns(2)
 with gc1:
     st.subheader("👁️ Views gained per day")
     fv = px.bar(dfd, x="Date", y="Δ Views")
-    fv.update_traces(marker_color="#636EFA")
+    fv.update_traces(marker_color=_T.ACCENT)
     fv.update_layout(**_PLOT)
-    fv.update_xaxes(gridcolor="#262730", tickformat="%b %d", title="")
-    fv.update_yaxes(gridcolor="#262730", title="")
+    fv.update_xaxes(gridcolor=_T.BORDER, tickformat="%b %d", title="")
+    fv.update_yaxes(gridcolor=_T.BORDER, title="")
     st.plotly_chart(fv, use_container_width=True)
 with gc2:
     st.subheader("🎬 Videos added per day")
     fl = px.bar(
         dfd, x="Date", y=["Long", "Shorts", "Live"],
-        color_discrete_map={"Long": "#636EFA", "Shorts": "#00CC96",
-                            "Live": "#EF553B"},
+        color_discrete_map={"Long": _T.ACCENT, "Shorts": _T.POS,
+                            "Live": _T.NEG},
     )
     fl.update_layout(barmode="stack", **_PLOT)
     fl.update_layout(legend=dict(orientation="h", yanchor="bottom",
                                  y=1.02, xanchor="left", x=0,
                                  title=""))
-    fl.update_xaxes(gridcolor="#262730", tickformat="%b %d", title="")
-    fl.update_yaxes(gridcolor="#262730", title="")
+    fl.update_xaxes(gridcolor=_T.BORDER, tickformat="%b %d", title="")
+    fl.update_yaxes(gridcolor=_T.BORDER, title="")
     st.plotly_chart(fl, use_container_width=True)
 
 st.caption(
@@ -312,14 +313,14 @@ st.subheader(f"🚀 Biggest movers · {fmt_date(first_d)} → {fmt_date(last_d)}
 
 _TBL_CSS = (
     "<style>"
-    "body{margin:0;background:#0E1117;color:#FAFAFA;"
+    f"body{{margin:0;background:{_T.BG};color:{_T.TEXT};"
     "font-family:'Source Sans Pro',sans-serif}"
-    ".mv{width:100%;border-collapse:collapse;font-size:14px;color:#FAFAFA}"
+    f".mv{{width:100%;border-collapse:collapse;font-size:14px;color:{_T.TEXT}}}"
     ".mv th,.mv td{padding:6px 12px;white-space:nowrap}"
-    ".mv th{border-bottom:2px solid #444;font-weight:600;text-align:right}"
-    ".mv td{border-bottom:1px solid #262730;text-align:right}"
+    f".mv th{{border-bottom:2px solid {_T.BORDER_STRONG};font-weight:600;text-align:right}}"
+    f".mv td{{border-bottom:1px solid {_T.BORDER};text-align:right}}"
     ".mv th.l,.mv td.l{text-align:left}"
-    ".mv tr:hover td{background:#1a1c24}"
+    f".mv tr:hover td{{background:{_T.SURFACE}}}"
     "</style>"
 )
 
@@ -329,13 +330,13 @@ def _marker(team: str) -> str:
     if flag:
         return flag_span(flag, 14)
     if team_is_gov.get(team):
-        c1, c2 = team_color.get(team, ("#636EFA", "#FFFFFF"))
+        c1, c2 = team_color.get(team, (_T.ACCENT, _T.WHITE))
         return dual_dot(c1, c2, 14)
     return flag_span("", 14)
 
 
 def _col(x: int) -> str:
-    return "#00CC96" if x > 0 else ("#EF553B" if x < 0 else "#888")
+    return _T.POS if x > 0 else (_T.NEG if x < 0 else _T.MUTED)
 
 
 ranked = sorted(team_dviews.items(), key=lambda kv: -kv[1])
@@ -349,10 +350,10 @@ for i, (team, dv) in enumerate(ranked, 1):
         f"<tr><td>{i}</td>"
         f"<td class='l'><div style='display:flex;align-items:center;"
         f"gap:8px'>{_marker(team)}<span>{team}</span></div></td>"
-        f"<td class='l' style='color:#aaa'>{conf}</td>"
+        f"<td class='l' style='color:{_T.MUTED_2}'>{conf}</td>"
         f"<td style='color:{_col(dv)};font-weight:600'>{_sg(dv)}</td>"
         f"<td style='color:{_col(nv)}'>{_sg(nv)}</td>"
-        f"<td style='color:#888'>{_sg(L)} / {_sg(S)} / {_sg(Li)}</td>"
+        f"<td style='color:{_T.MUTED}'>{_sg(L)} / {_sg(S)} / {_sg(Li)}</td>"
         f"<td style='color:{_col(dsub)}'>{_sg(dsub)}</td>"
         f"</tr>"
     )

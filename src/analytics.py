@@ -3,6 +3,8 @@ from __future__ import annotations
 import re
 from datetime import datetime, timezone
 
+from src import theme as _T
+
 
 # Stable color per video category — reused across pie charts, bars, tables.
 CATEGORY_COLORS: dict[str, str] = {
@@ -97,12 +99,8 @@ def build_category_pie(values_by_cat: dict[str, float], title: str, value_suffix
     return fig
 
 
-CHANNEL_PALETTE = [
-    "#636EFA", "#EF553B", "#00CC96", "#AB63FA", "#FFA15A",
-    "#19D3F3", "#FF6692", "#B6E880", "#FF97FF", "#FECB52",
-    "#1F77B4", "#FF7F0E", "#2CA02C", "#D62728", "#9467BD",
-    "#8C564B", "#E377C2", "#7F7F7F", "#BCBD22", "#17BECF",
-]
+# Sourced from src.theme (single palette). Values unchanged.
+CHANNEL_PALETTE = _T.CHANNEL_PALETTE
 
 
 def get_channel_colors(channel_names: list[str]) -> dict[str, str]:
@@ -177,25 +175,24 @@ import pandas as pd
 # Default palette — cycles through these colors in order. Pages that
 # want a specific mapping (Long=blue / Shorts=green / Live=orange,
 # etc.) pass `colors=[...]` explicitly.
-KPI_PALETTE = ("#58A6FF", "#FFA15A", "#00CC96", "#EF553B",
-               "#AB63FA", "#636EFA", "#19D3F3")
+KPI_PALETTE = _T.KPI_PALETTE
 
 
-def kpi_card_html(label: str, value: str, color: str = "#58A6FF",
+def kpi_card_html(label: str, value: str, color: str = _T.LINK,
                   subtitle: str = "") -> str:
     """Return the inner-card HTML. Caller usually wraps these in a
     grid via kpi_row(). `subtitle` renders as a small grey line below
     the value (used for rank annotations like '#1/18 in Bundesliga')."""
     sub_html = ""
     if subtitle:
-        sub_html = (f'<div style="color:#888;font-size:11px;'
+        sub_html = (f'<div style="color:{_T.MUTED};font-size:11px;'
                     f'margin-top:2px;line-height:1.3">{subtitle}</div>')
     return (
-        f'<div style="background:#1a1c24;border-radius:6px;padding:10px 14px;'
+        f'<div style="background:{_T.SURFACE};border-radius:6px;padding:10px 14px;'
         f'border-left:3px solid {color}">'
-        f'<div style="color:#888;font-size:11px;font-weight:600;'
+        f'<div style="color:{_T.MUTED};font-size:11px;font-weight:600;'
         f'text-transform:uppercase;letter-spacing:0.5px">{label}</div>'
-        f'<div style="color:#FAFAFA;font-size:22px;font-weight:700;'
+        f'<div style="color:{_T.TEXT};font-size:22px;font-weight:700;'
         f'margin-top:2px">{value}</div>{sub_html}</div>'
     )
 

@@ -24,6 +24,7 @@ from src.cached_db import (
 from src.analytics import fmt_num, fmt_date, kpi_row
 from src.auth import require_login
 from src.dot import dual_dot, flag_span
+from src import theme as _T
 
 load_dotenv()
 require_login()
@@ -197,8 +198,8 @@ def _channel_row_html(c, *, show_alt_chip=True):
             lives  += int(a.get("live_count")       or 0)
 
     if is_gov:
-        c1 = c.get("color") or "#636EFA"
-        c2 = c.get("color2") or "#FFFFFF"
+        c1 = c.get("color") or _T.ACCENT
+        c2 = c.get("color2") or _T.WHITE
         marker = dual_dot(c1, c2, 14)
     else:
         flag = TEAM_FLAG.get(team, "")
@@ -212,8 +213,8 @@ def _channel_row_html(c, *, show_alt_chip=True):
     n_alt = 0 if (is_gov or not show_alt_chip) else len(alts_by_team.get(team, []))
     alt_chip = (f" <span title='{n_alt} alternate official channel"
                  f"{'' if n_alt == 1 else 's'} for {team} — see expander below' "
-                 f"style='background:#1a1c24;border:1px solid #2a2c34;"
-                 f"border-radius:3px;padding:1px 6px;color:#888;"
+                 f"style='background:{_T.SURFACE};border:1px solid #2a2c34;"
+                 f"border-radius:3px;padding:1px 6px;color:{_T.MUTED};"
                  f"font-size:11px;margin-left:6px'>+{n_alt} alt</span>"
                 ) if n_alt else ""
 
@@ -222,7 +223,7 @@ def _channel_row_html(c, *, show_alt_chip=True):
         f"<div style='display:flex;align-items:center;gap:8px'>"
         f"{marker}"
         f"<a href='{yt_url}' target='_blank' rel='noopener' "
-        f"style='color:#FAFAFA;text-decoration:none'>{display_label}</a>"
+        f"style='color:{_T.TEXT};text-decoration:none'>{display_label}</a>"
         f"{alt_chip}"
         f"</div></td>"
     )
@@ -277,18 +278,18 @@ th_html = "".join(
 
 _TABLE_CSS = (
     "<style>"
-    "body{margin:0;background:#0E1117;color:#FAFAFA;"
+    f"body{{margin:0;background:{_T.BG};color:{_T.TEXT};"
     "font-family:'Source Sans Pro',sans-serif}"
     ".wc-wrap{overflow-x:auto;width:100%}"
     ".wc-tbl{width:100%;border-collapse:collapse;border:0;font-size:14px;"
-    "color:#FAFAFA;background:transparent}"
+    f"color:{_T.TEXT};background:transparent}}"
     ".wc-tbl th,.wc-tbl td{border-left:0;border-right:0;border-top:0;"
     "padding:6px 12px;white-space:nowrap}"
-    ".wc-tbl th{user-select:none;font-weight:600;color:#FAFAFA;border-bottom:0}"
-    ".wc-tbl th[data-col]:hover{color:#636EFA}"
-    ".wc-tbl th.active{color:#636EFA}"
-    ".wc-tbl td{border-bottom:1px solid #262730}"
-    ".wc-tbl tr:hover td{background:#1a1c24}"
+    f".wc-tbl th{{user-select:none;font-weight:600;color:{_T.TEXT};border-bottom:0}}"
+    f".wc-tbl th[data-col]:hover{{color:{_T.ACCENT}}}"
+    f".wc-tbl th.active{{color:{_T.ACCENT}}}"
+    f".wc-tbl td{{border-bottom:1px solid {_T.BORDER}}}"
+    f".wc-tbl tr:hover td{{background:{_T.SURFACE}}}"
     ".wc-tbl a{color:inherit;text-decoration:none}"
     "</style>"
 )
@@ -298,7 +299,7 @@ def _render_wc_table(rows_html: list[str], table_id: str) -> str:
     return (
         _TABLE_CSS
         + f"<div class='wc-wrap'><table class='wc-tbl' id='{table_id}'>"
-        "<thead><tr style='border-bottom:2px solid #444'>"
+        f"<thead><tr style='border-bottom:2px solid {_T.BORDER_STRONG}'>"
         + th_html +
         "</tr></thead>"
         f"<tbody>{''.join(rows_html)}</tbody></table></div>"

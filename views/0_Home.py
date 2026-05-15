@@ -15,6 +15,7 @@ from src.growth import group_by_channel, delta
 from src.filters import get_global_color_map, get_global_color_map_dual
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
 from src.dot import dual_dot, channel_badge
+from src import theme as _T
 
 load_dotenv()
 
@@ -339,10 +340,10 @@ try:
                 rows = ""
                 for i, g in enumerate(top5_views, 1):
                     dot = channel_badge(g.get("_ch") or {}, color_map, dual, 14)
-                    col = "#00CC96" if g["d7_views"] > 0 else ("#EF553B" if g["d7_views"] < 0 else "#888")
+                    col = _T.POS if g["d7_views"] > 0 else (_T.NEG if g["d7_views"] < 0 else _T.MUTED)
                     sgn = "+" if g["d7_views"] >= 0 else ""
                     rows += f"""<tr>
-                        <td style="padding:6px 12px;color:#888">{i}</td>
+                        <td style="padding:6px 12px;color:{_T.MUTED}">{i}</td>
                         <td style="padding:6px 12px">{dot}</td>
                         <td style="padding:6px 12px">{g['name']}</td>
                         <td style="padding:6px 12px;text-align:right">{fmt_num(g['views'])}</td>
@@ -350,10 +351,10 @@ try:
                     </tr>"""
                 components.html(f"""
                 <style>
-                  .home-g {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
+                  .home-g {{ width:100%; border-collapse:collapse; font-size:14px; color:{_T.TEXT};
                              font-family:"Source Sans Pro",sans-serif; }}
-                  .home-g th {{ padding:6px 12px; border-bottom:2px solid #444; text-align:left; }}
-                  .home-g td {{ border-bottom:1px solid #262730; }}
+                  .home-g th {{ padding:6px 12px; border-bottom:2px solid {_T.BORDER_STRONG}; text-align:left; }}
+                  .home-g td {{ border-bottom:1px solid {_T.BORDER}; }}
                 </style>
                 <table class="home-g"><thead><tr>
                   <th>#</th><th></th><th>Channel</th>
@@ -370,18 +371,18 @@ try:
                         dot = channel_badge(r.get("_ch") or {}, color_map, dual, 14)
                         lsl = f'{r["long"]} / {r["short"]} / {r["live"]}'
                         rows2 += f"""<tr>
-                            <td style="padding:6px 12px;color:#888">{i}</td>
+                            <td style="padding:6px 12px;color:{_T.MUTED}">{i}</td>
                             <td style="padding:6px 12px">{dot}</td>
                             <td style="padding:6px 12px">{r['name']}</td>
-                            <td style="padding:6px 12px;text-align:center;color:#aaa">{lsl}</td>
+                            <td style="padding:6px 12px;text-align:center;color:{_T.MUTED_2}">{lsl}</td>
                             <td style="padding:6px 12px;text-align:right;font-weight:600">{r['count']}</td>
                         </tr>"""
                     components.html(f"""
                     <style>
-                      .home-p {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
+                      .home-p {{ width:100%; border-collapse:collapse; font-size:14px; color:{_T.TEXT};
                                  font-family:"Source Sans Pro",sans-serif; }}
-                      .home-p th {{ padding:6px 12px; border-bottom:2px solid #444; text-align:left; }}
-                      .home-p td {{ border-bottom:1px solid #262730; }}
+                      .home-p th {{ padding:6px 12px; border-bottom:2px solid {_T.BORDER_STRONG}; text-align:left; }}
+                      .home-p td {{ border-bottom:1px solid {_T.BORDER}; }}
                     </style>
                     <table class="home-p"><thead><tr>
                       <th>#</th><th></th><th>Channel</th>
