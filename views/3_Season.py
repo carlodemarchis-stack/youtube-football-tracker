@@ -479,31 +479,46 @@ if league is None and _scope == "Overall":
     short_vpv = total_short_views // max(total_shorts, 1)
     live_vpv = total_live_views // max(total_lives, 1) if total_lives else 0
 
-    def _make_pie(values, labels, colors, hover_suffix, title):
+    def _make_pie(values, labels, colors, hover_suffix):
         fig = go.Figure(go.Pie(
             labels=labels, values=values, marker=dict(colors=colors), hole=0.45,
             textinfo="percent+label", textposition="inside",
             hovertemplate="%{label}: %{value:,.0f} " + hover_suffix + "<extra></extra>",
         ))
+        # No in-chart title — it rendered off-centre relative to the
+        # donut and the tall top margin left a big gap. The title is a
+        # centred caption above the chart instead (see _pie_title).
         fig.update_layout(
-            title=dict(text=title, x=0.5), showlegend=False, height=300,
-            margin=dict(t=40, b=20, l=20, r=20),
+            showlegend=False, height=260,
+            margin=dict(t=10, b=10, l=10, r=10),
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
             font=dict(color="#FAFAFA"),
         )
         return fig
 
+    def _pie_title(text: str) -> None:
+        st.markdown(
+            f"<div style='text-align:center;font-weight:600;font-size:15px;"
+            f"color:#FAFAFA;margin:0 0 -6px 0'>{text}</div>",
+            unsafe_allow_html=True,
+        )
+
     col_p1, col_p2, col_p3, col_p4, col_p5 = st.columns(5)
     with col_p1:
-        st.plotly_chart(_make_pie(_zv(total_long_views, total_short_views, total_live_views), _pie_labels, _pie_colors, "views", "Views"), use_container_width=True)
+        _pie_title("Views")
+        st.plotly_chart(_make_pie(_zv(total_long_views, total_short_views, total_live_views), _pie_labels, _pie_colors, "views"), use_container_width=True)
     with col_p2:
-        st.plotly_chart(_make_pie(_zv(total_longs, total_shorts, total_lives), _pie_labels, _pie_colors, "videos", "Videos"), use_container_width=True)
+        _pie_title("Videos")
+        st.plotly_chart(_make_pie(_zv(total_longs, total_shorts, total_lives), _pie_labels, _pie_colors, "videos"), use_container_width=True)
     with col_p3:
-        st.plotly_chart(_make_pie(_zv(long_vpv, short_vpv, live_vpv), _pie_labels, _pie_colors, "views/video", "Views/Video"), use_container_width=True)
+        _pie_title("Views/Video")
+        st.plotly_chart(_make_pie(_zv(long_vpv, short_vpv, live_vpv), _pie_labels, _pie_colors, "views/video"), use_container_width=True)
     with col_p4:
-        st.plotly_chart(_make_pie(_zv(total_long_likes, total_short_likes, total_live_likes), _pie_labels, _pie_colors, "likes", "Likes"), use_container_width=True)
+        _pie_title("Likes")
+        st.plotly_chart(_make_pie(_zv(total_long_likes, total_short_likes, total_live_likes), _pie_labels, _pie_colors, "likes"), use_container_width=True)
     with col_p5:
-        st.plotly_chart(_make_pie(_zv(total_long_comments, total_short_comments, total_live_comments), _pie_labels, _pie_colors, "comments", "Comments"), use_container_width=True)
+        _pie_title("Comments")
+        st.plotly_chart(_make_pie(_zv(total_long_comments, total_short_comments, total_live_comments), _pie_labels, _pie_colors, "comments"), use_container_width=True)
 
     st.subheader("Leagues — Season")
     sorted_leagues = sorted(league_stats.items(), key=lambda kv: kv[1]["views"], reverse=True)
