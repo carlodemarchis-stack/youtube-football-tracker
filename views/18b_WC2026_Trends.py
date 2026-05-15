@@ -5,13 +5,13 @@ official WC2026 channel — the 48 qualified national teams + FIFA +
 6 confederations + per-country alt channels — on the road to the
 tournament.
 
-Data source: the `channel_snapshots` table, written nightly by
+Data source: the `channel_snapshots` table, written daily by
 scripts/daily_wc2026.py (00:00 UTC ≈ 02:00 CET). This page is
 read-only — no YouTube API calls, no writes. Deliberately isolated
 from the global filter, same as the WC2026 All Channels page.
 
-Window is anchored at 2026-05-14, the first night the dedicated cron
-gave full coverage of every channel (earlier nights only captured the
+Window is anchored at 2026-05-14, the first day the dedicated cron
+gave full coverage of every channel (earlier days only captured the
 handful that overlap daily_federations, which would draw a fake cliff).
 """
 from __future__ import annotations
@@ -32,15 +32,15 @@ from src.dot import flag_span, dual_dot
 load_dotenv()
 require_login()
 
-# First night the dedicated daily_wc2026 cron gave full coverage of
+# First day the dedicated daily_wc2026 cron gave full coverage of
 # every WC2026 channel. Everything on this page starts here.
 TRACKING_START = "2026-05-14"
 
 st.title("FIFA World Cup 2026 — Trends")
 st.caption(
     "View gains and videos published (long / shorts / live) for every "
-    "official WC2026 channel, night by night, on the road to the "
-    "tournament. Snapshotted nightly (~02:00 CET). Alt channels are "
+    "official WC2026 channel, day by day, on the road to the "
+    "tournament. Snapshotted daily (~02:00 CET). Alt channels are "
     "rolled into their country's totals — same convention as the "
     "All Channels table."
 )
@@ -126,7 +126,7 @@ for c in wc:
 @st.cache_data(ttl=1800, show_spinner=False)
 def _load_wc_snapshots(cid_tuple: tuple[str, ...]) -> list[dict]:
     """Paginated read of channel_snapshots for the WC2026 channel ids.
-    Cached 30 min — the data only changes once a night."""
+    Cached 30 min — the data only changes once a day."""
     ids = list(cid_tuple)
     if not ids:
         return []
@@ -167,14 +167,13 @@ def _g(snap, k) -> int:
     return int((snap or {}).get(k) or 0)
 
 
-# ── Not enough nights yet → show the latest snapshot + explain ────
+# ── Not enough days yet → show the latest snapshot + explain ──────
 if len(dates) < 2:
     _d0 = dates[-1] if dates else None
     if _d0 is None:
         st.info(
             "No snapshots captured yet for the WC2026 channels. The "
-            "nightly **Daily WC2026** cron writes the first row at "
-            "00:00 UTC."
+            "**Daily WC2026** cron writes the first row at 00:00 UTC."
         )
         st.stop()
     cur = by_date[_d0]
@@ -184,11 +183,11 @@ if len(dates) < 2:
         ("Latest snapshot", fmt_date(_d0), f"{len(cur)} channels"),
         ("Total views", fmt_num(_views), ""),
         ("Total videos", fmt_num(_vids), ""),
-        ("Nights tracked", str(len(dates)), "need ≥ 2"),
+        ("Days tracked", str(len(dates)), "need ≥ 2"),
     ]), unsafe_allow_html=True)
     st.info(
-        f"Full nightly coverage began {fmt_date(TRACKING_START)} — the "
-        "delta charts need at least two nights to compare. They'll "
+        f"Full daily coverage began {fmt_date(TRACKING_START)} — the "
+        "delta charts need at least two days to compare. They'll "
         "appear after the next snapshot (~02:00 CET) and fill out as "
         "the tournament approaches."
     )
@@ -198,17 +197,17 @@ first_d, last_d = dates[0], dates[-1]
 import pandas as pd
 import plotly.express as px
 
-# Stable cohort = channels present on EVERY night in the window, so a
+# Stable cohort = channels present on EVERY day in the window, so a
 # late-added channel can never masquerade as a spike in growth.
 cohort = set(by_date[dates[0]])
 for d in dates[1:]:
     cohort &= set(by_date[d])
 cohort = sorted(cohort)
 
-# ── Per-night deltas (charts) ─────────────────────────────────────
+# ── Per-day deltas (charts) ───────────────────────────────────────
 # Δ views and net-new videos by format, summed over the cohort, for
-# each consecutive night pair.
-night_rows = []
+# each consecutive day pair.
+day_rows = []
 for i in range(1, len(dates)):
     d, dp = dates[i], dates[i - 1]
     cur, prev = by_date[d], by_date[dp]
@@ -219,12 +218,12 @@ for i in range(1, len(dates)):
         dl += _g(cc, "long_form_count") - _g(pp, "long_form_count")
         ds += _g(cc, "shorts_count") - _g(pp, "shorts_count")
         dli += _g(cc, "live_count") - _g(pp, "live_count")
-    night_rows.append({"Date": d, "Δ Views": dv,
-                        "Long": dl, "Shorts": ds, "Live": dli})
-dfd = pd.DataFrame(night_rows)
+    day_rows.append({"Date": d, "Δ Views": dv,
+                     "Long": dl, "Shorts": ds, "Live": dli})
+dfd = pd.DataFrame(day_rows)
 dfd["Date"] = pd.to_datetime(dfd["Date"])
 
-# ── Window totals (KPI + movers) — first vs last night ────────────
+# ── Window totals (KPI + movers) — first vs last day ──────────────
 f, l = by_date[first_d], by_date[last_d]
 
 
@@ -256,13 +255,14 @@ team_dvids = {t: team_dl[t] + team_ds[t] + team_dli[t] for t in team_dviews}
 
 
 def _sg(x: int) -> str:
-    return f"{'+' if x >= 0 else ''}{fmt_num(x)}"
+    # No leading "+" — a gain is obvious; negatives keep their "-".
+    return fmt_num(x)
 
 
-_n_nights = len(dates)
+_n_days = len(dates)
 st.markdown(kpi_row([
     ("Tracking since", fmt_date(first_d),
-     f"{_n_nights} nights · {len(cohort)} channels"),
+     f"{_n_days} days · {len(cohort)} channels"),
     ("Views gained", _sg(net_views), "across all channels"),
     ("Videos added", _sg(net_vids),
      f"{_sg(net_long)} long · {_sg(net_short)} short · {_sg(net_live)} live"),
@@ -277,7 +277,7 @@ _PLOT = dict(
 )
 gc1, gc2 = st.columns(2)
 with gc1:
-    st.subheader("👁️ Views gained per night")
+    st.subheader("👁️ Views gained per day")
     fv = px.bar(dfd, x="Date", y="Δ Views")
     fv.update_traces(marker_color="#636EFA")
     fv.update_layout(**_PLOT)
@@ -285,7 +285,7 @@ with gc1:
     fv.update_yaxes(gridcolor="#262730", title="")
     st.plotly_chart(fv, use_container_width=True)
 with gc2:
-    st.subheader("🎬 Videos added per night")
+    st.subheader("🎬 Videos added per day")
     fl = px.bar(
         dfd, x="Date", y=["Long", "Shorts", "Live"],
         color_discrete_map={"Long": "#636EFA", "Shorts": "#00CC96",
@@ -300,8 +300,8 @@ with gc2:
     st.plotly_chart(fl, use_container_width=True)
 
 st.caption(
-    f"Per-night change across the {len(cohort)} channels present on every "
-    f"night since {fmt_date(first_d)}. Video counts are channel-level "
+    f"Per-day change across the {len(cohort)} channels present every "
+    f"day since {fmt_date(first_d)}. Video counts are channel-level "
     "totals, so a negative bar means videos were removed or made "
     "private. Subscriber numbers are YouTube-rounded — directional only."
 )
