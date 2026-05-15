@@ -789,9 +789,9 @@ if _show_per_league_summary:
             lg_rows += f"""<tr>
                 <td style="padding:8px 12px;font-weight:600">{LEAGUE_FLAG.get(lg, '')} {lg}</td>
                 <td style="padding:8px 12px;text-align:right">{agg['clubs']}</td>
+                <td style="padding:8px 12px;text-align:right;color:{view_col}">{'+' if agg['view_delta'] >= 0 else ''}{fmt_num(agg['view_delta'])}</td>
                 <td style="padding:8px 12px;text-align:right">{agg['new_videos']}</td>
                 <td style="padding:8px 12px;text-align:right">{_lg_fmt}</td>
-                <td style="padding:8px 12px;text-align:right;color:{view_col}">{'+' if agg['view_delta'] >= 0 else ''}{fmt_num(agg['view_delta'])}</td>
                 <td style="padding:8px 12px">{top_active}</td>
             </tr>"""
         components.html(f"""
@@ -804,9 +804,9 @@ if _show_per_league_summary:
         <table class="lg"><thead><tr>
           <th>League</th>
           <th style="text-align:right">Channels</th>
+          <th style="text-align:right">Δ Views</th>
           <th style="text-align:right">Videos</th>
           <th style="text-align:right">Long / Shorts / Live</th>
-          <th style="text-align:right">Δ Views</th>
           <th>🔥 Most active channel</th>
         </tr></thead><tbody>{lg_rows}</tbody></table>
         """, height=len(lg_agg) * 42 + 60, scrolling=False)
