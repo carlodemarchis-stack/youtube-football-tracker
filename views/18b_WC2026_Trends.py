@@ -29,6 +29,7 @@ from src.analytics import fmt_num, fmt_date, kpi_row
 from src.auth import require_login
 from src.dot import flag_span, dual_dot
 from src import theme as _T
+from src.wc_table import td as _td, render_sortable_table as _render_tbl
 
 load_dotenv()
 require_login()
@@ -340,25 +341,6 @@ st.caption(
 st.markdown("---")
 st.subheader("🚀 Biggest movers")
 
-_TBL_CSS = (
-    "<style>"
-    f"body{{margin:0;background:{_T.BG};color:{_T.TEXT};"
-    "font-family:'Source Sans Pro',sans-serif}"
-    f".mv{{width:100%;border-collapse:collapse;font-size:14px;color:{_T.TEXT}}}"
-    ".mv th,.mv td{padding:6px 12px;white-space:nowrap}"
-    f".mv th{{border-bottom:2px solid {_T.BORDER_STRONG};font-weight:600;"
-    "text-align:right;cursor:pointer;user-select:none}"
-    f".mv th[data-col]:hover{{color:{_T.ACCENT}}}"
-    f".mv th.active{{color:{_T.ACCENT}}}"
-    f".mv td{{border-bottom:1px solid {_T.BORDER};text-align:right}}"
-    ".mv th.l,.mv td.l{text-align:left}"
-    f".mv tr:hover td{{background:{_T.SURFACE}}}"
-    f".mv a{{color:{_T.TEXT};text-decoration:none}}"
-    ".mv a:hover{text-decoration:underline}"
-    "</style>"
-)
-
-
 def _marker(team: str) -> str:
     flag = TEAM_FLAG.get(team, "")
     if flag:
@@ -373,8 +355,21 @@ def _col(x: int) -> str:
     return _T.POS if x > 0 else (_T.NEG if x < 0 else _T.MUTED)
 
 
+# Same look + sort behaviour as the WC2026 All Channels table (shared
+# src.wc_table). "Long / Short / Live" is a composite cell → not
+# sortable (4th tuple element False).
+_MOVER_COLS = [
+    ("#",                   "num", "right"),
+    ("Team",                "str", "left"),
+    ("Confederation",       "str", "left"),
+    ("Δ Views",             "num", "right"),
+    ("Δ Videos",            "num", "right"),
+    ("Long / Short / Live", "str", "right", False),
+    ("Δ Subs",              "num", "right"),
+]
+
 ranked = sorted(team_dviews.items(), key=lambda kv: -kv[1])
-body = ""
+mover_rows = []
 for i, (team, dv) in enumerate(ranked, 1):
     conf = team_conf.get(team, "") or "—"
     nv = team_dvids.get(team, 0)
@@ -385,64 +380,28 @@ for i, (team, dv) in enumerate(ranked, 1):
         f"<a href='{url}' target='_blank' rel='noopener'>{team}</a>"
         if url else f"<span>{team}</span>"
     )
-    body += (
-        f"<tr><td data-val=\"{i}\">{i}</td>"
-        f"<td class='l' data-val=\"{team.lower()}\">"
-        f"<div style='display:flex;align-items:center;gap:8px'>"
-        f"{_marker(team)}{name_html}</div></td>"
-        f"<td class='l' data-val=\"{conf.lower()}\" "
-        f"style='color:{_T.MUTED_2}'>{conf}</td>"
-        f"<td data-val=\"{dv}\" style='color:{_col(dv)};"
-        f"font-weight:600'>{_sg(dv)}</td>"
-        f"<td data-val=\"{nv}\" style='color:{_col(nv)}'>{_sg(nv)}</td>"
-        f"<td data-val=\"{L}\" style='color:{_T.MUTED}'>"
-        f"{_sg(L)} / {_sg(S)} / {_sg(Li)}</td>"
-        f"<td data-val=\"{dsub}\" style='color:{_col(dsub)}'>{_sg(dsub)}</td>"
-        f"</tr>"
+    mover_rows.append(
+        "<tr>"
+        + _td(i, str(i))
+        + _td(team.lower(),
+              f"<div style='display:flex;align-items:center;gap:8px'>"
+              f"{_marker(team)}{name_html}</div>", align="left")
+        + _td(conf.lower(),
+              f"<span style='color:{_T.MUTED_2}'>{conf}</span>",
+              align="left")
+        + _td(dv, f"<span style='color:{_col(dv)};font-weight:600'>"
+                  f"{_sg(dv)}</span>")
+        + _td(nv, f"<span style='color:{_col(nv)}'>{_sg(nv)}</span>")
+        + _td(L, f"<span style='color:{_T.MUTED}'>"
+                 f"{_sg(L)} / {_sg(S)} / {_sg(Li)}</span>")
+        + _td(dsub, f"<span style='color:{_col(dsub)}'>{_sg(dsub)}</span>")
+        + "</tr>"
     )
 
-_COLS = [
-    ("#", "num", ""), ("Team", "str", "l"), ("Confederation", "str", "l"),
-    ("Δ Views", "num", ""), ("Δ Videos", "num", ""),
-    ("Long / Short / Live", "num", ""), ("Δ Subs", "num", ""),
-]
-_th = "".join(
-    f"<th data-col='{i}' data-type='{tp}'"
-    f"{(' class=' + chr(34) + cls + chr(34)) if cls else ''}>{lbl}</th>"
-    for i, (lbl, tp, cls) in enumerate(_COLS)
-)
-table_html = (
-    _TBL_CSS
-    + "<table class='mv' id='mv-tbl'><thead><tr>"
-    + _th
-    + f"</tr></thead><tbody>{body}</tbody></table>"
-    + "<script>(function(){"
-    "var t=document.getElementById('mv-tbl');"
-    "var tb=t.querySelector('tbody');"
-    "var hs=t.querySelectorAll('th[data-col]');"
-    "var cur=3,asc=false;"
-    "function refresh(){"
-    "var rows=Array.prototype.slice.call(tb.rows);"
-    "var isStr=hs[cur].dataset.type==='str';"
-    "rows.sort(function(a,b){"
-    "var va=a.cells[cur].dataset.val||'';"
-    "var vb=b.cells[cur].dataset.val||'';"
-    "var c=isStr?va.localeCompare(vb,undefined,{sensitivity:'base'})"
-    ":(parseFloat(va)||0)-(parseFloat(vb)||0);"
-    "return asc?c:-c;});"
-    "rows.forEach(function(r){tb.appendChild(r);});"
-    "hs.forEach(function(h){h.classList.remove('active');"
-    "h.textContent=h.textContent.replace(/ [▲▼]/g,'');});"
-    "hs[cur].classList.add('active');"
-    "hs[cur].textContent+=asc?' ▲':' ▼';}"
-    "hs.forEach(function(h,i){h.addEventListener('click',function(){"
-    "if(i===cur)asc=!asc;else{cur=i;asc=hs[i].dataset.type==='str';}"
-    "refresh();});});"
-    "refresh();})();</script>"
-)
 _components.html(
-    table_html,
-    height=min(2000, 37 * len(ranked) + 90),
+    _render_tbl(_MOVER_COLS, mover_rows, "wc-tbl-movers",
+                default_col=3, default_asc=False),
+    height=min(2000, 36 * len(ranked) + 80),
     scrolling=True,
 )
 
