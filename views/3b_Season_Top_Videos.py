@@ -31,6 +31,7 @@ from src.season_top import (
 )
 from src.analytics import fmt_num, kpi_row
 from src.charts import chart_title
+from src import theme as _T
 
 load_dotenv()
 require_login()
@@ -221,18 +222,19 @@ if top_views:
             lambda c: float(c.get("top100_avg_age_days") or 0),
             low_better=True)
 
+    # KPI labels lead with the canonical metric emoji (CONVENTIONS §2/§4).
     pairs = [
-        (f"Total views (top {_n})",  fmt_num(_total),         _rank_by.get("total", "")),
-        ("Avg views / video",        fmt_num(_avg),           _rank_by.get("avg", "")),
-        ("Top 1 share",              f"{_top1_share:.1f}%",   _rank_by.get("top1", "")),
-        ("Avg age",                  f"{_avg_age_days:.0f}d", _rank_by.get("age", "")),
+        (f"👁️ Total views (top {_n})", fmt_num(_total),         _rank_by.get("total", "")),
+        ("🎯 Avg Views/Video",          fmt_num(_avg),           _rank_by.get("avg", "")),
+        ("🔥 Top-1 share",              f"{_top1_share:.1f}%",   _rank_by.get("top1", "")),
+        ("⏱️ Avg age",                  f"{_avg_age_days:.0f}d", _rank_by.get("age", "")),
     ]
     # 5th card depends on zoom:
     # - Z1/Z2: # of channels represented in the top set
     # - Z3:    inline Long/Shorts(/Live) breakdown — channels-count
     #          would always read "1" at this zoom.
     if club is None:
-        pairs.append((f"Channels in top {_n}", str(_ch_in_top)))
+        pairs.append((f"📡 Channels in top {_n}", str(_ch_in_top)))
     else:
         _fmt_n = {"long": 0, "short": 0, "live": 0}
         for v in top_views:
@@ -240,15 +242,16 @@ if top_views:
             if f not in _fmt_n:
                 f = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
             _fmt_n[f] = _fmt_n.get(f, 0) + 1
+        # Format colors per §1 (Long=ACCENT, Shorts=POS, Live=WARN).
         _segs = [
-            f'<span style="color:#636EFA">{_fmt_n["long"]}</span>',
-            f'<span style="color:#00CC96">{_fmt_n["short"]}</span>',
+            f'<span style="color:{_T.ACCENT}">{_fmt_n["long"]}</span>',
+            f'<span style="color:{_T.POS}">{_fmt_n["short"]}</span>',
         ]
-        _fmt_label = f"Format L/S (top {_n})"
+        _fmt_label = f"📺 Format L/S (top {_n})"
         if _fmt_n["live"]:
-            _segs.append(f'<span style="color:#FFA15A">{_fmt_n["live"]}</span>')
-            _fmt_label = f"Format L/S/Lv (top {_n})"
-        _fmt_value = '<span style="color:#666"> / </span>'.join(_segs)
+            _segs.append(f'<span style="color:{_T.WARN}">{_fmt_n["live"]}</span>')
+            _fmt_label = f"📺 Format L/S/Lv (top {_n})"
+        _fmt_value = f'<span style="color:{_T.MUTED}"> / </span>'.join(_segs)
         pairs.append((_fmt_label, _fmt_value))
 
     st.markdown(kpi_row(pairs), unsafe_allow_html=True)

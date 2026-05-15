@@ -178,15 +178,22 @@ def render_top_season_videos_table(
         '<col style="width:110px">'
         "</colgroup>"
     )
+    # Small ▼ on the ranking column (descending). It sits inside the
+    # th.ord, so it inherits the accent color automatically.
+    def _hd(label: str, key: str) -> str:
+        arrow = " ▼" if key == _ob else ""
+        return (f'<th class="{_ordc[key]}" style="text-align:right">'
+                f'{label}{arrow}</th>')
+
     _THEAD = (
         "<thead><tr>"
         '<th style="text-align:right">#</th>'
         "<th></th>"
         "<th>Video</th>"
-        f'<th class="{_ordc["views"]}" style="text-align:right">Views</th>'
-        f'<th class="{_ordc["likes"]}" style="text-align:right">Likes</th>'
-        f'<th class="{_ordc["comments"]}" style="text-align:right">Comments</th>'
-        "</tr></thead>"
+        + _hd("Views", "views")
+        + _hd("Likes", "likes")
+        + _hd("Comments", "comments")
+        + "</tr></thead>"
     )
     natural = video_table_height(len(vids))
     if max_height is not None and natural > max_height:
