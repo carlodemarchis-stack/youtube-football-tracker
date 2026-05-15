@@ -46,6 +46,10 @@ Status legend: ✅ enforced via shared code · 📝 documented, applied by hand
   `Views`, `Videos`, `Views/Video`, `Likes`, `Comments`,
   `Engagement Rate`. ("Avg Views/Video" is fine as a card label; the
   metric is still "Views/Video".)
+- **Canonical metric emoji** (used as the KPI-label prefix, §4 — same
+  emoji = same metric on every page):
+  👁️ Views · 🎬 Videos · 🎯 Views/Video · ❤️ Likes · 💬 Comments ·
+  ⚡ Engagement · 👥 Subscribers · 📺 Long/Shorts/Live · 🔥 Top/most
 - **Format split (Long / Shorts / Live)** — order and colors (§1) are
   always fixed. Presentation has **two sanctioned forms; pick per page
   by whether per-format sorting adds value**:
@@ -65,6 +69,9 @@ Status legend: ✅ enforced via shared code · 📝 documented, applied by hand
   Exception: Quota Monitor shows exact integers on purpose.
 - **Deltas**: no leading `+` on positives (a gain is obvious); keep
   `-` on negatives; color `POS` / `NEG` / `MUTED` (zero).
+  Exception: **Daily Recap keeps the leading `+`** — it's a pure
+  deltas page (every number is a change, not a total), so the sign is
+  signal, not noise. Deliberate; do not "fix".
 - **Dates** via `analytics.fmt_date`. **No fuzzy relative time in
   titles/headers** ("18h ago", "yesterday →"). Relative time is OK
   only in a subtitle/caption (e.g. "updated 15m ago").
@@ -76,6 +83,10 @@ Status legend: ✅ enforced via shared code · 📝 documented, applied by hand
 ## 4. KPI bar  ✅ `analytics.kpi_row()`
 
 - Always via `analytics.kpi_row()` — never hand-built cards.
+- **KPI labels lead with the canonical metric emoji** (§2 map) —
+  e.g. `👁️ Δ Channel Views`, `🎬 New videos`. This is the rule, not
+  decoration; the same emoji always means the same metric. Plain
+  (emoji-less) KPI labels are the thing to fix, not the reverse.
 - Metrics in canonical order (§2); accents from `theme.KPI_PALETTE`
   automatically (don't pass custom hex).
 - Card = `(label, value)` or `(label, value, subtitle)`; subtitle is
@@ -87,16 +98,18 @@ Status legend: ✅ enforced via shared code · 📝 documented, applied by hand
 
 ## 5. Charts  ✅ donuts `src/charts.py` · 📝 bars/lines
 
+- **Title alignment depends on chart type** (never an in-chart
+  plotly/altair title — always a caption above the chart):
+  - **Pie/donut → centered**, via `charts.chart_title()`.
+  - **Bar / line / everything else → left-aligned**, via
+    `st.caption("👁️ …")`.
 - **Donuts/pies after a KPI bar**: via `src/charts.py` —
-  `chart_title()` centered caption above (never an in-chart plotly
-  title), `DONUT_HEIGHT` (260) + `DONUT_MARGIN` (10 all sides),
-  transparent bg, theme font. Slice order/colors per §1–§2.
+  `DONUT_HEIGHT` (260) + `DONUT_MARGIN` (10 all sides), transparent
+  bg, theme font. Slice order/colors per §1–§2.
 - **Bars/lines** (📝): transparent paper/plot bg, theme font,
   gridlines `theme.BORDER`, axis titles empty unless they add real
   info, modest top margin (~30, no tall title band), legends
   horizontal/top when present.
-- One concept per chart; the label is a centered caption, not a
-  plotly title — consistent with donuts.
 - Per-channel series via `CHANNEL_PALETTE` / `get_channel_colors`;
   format series via the fixed Long/Shorts/Live colors (§1).
 
