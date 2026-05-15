@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Daily Federations refresh — dedicated cron, isolated from the rest.
 
-For every channel with entity_type='Federation':
+For every channel with entity_type='Federation' that is NOT tagged
+competitions.wc2026 (those are owned by the dedicated daily_wc2026
+cron — skipping them here avoids fetching each one twice a night):
   1. Fetch current channel stats and upsert.
   2. Snapshot channel stats to channel_snapshots.
   3. Ingest any NEW season videos.
@@ -58,8 +60,20 @@ def main() -> int:
     db = Database(sb_url, sb_key)
 
     channels = db.get_all_channels()
-    federations = [c for c in channels if c.get("entity_type") == "Federation"]
-    log(f"Daily Federations refresh — {len(federations)} federation(s)")
+    _all_feds = [c for c in channels if c.get("entity_type") == "Federation"]
+    # Skip channels already owned by the dedicated daily_wc2026 cron
+    # (anything tagged competitions.wc2026). They're entity_type=
+    # 'Federation' too, so without this filter every WC2026 national
+    # team / federation would be fetched twice a night — once here and
+    # once in daily_wc2026. The channel_snapshots upsert dedupes the
+    # row regardless, but the second fetch is wasted YouTube quota.
+    federations = [
+        c for c in _all_feds
+        if not (c.get("competitions") or {}).get("wc2026")
+    ]
+    _skipped = len(_all_feds) - len(federations)
+    log(f"Daily Federations refresh — {len(federations)} federation(s)"
+        f" ({_skipped} skipped: handled by daily_wc2026)")
     if not federations:
         log("No Federation channels found. Nothing to do.")
         try:
