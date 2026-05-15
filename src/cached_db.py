@@ -56,20 +56,49 @@ def get_last_fetch_time(_db, status_prefix: str) -> str | None:
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def get_last_upload_by_channel(_db, channel_ids_tuple: tuple[str, ...]) -> dict[str, str]:
+def get_last_upload_by_channel(_db, channel_ids_tuple: tuple[str, ...],
+                               scope_key: str | None = None) -> dict[str, str]:
     """For each channel id in the input, return YYYY-MM-DD of its most
     recent video — or "" if we don't have one ingested.
 
     Used by the Federations / Players / Other Clubs / Women pages for
     the "🟢 Active / 🟡 Slowing / 🟠 Quiet / 🔴 Dormant" status badge.
 
-    Cached at 1h TTL: that data only updates once a day (the daily
-    federations / players cron) so a slightly stale read is fine, but
-    re-querying on every page render was costing seconds per session.
+    Fast path: when `scope_key` (the entity_type) is given, read the map
+    the nightly cron precomputed into dashboard_cache
+    (name='last_upload'). That's one cheap row vs. a paginated scan of
+    the entire `videos` table — the scan, only masked by this 1h cache,
+    is what made these pages slow on a cold cache (e.g. after a deploy).
+
+    Fallback: missing/empty precomputed row (e.g. before the first cron
+    run after this ships) → the original full scan, so behaviour is
+    unchanged and there is no regression.
+
+    Cached at 1h TTL: the underlying data only changes once a day.
     """
-    from src.database import _fetch_all
     if not channel_ids_tuple:
         return {}
+    # ── Fast path: precomputed by the nightly cron ──
+    if scope_key:
+        try:
+            resp = (
+                _db.client.table("dashboard_cache")
+                .select("payload")
+                .eq("name", "last_upload")
+                .eq("scope_key", scope_key)
+                .limit(1)
+                .execute()
+            )
+            data = resp.data or []
+            if data:
+                m = (data[0].get("payload") or {}).get("map") or {}
+                if m:
+                    want = set(channel_ids_tuple)
+                    return {k: v for k, v in m.items() if k in want}
+        except Exception:
+            pass  # fall through to the scan
+    # ── Fallback: original full scan ──
+    from src.database import _fetch_all
     rows = _fetch_all(
         _db.client.table("videos")
         .select("channel_id,published_at")

@@ -227,6 +227,15 @@ def main() -> int:
     except Exception as e:
         log(f"video snapshot step failed: {e}")
 
+    # ── 5. Pre-compute the "last upload per channel" map so the Other
+    # Clubs page reads one cheap cached row instead of scanning the
+    # whole videos table on every render (write-time, not render-time). ──
+    try:
+        from src.dashboard_cache import refresh_last_upload
+        refresh_last_upload(db, "OtherClub", log=log)
+    except Exception as e:
+        log(f"last_upload cache refresh skipped (non-fatal): {e}")
+
     elapsed = time.time() - start
     log(f"Done in {elapsed:.1f}s — ok={ok} failed={len(failed)} "
         f"new_videos={new_videos_total} video_snapshots={video_snapshots_written}")

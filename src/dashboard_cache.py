@@ -1185,3 +1185,42 @@ def refresh_wc2026(db, log=print, channels: list[dict] | None = None) -> None:
     write(db, "wc2026", scope_all(),
           {"count": len(rows), "rows": rows})
     log(f"  ✓ wc2026 cache rebuilt — {len(rows)} channels")
+
+
+def refresh_last_upload(db, entity_type: str, log=print,
+                        channels: list[dict] | None = None) -> None:
+    """Pre-compute {channel_id: 'YYYY-MM-DD'} of each channel's most
+    recent upload for one entity type.
+
+    Written at cron time so the Players / Other Clubs / Women /
+    Federations pages can read one cheap cached row instead of scanning
+    the whole `videos` table (a paginated _fetch_all over every video of
+    every channel) on each render. That render-time scan, only masked by
+    a 1h cache, is what made those pages slow on a cold cache (e.g.
+    right after a deploy). Moving it to write-time removes the cliff.
+
+    Cache key: ('last_upload', <entity_type>). Payload: {"map": {...}}.
+    """
+    from src.database import _fetch_all
+    chans = channels if channels is not None else db.get_all_channels()
+    ids = [c["id"] for c in chans
+           if c.get("entity_type") == entity_type and c.get("id")]
+    if not ids:
+        write(db, "last_upload", entity_type, {"map": {}})
+        log(f"  ✓ last_upload[{entity_type}] — 0 channels")
+        return
+    # Newest-first scan; first row seen per channel = its latest upload.
+    # Same query the page used to run every render — now once per night.
+    rows = _fetch_all(
+        db.client.table("videos")
+        .select("channel_id,published_at")
+        .in_("channel_id", ids)
+        .order("published_at", desc=True)
+    )
+    m: dict[str, str] = {}
+    for r in rows:
+        cid = r.get("channel_id")
+        if cid and cid not in m:
+            m[cid] = (r.get("published_at") or "")[:10]
+    write(db, "last_upload", entity_type, {"map": m})
+    log(f"  ✓ last_upload[{entity_type}] — {len(m)}/{len(ids)} channels")

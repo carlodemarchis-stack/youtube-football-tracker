@@ -103,7 +103,7 @@ def _subs_per_year(subs: int, launched_iso: str | None) -> int:
 # ── Last-upload lookup (cached, see src.cached_db) ──────────
 from src.dot import dual_dot
 _wc_ids = tuple(sorted(p["id"] for p in clubs_o))
-_last_by_cid = dict(_cached_last_upload_db(db, _wc_ids))
+_last_by_cid = dict(_cached_last_upload_db(db, _wc_ids, "WomenClub"))
 _yt_ids_no_db_videos = tuple(sorted(
     p.get("youtube_channel_id") or ""
     for p in clubs_o
