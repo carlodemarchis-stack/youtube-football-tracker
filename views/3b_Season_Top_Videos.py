@@ -407,8 +407,11 @@ if top_views:
 # ── Render the three ranked tables ────────────────────────────
 render_top_season_videos_table(top_views, ch_by_id,
                                header=f"🏆 Top Season Videos — {_label}",
+                               order_by="views",
                                max_height=900)  # ~10 rows visible, scroll for the rest
 render_top_season_videos_table(top_likes, ch_by_id,
-                               header=f"❤️ Top Liked Videos — {_label}")
+                               header=f"❤️ Top Liked Videos — {_label}",
+                               order_by="likes")
 render_top_season_videos_table(top_comments, ch_by_id,
-                               header=f"💬 Top Commented Videos — {_label}")
+                               header=f"💬 Top Commented Videos — {_label}",
+                               order_by="comments")

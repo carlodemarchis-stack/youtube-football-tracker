@@ -78,11 +78,17 @@ def render_top_season_videos_table(
     channels_by_id: dict,
     *,
     header: str,
+    order_by: str = "views",
     max_height: int | None = None,
 ) -> int:
     """Renderer-only path. Takes a pre-fetched video list so callers
     that also need the same data for KPIs aren't paying for the query
     twice.
+
+    order_by: which metric the list is ranked by ("views" | "likes" |
+    "comments"). That column is highlighted (accent) so it's obvious
+    what defines the order. Column widths are fixed so every ranked
+    table on the page lines up identically.
 
     max_height: cap the iframe height in pixels and enable inner
     scrolling. Useful for long lists (100 rows) where letting the
@@ -110,6 +116,15 @@ def render_top_season_videos_table(
         m, s = divmod(s, 60)
         h, m = divmod(m, 60)
         return f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
+
+    # Which metric column defines the ranking → gets the accent
+    # highlight (same "active column = accent" idiom as the other
+    # tables). Empty class on the others.
+    _ob = (order_by or "views").lower()
+    if _ob not in ("views", "likes", "comments"):
+        _ob = "views"
+    _ordc = {"views": "", "likes": "", "comments": ""}
+    _ordc[_ob] = "ord"
 
     rows = ""
     for i, v in enumerate(vids, 1):
@@ -145,19 +160,32 @@ def render_top_season_videos_table(
                 <div class="v-meta">{_context}</div>
               </div>
             </td>
-            <td style="padding:6px 12px;text-align:right">{fmt_num(int(v.get('view_count') or 0))}</td>
-            <td style="padding:6px 12px;text-align:right">{fmt_num(int(v.get('like_count') or 0))}</td>
-            <td style="padding:6px 12px;text-align:right">{fmt_num(int(v.get('comment_count') or 0))}</td>
+            <td class="{_ordc['views']}" style="padding:6px 12px;text-align:right">{fmt_num(int(v.get('view_count') or 0))}</td>
+            <td class="{_ordc['likes']}" style="padding:6px 12px;text-align:right">{fmt_num(int(v.get('like_count') or 0))}</td>
+            <td class="{_ordc['comments']}" style="padding:6px 12px;text-align:right">{fmt_num(int(v.get('comment_count') or 0))}</td>
         </tr>"""
 
+    # Fixed column widths so all ranked tables on the page line up
+    # identically regardless of content (table-layout:fixed reads
+    # these). Video column has no width → takes the remaining space.
+    _COLGROUP = (
+        "<colgroup>"
+        '<col style="width:44px">'
+        '<col style="width:134px">'
+        "<col>"
+        '<col style="width:96px">'
+        '<col style="width:96px">'
+        '<col style="width:110px">'
+        "</colgroup>"
+    )
     _THEAD = (
         "<thead><tr>"
         '<th style="text-align:right">#</th>'
         "<th></th>"
         "<th>Video</th>"
-        '<th style="text-align:right">Views</th>'
-        '<th style="text-align:right">Likes</th>'
-        '<th style="text-align:right">Comments</th>'
+        f'<th class="{_ordc["views"]}" style="text-align:right">Views</th>'
+        f'<th class="{_ordc["likes"]}" style="text-align:right">Likes</th>'
+        f'<th class="{_ordc["comments"]}" style="text-align:right">Comments</th>'
         "</tr></thead>"
     )
     natural = video_table_height(len(vids))
@@ -166,7 +194,7 @@ def render_top_season_videos_table(
         body_html = (
             f'<div style="max-height:{max_height - 16}px;overflow-y:auto">'
             '<table class="top-vids">'
-            + _THEAD +
+            + _COLGROUP + _THEAD +
             f'<tbody>{rows}</tbody></table></div>'
         )
         height_used = max_height
@@ -174,7 +202,7 @@ def render_top_season_videos_table(
     else:
         body_html = (
             '<table class="top-vids">'
-            + _THEAD +
+            + _COLGROUP + _THEAD +
             f'<tbody>{rows}</tbody></table>'
         )
         height_used = natural
@@ -182,13 +210,17 @@ def render_top_season_videos_table(
 
     components.html(f"""
     <style>
-        .top-vids {{ width:100%; border-collapse:collapse; font-size:14px;
-                     color:{_T.TEXT}; font-family:"Source Sans Pro",sans-serif; }}
+        .top-vids {{ width:100%; table-layout:fixed; border-collapse:collapse;
+                     font-size:14px; color:{_T.TEXT};
+                     font-family:"Source Sans Pro",sans-serif; }}
         .top-vids th {{ padding:8px 12px; border-bottom:2px solid {_T.BORDER_STRONG};
                         text-align:left; background:{_T.BG}; position:sticky;
                         top:0; z-index:1; }}
         .top-vids td {{ border-bottom:1px solid {_T.BORDER}; }}
         .top-vids tr:hover td {{ background:{_T.SURFACE}; }}
+        /* Ranking column highlight (accent = "this defines the order") */
+        .top-vids th.ord, .top-vids td.ord {{ color:{_T.ACCENT};
+                                              font-weight:700; }}
         .top-vids .v-info {{ min-width:0; display:flex; flex-direction:column;
                              justify-content:space-between; height:62px; }}
         .top-vids .v-channel {{ font-size:12px; display:flex; align-items:center;
