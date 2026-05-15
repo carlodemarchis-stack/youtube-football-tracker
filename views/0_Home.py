@@ -432,7 +432,7 @@ st.markdown(
     videos by views, by likes, and by comments — for whatever scope the
     global filter is set to (all leagues / one league / one club).
 
-    **All Channels** — league and club rankings: subscribers, views,
+    **All-time** — league and club rankings: subscribers, views,
     video counts (long vs shorts), views/sub, views/video. Sortable
     tables and bar charts at every zoom level.
 

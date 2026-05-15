@@ -86,8 +86,8 @@ st.set_page_config(
 
 # ── Navigation ────────────────────────────────────────────────
 # Each st.Page sets an explicit url_path so we can robustly distinguish
-# pages with duplicate titles (e.g. "All Channels" appears in both the
-# Top-5 Leagues group and the FIFA World Cup 2026 group).
+# pages even if two groups ever share a title (the explicit url_path
+# is the stable identity, independent of the display label).
 
 # Tier 0 — public (visible to everyone, including not signed in)
 public_pages = [
@@ -104,7 +104,7 @@ viewer_pages = [
     st.Page("views/1b_Latest.py",           title="Latest Videos",     url_path="latest-videos"),
     st.Page("views/3_Season.py",            title=f"Season ({_csl()})", url_path="season"),
     st.Page("views/3b_Season_Top_Videos.py",title="Season Top",        url_path="season-top"),
-    st.Page("views/2_Clubs.py",             title="All Channels",      url_path="all-channels"),
+    st.Page("views/2_Clubs.py",             title="All-time",          url_path="all-channels"),
     st.Page("views/4_Top_Videos.py",        title="All-Time Top",      url_path="all-time-top"),
     st.Page("views/4c_No1_Videos.py",       title="No. 1 Videos",      url_path="no1-videos"),
 ]
@@ -217,9 +217,8 @@ if st.query_params.get("view") == "feed":
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 
-# Match by URL path instead of title so two pages sharing a title
-# (e.g. "All Channels" appears in both Top 5 Leagues and FIFA World
-# Cup 2026 groups) can be distinguished.
+# Match by URL path instead of title so pages stay correctly
+# identified even if two groups ever share a display title.
 _no_filter_url_paths = {
     "home", "players", "federations", "other-clubs",
     "women", "no1-videos", "wc2026", "wc2026-trends",
