@@ -32,6 +32,7 @@ from src.filters import (
 )
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
 from src.dot import dual_dot, channel_badge
+from src import theme as _T
 
 load_dotenv()
 require_login()
@@ -233,10 +234,10 @@ if g_league is None and g_club is None:
             if _note_body:
                 # Slightly faded for older dates so users know it's "as of that day"
                 _is_recent = (datetime.now(CET).date() - day).days <= 1
-                _color = "#cccccc" if _is_recent else "#888"
+                _color = "#cccccc" if _is_recent else _T.MUTED
                 st.markdown(
                     f'<div style="font-style:italic;color:{_color};line-height:1.6;'
-                    f'border-left:3px solid #636EFA;padding:6px 14px;margin:6px 0 16px 0">'
+                    f'border-left:3px solid {_T.ACCENT};padding:6px 14px;margin:6px 0 16px 0">'
                     f'{_note_body}</div>',
                     unsafe_allow_html=True,
                 )
@@ -410,7 +411,7 @@ if ONE_CLUB:
             parts.append(f"#{lr}/{lt} in {_ch_league}")
         if orr:
             parts.append(f"#{orr}/{ot} overall")
-        return f"<div style='color:#888;font-size:0.8rem;margin-top:-6px'>{' · '.join(parts)}</div>" if parts else ""
+        return f"<div style='color:{_T.MUTED};font-size:0.8rem;margin-top:-6px'>{' · '.join(parts)}</div>" if parts else ""
 
     # Single-channel header — same look as Season / Channels (dual-dot
     # for clubs, country flag for league channels) plus league/overall
@@ -421,11 +422,11 @@ if ONE_CLUB:
     _handle = g_club.get("handle", "") or ""
     _yt_url = f"https://www.youtube.com/{_handle}" if _handle else ""
     st.markdown(
-        f"<div style='color:#888;font-size:14px;margin:4px 0 16px 28px'>"
+        f"<div style='color:{_T.MUTED};font-size:14px;margin:4px 0 16px 28px'>"
         f"{fmt_num(int(cur_snap.get('subscriber_count', 0) or 0))} subs · "
         f"{fmt_num(int(cur_snap.get('total_views', 0) or 0))} total views"
         + (f" · <a href='{_yt_url}' target='_blank' rel='noopener' "
-           f"style='color:#888;text-decoration:none;border-bottom:1px dotted #555'>"
+           f"style='color:{_T.MUTED};text-decoration:none;border-bottom:1px dotted #555'>"
            f"open on YouTube</a>" if _yt_url else "")
         + "</div>",
         unsafe_allow_html=True,
@@ -455,7 +456,7 @@ if ONE_CLUB:
 
     if _tv_title:
         _short_title = (_tv_title[:48] + "…") if len(_tv_title) > 49 else _tv_title
-        _viral_value = f'<span style="color:#00CC96">+{fmt_num(_tv_delta)}</span>'
+        _viral_value = f'<span style="color:{_T.POS}">+{fmt_num(_tv_delta)}</span>'
         _viral_sub = _short_title
     else:
         _viral_value = "—"
@@ -651,7 +652,7 @@ if len(_all_dates) >= 2:
         _ymax_v = max(r["Δ Channel Views"] for r in trend_rows) if trend_rows else 0
         _ymin_v = min(r["Δ Channel Views"] for r in trend_rows) if trend_rows else 0
         _pad_v = max((_ymax_v - _ymin_v) * 0.1, 1)
-        c1 = alt.Chart(trend_df).mark_line(color="#636EFA", strokeWidth=2).encode(
+        c1 = alt.Chart(trend_df).mark_line(color=_T.ACCENT, strokeWidth=2).encode(
             x=alt.X("Date:T", axis=_X_AXIS),
             y=alt.Y("Δ Channel Views:Q",
                     scale=alt.Scale(domain=[_ymin_v - _pad_v, _ymax_v + _pad_v]),
@@ -669,12 +670,12 @@ if len(_all_dates) >= 2:
         # the chart's plot area matches the left chart's height exactly. A
         # bottom legend would steal ~30px of vertical space and misalign the
         # two x-axis baselines.
-        _FORMAT_COLORS = {"Long": "#636EFA", "Shorts": "#00CC96", "Live": "#FFA15A"}
+        _FORMAT_COLORS = {"Long": _T.ACCENT, "Shorts": _T.POS, "Live": _T.WARN}
         _legend_html = "  ".join(
             f'<span style="display:inline-flex;align-items:center;gap:4px">'
             f'<span style="display:inline-block;width:10px;height:10px;'
             f'border-radius:2px;background:{c}"></span>'
-            f'<span style="font-size:0.8rem;color:#aaa">{lbl}</span></span>'
+            f'<span style="font-size:0.8rem;color:{_T.MUTED_2}">{lbl}</span></span>'
             for lbl, c in _FORMAT_COLORS.items()
         )
         st.markdown(
@@ -768,7 +769,7 @@ if _show_per_league_summary:
     if lg_agg:
         lg_rows = ""
         for lg, agg in sorted(lg_agg.items(), key=lambda kv: kv[1]["view_delta"], reverse=True):
-            view_col = "#00CC96" if agg["view_delta"] > 0 else ("#EF553B" if agg["view_delta"] < 0 else "#888")
+            view_col = _T.POS if agg["view_delta"] > 0 else (_T.NEG if agg["view_delta"] < 0 else _T.MUTED)
             _lg_fmt = f"{agg['long']} / {agg['short']} / {agg['live']}"
 
             # Most active club in this league
@@ -781,7 +782,7 @@ if _show_per_league_summary:
                 top_dot = channel_badge(top_ch, color_map, dual, 14)
                 top_active = (
                     f"{top_dot}<span style='margin-left:7px;vertical-align:middle'>"
-                    f"{top_name} <span style='color:#888;font-size:12px'>· {top_n}</span></span>"
+                    f"{top_name} <span style='color:{_T.MUTED};font-size:12px'>· {top_n}</span></span>"
                 )
             else:
                 top_active = "<span style='color:#666'>—</span>"
@@ -796,10 +797,10 @@ if _show_per_league_summary:
             </tr>"""
         components.html(f"""
         <style>
-          .lg {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
+          .lg {{ width:100%; border-collapse:collapse; font-size:14px; color:{_T.TEXT};
                  font-family:"Source Sans Pro",sans-serif; }}
-          .lg th {{ padding:8px 12px; border-bottom:2px solid #444; text-align:left; }}
-          .lg td {{ border-bottom:1px solid #262730; vertical-align:middle; }}
+          .lg th {{ padding:8px 12px; border-bottom:2px solid {_T.BORDER_STRONG}; text-align:left; }}
+          .lg td {{ border-bottom:1px solid {_T.BORDER}; vertical-align:middle; }}
         </style>
         <table class="lg"><thead><tr>
           <th>League</th>
@@ -825,7 +826,7 @@ if ONE_CLUB:
             thumb = v.get("thumbnail_url") or ""
             title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;")
             fmt = v.get("format") or ("long" if (v.get("duration_seconds") or 0) >= 60 else "short")
-            fmt_color = {"long": "#636EFA", "short": "#00CC96", "live": "#FFA15A"}.get(fmt, "#AAAAAA")
+            fmt_color = {"long": _T.ACCENT, "short": _T.POS, "live": _T.WARN}.get(fmt, _T.MUTED_2)
             fmt_label = {"long": "Long", "short": "Shorts", "live": "Live"}.get(fmt, fmt.title())
             _pub_raw = v.get("published_at") or ""
             try:
@@ -834,21 +835,21 @@ if ONE_CLUB:
                 pub_time = _pub_raw[11:16]
             rows += f"""<tr data-fmt="{fmt}" onclick="window.open('{yt_url}','_blank','noopener')" style="cursor:pointer">
                 <td style="padding:6px 12px"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px"></td>
-                <td style="padding:6px 12px"><a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none">{title}</a></td>
+                <td style="padding:6px 12px"><a href="{yt_url}" target="_blank" style="color:{_T.TEXT};text-decoration:none">{title}</a></td>
                 <td style="padding:6px 12px"><span style="color:{fmt_color}">{fmt_label}</span></td>
                 <td style="padding:6px 12px">{v.get('category') or ''}</td>
                 <td style="padding:6px 12px;text-align:right">{fmt_num(int(v.get('view_count') or 0))}</td>
                 <td style="padding:6px 12px;text-align:right">{fmt_num(int(v.get('like_count') or 0))}</td>
                 <td style="padding:6px 12px;text-align:right">{fmt_num(int(v.get('comment_count') or 0))}</td>
-                <td style="padding:6px 12px;color:#888;font-size:12px">{pub_time}</td>
+                <td style="padding:6px 12px;color:{_T.MUTED};font-size:12px">{pub_time}</td>
             </tr>"""
         components.html(f"""
         <style>
-          .nc {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
+          .nc {{ width:100%; border-collapse:collapse; font-size:14px; color:{_T.TEXT};
                  font-family:"Source Sans Pro",sans-serif; }}
-          .nc th {{ padding:6px 12px; border-bottom:2px solid #444; text-align:left; }}
-          .nc td {{ border-bottom:1px solid #262730; vertical-align:middle; }}
-          .nc tr:hover td {{ background:#1a1c24; }}
+          .nc th {{ padding:6px 12px; border-bottom:2px solid {_T.BORDER_STRONG}; text-align:left; }}
+          .nc td {{ border-bottom:1px solid {_T.BORDER}; vertical-align:middle; }}
+          .nc tr:hover td {{ background:{_T.SURFACE}; }}
         </style>
         <table class="nc"><thead><tr>
           <th></th><th>Title</th><th>Format</th><th>Theme</th>
@@ -911,7 +912,7 @@ def _gainer_table(metric: str, title: str, icon: str, positive_is_good: bool = T
     top = gainers[:25]
     rows_html = ""
     for i, g in enumerate(top, 1):
-        col = "#00CC96" if g["delta"] > 0 else ("#EF553B" if g["delta"] < 0 else "#888")
+        col = _T.POS if g["delta"] > 0 else (_T.NEG if g["delta"] < 0 else _T.MUTED)
         sgn = "+" if g["delta"] >= 0 else ""
         pct_s = f'{g["pct"]:+.2f}%' if abs(g["pct"]) >= 0.01 else "+0.00%"
         dot = channel_badge(ch_by_id.get(g["id"]) or {}, color_map, dual, 14)
@@ -921,7 +922,7 @@ def _gainer_table(metric: str, title: str, icon: str, positive_is_good: bool = T
         _delta_col_idx = 5 if is_views else 4
         _pct_col_idx = 6 if is_views else 5
         rows_html += f"""<tr>
-            <td style="padding:5px 10px;color:#888">{i}</td>
+            <td style="padding:5px 10px;color:{_T.MUTED}">{i}</td>
             <td style="padding:5px 10px">{dot}</td>
             <td style="padding:5px 10px">{g['name']}</td>
             <td style="padding:5px 10px;text-align:right" data-val="{g['latest']}">{fmt_num(g['latest'])}</td>
@@ -934,15 +935,15 @@ def _gainer_table(metric: str, title: str, icon: str, positive_is_good: bool = T
     _pct_ci = 6 if is_views else 5
     return f"""
     <style>
-      #{_tbl_id} tr:hover td {{ background:#1a1c24; }}
+      #{_tbl_id} tr:hover td {{ background:{_T.SURFACE}; }}
       #{_tbl_id} th[data-col] {{ cursor:pointer; user-select:none; }}
-      #{_tbl_id} th[data-col]:hover {{ color:#00CC96; }}
-      #{_tbl_id} th.active {{ color:#00CC96; }}
+      #{_tbl_id} th[data-col]:hover {{ color:{_T.POS}; }}
+      #{_tbl_id} th.active {{ color:{_T.POS}; }}
     </style>
-    <div style="color:#FAFAFA;font-family:'Source Sans Pro',sans-serif">
+    <div style="color:{_T.TEXT};font-family:'Source Sans Pro',sans-serif">
     <h4 style="margin:0 0 8px 0">{icon} {title}</h4>
     <table id="{_tbl_id}" style="width:100%;border-collapse:collapse;font-size:13px">
-    <thead><tr style="border-bottom:2px solid #444">
+    <thead><tr style="border-bottom:2px solid {_T.BORDER_STRONG}">
       <th style="padding:5px 10px;text-align:left">#</th>
       <th></th>
       <th style="padding:5px 10px;text-align:left">Channel</th>
@@ -1010,17 +1011,17 @@ if not ONE_CLUB:
                 dot = channel_badge(r.get("_ch") or {}, color_map, dual, 14)
                 lsl = f'{r["long"]} / {r["short"]} / {r["live"]}'
                 pub_html += f"""<tr>
-                    <td style="padding:5px 10px;color:#888">{i}</td>
+                    <td style="padding:5px 10px;color:{_T.MUTED}">{i}</td>
                     <td style="padding:5px 10px">{dot}</td>
                     <td style="padding:5px 10px">{r['name']}</td>
                     <td style="padding:5px 10px;text-align:center">{lsl}</td>
                     <td style="padding:5px 10px;text-align:right;font-weight:600">{r['count']}</td>
                 </tr>"""
             components.html(f"""
-            <div style="color:#FAFAFA;font-family:'Source Sans Pro',sans-serif">
+            <div style="color:{_T.TEXT};font-family:'Source Sans Pro',sans-serif">
             <h4 style="margin:0 0 8px 0">🎬 Most videos published</h4>
             <table style="width:100%;border-collapse:collapse;font-size:13px">
-            <thead><tr style="border-bottom:2px solid #444">
+            <thead><tr style="border-bottom:2px solid {_T.BORDER_STRONG}">
               <th style="padding:5px 10px;text-align:left">#</th>
               <th></th>
               <th style="padding:5px 10px;text-align:left">Channel</th>
@@ -1052,21 +1053,21 @@ if new_video_rows and not ONE_CLUB:
         fmt = (v.get("format") or "").lower()
         if fmt not in ("long", "short", "live"):
             fmt = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
-        fmt_color = {"long": "#636EFA", "short": "#00CC96", "live": "#FFA15A"}.get(fmt, "#AAAAAA")
+        fmt_color = {"long": _T.ACCENT, "short": _T.POS, "live": _T.WARN}.get(fmt, _T.MUTED_2)
         fmt_label = {"long": "Long", "short": "Shorts", "live": "Live"}.get(fmt, fmt.title())
         cat = v.get("category") or ""
-        _cat_color_n = CATEGORY_COLORS.get(cat, "#888")
+        _cat_color_n = CATEGORY_COLORS.get(cat, _T.MUTED)
         cat_span = f' · <span style="color:{_cat_color_n}">{cat}</span>' if cat and cat != "Other" else ""
         views = int(v.get("view_count") or 0)
         likes = int(v.get("like_count") or 0)
         comments = int(v.get("comment_count") or 0)
         _mw_rows += f"""<tr data-fmt="{fmt}">
-            <td style="padding:6px 12px;text-align:right;color:#888;vertical-align:top">{i}</td>
+            <td style="padding:6px 12px;text-align:right;color:{_T.MUTED};vertical-align:top">{i}</td>
             <td style="padding:6px 12px;vertical-align:top"><a href="{yt_url}" target="_blank"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px;display:block"></a></td>
             <td style="padding:6px 12px;vertical-align:top">
                 <div style="display:flex;flex-direction:column;justify-content:space-between;height:62px">
-                  <a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none;font-weight:700"><br>{title}</a>
-                  <div style="color:#AAA;font-size:12px;display:flex;align-items:center;gap:6px">
+                  <a href="{yt_url}" target="_blank" style="color:{_T.TEXT};text-decoration:none;font-weight:700"><br>{title}</a>
+                  <div style="color:{_T.MUTED_2};font-size:12px;display:flex;align-items:center;gap:6px">
                     {ch_dot}<span>{ch.get('name', '?')} · <span style="color:{fmt_color}">{fmt_label}</span>{cat_span}</span>
                   </div>
                 </div>
@@ -1078,11 +1079,11 @@ if new_video_rows and not ONE_CLUB:
 
     components.html(f"""
     <style>
-      .mw {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
+      .mw {{ width:100%; border-collapse:collapse; font-size:14px; color:{_T.TEXT};
              font-family:"Source Sans Pro",sans-serif; }}
-      .mw th {{ padding:6px 12px; border-bottom:2px solid #444; text-align:left; }}
-      .mw td {{ border-bottom:1px solid #262730; vertical-align:middle; }}
-      .mw tr:hover td {{ background:#1a1c24; }}
+      .mw th {{ padding:6px 12px; border-bottom:2px solid {_T.BORDER_STRONG}; text-align:left; }}
+      .mw td {{ border-bottom:1px solid {_T.BORDER}; vertical-align:middle; }}
+      .mw tr:hover td {{ background:{_T.SURFACE}; }}
     </style>
     <table class="mw">
       <thead><tr>
@@ -1160,34 +1161,34 @@ else:
         fmt = (v.get("format") or "").lower()
         if fmt not in ("long", "short", "live"):
             fmt = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
-        fmt_color = {"long": "#636EFA", "short": "#00CC96", "live": "#FFA15A"}.get(fmt, "#AAAAAA")
+        fmt_color = {"long": _T.ACCENT, "short": _T.POS, "live": _T.WARN}.get(fmt, _T.MUTED_2)
         fmt_label = {"long": "Long", "short": "Shorts", "live": "Live"}.get(fmt, fmt.title())
         _cat_t = (v.get("category") or "")
-        _cat_color_t = CATEGORY_COLORS.get(_cat_t, "#888")
+        _cat_color_t = CATEGORY_COLORS.get(_cat_t, _T.MUTED)
         _cat_html_t = (f' · <span style="color:{_cat_color_t}">{_cat_t}</span>'
                        if _cat_t and _cat_t != "Other" else "")
         _tv_rows += f"""<tr data-fmt="{fmt}">
-            <td style="padding:6px 12px;text-align:right;color:#888;vertical-align:top">{i}</td>
+            <td style="padding:6px 12px;text-align:right;color:{_T.MUTED};vertical-align:top">{i}</td>
             <td style="padding:6px 12px;vertical-align:top"><a href="{yt_url}" target="_blank"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px;display:block"></a></td>
             <td style="padding:6px 12px;vertical-align:top">
                 <div style="display:flex;flex-direction:column;justify-content:space-between;height:62px">
-                  <a href="{yt_url}" target="_blank" style="color:#FAFAFA;text-decoration:none;font-weight:700"><br>{title}</a>
-                  <div style="color:#AAA;font-size:12px;display:flex;align-items:center;gap:6px">
+                  <a href="{yt_url}" target="_blank" style="color:{_T.TEXT};text-decoration:none;font-weight:700"><br>{title}</a>
+                  <div style="color:{_T.MUTED_2};font-size:12px;display:flex;align-items:center;gap:6px">
                     {ch_dot}<span>{ch.get('name', '?')} · <span style="color:{fmt_color}">{fmt_label}</span> · {pub}{_cat_html_t}</span>
                   </div>
                 </div>
             </td>
-            <td style="padding:6px 12px;text-align:right;color:#00CC96;font-weight:600">+{fmt_num(t['delta'])}</td>
+            <td style="padding:6px 12px;text-align:right;color:{_T.POS};font-weight:600">+{fmt_num(t['delta'])}</td>
             <td style="padding:6px 12px;text-align:right">{fmt_num(t['views'])}</td>
         </tr>"""
 
     components.html(f"""
     <style>
-      .tv {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
+      .tv {{ width:100%; border-collapse:collapse; font-size:14px; color:{_T.TEXT};
              font-family:"Source Sans Pro",sans-serif; }}
-      .tv th {{ padding:6px 12px; border-bottom:2px solid #444; text-align:left; }}
-      .tv td {{ border-bottom:1px solid #262730; vertical-align:middle; }}
-      .tv tr:hover td {{ background:#1a1c24; }}
+      .tv th {{ padding:6px 12px; border-bottom:2px solid {_T.BORDER_STRONG}; text-align:left; }}
+      .tv td {{ border-bottom:1px solid {_T.BORDER}; vertical-align:middle; }}
+      .tv tr:hover td {{ background:{_T.SURFACE}; }}
     </style>
     <table class="tv">
       <thead><tr>
