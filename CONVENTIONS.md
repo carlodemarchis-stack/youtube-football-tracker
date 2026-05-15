@@ -121,9 +121,9 @@ Three **distinct table families** — keep each internally consistent;
 never force one into another.
 
 **A. Stats tables — canonical reference: the core Top-5 pages'
-table.** The real template is the **"All Channels" table in
-`views/2_Clubs.py`** (`.ac-wrap` / `.ac-table`), mirrored by Season's
-`ch-season`. That *pattern* is the standard for any ranked metric
+table.** The real template is the **"All-time" table in
+`views/2_Clubs.py`** (`.ac-wrap` / `.ac-table`; the page formerly
+titled "All Channels"), mirrored by Season's `ch-season`. That *pattern* is the standard for any ranked metric
 table — **not** `src/wc_table.py` (which is just the WC2026 variant
 and should itself match this, not the other way round). Its hallmarks:
 - **Horizontal-scroll wrapper** (`overflow-x:auto` + a table
@@ -143,7 +143,7 @@ and should itself match this, not the other way round). Its hallmarks:
 - **Composite `L / S / Li`** cells non-sortable; numeric columns
   sortable (§2). Theme colors, row-hover, transparent bg.
 - **The pattern is the rule, not any one module.** A hand-rolled
-  table that already matches the "All Channels" look is compliant —
+  table that already matches the "All-time" look is compliant —
   do **not** rewrite it just to share code (that's the churn we're
   avoiding). When building a *new* stats table or substantially
   reworking one anyway, copy the core pattern (or a shared helper that
