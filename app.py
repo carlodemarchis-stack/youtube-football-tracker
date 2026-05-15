@@ -114,7 +114,10 @@ viewer_pages = [
 # OtherClubs, WomenClubs). Their data is isolated by design.
 other_pages = [
     st.Page("views/13_Players.py",     title="Players",     url_path="players"),
-    st.Page("views/14_Federations.py", title="Federations", url_path="federations"),
+    # Federations page parked until after WC2026 — menu item removed
+    # only; the view (views/14_Federations.py) and all its code are
+    # left intact. Re-add this line to bring it back.
+    # st.Page("views/14_Federations.py", title="Federations", url_path="federations"),
     st.Page("views/15_Other_Clubs.py", title="Other Clubs", url_path="other-clubs"),
     st.Page("views/17_Women.py",       title="Women",       url_path="women"),
 ]

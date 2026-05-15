@@ -199,20 +199,17 @@ try:
             "teams plus FIFA and the 6 confederations. See the dedicated page."
         )
 
-    # Also-tracking line: Players + Federations + Other Clubs + Women (isolated)
+    # Also-tracking line: Players + Other Clubs + Women (isolated).
+    # Federations parked until after WC2026 — intentionally omitted here.
     _players = [c for c in _chs if c.get("entity_type") == "Player"]
-    _feds = [c for c in _chs if c.get("entity_type") == "Federation"]
     _others = [c for c in _chs if c.get("entity_type") == "OtherClub"]
     _women = [c for c in _chs if c.get("entity_type") == "WomenClub"]
-    if _players or _feds or _others or _women:
+    if _players or _others or _women:
         from src.analytics import fmt_num as _fmt
         _bits = []
         if _players:
             _ps = sum(int(c.get("subscriber_count") or 0) for c in _players)
             _bits.append(f"⚽ **{len(_players)} players** ({_fmt(_ps)} subs)")
-        if _feds:
-            _fs = sum(int(c.get("subscriber_count") or 0) for c in _feds)
-            _bits.append(f"🏛️ **{len(_feds)} federations** ({_fmt(_fs)} subs)")
         if _others:
             _os = sum(int(c.get("subscriber_count") or 0) for c in _others)
             _bits.append(f"🌍 **{len(_others)} other clubs** ({_fmt(_os)} subs)")
@@ -491,9 +488,6 @@ st.markdown(
     (Cristiano, Messi, Neymar, Mbappé, Haaland…). Standalone
     leaderboard with subs, views, posting activity, and career status.
 
-    **Federations** — FIFA, UEFA, the five confederations and major
-    national associations. Same shape as Players.
-
     **Other Clubs** — top global clubs *outside* the big-5 European
     leagues (Brazil, Argentina, Turkey, Portugal, Netherlands,
     Scotland, Saudi Arabia, MLS, Liga MX). Standalone leaderboard +
@@ -554,10 +548,10 @@ st.caption(
     "**When we fetch data.** New video discovery runs **hourly** via RSS feeds (fast, lightweight). "
     "Full stats refresh runs **daily** — subscriber counts, view counts, and snapshots for ranks and deltas. "
     "A **weekly** sweep recomputes top-100 aggregates and back-fills any missed videos. "
-    "**Players**, **Federations**, **Other Clubs** and **Women's clubs** each have their own "
-    "dedicated daily crons (running at ~01:00, ~01:30, ~01:45 and ~02:00 CET) so those "
+    "**Players**, **Other Clubs** and **Women's clubs** each have their own "
+    "dedicated daily crons (running at ~01:00, ~01:45 and ~02:00 CET) so those "
     "features can be paused or killed independently of the main pipeline.\n\n"
-    "**Players, Federations, Other Clubs and Women's clubs are isolated.** They live on their "
+    "**Players, Other Clubs and Women's clubs are isolated.** They live on their "
     "own pages and are deliberately excluded from every league/club view, leaderboard, and "
     "aggregate — they don't compete with the big-5 clubs in rankings, don't appear in "
     "All-Time Top, Latest Videos, Season Top, or Compare. Treat them as separate lenses.\n\n"
