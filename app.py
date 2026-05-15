@@ -122,7 +122,8 @@ other_pages = [
 # Tier 1.8 — FIFA World Cup 2026 sub-app. Own sidebar group so it
 # reads as a distinct product surface.
 wc2026_pages = [
-    st.Page("views/18_WC2026.py", title="All Channels", url_path="wc2026"),
+    st.Page("views/18_WC2026.py",        title="All Channels", url_path="wc2026"),
+    st.Page("views/18b_WC2026_Trends.py", title="Trends",       url_path="wc2026-trends"),
 ]
 
 # Tier 1.5 — "The Lab": experimental / analytical pages, viewer-tier
@@ -218,7 +219,7 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 # Cup 2026 groups) can be distinguished.
 _no_filter_url_paths = {
     "home", "players", "federations", "other-clubs",
-    "women", "no1-videos", "wc2026",
+    "women", "no1-videos", "wc2026", "wc2026-trends",
 }
 _show_filter = getattr(pg, "url_path", "") not in _no_filter_url_paths
 

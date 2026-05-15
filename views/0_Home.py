@@ -156,7 +156,8 @@ st.title("YouTube Football Tracker")
 # Tagline — sits right under the title so the page opens with a
 # one-line "what is this".
 st.markdown(
-    "Track YouTube performance for 100+ football clubs across Europe's top leagues."
+    "Track YouTube performance for 100+ football clubs across Europe's top "
+    "leagues — plus the road to the **FIFA World Cup 2026**."
 )
 
 # ── Leagues covered ─────────────────────────────────────────────
@@ -184,6 +185,19 @@ try:
             for lg, n in sorted(_league_counts.items(), key=lambda x: -x[1])
         ]
         st.caption(f"Covering {len(_league_counts)} leagues: " + " · ".join(_parts))
+
+    # WC2026 coverage — its own prominent line (dedicated sidebar group,
+    # tournament ~1 month out). Counts every channel tagged
+    # competitions.wc2026 (teams + FIFA + confederations + alt channels).
+    _wc2026 = [c for c in _chs if (c.get("competitions") or {}).get("wc2026")]
+    if _wc2026:
+        from src.analytics import fmt_num as _fmt_wc
+        _wc_subs = sum(int(c.get("subscriber_count") or 0) for c in _wc2026)
+        st.caption(
+            f"🏆 **FIFA World Cup 2026** — tracking **{len(_wc2026)} official "
+            f"channels** ({_fmt_wc(_wc_subs)} subs): the 48 qualified national "
+            "teams plus FIFA and the 6 confederations. See the dedicated page."
+        )
 
     # Also-tracking line: Players + Federations + Other Clubs + Women (isolated)
     _players = [c for c in _chs if c.get("entity_type") == "Player"]
@@ -398,7 +412,10 @@ st.markdown(
 
     ---
 
-    ### Pages (require login)
+    ### Top 5 Leagues (require login)
+
+    The core of the site — Serie A, Premier League, La Liga, Bundesliga
+    and Ligue 1. These pages respond to the global filter above.
 
     **Daily Recap** — what happened yesterday: view and subscriber
     gains, leaderboards, new uploads, most-watched videos, and 14-day
@@ -426,6 +443,27 @@ st.markdown(
     distribution, theme pie, and a sortable video list. Different lens
     from Season Top (lifetime, not just this season).
 
+    **No. 1 Videos** — every channel's single most-viewed video,
+    side by side: the one upload that defines each club's reach.
+
+    ---
+
+    ### FIFA World Cup 2026
+
+    Its own sidebar group — a self-contained sub-app, separate from the
+    Top-5 league views and unaffected by the global filter.
+
+    **All Channels** — the official YouTube channels of all 48 qualified
+    national teams, plus FIFA and the 6 confederations. When a country
+    runs more than one official channel, the stats are summed into the
+    country's row with a +N alt chip; every channel is also listed
+    individually. Sortable by subscribers, views, season output and
+    views/video.
+
+    **Trends** — view gains and videos published (long / shorts / live)
+    night by night on the road to the tournament, plus a biggest-movers
+    leaderboard, built from a nightly snapshot of every WC2026 channel.
+
     ---
 
     ### The Lab — experimental views
@@ -437,6 +475,9 @@ st.markdown(
     Instagram, X, Facebook, TikTok, Threads, LinkedIn (and more). Badge
     grid linking to every account, plus a sortable follower-count
     leaderboard with one column per platform.
+
+    **Digital Footprint** — a club's whole online presence in one view:
+    YouTube alongside every other tracked platform, sized by reach.
 
     ---
 
