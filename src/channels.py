@@ -66,33 +66,160 @@ LEAGUE_COLOR_CHART = {
 }
 
 
-LEAGUE_SEASON_START = {
-    "Serie A": "2025-08-01",
-    "Premier League": "2025-08-01",
-    "La Liga": "2025-08-01",
-    "Bundesliga": "2025-08-01",
-    "Ligue 1": "2025-08-01",
+# ─── Season config — multi-season aware (data layer only) ───────────
+#
+# LEAGUE_SEASONS is the source of truth for "which leagues run a
+# proper August → July season, and when each historical / current /
+# future season starts and ends." Only the five European top-flight
+# leagues qualify — MLS runs Feb → Dec on a calendar year so it
+# doesn't fit this model and is deliberately absent from the dict.
+# Pages that want to be "season-aware" check is_season_aware(league)
+# first; MLS and anything not in this dict falls through to the legacy
+# LEAGUE_SEASON_START flat-date behaviour below (used for video
+# ingestion floors etc.).
+#
+# Each value is an ordered list of (season_label, start_iso, end_iso).
+# Append a new tuple in August when the next season starts — every
+# helper below picks the right one for the current calendar date.
+#
+# End dates set to 1 July (≈ post-Champions-League-final + 1 month
+# of pre-season buffer). Adjust per-league if needed.
+LEAGUE_SEASONS: dict[str, list[tuple[str, str, str]]] = {
+    "Serie A": [
+        ("25/26", "2025-08-01", "2026-07-01"),
+        ("26/27", "2026-08-01", "2027-07-01"),
+    ],
+    "Premier League": [
+        ("25/26", "2025-08-01", "2026-07-01"),
+        ("26/27", "2026-08-01", "2027-07-01"),
+    ],
+    "La Liga": [
+        ("25/26", "2025-08-01", "2026-07-01"),
+        ("26/27", "2026-08-01", "2027-07-01"),
+    ],
+    "Bundesliga": [
+        ("25/26", "2025-08-01", "2026-07-01"),
+        ("26/27", "2026-08-01", "2027-07-01"),
+    ],
+    "Ligue 1": [
+        ("25/26", "2025-08-01", "2026-07-01"),
+        ("26/27", "2026-08-01", "2027-07-01"),
+    ],
+}
+
+# Set form for fast membership tests (e.g. is_season_aware()).
+SEASON_AWARE_LEAGUES: frozenset[str] = frozenset(LEAGUE_SEASONS.keys())
+
+
+# ─── Legacy flat-date config (still used as an ingestion floor) ─────
+#
+# Kept for backward compat — daily_refresh / hourly_rss etc. read this
+# via get_season_since() to know how far back to ingest videos. For
+# the season-aware leagues it's derived from LEAGUE_SEASONS' current
+# season so we have a single source of truth; MLS and any future
+# additions keep their explicit date.
+def _current_season_start(league: str) -> str | None:
+    """Internal: today's active season start for a season-aware league."""
+    seasons = LEAGUE_SEASONS.get(league)
+    if not seasons:
+        return None
+    from datetime import date as _date
+    today_iso = _date.today().isoformat()
+    # Pick the season whose [start, end) bracket contains today; fall
+    # through to the latest entry if today is past every defined end
+    # (means we need to extend LEAGUE_SEASONS — backlog reminder).
+    for _, start, end in seasons:
+        if start <= today_iso < end:
+            return start
+    return seasons[-1][1]  # past all → use last end as a sentinel; caller will get fresh data
+
+
+LEAGUE_SEASON_START: dict[str, str] = {
+    **{lg: _current_season_start(lg) or "2025-08-01"
+       for lg in LEAGUE_SEASONS},
+    # Non-season-aware leagues: explicit, won't auto-roll.
     "MLS": "2025-02-01",
 }
 
-# Fallback for unknown leagues
+# Fallback for unknown leagues — also used as the LLM-prompt anchor
+# in src/ai_analysis.py.
 DEFAULT_SEASON_START = "2025-08-01"
 
 
-def get_season_since(channel: dict | None = None, league: str | None = None) -> str:
-    """Return the season start date for a channel or league.
+# ─── Public helpers ─────────────────────────────────────────────────
 
-    Accepts either a channel dict (looks up league from country) or a league name directly.
-    Returns ISO date string like '2025-08-01'.
+
+def is_season_aware(league: str) -> bool:
+    """True for the five European top flights, False for MLS / unknown."""
+    return league in SEASON_AWARE_LEAGUES
+
+
+def list_seasons(league: str) -> list[str]:
+    """All defined season labels for a league, oldest first. Empty for
+    non-season-aware leagues."""
+    return [s for s, _, _ in LEAGUE_SEASONS.get(league, [])]
+
+
+def get_season_range(league: str, season: str) -> tuple[str, str] | None:
+    """Return (start_iso, end_iso) for an explicit (league, season) pair,
+    or None if either isn't known."""
+    for s, start, end in LEAGUE_SEASONS.get(league, []):
+        if s == season:
+            return (start, end)
+    return None
+
+
+def get_current_season_label(league: str | None = None,
+                              today_iso: str | None = None) -> str | None:
+    """The active season label for `league` (e.g. '25/26', '26/27').
+
+    If `league` is None, returns the first matching label across the
+    season-aware leagues (they're all aligned on the same window in
+    practice). Returns None if today falls outside every defined
+    season — that's a signal that LEAGUE_SEASONS needs extending.
     """
-    if league:
-        return LEAGUE_SEASON_START.get(league, DEFAULT_SEASON_START)
-    if channel:
+    from datetime import date as _date
+    today_iso = today_iso or _date.today().isoformat()
+    candidates = ([league] if league else list(LEAGUE_SEASONS.keys()))
+    for lg in candidates:
+        for s, start, end in LEAGUE_SEASONS.get(lg, []):
+            if start <= today_iso < end:
+                return s
+    return None
+
+
+def get_season_since(channel: dict | None = None, league: str | None = None,
+                     season: str | None = None) -> str:
+    """Return the start date for a season — explicit `season` if given,
+    otherwise the current season for `league` / `channel`.
+
+    Backward-compat: the original two-arg form (channel-only or
+    league-only, no `season`) still returns the current-season start
+    so every existing caller keeps working. New code that wants a
+    historical season just passes it in:
+        get_season_since(league="Serie A", season="25/26")
+
+    Falls through to LEAGUE_SEASON_START (and DEFAULT_SEASON_START)
+    for MLS / unknown leagues so video ingestion never breaks.
+    """
+    # Resolve league from channel if not given.
+    if league is None and channel:
         country = (channel.get("country") or "").upper()
-        lg = COUNTRY_TO_LEAGUE.get(country)
-        if lg:
-            return LEAGUE_SEASON_START.get(lg, DEFAULT_SEASON_START)
-    return DEFAULT_SEASON_START
+        league = COUNTRY_TO_LEAGUE.get(country)
+    # Explicit season lookup for season-aware leagues.
+    if league and season and league in LEAGUE_SEASONS:
+        rng = get_season_range(league, season)
+        if rng:
+            return rng[0]
+    # Current-season lookup (the original behaviour).
+    if league and league in LEAGUE_SEASONS:
+        cur = get_current_season_label(league)
+        if cur:
+            rng = get_season_range(league, cur)
+            if rng:
+                return rng[0]
+    # Legacy / non-season-aware leagues.
+    return LEAGUE_SEASON_START.get(league or "", DEFAULT_SEASON_START)
 
 
 def league_with_flag(name: str) -> str:
