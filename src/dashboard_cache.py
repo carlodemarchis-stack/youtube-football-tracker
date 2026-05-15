@@ -317,7 +317,10 @@ DURATION_BUCKETS_LONG = [
     (3601,  5400,   "60-90m"),
     (5401,  86400,  "90m+"),
 ]
-DURATION_SEASON_SINCE = "2025-08-01"
+# Derived from src.channels.DEFAULT_SEASON_START so this auto-rolls
+# when the new European season starts. Was hardcoded "2025-08-01".
+from src.channels import DEFAULT_SEASON_START as _DEFAULT_SEASON_START
+DURATION_SEASON_SINCE: str = _DEFAULT_SEASON_START
 
 
 def refresh_duration_buckets(db, log=print) -> None:

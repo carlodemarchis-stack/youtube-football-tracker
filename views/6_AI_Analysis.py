@@ -236,13 +236,14 @@ if data.get("format_insights"):
     if fi.get("observation"):
         st.caption(fi["observation"])
 
-# ── Season 25/26 Analysis ────────────────────────────────────
+# ── Current-season analysis ────────────────────────────────────
 _has_season = any(data.get(k) for k in ("season_overview", "season_analysis", "season_themes",
                                          "season_key_figures", "season_best_performers",
                                          "season_format_insights", "season_monthly"))
 if _has_season:
+    from src.channels import current_season_label_safe as _csl_ai
     st.markdown("---")
-    st.subheader("Season 25/26")
+    st.subheader(f"Season {_csl_ai()}")
 
 # Season Overview
 sa = data.get("season_overview") or data.get("season_analysis")  # backward compat

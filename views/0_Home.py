@@ -382,8 +382,9 @@ try:
                     st.caption("No videos published in the last 7 days.")
 except Exception:
     pass  # Snapshot data may not exist yet; degrade silently
+from src.channels import current_season_label_safe as _csl_home
 st.markdown(
-    """
+    ("""
     ### Global filter
     At the top of every page you'll find a cascading filter that sets the zoom level
     for the whole site. Your selection persists as you navigate.
@@ -407,10 +408,10 @@ st.markdown(
     tracked channels. Sortable by views, likes, comments, duration, and
     age. Includes a 24h timeline strip and a live-now banner at the top.
 
-    **Season (25/26)** — current-season rhythm and cadence (videos
-    published since Aug 2025): videos-per-day, publishing heatmap,
-    monthly output by format (long / Shorts / Live), view concentration
-    per league or club, and zero-publish-day counts.
+    **Season ({_season_label})** — current-season rhythm and cadence:
+    videos-per-day, publishing heatmap, monthly output by format
+    (long / Shorts / Live), view concentration per league or club,
+    and zero-publish-day counts.
 
     **Season Top** — the season's hits in three ranked tables — top
     videos by views, by likes, and by comments — for whatever scope the
@@ -460,7 +461,7 @@ st.markdown(
     **Women** — top women's football clubs (Barça Femení, Lyon Féminin,
     Chelsea Women, Arsenal Women…). Standalone leaderboard, isolated
     from the men's-team views and aggregates.
-    """
+    """).format(_season_label=_csl_home())
 )
 
 st.info(

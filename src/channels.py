@@ -87,23 +87,23 @@ LEAGUE_COLOR_CHART = {
 LEAGUE_SEASONS: dict[str, list[tuple[str, str, str]]] = {
     "Serie A": [
         ("25/26", "2025-08-01", "2026-07-01"),
-        ("26/27", "2026-08-01", "2027-07-01"),
+        ("26/27", "2026-07-01", "2027-07-01"),
     ],
     "Premier League": [
         ("25/26", "2025-08-01", "2026-07-01"),
-        ("26/27", "2026-08-01", "2027-07-01"),
+        ("26/27", "2026-07-01", "2027-07-01"),
     ],
     "La Liga": [
         ("25/26", "2025-08-01", "2026-07-01"),
-        ("26/27", "2026-08-01", "2027-07-01"),
+        ("26/27", "2026-07-01", "2027-07-01"),
     ],
     "Bundesliga": [
         ("25/26", "2025-08-01", "2026-07-01"),
-        ("26/27", "2026-08-01", "2027-07-01"),
+        ("26/27", "2026-07-01", "2027-07-01"),
     ],
     "Ligue 1": [
         ("25/26", "2025-08-01", "2026-07-01"),
-        ("26/27", "2026-08-01", "2027-07-01"),
+        ("26/27", "2026-07-01", "2027-07-01"),
     ],
 }
 
@@ -141,9 +141,14 @@ LEAGUE_SEASON_START: dict[str, str] = {
     "MLS": "2025-02-01",
 }
 
-# Fallback for unknown leagues — also used as the LLM-prompt anchor
-# in src/ai_analysis.py.
-DEFAULT_SEASON_START = "2025-08-01"
+# Fallback for unknown leagues. Derived from Serie A's active season
+# (every European top flight shares the same window) so it auto-rolls
+# at the boundary — was hardcoded "2025-08-01" before. Falls back to
+# the last defined start if today is past every defined season; that
+# situation means LEAGUE_SEASONS needs extending.
+DEFAULT_SEASON_START: str = (
+    _current_season_start("Serie A") or "2025-08-01"
+)
 
 
 # ─── Public helpers ─────────────────────────────────────────────────
@@ -186,6 +191,26 @@ def get_current_season_label(league: str | None = None,
             if start <= today_iso < end:
                 return s
     return None
+
+
+def current_season_label_safe() -> str:
+    """Best-effort current-season label for UI strings — never None.
+
+    Falls back to the latest defined label if today is past every
+    configured season (means LEAGUE_SEASONS needs extending; the page
+    still renders rather than showing 'None'). Use this in sidebar
+    titles, page headings, captions etc. — anywhere we display the
+    season to a human and can't show empty.
+    """
+    cur = get_current_season_label()
+    if cur:
+        return cur
+    # Fallback: any season-aware league's last defined label.
+    for lg in LEAGUE_SEASONS:
+        seasons = list_seasons(lg)
+        if seasons:
+            return seasons[-1]
+    return ""
 
 
 def get_season_since(channel: dict | None = None, league: str | None = None,

@@ -6,9 +6,52 @@ a status and a sensible trigger so we can pick it up at the right time
 
 ---
 
-## 🟡 Season rollover for the Top-5 leagues (Aug 2026)
+## 🔴 Promotion / relegation cycle (every July)
 
-**Data layer — DONE (May 2026):**
+**What:** At the end of every European season, 3 teams from each of
+the five top flights are relegated and 3 are promoted from the
+division below. That means up to **15 NEW club YouTube channels per
+season** to research + add, and up to **15 channels** that move out
+of the Top-5 scope but whose history we want to keep.
+
+**Open questions to answer before July 2026:**
+- Do relegated clubs' channels stay tracked (so we can show "former
+  Top-5 club" data) or are they marked inactive?
+- New promoted teams: who decides the canonical YouTube channel?
+  Manual research + admin-add seems unavoidable.
+- How do we handle stats columns like `season_video_count` for a
+  channel that played one season in the league and one outside? Do
+  we keep both, only the most recent, or annotate per-season?
+- Cron scripts (daily_refresh, hourly_rss) filter by league via
+  `COUNTRY_TO_LEAGUE`. Need a per-channel "active leagues" flag or
+  per-season membership table.
+
+**Proposed model (sketch — flesh out before July):**
+- New table `channel_league_seasons(channel_id, league, season, joined_at, left_at)`
+  records league membership per season.
+- "Currently in Top-5" check becomes: any row for `season=current`.
+- Admin UI: Channel Management page gets a "promote/relegate" form
+  that adds/closes a row for a chosen (channel, league, season).
+- Pages keep their current filters but route through a helper
+  `get_channels_in_league(league, season=current)` instead of
+  `get_all_channels()` + python filter on `country`.
+
+**Trigger to act:** Mid-May 2026 — promotion/relegation decided by end
+of season (typically late May). Build the schema + admin form before
+the first promoted club gets added in late June / July.
+
+**Status:** Parked, recurring (every season).
+
+---
+
+## 🟢 Season rollover for the Top-5 leagues — DONE (May 2026)
+
+Both the data layer AND the UI strings now route through dynamic
+helpers — every "Season 25/26" / "since 2025-08-01" reference in the
+app pulls from `LEAGUE_SEASONS` (or the helpers below) and switches to
+26/27 automatically on **1 July 2026**.
+
+**Data layer:**
 
 `src/channels.py` now owns multi-season data via:
 
@@ -36,40 +79,38 @@ to each league's list in `LEAGUE_SEASONS`. That's it. The helpers,
 `LEAGUE_SEASON_START`, and `get_season_since()` all derive from the
 same source.
 
-**UI / display strings — STILL PENDING:**
+**UI / display strings — also DONE:**
 
-These still hard-code "25/26" or "2025-08-01" in user-visible copy
-and won't auto-update when the new season starts:
+Every previously-hardcoded "25/26" / "2025-08-01" / "2025/26" string
+now goes through one of the helpers above:
 
-1. `app.py:101` — sidebar title `Season (25/26)` + url_path
-   `season-2526`
-2. `views/3_Season_2526.py:33` — page title + filename itself
-3. `views/3b_Season_Top_Videos.py` — sibling page, check for hard-codes
-4. `views/0_Home.py:410` — narrative copy mentions the season
-5. `views/2_Clubs.py:1193,1407` — chart caption + cross-link copy
-6. `views/6_AI_Analysis.py:239,245` — subheader "Season 25/26"
-7. `views/14_Federations.py:464`, `views/15_Other_Clubs.py:460`,
-   `views/17_Women.py:460`, `views/13_Players.py:538` — footer
-   captions "since 2025-08-01"
-8. `src/ai_analysis.py:42,122` — LLM prompts that hard-code "2025/26"
-9. `src/database.py:330` — `get_season_video_rows(since="2025-08-01")`
-   default arg (defensive — every caller passes explicitly)
+- `app.py:101` — sidebar entry uses `f"Season ({_csl()})"` and a
+  season-neutral `url_path="season"`. File renamed
+  `views/3_Season_2526.py` → `views/3_Season.py`.
+- `views/3_Season.py:33` — title is `f"Season ({_csl()})"`.
+- `views/0_Home.py` — narrative paragraph uses `.format()` with
+  `_csl_home()`.
+- `views/2_Clubs.py` — chart cutoff date uses
+  `get_season_since(channel=...)`; the "See Season (xx/yy)"
+  cross-link uses `_csl_clubs()`.
+- `views/6_AI_Analysis.py` — subheader uses `_csl_ai()`.
+- `views/13_Players.py / 14_Federations.py / 15_Other_Clubs.py /
+  17_Women.py` — footer caption uses `get_season_since(league=...)`.
+- `src/ai_analysis.py` — LLM prompts pull the label + start date from
+  the helpers.
+- `src/database.py` — 6 `since=...` default args switched to sentinel
+  pattern (`None` → resolve to `DEFAULT_SEASON_START` at call time).
+- `src/dashboard_cache.py` / `src/profile.py` — module-level
+  `DURATION_SEASON_SINCE` / `SEASON_START_ISO` derived from
+  `DEFAULT_SEASON_START`.
 
-**Suggested rollover approach (when ~July 2026):**
+**Verified on 2026-05-15:** every consumer returns "25/26" /
+"2025-08-01" today (no visible regression); simulated 2026-07-01
+returns "26/27" / "2026-07-01" everywhere.
 
-- Walk the list above; replace literal "25/26" with
-  `get_current_season_label()` and replace literal "2025-08-01" with
-  `get_season_since(...)`.
-- Rename `views/3_Season_2526.py` → `views/3_Season.py` so the
-  filename stops carrying a year (the page title comes from the
-  helper).
-- Bump the sidebar `st.Page(title=...)` and `url_path` to a
-  season-neutral form (e.g. `title="Season", url_path="season"`).
-
-**Trigger to act:** Around 1 July 2026 — gives us a month before
-clubs start pre-season uploads to test the rollover end-to-end.
-
-**Status:** Foundation laid (data). UI rollover parked until ~July 2026.
+**Status:** Complete. No further action needed until ~July 2027 when
+27/28 needs adding to `LEAGUE_SEASONS` — at that point just append
+one tuple per league and everything updates.
 
 ---
 

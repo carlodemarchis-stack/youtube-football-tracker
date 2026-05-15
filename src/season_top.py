@@ -1,7 +1,7 @@
 """Shared 'Top Season Videos' table renderer.
 
 Used by views/3b_Season_Top_Videos.py and (historically) was inlined in
-views/3_Season_2526.py at all 3 zoom levels.
+views/3_Season.py at all 3 zoom levels.
 
 Each call hits db.get_top_season_videos(channel_ids, since, limit,
 order_by) once and renders the standard table layout — channel marker

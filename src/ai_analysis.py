@@ -36,11 +36,18 @@ def analyze_channel_videos(
     # Season videos section
     season_section = ""
     if season_videos:
+        from src.channels import (
+            current_season_label_safe as _csl_ai_p,
+            get_season_since as _gss_ai_p,
+        )
+        _season_label = _csl_ai_p()
+        # Format the start month/year from the season start date.
+        _season_start = _gss_ai_p(league="Serie A")
         season_text = _format_video_lines(season_videos[:50])
         season_section = f"""
 
---- SEASON 2025/26 VIDEOS (up to 50, by views) ---
-These are videos published since August 2025 (current season):
+--- SEASON 20{_season_label} VIDEOS (up to 50, by views) ---
+These are videos published since {_season_start} (current season):
 {season_text}
 """
 
@@ -119,7 +126,10 @@ Return a JSON object (no markdown, no code fences, just raw JSON) with these key
 """
 
     if season_videos:
-        prompt += f"""10. "season_overview": High-level season (2025/26) summary. Object with:
+        # Use the same season label as the video-list section above.
+        from src.channels import current_season_label_safe as _csl_ai_p2
+        _ssn = _csl_ai_p2()
+        prompt += f"""10. "season_overview": High-level season (20{_ssn}) summary. Object with:
    {{"total_videos": int, "total_views": int, "avg_views_per_video": int,
     "comparison_to_alltime": str, "momentum": "rising"|"stable"|"declining",
     "season_insight": str}}

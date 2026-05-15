@@ -1190,11 +1190,12 @@ else:
         fig_views_trend = None
 
     # 2) Videos published per month — stacked Long / Shorts / Live.
-    # Restricted to the current season (since 2025-08-01) so the chart
-    # focuses on the active period and isn't dominated by years of
-    # legacy uploads. Aggregates this channel's video catalog by month
-    # and format.
-    _PUB_SINCE = "2025-08-01"
+    # Restricted to the current season so the chart focuses on the
+    # active period and isn't dominated by years of legacy uploads.
+    # Season start auto-rolls via get_season_since() (was hardcoded
+    # 2025-08-01).
+    from src.channels import get_season_since as _gss
+    _PUB_SINCE = _gss(channel=channel)
     with st.spinner("Aggregating monthly publishing history…"):
         _vids = db.get_season_videos_by_channel(channel["id"], since=_PUB_SINCE)
     fig_pub_trend = None
@@ -1404,4 +1405,5 @@ else:
             scrolling=False,
         )
 
-    st.caption("See **All-Time Top** for the all-time top 100 and **Season (25/26)** for current-season activity.")
+    from src.channels import current_season_label_safe as _csl_clubs
+    st.caption(f"See **All-Time Top** for the all-time top 100 and **Season ({_csl_clubs()})** for current-season activity.")

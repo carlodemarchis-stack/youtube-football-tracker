@@ -55,9 +55,12 @@ ALL_AXES    = (*LOG_AXES, *LINEAR_AXES)
 MIN_SEASON_VIDEOS_FOR_RATES = 5
 MIN_SEASON_VIDEOS_FOR_SHARE = 20
 
-# Hardcoded season start used for pace-change calculations. Matches the
-# season_* columns on the channels table, populated by the daily cron.
-SEASON_START_ISO = "2025-08-01"
+# Season start used for pace-change calculations. Matches the season_*
+# columns on the channels table, populated by the daily cron. Derived
+# from src.channels.DEFAULT_SEASON_START so it auto-rolls when the new
+# European season starts (was hardcoded "2025-08-01").
+from src.channels import DEFAULT_SEASON_START as _DEFAULT_SEASON_START
+SEASON_START_ISO: str = _DEFAULT_SEASON_START
 
 # Size buckets (log-spaced). Used for the size-cohort lens.
 SIZE_BUCKETS = [

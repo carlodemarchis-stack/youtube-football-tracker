@@ -30,7 +30,8 @@ from src.dot import dual_dot, channel_badge
 load_dotenv()
 require_login()
 
-st.title("Season (25/26)")
+from src.channels import current_season_label_safe as _csl
+st.title(f"Season ({_csl()})")
 
 # Heatmap colorscale shared by all three publishing-heatmap renders
 # (Z1, Z2, Z3). Dark for empty/low slots, bright red at the peak so the

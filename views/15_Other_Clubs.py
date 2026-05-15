@@ -456,6 +456,8 @@ if not _mix_long.empty:
     )
     st.plotly_chart(fig, use_container_width=True)
 
+from src.channels import get_season_since as _gss_oc
 st.caption(
-    "Season window: published since the current-season start date (2025-08-01 for European football)."
+    f"Season window: published since the current-season start date "
+    f"({_gss_oc(league='Serie A')} for European football)."
 )

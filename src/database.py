@@ -327,10 +327,13 @@ class Database:
             offset += page_size
         return all_rows
 
-    def get_season_video_rows(self, since: str = "2025-08-01") -> list[dict]:
+    def get_season_video_rows(self, since: str | None = None) -> list[dict]:
         """All videos with published_at >= since (minimal columns).
         Used by daily cron to decide which videos to snapshot.
         Paginates to bypass Supabase's default 1000-row limit."""
+        if since is None:
+            from src.channels import DEFAULT_SEASON_START as _ds
+            since = _ds
         all_rows: list[dict] = []
         page_size = 1000
         offset = 0
@@ -513,11 +516,14 @@ class Database:
                 b, on_conflict="youtube_video_id"
             ).execute())
 
-    def refresh_season_views(self, channel_db_id: str, since: str = "2025-08-01"):
+    def refresh_season_views(self, channel_db_id: str, since: str | None = None):
         """Recompute and store season_views for a channel.
         Paginated — high-output channels (Bayern, Real, leagues) have
         well over 1000 season videos, an unpaginated read would silently
         cap and produce a low season_views total."""
+        if since is None:
+            from src.channels import DEFAULT_SEASON_START as _ds
+            since = _ds
         rows = _fetch_all(
             self.client.table("videos")
             .select("view_count")
@@ -563,10 +569,13 @@ class Database:
         self.client.table("channels").update(update).eq("id", channel_db_id).execute()
         return update
 
-    def refresh_top100_stats(self, channel_db_id: str, since: str = "2025-08-01"):
+    def refresh_top100_stats(self, channel_db_id: str, since: str | None = None):
         """Precompute top-100 stats and store on the channels row."""
         from datetime import datetime as _dt, timezone as _tz
 
+        if since is None:
+            from src.channels import DEFAULT_SEASON_START as _ds
+            since = _ds
         now = _dt.now(_tz.utc)
 
         def _compute(vids: list[dict]) -> dict:
@@ -814,8 +823,11 @@ class Database:
         )
         return _fetch_all(query)
 
-    def get_season_videos_by_channel(self, channel_id: str, since: str = "2025-08-01") -> list[dict]:
+    def get_season_videos_by_channel(self, channel_id: str, since: str | None = None) -> list[dict]:
         """Get all videos for a channel published on or after `since`, ordered by views desc."""
+        if since is None:
+            from src.channels import DEFAULT_SEASON_START as _ds
+            since = _ds
         query = (
             self.client.table("videos")
             .select("*")
@@ -859,10 +871,13 @@ class Database:
         )
         return resp.data or []
 
-    def get_season_videos(self, since: str = "2025-08-01") -> list[dict]:
+    def get_season_videos(self, since: str | None = None) -> list[dict]:
         """All videos published on/after `since` — filtered at the DB level.
         Much faster than get_all_videos() + Python filter when the season
         subset is small vs the full table."""
+        if since is None:
+            from src.channels import DEFAULT_SEASON_START as _ds
+            since = _ds
         query = (
             self.client.table("videos")
             .select("*, channels(name, handle)")
@@ -874,7 +889,7 @@ class Database:
     def get_top_season_videos(
         self,
         channel_ids: list[str] | None = None,
-        since: str = "2025-08-01",
+        since: str | None = None,
         limit: int = 20,
         order_by: str = "view_count",
     ) -> list[dict]:
@@ -887,6 +902,9 @@ class Database:
         """
         if order_by not in ("view_count", "like_count", "comment_count"):
             order_by = "view_count"
+        if since is None:
+            from src.channels import DEFAULT_SEASON_START as _ds
+            since = _ds
         q = (
             self.client.table("videos")
             .select("*, channels(name, handle)")
