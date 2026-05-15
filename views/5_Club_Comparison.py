@@ -18,6 +18,7 @@ from src.analytics import fmt_num, yt_popup_js
 from src.filters import get_global_color_map, get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel, render_page_subtitle
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, get_season_since
 from src.auth import require_premium
+from src.charts import chart_title
 from src.dot import dual_dot, channel_badge
 
 load_dotenv()
@@ -100,13 +101,15 @@ comp_df = comp_df.sort_values("subscriber_count", ascending=False)
 comp_df["_season_views"] = comp_df.apply(lambda r: int(r.get("season_views") or 0), axis=1)
 
 def make_pie(data, val_col, title):
+    chart_title(title)
     fig = px.pie(
         data, values=val_col, names="name",
         color="name", color_discrete_map=color_map,
-        title=title, hole=0.4,
+        hole=0.4,
     )
     fig.update_traces(textposition="inside", textinfo="percent+label")
-    fig.update_layout(showlegend=False, margin=dict(t=40, b=10, l=10, r=10), height=280)
+    fig.update_layout(showlegend=False, margin=dict(t=10, b=10, l=10, r=10),
+                      height=260)
     return fig
 
 # Count season videos per channel

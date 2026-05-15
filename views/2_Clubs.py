@@ -21,6 +21,7 @@ from src.filters import get_global_filter, get_global_channels, get_channels_for
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, get_season_since
 from src.auth import get_current_user, is_admin, require_login
 from src.dot import dual_dot, channel_badge
+from src.charts import chart_title
 
 load_dotenv()
 require_login()
@@ -306,6 +307,7 @@ if league is None and _scope == "Overall":
             return [l, s, v] if _has_live else [l, s]
 
         def _make_pie(values, hover_suffix, title):
+            chart_title(title)
             fig = go.Figure(go.Pie(
                 labels=_pie_labels, values=values,
                 marker=dict(colors=_pie_colors), hole=0.45,
@@ -313,8 +315,8 @@ if league is None and _scope == "Overall":
                 hovertemplate="%{label}: %{value:,.0f} " + hover_suffix + "<extra></extra>",
             ))
             fig.update_layout(
-                title=dict(text=title, x=0.5), showlegend=False, height=300,
-                margin=dict(t=40, b=20, l=20, r=20),
+                showlegend=False, height=260,
+                margin=dict(t=10, b=10, l=10, r=10),
                 paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                 font=dict(color="#FAFAFA"),
             )
@@ -721,6 +723,7 @@ elif club is None:
         return [l, s, v] if _has_live else [l, s]
 
     def _make_pie(values, hover_suffix, title):
+        chart_title(title)
         fig = go.Figure(go.Pie(
             labels=_pie_labels, values=values,
             marker=dict(colors=_pie_colors), hole=0.45,
@@ -728,8 +731,8 @@ elif club is None:
             hovertemplate="%{label}: %{value:,.0f} " + hover_suffix + "<extra></extra>",
         ))
         fig.update_layout(
-            title=dict(text=title, x=0.5), showlegend=False, height=300,
-            margin=dict(t=40, b=20, l=20, r=20),
+            showlegend=False, height=260,
+            margin=dict(t=10, b=10, l=10, r=10),
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
             font=dict(color="#FAFAFA"),
         )
@@ -1111,6 +1114,7 @@ else:
             return [l, s, v] if _has_live else [l, s]
 
         def _make_pie(values, hover_suffix, title):
+            chart_title(title)
             fig = go.Figure(go.Pie(
                 labels=_pie_labels, values=values,
                 marker=dict(colors=_pie_colors), hole=0.45,
@@ -1118,8 +1122,8 @@ else:
                 hovertemplate="%{label}: %{value:,.0f} " + hover_suffix + "<extra></extra>",
             ))
             fig.update_layout(
-                title=dict(text=title, x=0.5), showlegend=False, height=300,
-                margin=dict(t=40, b=20, l=20, r=20),
+                showlegend=False, height=260,
+                margin=dict(t=10, b=10, l=10, r=10),
                 paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                 font=dict(color="#FAFAFA"),
             )

@@ -30,6 +30,7 @@ from src.season_top import (
     render_top_season_videos_table,
 )
 from src.analytics import fmt_num, kpi_row
+from src.charts import chart_title
 
 load_dotenv()
 require_login()
@@ -282,13 +283,12 @@ if top_views:
         hovertemplate="<b>%{label}</b><br>%{value} videos · %{percent}<extra></extra>",
     ))
     fig_fmt.update_layout(
-        title=dict(text=f"Format mix (top {len(top_views)})", x=0.5,
-                   font=dict(color="#FAFAFA", size=14)),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="#FAFAFA"),
-        margin=dict(t=40, b=10, l=10, r=10),
-        height=320, showlegend=False,
+        margin=dict(t=10, b=10, l=10, r=10),
+        height=260, showlegend=False,
     )
+    _t_fmt = f"Format mix (top {len(top_views)})"
 
     if club is None and league is None:
         # Z1: break down the top-100 by league two ways:
@@ -312,7 +312,7 @@ if top_views:
             lg_counts[lg] = lg_counts.get(lg, 0) + 1
             lg_views[lg] = lg_views.get(lg, 0) + int(v.get("view_count") or 0)
 
-        def _lg_pie(values_by_lg: dict[str, int], title: str,
+        def _lg_pie(values_by_lg: dict[str, int],
                      hover_unit: str) -> "_go_pie.Figure":
             sorted_items = sorted(values_by_lg.items(),
                                   key=lambda kv: kv[1], reverse=True)
@@ -328,26 +328,28 @@ if top_views:
                                + hover_unit + " · %{percent}<extra></extra>"),
             ))
             f.update_layout(
-                title=dict(text=title, x=0.5,
-                           font=dict(color="#FAFAFA", size=14)),
                 paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                 font=dict(color="#FAFAFA"),
-                margin=dict(t=40, b=10, l=10, r=10),
-                height=320, showlegend=False,
+                margin=dict(t=10, b=10, l=10, r=10),
+                height=260, showlegend=False,
             )
             return f
 
-        fig_lg_n = _lg_pie(lg_counts,
-                           f"League mix — by count (top {len(top_views)})",
-                           "videos")
-        fig_lg_v = _lg_pie(lg_views,
-                           f"League mix — by views (top {len(top_views)})",
-                           "views")
+        _t_lg_n = f"League mix — by count (top {len(top_views)})"
+        _t_lg_v = f"League mix — by views (top {len(top_views)})"
+        fig_lg_n = _lg_pie(lg_counts, "videos")
+        fig_lg_v = _lg_pie(lg_views, "views")
 
         col_fmt, col_lg_n, col_lg_v = st.columns(3)
-        col_fmt.plotly_chart(fig_fmt, use_container_width=True)
-        col_lg_n.plotly_chart(fig_lg_n, use_container_width=True)
-        col_lg_v.plotly_chart(fig_lg_v, use_container_width=True)
+        with col_fmt:
+            chart_title(_t_fmt)
+            st.plotly_chart(fig_fmt, use_container_width=True)
+        with col_lg_n:
+            chart_title(_t_lg_n)
+            st.plotly_chart(fig_lg_n, use_container_width=True)
+        with col_lg_v:
+            chart_title(_t_lg_v)
+            st.plotly_chart(fig_lg_v, use_container_width=True)
     elif league is not None and club is None:
         # Z2: format pie + same count/views breakdown but grouped by
         # channel within the league (instead of by league).
@@ -361,7 +363,7 @@ if top_views:
 
         _color_map_local = get_global_color_map() or {}
 
-        def _ch_pie(values_by_ch: dict[str, int], title: str,
+        def _ch_pie(values_by_ch: dict[str, int],
                      hover_unit: str) -> "_go_pie.Figure":
             sorted_items = sorted(values_by_ch.items(),
                                   key=lambda kv: kv[1], reverse=True)
@@ -377,26 +379,28 @@ if top_views:
                                + hover_unit + " · %{percent}<extra></extra>"),
             ))
             f.update_layout(
-                title=dict(text=title, x=0.5,
-                           font=dict(color="#FAFAFA", size=14)),
                 paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                 font=dict(color="#FAFAFA"),
-                margin=dict(t=40, b=10, l=10, r=10),
-                height=320, showlegend=False,
+                margin=dict(t=10, b=10, l=10, r=10),
+                height=260, showlegend=False,
             )
             return f
 
-        fig_ch_n = _ch_pie(ch_counts,
-                           f"Club mix — by count (top {len(top_views)})",
-                           "videos")
-        fig_ch_v = _ch_pie(ch_views,
-                           f"Club mix — by views (top {len(top_views)})",
-                           "views")
+        _t_ch_n = f"Club mix — by count (top {len(top_views)})"
+        _t_ch_v = f"Club mix — by views (top {len(top_views)})"
+        fig_ch_n = _ch_pie(ch_counts, "videos")
+        fig_ch_v = _ch_pie(ch_views, "views")
 
         col_fmt, col_ch_n, col_ch_v = st.columns(3)
-        col_fmt.plotly_chart(fig_fmt, use_container_width=True)
-        col_ch_n.plotly_chart(fig_ch_n, use_container_width=True)
-        col_ch_v.plotly_chart(fig_ch_v, use_container_width=True)
+        with col_fmt:
+            chart_title(_t_fmt)
+            st.plotly_chart(fig_fmt, use_container_width=True)
+        with col_ch_n:
+            chart_title(_t_ch_n)
+            st.plotly_chart(fig_ch_n, use_container_width=True)
+        with col_ch_v:
+            chart_title(_t_ch_v)
+            st.plotly_chart(fig_ch_v, use_container_width=True)
     # Z3 falls through here with nothing to render — the format
     # breakdown is already inline in the KPI bar above.
 

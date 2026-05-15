@@ -26,6 +26,7 @@ from src.filters import get_global_filter, get_global_channels, get_channels_for
 from src.auth import require_login
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, LEAGUE_COLOR, LEAGUE_COLOR_CHART, get_season_since, LEAGUE_SEASON_START
 from src.dot import dual_dot, channel_badge
+from src.charts import chart_title
 
 load_dotenv()
 require_login()
@@ -496,12 +497,9 @@ if league is None and _scope == "Overall":
         )
         return fig
 
-    def _pie_title(text: str) -> None:
-        st.markdown(
-            f"<div style='text-align:center;font-weight:600;font-size:15px;"
-            f"color:#FAFAFA;margin:0 0 -6px 0'>{text}</div>",
-            unsafe_allow_html=True,
-        )
+    # Centred caption above each donut — shared so every KPI→donut
+    # surface stays visually identical (src.charts).
+    from src.charts import chart_title as _pie_title
 
     col_p1, col_p2, col_p3, col_p4, col_p5 = st.columns(5)
     with col_p1:
@@ -1574,14 +1572,15 @@ if club is None:
     total_live_comments = int(df["live_comments"].sum())
 
     def _make_pie_lg(values, labels, colors, hover_suffix, title):
+        chart_title(title)
         fig = go.Figure(go.Pie(
             labels=labels, values=values, marker=dict(colors=colors), hole=0.45,
             textinfo="percent+label", textposition="inside",
             hovertemplate="%{label}: %{value:,.0f} " + hover_suffix + "<extra></extra>",
         ))
         fig.update_layout(
-            title=dict(text=title, x=0.5), showlegend=False, height=300,
-            margin=dict(t=40, b=20, l=20, r=20),
+            showlegend=False, height=260,
+            margin=dict(t=10, b=10, l=10, r=10),
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
             font=dict(color="#FAFAFA"),
         )
@@ -2413,14 +2412,15 @@ else:
 
     # Pie charts row
     def _make_pie_club(values, labels, colors, hover_suffix, title):
+        chart_title(title)
         fig = go.Figure(go.Pie(
             labels=labels, values=values, marker=dict(colors=colors), hole=0.45,
             textinfo="percent+label", textposition="inside",
             hovertemplate="%{label}: %{value:,.0f} " + hover_suffix + "<extra></extra>",
         ))
         fig.update_layout(
-            title=dict(text=title, x=0.5), showlegend=False, height=300,
-            margin=dict(t=40, b=20, l=20, r=20),
+            showlegend=False, height=260,
+            margin=dict(t=10, b=10, l=10, r=10),
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
             font=dict(color="#FAFAFA"),
         )
