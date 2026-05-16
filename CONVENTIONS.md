@@ -250,6 +250,19 @@ Consistent vertical structure for every content page:
   WomenClub)` and `competitions.wc2026`-tagged channels.
 - Each tangential type has its own isolated daily cron; pausing or
   killing one must not affect the main pipeline.
+- Isolation is **tag-based** in `src/filters.py` (`is_wc2026()` wired
+  into `is_club()` / `get_channels_for_filter()`), so it holds even if
+  a WC2026 channel isn't a Federation/GoverningBody. Some view files
+  still isolate by `entity_type`-only inline (Latest, Top Videos,
+  Daily Recap `_non_player_ids`) — safe today (all WC2026 are
+  Federation/GoverningBody) but a pending cleanup to make fully
+  tag-robust.
+- **WC2026 collects videos** (lightweight: `videos` +
+  `video_snapshots` + `video_daily_deltas`, rolling 30-day window,
+  scoped to WC2026 channels, no top100/season precompute). Because of
+  the isolation above these never reach core surfaces. The per-video
+  time-series can only be built going forward, hence collection runs
+  continuously from now.
 - **Hard rule, not a style default** — never relax without explicit
   instruction.
 
