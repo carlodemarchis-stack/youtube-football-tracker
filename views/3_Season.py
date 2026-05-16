@@ -442,12 +442,12 @@ if league is None and _scope == "Overall":
     avg_vpv = total_views // max(total_videos, 1)
     eng_rate = ((total_likes + total_comments) / total_views * 100) if total_views else 0.0
     st.markdown(kpi_row([
-        ("Total Season Views",  fmt_num(total_views)),
-        ("Total Season Videos", fmt_num(total_videos)),
-        ("Avg Views/Video",     fmt_num(avg_vpv)),
-        ("Total Likes",         fmt_num(total_likes)),
-        ("Total Comments",      fmt_num(total_comments)),
-        ("Engagement Rate",     f"{eng_rate:.2f}%"),
+        ("👁️ Total Season Views",  fmt_num(total_views)),
+        ("🎬 Total Season Videos", fmt_num(total_videos)),
+        ("🎯 Avg Views/Video",     fmt_num(avg_vpv)),
+        ("❤️ Total Likes",         fmt_num(total_likes)),
+        ("💬 Total Comments",      fmt_num(total_comments)),
+        ("⚡ Engagement Rate",     f"{eng_rate:.2f}%"),
     ]), unsafe_allow_html=True)
 
     # Pie charts: long/short/live split
@@ -1540,12 +1540,12 @@ if club is None:
 
     # KPI banner row (likes/comments + engagement rate alongside pie totals)
     st.markdown(kpi_row([
-        ("Total Views",     fmt_num(total_views)),
-        ("Total Videos",    fmt_num(total_videos)),
-        ("Avg Views/Video", fmt_num(total_views // max(total_videos, 1))),
-        ("Total Likes",     fmt_num(total_likes)),
-        ("Total Comments",  fmt_num(total_comments)),
-        ("Engagement Rate", f"{total_eng_rate:.2f}%"),
+        ("👁️ Total Views",     fmt_num(total_views)),
+        ("🎬 Total Videos",    fmt_num(total_videos)),
+        ("🎯 Avg Views/Video", fmt_num(total_views // max(total_videos, 1))),
+        ("❤️ Total Likes",     fmt_num(total_likes)),
+        ("💬 Total Comments",  fmt_num(total_comments)),
+        ("⚡ Engagement Rate", f"{total_eng_rate:.2f}%"),
     ]), unsafe_allow_html=True)
 
     # Pie charts: long/short split
@@ -2402,12 +2402,12 @@ else:
         return m.group(1).strip() if m else ""
 
     st.markdown(kpi_row([
-        ("Total Views",     fmt_num(_total_v_banner),     _rank_subtitle_z3("views")),
-        ("Total Videos",    fmt_num(_total_n_banner),     _rank_subtitle_z3("videos")),
-        ("Avg Views/Video", fmt_num(_avg_vpv_banner),     _rank_subtitle_z3("vpv")),
-        ("Total Likes",     fmt_num(total_likes),         _rank_subtitle_z3("likes")),
-        ("Total Comments",  fmt_num(total_comments),      _rank_subtitle_z3("comments")),
-        ("Engagement Rate", f"{_eng_rate:.2f}%",           _rank_subtitle_z3("eng")),
+        ("👁️ Total Views",     fmt_num(_total_v_banner),     _rank_subtitle_z3("views")),
+        ("🎬 Total Videos",    fmt_num(_total_n_banner),     _rank_subtitle_z3("videos")),
+        ("🎯 Avg Views/Video", fmt_num(_avg_vpv_banner),     _rank_subtitle_z3("vpv")),
+        ("❤️ Total Likes",     fmt_num(total_likes),         _rank_subtitle_z3("likes")),
+        ("💬 Total Comments",  fmt_num(total_comments),      _rank_subtitle_z3("comments")),
+        ("⚡ Engagement Rate", f"{_eng_rate:.2f}%",           _rank_subtitle_z3("eng")),
     ]), unsafe_allow_html=True)
 
     # Pie charts row
@@ -2710,10 +2710,10 @@ else:
     pct_videos_to_80 = (n_to_80 / n_total * 100.0) if n_total else 0.0
 
     st.markdown(kpi_row([
-        ("Top video",     f"{top1_pct:.0f}% of views"),
-        ("Top 10 videos", f"{top10_pct:.0f}% of views"),
-        (f"Top 20% ({top20pct_n} videos)", f"{top20pct_pct:.0f}% of views"),
-        ("Median vs Avg", f"{_fmt(int(median_v))} / {_fmt(int(avg_v))}"),
+        ("🔥 Top video",     f"{top1_pct:.0f}% of views"),
+        ("🔥 Top 10 videos", f"{top10_pct:.0f}% of views"),
+        (f"🔥 Top 20% ({top20pct_n} videos)", f"{top20pct_pct:.0f}% of views"),
+        ("👁️ Median vs Avg", f"{_fmt(int(median_v))} / {_fmt(int(avg_v))}"),
     ]), unsafe_allow_html=True)
 
     fig_par = go.Figure()

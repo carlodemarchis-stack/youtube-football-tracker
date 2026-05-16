@@ -74,10 +74,10 @@ _tot_views = sum(int(c.get("total_views") or 0) for c in clubs_o)
 _tot_videos = sum(int(c.get("video_count") or 0) for c in clubs_o)
 
 st.markdown(kpi_row([
-    ("Clubs tracked",       str(len(clubs_o))),
-    ("Total subscribers", fmt_num(_tot_subs)),
-    ("Total views",       fmt_num(_tot_views)),
-    ("Total videos",      fmt_num(_tot_videos)),
+    ("📡 Clubs tracked",       str(len(clubs_o))),
+    ("👥 Total subscribers", fmt_num(_tot_subs)),
+    ("👁️ Total views",       fmt_num(_tot_views)),
+    ("🎬 Total videos",      fmt_num(_tot_videos)),
 ]), unsafe_allow_html=True)
 
 # ── Helpers ──────────────────────────────────────────────────

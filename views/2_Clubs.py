@@ -276,11 +276,11 @@ if league is None and _scope == "Overall":
         tot_vps = tot["total_views"] // max(tot["total_subs"], 1)
         tot_avg_v = tot["total_views"] // max(tot["total_videos"], 1)
         st.markdown(kpi_row([
-            ("Total Subscribers", fmt_num(tot["total_subs"])),
-            ("Total Views",       fmt_num(tot["total_views"])),
-            ("Views/Sub",         fmt_num(tot_vps)),
-            ("Total Videos",      fmt_num(tot["total_videos"])),
-            ("Avg Views/Video",   fmt_num(tot_avg_v)),
+            ("👥 Total Subscribers", fmt_num(tot["total_subs"])),
+            ("👁️ Total Views",       fmt_num(tot["total_views"])),
+            ("🎯 Views/Sub",         fmt_num(tot_vps)),
+            ("🎬 Total Videos",      fmt_num(tot["total_videos"])),
+            ("🎯 Avg Views/Video",   fmt_num(tot_avg_v)),
         ]), unsafe_allow_html=True)
 
         # ── 3 pies: where the lifetime views / videos / per-video
@@ -696,11 +696,11 @@ elif club is None:
     avg_vpv = total_views // max(total_videos, 1)
     avg_vps = total_views // max(total_subs, 1)
     st.markdown(kpi_row([
-        ("Total Subscribers", fmt_num(total_subs)),
-        ("Total Views",       fmt_num(total_views)),
-        ("Views/Sub",         fmt_num(avg_vps)),
-        ("Total Videos",      fmt_num(total_videos)),
-        ("Avg Views/Video",   fmt_num(avg_vpv)),
+        ("👥 Total Subscribers", fmt_num(total_subs)),
+        ("👁️ Total Views",       fmt_num(total_views)),
+        ("🎯 Views/Sub",         fmt_num(avg_vps)),
+        ("🎬 Total Videos",      fmt_num(total_videos)),
+        ("🎯 Avg Views/Video",   fmt_num(avg_vpv)),
     ]), unsafe_allow_html=True)
     if not clubs_only:
         st.info("No clubs in this league yet.")
@@ -1085,11 +1085,11 @@ else:
         return " · ".join(parts)
 
     st.markdown(kpi_row([
-        ("Total Subscribers", fmt_num(subs_ch),         _rank_subtitle("subs")),
-        ("Total Views",       fmt_num(total_views_ch), _rank_subtitle("views")),
-        ("Views/Sub",         fmt_num(vps_ch),         _rank_subtitle("vps")),
-        ("Total Videos",      fmt_num(video_count_ch), _rank_subtitle("videos")),
-        ("Avg Views/Video",   fmt_num(avg_vpv_ch),     _rank_subtitle("vpv")),
+        ("👥 Total Subscribers", fmt_num(subs_ch),         _rank_subtitle("subs")),
+        ("👁️ Total Views",       fmt_num(total_views_ch), _rank_subtitle("views")),
+        ("🎯 Views/Sub",         fmt_num(vps_ch),         _rank_subtitle("vps")),
+        ("🎬 Total Videos",      fmt_num(video_count_ch), _rank_subtitle("videos")),
+        ("🎯 Avg Views/Video",   fmt_num(avg_vpv_ch),     _rank_subtitle("vpv")),
     ]), unsafe_allow_html=True)
 
     # ── 3 lifetime per-format donuts — same set used at All-Leagues
@@ -1291,12 +1291,12 @@ else:
             _since_label = "all-time"
 
         st.markdown(kpi_row([
-            ("Subs Δ 7d",                 _sgn(d7)),
-            ("Subs Δ 30d",                _sgn(d30)),
-            (f"Subs {_since_label}",      _sgn(dssn)),
-            ("Views Δ 7d",                _sgn(v7)),
-            ("Views Δ 30d",               _sgn(v30)),
-            (f"Views {_since_label}",     _sgn(vssn)),
+            ("👥 Subs Δ 7d",                 _sgn(d7)),
+            ("👥 Subs Δ 30d",                _sgn(d30)),
+            (f"👥 Subs {_since_label}",      _sgn(dssn)),
+            ("👁️ Views Δ 7d",                _sgn(v7)),
+            ("👁️ Views Δ 30d",               _sgn(v30)),
+            (f"👁️ Views {_since_label}",     _sgn(vssn)),
         ]), unsafe_allow_html=True)
 
     # ── Top + Top Season + Latest video rows ────────────────────

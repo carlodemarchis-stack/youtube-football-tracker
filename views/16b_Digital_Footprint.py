@@ -674,19 +674,19 @@ def render_z3(c: dict) -> None:
         _vendor = (_t.get("vendor_chain") or [_t.get("vendor")] if _t.get("vendor") else [None])[0]
 
         st.markdown(kpi_row([
-            (f"LCP {_rate_lcp(_lcp)}",
+            (f"⚡ LCP {_rate_lcp(_lcp)}",
                 _fmt_ms(_lcp) if _lcp else "—",
                 _rank_pill(_lcp_r[0], _lcp_r[1], league)),
-            ("Wiki views (12mo)",
+            ("📖 Wiki views (12mo)",
                 fmt_num(_wv) if _wv else "—",
                 _rank_pill(_wv_r[0], _wv_r[1], league)),
-            ("iOS rating",
+            ("⭐ iOS rating",
                 f"{_r:.1f}★" if _r else "—",
                 _rank_pill(_r_r[0], _r_r[1], league)),
-            ("Language versions",
+            ("🌐 Language versions",
                 str(_loc) if _loc else "—",
                 _langs_str),
-            ("Primary vendor", _vendor or "—",
+            ("🏢 Primary vendor", _vendor or "—",
                 "Sport-tech / platform"),
         ]), unsafe_allow_html=True)
         st.caption("Switch to any tab above for the deep dive on that area.")
@@ -912,13 +912,13 @@ def render_z3(c: dict) -> None:
                     unsafe_allow_html=True,
                 )
                 st.markdown(kpi_row([
-                    ("<span title='Lighthouse Accessibility score 0–100. Audits things like color contrast, alt text on images, ARIA labels, keyboard navigation, form labels. Synthetic but reliable — same checklist Google runs.' style='cursor:help'>Accessibility</span>",
+                    ("♿ <span title='Lighthouse Accessibility score 0–100. Audits things like color contrast, alt text on images, ARIA labels, keyboard navigation, form labels. Synthetic but reliable — same checklist Google runs.' style='cursor:help'>Accessibility</span>",
                         str(a11y) if a11y is not None else "—",
                         _rank_pill(a11y_r[0], a11y_r[1], league)),
-                    ("<span title='Lighthouse SEO score 0–100. Audits crawlability, meta tags, structured data, mobile friendliness, link practices. Synthetic but reliable signal for search-engine fitness.' style='cursor:help'>SEO</span>",
+                    ("🔍 <span title='Lighthouse SEO score 0–100. Audits crawlability, meta tags, structured data, mobile friendliness, link practices. Synthetic but reliable signal for search-engine fitness.' style='cursor:help'>SEO</span>",
                         str(seo) if seo is not None else "—",
                         _rank_pill(seo_r[0], seo_r[1], league)),
-                    ("<span title='Lighthouse Best Practices score 0–100. Audits HTTPS, deprecated APIs, console errors, image aspect ratios, security headers. Generic web-hygiene checklist.' style='cursor:help'>Best practices</span>",
+                    ("✅ <span title='Lighthouse Best Practices score 0–100. Audits HTTPS, deprecated APIs, console errors, image aspect ratios, security headers. Generic web-hygiene checklist.' style='cursor:help'>Best practices</span>",
                         str(bp) if bp is not None else "—",
                         _rank_pill(bp_r[0], bp_r[1], league)),
                 ]), unsafe_allow_html=True)
@@ -1422,12 +1422,12 @@ else:
     all_pages = [p for p in (_safe(c, "sitemap", "pages")
                               for c in all_channels) if p]
     st.markdown(kpi_row([
-        ("Leagues", str(n_leagues), ""),
-        ("Channels in snapshot", str(covered), ""),
-        ("With iOS app", f"{apps_n}/{covered}", ""),
-        ("Median real LCP", _fmt_ms(sorted(all_lcp)[len(all_lcp)//2])
+        ("🏆 Leagues", str(n_leagues), ""),
+        ("📡 Channels in snapshot", str(covered), ""),
+        ("📱 With iOS app", f"{apps_n}/{covered}", ""),
+        ("⚡ Median real LCP", _fmt_ms(sorted(all_lcp)[len(all_lcp)//2])
             if all_lcp else "—", ""),
-        ("Total pages", fmt_num(sum(all_pages)) if all_pages else "—", ""),
+        ("📄 Total pages", fmt_num(sum(all_pages)) if all_pages else "—", ""),
     ]), unsafe_allow_html=True)
     _flat_table(all_channels)
 

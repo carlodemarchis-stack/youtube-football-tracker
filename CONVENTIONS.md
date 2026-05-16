@@ -49,7 +49,17 @@ Status legend: ✅ enforced via shared code · 📝 documented, applied by hand
 - **Canonical metric emoji** (used as the KPI-label prefix, §4 — same
   emoji = same metric on every page):
   👁️ Views · 🎬 Videos · 🎯 Views/Video · ❤️ Likes · 💬 Comments ·
-  ⚡ Engagement · 👥 Subscribers · 📺 Long/Shorts/Live · 🔥 Top/most
+  ⚡ Engagement · 👥 Subscribers · 📺 Long/Shorts/Live · 🔥 Top/most ·
+  📡 entity/channel count · ⏱️ age · 🚀 momentum/pace.
+  **Views/Sub** reuses 🎯 (it's the same per-X ratio family as
+  Views/Video — a deliberate grouping, not a new metric).
+- **Domain pages outside the YouTube-metric vocabulary** (Digital
+  Footprint web-perf, Quota Monitor API keys, Outliers profile axes)
+  keep emoji-prefixed KPI labels but with **page-appropriate icons**
+  (e.g. ⚡ LCP · 📖 Wiki · ⭐ rating · ♿ a11y · 🔍 SEO · ✅ best-practices
+  · 🔑 API key) — a deliberate exemption from the metric map above, not
+  drift. The §4 "lead with an emoji" rule still applies; only the
+  symbol set differs because the metric isn't a YouTube metric.
 - **Format split (Long / Shorts / Live)** — order and colors (§1) are
   always fixed. Presentation has **two sanctioned forms; pick per page
   by whether per-format sorting adds value**:

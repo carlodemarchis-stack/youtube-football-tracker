@@ -142,11 +142,11 @@ if alts:
 st.markdown(kpi_row([
     # Total = primary (teams + FIFA + 6 confederations) + alt channels.
     # Subscribers / Views / Videos already sum over `wc` (primary + alts).
-    ("Channels", str(len(wc)), ch_sub),
-    ("Subscribers", fmt_num(total_subs), ""),
-    ("Views",       fmt_num(total_views), ""),
-    ("Videos",      fmt_num(total_videos), ""),
-    ("Views / video", fmt_num(avg_vpv), ""),
+    ("📡 Channels", str(len(wc)), ch_sub),
+    ("👥 Subscribers", fmt_num(total_subs), ""),
+    ("👁️ Views",       fmt_num(total_views), ""),
+    ("🎬 Videos",      fmt_num(total_videos), ""),
+    ("🎯 Views / video", fmt_num(avg_vpv), ""),
 ]), unsafe_allow_html=True)
 
 

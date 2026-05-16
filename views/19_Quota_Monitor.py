@@ -174,7 +174,7 @@ if by_key_today:
             f"{pct}% of 10,000"
             + (f" · {b['rotations_from']}↪" if b["rotations_from"] else "")
         )
-        cards.append((env_name, f"{b['units']:,}", subtitle))
+        cards.append((f"🔑 {env_name}", f"{b['units']:,}", subtitle))
     st.markdown(kpi_row(cards), unsafe_allow_html=True)
 else:
     st.info("No quota data logged yet today. Counters will appear here "

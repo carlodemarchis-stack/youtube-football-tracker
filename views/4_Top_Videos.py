@@ -246,11 +246,11 @@ try:
         unsafe_allow_html=True,
     )
     st.markdown(_kpi_row([
-        ("Total views (top 100)", fmt_num(_ctx_total),    _row1_subs.get("total", "")),
-        ("Share of lifetime",     f"{_ctx_pct:.1f}%",     _row1_subs.get("share", "")),
-        ("Avg views / video",     fmt_num(_ctx_avg),      _row1_subs.get("avg", "")),
-        ("Cutoff (rank 100)",     fmt_num(_ctx_cutoff)),
-        ("Avg age",               f"{_ctx_avg_age:.1f}y", _row1_subs.get("age", "")),
+        ("👁️ Total views (top 100)", fmt_num(_ctx_total),    _row1_subs.get("total", "")),
+        ("🔥 Share of lifetime",     f"{_ctx_pct:.1f}%",     _row1_subs.get("share", "")),
+        ("🎯 Avg views / video",     fmt_num(_ctx_avg),      _row1_subs.get("avg", "")),
+        ("👁️ Cutoff (rank 100)",     fmt_num(_ctx_cutoff)),
+        ("⏱️ Avg age",               f"{_ctx_avg_age:.1f}y", _row1_subs.get("age", "")),
     ], colors=["#58A6FF", "#00CC96", "#FFA15A", "#AB63FA", "#EF553B"]),
                 unsafe_allow_html=True)
 

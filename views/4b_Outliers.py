@@ -228,6 +228,9 @@ if g_club:
 
     # 8 metrics in 2 rows of 4 — keeps each cell legible at typical viewports.
     AXES_ORDER = ("vps", "vpv", "spv", "spy", "vpy", "shorts_share", "engagement", "pace_change")
+    _AX_EMOJI = {"vps": "🎯", "vpv": "🎯", "spv": "👥", "spy": "👥",
+                 "vpy": "🎬", "shorts_share": "📺", "engagement": "⚡",
+                 "pace_change": "🚀"}
 
     def _format_metric(axis: str, val):
         if val is None:
@@ -244,7 +247,7 @@ if g_club:
 
     for row_start in (0, 4):
         st.markdown(kpi_row([
-            (_prof.AXIS_LABEL[axis], _format_metric(axis, r.get(axis)))
+            (f"{_AX_EMOJI.get(axis, '')} {_prof.AXIS_LABEL[axis]}".strip(), _format_metric(axis, r.get(axis)))
             for axis in AXES_ORDER[row_start:row_start + 4]
         ]), unsafe_allow_html=True)
     st.stop()

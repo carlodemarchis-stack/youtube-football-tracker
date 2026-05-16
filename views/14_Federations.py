@@ -74,10 +74,10 @@ _tot_views = sum(int(c.get("total_views") or 0) for c in feds)
 _tot_videos = sum(int(c.get("video_count") or 0) for c in feds)
 
 st.markdown(kpi_row([
-    ("Federations tracked",       str(len(feds))),
-    ("Total subscribers", fmt_num(_tot_subs)),
-    ("Total views",       fmt_num(_tot_views)),
-    ("Total videos",      fmt_num(_tot_videos)),
+    ("📡 Federations tracked",       str(len(feds))),
+    ("👥 Total subscribers", fmt_num(_tot_subs)),
+    ("👁️ Total views",       fmt_num(_tot_views)),
+    ("🎬 Total videos",      fmt_num(_tot_videos)),
 ]), unsafe_allow_html=True)
 
 # ── Helpers ──────────────────────────────────────────────────
