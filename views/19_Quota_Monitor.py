@@ -22,6 +22,7 @@ import streamlit as st
 from dotenv import load_dotenv
 
 from src.analytics import fmt_num, kpi_row
+from src.charts import readable_hover
 from src.auth import require_admin
 from src.database import admin_db
 from src.youtube_api import quota_date_iso  # PT-aligned "today"
@@ -287,6 +288,7 @@ if rows:
     # comparable across days and a bar visibly hitting the top means
     # the key actually maxed out.
     fig.update_yaxes(gridcolor="#262730", range=[0, 10000], dtick=2000)
+    readable_hover(fig, x_date=True)
     st.plotly_chart(fig, use_container_width=True)
 
     with st.expander("Raw data"):

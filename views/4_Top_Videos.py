@@ -20,6 +20,7 @@ from src.cached_db import (
 from src.analytics import compute_channel_comparison, compute_tier_stats, compute_theme_distribution, fmt_num, yt_popup_js, CATEGORY_COLORS
 from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope, render_page_subtitle
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, league_with_flag
+from src.charts import readable_hover
 from src.auth import require_login
 from src.dot import dual_dot, channel_badge
 
@@ -475,6 +476,7 @@ fig_year = px.bar(year_counts, x="year", y="count",
                   labels={"year": "Year", "count": "Videos in Top 100"},
                   color_discrete_sequence=["#636EFA"])
 fig_year.update_layout(xaxis=dict(dtick=1, title="Year"), yaxis_title="Videos in Top 100", margin=dict(t=20, b=40))
+readable_hover(fig_year, x_date=False)
 st.plotly_chart(fig_year, use_container_width=True)
 
 # ── Theme Distribution ────────────────────────────────────────

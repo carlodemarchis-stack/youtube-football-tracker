@@ -18,7 +18,7 @@ from src.analytics import fmt_num, yt_popup_js
 from src.filters import get_global_color_map, get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel, render_page_subtitle
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, get_season_since
 from src.auth import require_premium
-from src.charts import chart_title
+from src.charts import chart_title, readable_hover
 from src.dot import dual_dot, channel_badge
 
 load_dotenv()
@@ -110,6 +110,7 @@ def make_pie(data, val_col, title):
     fig.update_traces(textposition="inside", textinfo="percent+label")
     fig.update_layout(showlegend=False, margin=dict(t=10, b=10, l=10, r=10),
                       height=260)
+    readable_hover(fig)
     return fig
 
 # Count season videos per channel

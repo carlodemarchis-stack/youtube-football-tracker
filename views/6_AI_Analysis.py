@@ -13,6 +13,7 @@ from src.cached_db import (
     get_last_fetch_time as _cached_last_fetch,
 )
 from src.analytics import fmt_num, kpi_row
+from src.charts import readable_hover
 from src.filters import get_global_filter, get_global_channels, render_page_subtitle
 from src.auth import require_premium
 
@@ -147,6 +148,7 @@ if video_themes_map and videos:
 
     fig_ct = px.pie(ct_stats, names="custom_theme", values="count", hole=0.4)
     fig_ct.update_layout(legend_title="Theme")
+    readable_hover(fig_ct)
     st.plotly_chart(fig_ct, use_container_width=True)
 
     ct_display = ct_stats.copy()
@@ -176,6 +178,7 @@ elif data.get("custom_themes"):
     if not ct_df.empty and "theme" in ct_df.columns:
         fig_ct = px.pie(ct_df, names="theme", values="count", hole=0.4)
         fig_ct.update_layout(legend_title="Theme")
+        readable_hover(fig_ct)
         st.plotly_chart(fig_ct, use_container_width=True)
 
 # Content Themes
@@ -214,6 +217,7 @@ if data.get("era_analysis"):
                          labels={"period": "Period", "avg_views": "Avg Views", "video_count": "Videos"})
         fig_era.update_layout(margin=dict(t=20, b=40))
         fig_era.update_traces(texttemplate="%{text} videos", textposition="outside")
+        readable_hover(fig_era, x_date=False)
         st.plotly_chart(fig_era, use_container_width=True)
 
     for era in data["era_analysis"]:
@@ -313,6 +317,7 @@ if data.get("season_monthly"):
                              labels={"month": "Month", "total_views": "Total Views", "video_count": "Videos"})
         fig_monthly.update_layout(margin=dict(t=20, b=40))
         fig_monthly.update_traces(texttemplate="%{text} videos", textposition="outside")
+        readable_hover(fig_monthly, x_date=False)
         st.plotly_chart(fig_monthly, use_container_width=True)
 
     for m in data["season_monthly"]:

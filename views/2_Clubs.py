@@ -21,7 +21,7 @@ from src.filters import get_global_filter, get_global_channels, get_channels_for
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, get_season_since
 from src.auth import get_current_user, is_admin, require_login
 from src.dot import dual_dot, channel_badge
-from src.charts import chart_title
+from src.charts import chart_title, readable_hover
 
 load_dotenv()
 require_login()
@@ -452,6 +452,7 @@ if league is None and _scope == "Overall":
             fig.update_layout(showlegend=False, xaxis_title="", yaxis_title="",
                               xaxis=dict(tickangle=-30),
                               margin=dict(t=40, b=20))
+            readable_hover(fig, x_date=False)
             return fig
 
         # Stacked: Videos by league — Long / Shorts / Live. Legend on top
@@ -476,6 +477,7 @@ if league is None and _scope == "Overall":
             showlegend=False,
             margin=dict(t=40, b=20, l=10, r=10),
         )
+        readable_hover(fig_stack, x_date=False)
 
         charts = [
             make_league_bar(lg_df, "total_subs", "Subscribers by League"),
@@ -884,6 +886,7 @@ elif club is None:
         fig = px.bar(data, x="name", y=y_col, color="name", color_discrete_map=color_map, title=title,
                      category_orders={"name": sorted_names})
         fig.update_layout(showlegend=False, xaxis_title="", yaxis_title="", margin=dict(t=40, b=20))
+        readable_hover(fig, x_date=False)
         return fig
 
     # Stacked bar: Videos by channel — Long / Shorts / Live
@@ -901,6 +904,7 @@ elif club is None:
                     xanchor="center", x=0.5),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(color="#FAFAFA"),
     )
+    readable_hover(fig_vids, x_date=False)
 
     _charts = [
         make_bar(df, "subscriber_count", "Total Subscribers per Channel"),
@@ -1240,6 +1244,7 @@ else:
                 paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                 font=dict(color="#FAFAFA"),
             )
+            readable_hover(fig_pub_trend, x_date=True)
 
     if fig_views_trend or fig_pub_trend:
         _tcols = st.columns(2)

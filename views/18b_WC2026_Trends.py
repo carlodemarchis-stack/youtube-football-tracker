@@ -26,6 +26,7 @@ from dotenv import load_dotenv
 from src.database import Database
 from src.cached_db import get_all_channels as _cached_channels
 from src.analytics import fmt_num, fmt_date, kpi_row
+from src.charts import readable_hover
 from src.auth import require_login
 from src.dot import flag_span, dual_dot
 from src import theme as _T
@@ -314,6 +315,7 @@ with gc1:
     fv.update_layout(**_PLOT)
     fv.update_xaxes(gridcolor=_T.BORDER, tickformat="%b %d", title="")
     fv.update_yaxes(gridcolor=_T.BORDER, title="")
+    readable_hover(fv, x_date=True)
     st.plotly_chart(fv, use_container_width=True)
 with gc2:
     st.subheader("🎬 Videos added per day")
@@ -328,6 +330,7 @@ with gc2:
                                  title=""))
     fl.update_xaxes(gridcolor=_T.BORDER, tickformat="%b %d", title="")
     fl.update_yaxes(gridcolor=_T.BORDER, title="")
+    readable_hover(fl, x_date=True)
     st.plotly_chart(fl, use_container_width=True)
 
 st.caption(

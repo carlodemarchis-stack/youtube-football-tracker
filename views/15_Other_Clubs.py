@@ -30,6 +30,7 @@ from src.cached_db import (
     get_last_upload_via_youtube as _cached_last_upload_yt,
 )
 from src.analytics import fmt_num, kpi_row
+from src.charts import readable_hover
 from src.auth import require_login
 from src.filters import (
     get_global_channels, get_global_color_map, get_global_color_map_dual,
@@ -300,6 +301,7 @@ with col1:
         log_y=log_scale,
     )
     fig.update_layout(showlegend=False, xaxis_title="", margin=dict(t=40, b=40))
+    readable_hover(fig, x_date=False)
     st.plotly_chart(fig, use_container_width=True)
 with col2:
     fig = px.bar(
@@ -309,6 +311,7 @@ with col2:
         title="Subscribers / year (normalised for channel age)",
     )
     fig.update_layout(showlegend=False, xaxis_title="", margin=dict(t=40, b=40))
+    readable_hover(fig, x_date=False)
     st.plotly_chart(fig, use_container_width=True)
 
 # ── Posting activity ─────────────────────────────────────────
@@ -454,6 +457,7 @@ if not _mix_long.empty:
         barmode="stack", xaxis_title="", yaxis_title="Season videos",
         margin=dict(t=40, b=40), legend_title_text="",
     )
+    readable_hover(fig, x_date=False)
     st.plotly_chart(fig, use_container_width=True)
 
 from src.channels import get_season_since as _gss_oc
