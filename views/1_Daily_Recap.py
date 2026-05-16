@@ -953,6 +953,38 @@ _season_views = {c["id"]: int(c.get("season_views", 0) or 0) for c in all_channe
 
 _gainer_tbl_idx = 0
 
+def _ch_yt_url(ch: dict) -> str:
+    """Channel's YouTube URL per CONVENTIONS §6-A:
+    youtube_url → @handle → /channel/<id>. (Records carry `handle`
+    incl. the leading @, and `youtube_channel_id`.)"""
+    if not ch:
+        return ""
+    u = (ch.get("youtube_url") or "").strip()
+    if u:
+        return u
+    h = (ch.get("handle") or "").strip()
+    if h:
+        return f"https://www.youtube.com/{h}"
+    cid = (ch.get("youtube_channel_id") or "").strip()
+    return f"https://www.youtube.com/channel/{cid}" if cid else ""
+
+
+def _ch_name_link(ch: dict, name: str | None = None) -> str:
+    """Channel name as a new-tab link to its YouTube page — colour
+    inherits (no Streamlit blue), underline on hover. Plain text when
+    no URL is resolvable. §6-A identity-cell rule."""
+    nm = name if name is not None else (ch or {}).get("name", "")
+    url = _ch_yt_url(ch)
+    if not url:
+        return nm
+    return (
+        f'<a href="{url}" target="_blank" rel="noopener" '
+        f'style="color:inherit;text-decoration:none" '
+        f'onmouseover="this.style.textDecoration=\'underline\'" '
+        f'onmouseout="this.style.textDecoration=\'none\'">{nm}</a>'
+    )
+
+
 def _gainer_table(metric: str, title: str, icon: str, positive_is_good: bool = True) -> tuple[str, int]:
     """Returns (html, n_rows) so the caller can size the iframe correctly.
     Up to 25 rows, but on quiet days far fewer — hardcoding height=900 left
@@ -1002,7 +1034,7 @@ def _gainer_table(metric: str, title: str, icon: str, positive_is_good: bool = T
         rows_html += f"""<tr>
             <td style="padding:5px 10px;color:{_T.MUTED}">{i}</td>
             <td style="padding:5px 10px">{dot}</td>
-            <td style="padding:5px 10px">{g['name']}</td>
+            <td style="padding:5px 10px">{_ch_name_link(ch_by_id.get(g['id']) or {}, g['name'])}</td>
             <td style="padding:5px 10px;text-align:right" data-val="{g['latest']}">{fmt_num(g['latest'])}</td>
             {season_col}
             <td style="padding:5px 10px;text-align:right;color:{col}" data-val="{g['delta']}">{sgn}{fmt_num(g['delta'])}</td>
@@ -1091,14 +1123,15 @@ if not ONE_CLUB:
                 pub_html += f"""<tr>
                     <td style="padding:5px 10px;color:{_T.MUTED}">{i}</td>
                     <td style="padding:5px 10px">{dot}</td>
-                    <td style="padding:5px 10px">{r['name']}</td>
+                    <td style="padding:5px 10px">{_ch_name_link(r.get('_ch') or {}, r['name'])}</td>
                     <td style="padding:5px 10px;text-align:center">{lsl}</td>
                     <td style="padding:5px 10px;text-align:right;font-weight:600">{r['count']}</td>
                 </tr>"""
             components.html(f"""
+            <style>.mvp tr:hover td {{ background:{_T.SURFACE}; }}</style>
             <div style="color:{_T.TEXT};font-family:'Source Sans Pro',sans-serif">
             <h4 style="margin:0 0 8px 0">🎬 Most videos published</h4>
-            <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <table class="mvp" style="width:100%;border-collapse:collapse;font-size:13px">
             <thead><tr style="border-bottom:2px solid {_T.BORDER_STRONG}">
               <th style="padding:5px 10px;text-align:left">#</th>
               <th></th>
