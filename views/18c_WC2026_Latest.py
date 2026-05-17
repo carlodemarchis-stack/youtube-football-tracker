@@ -8,12 +8,14 @@ mosaic, identical CSS) but scoped to `competitions.wc2026` channels.
 Deliberately dropped vs the core page:
   - the LLM "vibe check" note  — core-only dashboard_cache, needs its
     own cron; out of WC2026's lightweight scope.
-  - the global league/club filter — WC2026 pages are unfiltered by
-    design (url_path in app.py `_no_filter_url_paths`).
+  - the core global league/club filter — WC2026 has its own separate
+    Confederation→Team filter instead (src.wc2026_filter), so the
+    core one stays in app.py `_no_filter_url_paths`.
 
-The 24h published-timeline IS included, but grouped by CONFEDERATION
-instead of Top-5 league (the core grouping would collapse to one
-meaningless "Other" row for WC2026's Federation/GoverningBody set).
+The 24h published-timeline is scope-adaptive (mirrors core Z1/Z2/Z3):
+Z1 all → grouped by CONFEDERATION (league-grouping would collapse to
+one meaningless "Other" row); Z2 one confederation → grouped by TEAM;
+Z3 one team → the rich thumbnail strip.
 
 Data path is the exact proven one the core page uses
 (`get_recent_videos` with an explicit channel-id scope).
@@ -62,6 +64,20 @@ wc = [c for c in all_channels
 if not wc:
     st.warning("No channels with `competitions.wc2026` set yet.")
     st.stop()
+
+# WC2026 sub-app filter (confederation → team), shared across pages.
+# Scoping `wc` here cascades through ch_ids → the recent-videos query.
+from src.wc2026_filter import (
+    render_wc2026_filter, scope_wc2026, scope_label as _wc_scope_label,
+)
+_wc_confed, _wc_team = render_wc2026_filter(wc)
+wc = scope_wc2026(wc, _wc_confed, _wc_team)
+if not wc:
+    st.info(f"No WC2026 channels for **{_wc_scope_label(_wc_confed, _wc_team)}**.")
+    st.stop()
+if _wc_confed or _wc_team:
+    st.caption(f"Filtered: {_wc_scope_label(_wc_confed, _wc_team)} · "
+               f"{len(wc)} channel(s)")
 
 color_map = get_global_color_map() or {}
 dual = get_global_color_map_dual() or {}
@@ -188,12 +204,18 @@ if live_now:
     {yt_popup_js()}
     """, height=310, scrolling=False)
 
-# ── 24h published timeline — grouped by CONFEDERATION ────────
-# The core Latest timeline groups by Top-5 league; WC2026 channels
-# are all Federations/GoverningBodies, so league-grouping would
-# collapse to one meaningless "Other" row. Grouping by confederation
-# (from competitions.wc2026.confederation) gives ~7 meaningful rows.
-# Confederation brand colours are data, not theme (§1 exception).
+# ── 24h published timeline — scope-adaptive (mirrors core Z1/Z2/Z3)
+# Core Latest groups by Top-5 league; WC2026 has no league dimension,
+# so this adapts to the active WC2026 filter:
+#   Z1 (all)            → dots grouped by CONFEDERATION (~7 rows;
+#                          league-grouping would collapse to one
+#                          meaningless "Other" row)
+#   Z2 (one confed)     → dots grouped by TEAM within it (mirrors
+#                          core Z2 "by club")
+#   Z3 (one team)       → rich thumbnail strip (mirrors core Z3
+#                          single-club)
+# Confederation brand colours are data, not theme (§1 exception);
+# team rows use each team's own channel brand colour.
 _CONF_COLOR = {
     "UEFA": "#C8102E", "CONMEBOL": "#003F87", "AFC": "#F0A91A",
     "CAF": "#006B3F", "CONCACAF": "#F26522", "OFC": "#0073CF",
@@ -207,16 +229,45 @@ def _conf_of(v):
             .get("confederation") or "Other")
 
 
+def _team_of(v):
+    ch = ch_by_id.get(v.get("channel_id")) or {}
+    w = (ch.get("competitions") or {}).get("wc2026") or {}
+    return w.get("team") or ch.get("country") or ch.get("name") or "—"
+
+
+_team_color: dict[str, str] = {}
+for _c in wc:
+    _w = (_c.get("competitions") or {}).get("wc2026") or {}
+    _t = _w.get("team") or _c.get("country") or _c.get("name") or "—"
+    _team_color.setdefault(_t, _c.get("color") or "#636EFA")
+
 try:
-    from src.timeline import render_48h_dots
-    render_48h_dots(
-        latest_raw_unscheduled,
-        channel_resolver=_conf_of,
-        color_resolver=lambda v: _CONF_COLOR.get(_conf_of(v), "#888"),
-        badge_resolver=lambda v: "",
-        group_resolver=_conf_of,
-        row_label="confederation",
-    )
+    if _wc_team:
+        # Z3 — single team: rich thumbnail strip (core Z3 analog).
+        from src.timeline import render_48h_timeline
+        render_48h_timeline(latest_raw_unscheduled)
+    elif _wc_confed:
+        # Z2 — one confederation: dots grouped by team within it.
+        from src.timeline import render_48h_dots
+        render_48h_dots(
+            latest_raw_unscheduled,
+            channel_resolver=_team_of,
+            color_resolver=lambda v: _team_color.get(_team_of(v), "#888"),
+            badge_resolver=lambda v: "",
+            group_resolver=_team_of,
+            row_label="team",
+        )
+    else:
+        # Z1 — all WC2026: dots grouped by confederation.
+        from src.timeline import render_48h_dots
+        render_48h_dots(
+            latest_raw_unscheduled,
+            channel_resolver=_conf_of,
+            color_resolver=lambda v: _CONF_COLOR.get(_conf_of(v), "#888"),
+            badge_resolver=lambda v: "",
+            group_resolver=_conf_of,
+            row_label="confederation",
+        )
 except Exception as _e:
     st.caption(f"(24h timeline unavailable: {_e})")
 
