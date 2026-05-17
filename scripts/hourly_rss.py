@@ -16,8 +16,9 @@ This does NOT update channel stats or snapshots — that stays in daily_refresh.
 It only makes new videos appear in the app within ~1 hour instead of ~24h.
 
 Env vars required:
-    YOUTUBE_API_KEY        (regular key — fallback)
-    YOUTUBE_API_KEY_HEAVY  (optional — preferred if set, used for big quota jobs)
+    YOUTUBE_API_KEY        (regular key — final fallback)
+    YOUTUBE_API_KEY_HOURLY (preferred — dedicated key for this cron)
+    YOUTUBE_API_KEY_HEAVY  (used only if _HOURLY is unset)
     SUPABASE_URL
     SUPABASE_KEY
 """
@@ -60,10 +61,14 @@ def fetch_recent_video_entries(yt: YouTubeClient, youtube_channel_id: str) -> li
 
 
 def main() -> int:
-    # Prefer dedicated heavy-quota key if set, else fall back to regular key.
-    yt_key = (os.environ.get("YOUTUBE_API_KEY_HEAVY", "").strip()
-              or os.environ.get("YOUTUBE_API_KEY", "").strip())
-    yt_key_source = "YOUTUBE_API_KEY_HEAVY" if os.environ.get("YOUTUBE_API_KEY_HEAVY", "").strip() else "YOUTUBE_API_KEY"
+    # Dedicated hourly key preferred, then the heavy key, then the
+    # regular key as a final fallback.
+    _hourly = os.environ.get("YOUTUBE_API_KEY_HOURLY", "").strip()
+    _heavy = os.environ.get("YOUTUBE_API_KEY_HEAVY", "").strip()
+    yt_key = _hourly or _heavy or os.environ.get("YOUTUBE_API_KEY", "").strip()
+    yt_key_source = ("YOUTUBE_API_KEY_HOURLY" if _hourly else
+                     "YOUTUBE_API_KEY_HEAVY" if _heavy else
+                     "YOUTUBE_API_KEY")
     sb_url = os.environ.get("SUPABASE_URL", "").strip()
     sb_key = os.environ.get("SUPABASE_KEY", "").strip()
 
