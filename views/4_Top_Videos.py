@@ -639,6 +639,7 @@ if not club:
 
 # ── Channel table (same as Clubs page) ───────────────────────
 if not club:
+    st.subheader("📡 Each channel's Top 100")
     _loading = st.info("⏳ Building channel stats table…")
     now = datetime.now(timezone.utc)
     include_league = get_include_league()
