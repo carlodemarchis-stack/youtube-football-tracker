@@ -11,6 +11,7 @@ Deliberately isolated from the rest of the app:
 from __future__ import annotations
 
 import os
+from datetime import date as _date
 
 import streamlit as st
 import streamlit.components.v1 as _components
@@ -160,6 +161,21 @@ def td(val_sort, content, *, align="right"):
     return f"<td style='text-align:{align}' data-val=\"{v}\">{content}</td>"
 
 
+def _last_upload_cell(iso: str) -> str:
+    """Last-upload age as a freshness traffic-light: green ≤2 days,
+    amber ≤7 days, red older. Theme tokens only (POS/WARN/NEG). The
+    cell's sort value stays the raw ISO date (set by the td() caller),
+    so colouring never affects ordering."""
+    if not iso:
+        return f"<span style='color:{_T.MUTED}'>—</span>"
+    try:
+        age = (_date.today() - _date.fromisoformat(str(iso)[:10])).days
+    except Exception:
+        return fmt_date(iso)
+    col = _T.POS if age <= 2 else (_T.WARN if age <= 7 else _T.NEG)
+    return f"<span style='color:{col}'>{fmt_date(iso)}</span>"
+
+
 def _channel_row_html(c, *, show_alt_chip=True):
     """Render a single <tr> for a channel — shared between primary and alts."""
     w = _wc(c)
@@ -245,8 +261,7 @@ def _channel_row_html(c, *, show_alt_chip=True):
         + td(shorts, fmt_num(shorts))
         + td(lives,  fmt_num(lives))
         + td(int(vpv), fmt_num(int(vpv)))
-        + td(last_upload, fmt_date(last_upload) if last_upload else "—",
-              align="right")
+        + td(last_upload, _last_upload_cell(last_upload), align="right")
         + "</tr>"
     )
 
