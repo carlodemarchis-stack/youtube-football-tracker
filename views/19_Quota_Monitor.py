@@ -71,12 +71,13 @@ db = admin_db()
 # youtube_quota_log) to the env var name. The env var name IS the label
 # the operator recognises, so we use it directly. The last-3-chars
 # suffix is shown in its own column for quick disambiguation.
-# Display order: main → daily → heavy → interactive → backup.
+# Display order: main → daily → hourly → heavy → interactive → backup.
 # Cards / rows render in this order (not by units descending), so the
 # operator's eye lands in a predictable place each visit.
 _ENV_VAR_NAMES = [
     "YOUTUBE_API_KEY",
     "YOUTUBE_API_KEY_DAILY",
+    "YOUTUBE_API_KEY_HOURLY",
     "YOUTUBE_API_KEY_HEAVY",
     "YOUTUBE_API_KEY_INTERACTIVE",
     "YOUTUBE_API_KEY_BACKUP",
