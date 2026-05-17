@@ -263,6 +263,13 @@ Consistent vertical structure for every content page:
   the isolation above these never reach core surfaces. The per-video
   time-series can only be built going forward, hence collection runs
   continuously from now.
+- **Players / Other Clubs / Women / Federations crons deliberately do
+  NOT write `video_snapshots` / `video_daily_deltas`** — those pages
+  show only channel stats + `season_*` + last-upload, so the per-video
+  history had zero consumers and grew unbounded. The `get_video_details`
+  fetch + `videos`-freshness upsert + `refresh_top100_stats` are kept
+  (season numbers read live `videos.view_count`). Not an oversight —
+  don't "restore" the snapshot writes.
 - **Hard rule, not a style default** — never relax without explicit
   instruction.
 

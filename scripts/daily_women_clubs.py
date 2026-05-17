@@ -185,15 +185,14 @@ def main() -> int:
                         "comment_count": v.get("comment_count", 0),
                     })
             if snap_rows:
-                video_snapshots_written = db.snapshot_videos_batch(snap_rows)
-                log(f"Wrote {video_snapshots_written} video_snapshots rows")
-                # Pre-compute today's deltas for consistency with the main pipeline
-                try:
-                    _today_iso = date.today().isoformat()
-                    n = db.compute_video_daily_deltas(_today_iso)
-                    log(f"Wrote {n} video_daily_deltas rows for {_today_iso}")
-                except Exception as e:
-                    log(f"video_daily_deltas step skipped: {e}")
+                # video_snapshots + video_daily_deltas are intentionally
+                # NOT written for this isolated entity: no surface
+                # consumes them (this page shows only channel stats +
+                # season_* + last-upload; Daily Recap is core-only) and
+                # the rows grew unbounded. The get_video_details fetch +
+                # the videos-freshness upsert below are kept on purpose —
+                # refresh_top100_stats reads videos.view_count for
+                # season_*, so the videos table must stay current.
                 # Keep the `videos` table fresh too. Filter out rows
                 # missing youtube_video_id — even one such entry in the
                 # batch makes PostgreSQL reject the whole INSERT...ON
