@@ -259,69 +259,119 @@ except Exception as _e:
 
 filtered = df.sort_values("view_count", ascending=False).head(100).reset_index(drop=True)
 
-# ── League-mix donuts (borrowed from Season Top) ──────────────
-# Only meaningful when the top-100 spans multiple leagues — i.e. the
-# All-Leagues view (no single club / league selected). At Z2/Z3 it
-# would be a single 100% slice, so it's gated out. Two views because
-# they tell different stories: a league can own few entries but huge
-# views (one viral hit) or many entries with modest views. Computed
-# from the channel's country → league (plain names, matches
-# LEAGUE_COLOR) rather than df["league"] so it works across every
-# all-leagues sub-scope (incl. "Leagues only", which has no league col).
-if club is None and league is None and not filtered.empty:
+# ── Mix donuts (borrowed from Season Top) ─────────────────────
+# Format mix (always) + a scope-adaptive second/third donut, mirroring
+# Season Top:
+#   Z1 (all leagues) → League mix by count / by views
+#   Z2 (one league)  → Club mix by count / by views (channels in it)
+#   Z3 (one club)    → no donut row (single entity, not meaningful)
+# League mix only renders with ≥2 leagues (else a 1-slice circle).
+# League is resolved from the channel's country → league (plain names,
+# matches LEAGUE_COLOR) so it works across every all-leagues sub-scope
+# incl. "Leagues only" (which has no df["league"] column). Club colours
+# come from the global channel colour map (§1 identity).
+if club is None and not filtered.empty:
     _ch_by_name_lg = {c["name"]: c for c in all_channels}
+    _FMT_COLOR = {"long": "#636EFA", "short": "#00CC96", "live": "#FFA15A"}
+    _FMT_LABEL = {"long": "Long", "short": "Shorts", "live": "Live"}
+    _fmt_n: dict[str, int] = {}
     _lg_n: dict[str, int] = {}
     _lg_v: dict[str, int] = {}
+    _ch_n: dict[str, int] = {}
+    _ch_v: dict[str, int] = {}
     for _row in filtered.itertuples(index=False):
-        _c = _ch_by_name_lg.get(getattr(_row, "channel_name", "") or "")
+        # Format — same fallback as the Video List table below.
+        _f = (getattr(_row, "format", "") or "").lower()
+        if _f not in ("long", "short", "live"):
+            _f = ("long" if (getattr(_row, "duration_seconds", 0) or 0) >= 60
+                  else "short")
+        _fmt_n[_f] = _fmt_n.get(_f, 0) + 1
+        _nm = getattr(_row, "channel_name", "") or ""
+        _c = _ch_by_name_lg.get(_nm)
         if not _c or _c.get("entity_type") in (
             "Player", "Federation", "GoverningBody", "OtherClub", "WomenClub"
         ):
             continue
+        _vv = int(getattr(_row, "view_count", 0) or 0)
         _lg = COUNTRY_TO_LEAGUE.get((_c.get("country") or "").upper()) or "Other"
         _lg_n[_lg] = _lg_n.get(_lg, 0) + 1
-        _lg_v[_lg] = _lg_v.get(_lg, 0) + int(getattr(_row, "view_count", 0) or 0)
+        _lg_v[_lg] = _lg_v.get(_lg, 0) + _vv
+        _ch_n[_nm] = _ch_n.get(_nm, 0) + 1
+        _ch_v[_nm] = _ch_v.get(_nm, 0) + _vv
 
-    # ≥2 leagues with data, else a one-slice donut is meaningless.
-    if len([k for k, v in _lg_n.items() if v > 0]) >= 2:
-        def _lg_pie(values_by_lg: dict, hover_unit: str):
-            items = sorted(values_by_lg.items(), key=lambda kv: kv[1],
-                           reverse=True)
-            f = go.Figure()
-            f.add_trace(go.Pie(
-                labels=[k for k, _ in items],
-                values=[v for _, v in items],
-                marker=dict(colors=[LEAGUE_COLOR.get(k, "#888")
-                                    for k, _ in items],
-                            line=dict(color="#0E1117", width=2)),
-                hole=0.45, textinfo="label+percent", sort=False,
-                hovertemplate=("<b>%{label}</b><br>%{value:,} " + hover_unit
-                               + " · %{percent}<extra></extra>"),
-            ))
-            f.update_layout(
-                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(color="#FAFAFA"),
-                margin=dict(t=10, b=10, l=10, r=10),
-                height=260, showlegend=False,
-            )
-            return f
+    def _donut(labels: list, values: list, colors: list, hover_unit: str):
+        f = go.Figure()
+        f.add_trace(go.Pie(
+            labels=labels, values=values,
+            marker=dict(colors=colors, line=dict(color="#0E1117", width=2)),
+            hole=0.45, textinfo="label+percent", sort=False,
+            hovertemplate=("<b>%{label}</b><br>%{value:,} " + hover_unit
+                           + " · %{percent}<extra></extra>"),
+        ))
+        f.update_layout(
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#FAFAFA"),
+            margin=dict(t=10, b=10, l=10, r=10),
+            height=260, showlegend=False,
+        )
+        return f
 
-        _n = len(filtered)
-        _cl, _cr = st.columns(2)
-        with _cl:
-            chart_title(f"League mix — by count (top {_n})")
-            st.plotly_chart(_lg_pie(_lg_n, "videos"),
+    def _sorted_with(d: dict, cmap: dict):
+        items = sorted(d.items(), key=lambda kv: kv[1], reverse=True)
+        return ([k for k, _ in items], [v for _, v in items],
+                [cmap.get(k, "#888") for k, _ in items])
+
+    _n = len(filtered)
+    # Format slices in the fixed §2 order (Long → Shorts → Live).
+    _fmt_keys = [k for k in ("long", "short", "live") if _fmt_n.get(k)]
+    _fmt_fig = _donut([_FMT_LABEL[k] for k in _fmt_keys],
+                      [_fmt_n[k] for k in _fmt_keys],
+                      [_FMT_COLOR[k] for k in _fmt_keys], "videos")
+
+    def _three(title_n: str, pair_n, title_v: str, pair_v):
+        _cf, _cn, _cv = st.columns(3)
+        with _cf:
+            chart_title(f"Format mix (top {_n})")
+            st.plotly_chart(_fmt_fig, use_container_width=True)
+        with _cn:
+            chart_title(title_n)
+            st.plotly_chart(_donut(*pair_n, "videos"),
                             use_container_width=True)
-        with _cr:
-            chart_title(f"League mix — by views (top {_n})")
-            st.plotly_chart(_lg_pie(_lg_v, "views"),
+        with _cv:
+            chart_title(title_v)
+            st.plotly_chart(_donut(*pair_v, "views"),
                             use_container_width=True)
+
+    if league is not None:
+        # Z2 — Format + Club mix within the selected league.
+        _cmap = get_global_color_map() or {}
+        _three(f"Club mix — by count (top {_n})", _sorted_with(_ch_n, _cmap),
+                f"Club mix — by views (top {_n})", _sorted_with(_ch_v, _cmap))
+    elif len([k for k, v in _lg_n.items() if v > 0]) >= 2:
+        # Z1 — Format + League mix.
+        _three(f"League mix — by count (top {_n})",
+                _sorted_with(_lg_n, LEAGUE_COLOR),
+                f"League mix — by views (top {_n})",
+                _sorted_with(_lg_v, LEAGUE_COLOR))
+    else:
+        # Degenerate single-league at Z1 — format mix still meaningful.
+        chart_title(f"Format mix (top {_n})")
+        st.plotly_chart(_fmt_fig, use_container_width=True)
 
 from zoneinfo import ZoneInfo as _ZoneInfo
 current_year = datetime.now(_ZoneInfo("Europe/Rome")).year
 
 # ── Video Table ───────────────────────────────────────────────
-st.subheader("Video List")
+# Scope-adaptive title, mirroring Season Top's "🏆 Top … — {label}":
+# Z1 → "All Leagues", Z2 → league name, Z3 → club name. Count is the
+# actual list length (100 at Z1/Z2; can be fewer for a small club).
+if club is not None:
+    _vl_label = club.get("name", "")
+elif league is not None:
+    _vl_label = league
+else:
+    _vl_label = "All Leagues"
+st.subheader(f"🏆 Top {len(filtered)} All-Time Videos — {_vl_label}")
 dual_colors = get_global_color_map_dual()
 color_map_tbl = get_global_color_map()
 _now = pd.Timestamp.now(tz="UTC")
@@ -472,7 +522,7 @@ components.html(
     scrolling=True,
 )
 # ── Views by Rank chart ───────────────────────────────────────
-st.subheader("Views by Rank")
+st.subheader("👁️ Views by Rank")
 chart_df = filtered[["view_count", "title", "channel_name"]].copy()
 chart_df[color_field] = filtered[color_field] if color_field in filtered.columns else filtered["channel_name"]
 chart_df["rank"] = range(1, len(chart_df) + 1)
@@ -492,7 +542,7 @@ fig.update_layout(
 st.plotly_chart(fig, use_container_width=True)
 
 # ── Rank vs Year ──────────────────────────────────────────────
-st.subheader("Rank vs Publication Year")
+st.subheader("📅 Rank vs Publication Year")
 scatter_df = filtered[["title", "channel_name", "view_count", "published_at"]].copy()
 scatter_df[color_field] = filtered[color_field] if color_field in filtered.columns else filtered["channel_name"]
 scatter_df["rank"] = range(1, len(scatter_df) + 1)
@@ -525,7 +575,7 @@ fig_scatter.update_layout(
 st.plotly_chart(fig_scatter, use_container_width=True)
 
 # ── Videos by Year ────────────────────────────────────────────
-st.subheader("Top 100 Videos by Publication Year")
+st.subheader("🎬 Top 100 Videos by Publication Year")
 year_df = filtered.copy()
 year_df["year"] = pd.to_datetime(year_df["published_at"], utc=True).dt.year
 year_counts = year_df.groupby("year").size().reset_index(name="count").sort_values("year")
