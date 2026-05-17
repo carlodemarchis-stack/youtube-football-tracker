@@ -19,8 +19,8 @@ from src.cached_db import (
 )
 from src.analytics import compute_channel_comparison, compute_tier_stats, compute_theme_distribution, fmt_num, yt_popup_js, CATEGORY_COLORS
 from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope, render_page_subtitle
-from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, league_with_flag
-from src.charts import readable_hover
+from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, league_with_flag, LEAGUE_COLOR
+from src.charts import readable_hover, chart_title
 from src.auth import require_login
 from src.dot import dual_dot, channel_badge
 
@@ -258,6 +258,64 @@ except Exception as _e:
     st.caption(f"(KPIs unavailable: {_e})")
 
 filtered = df.sort_values("view_count", ascending=False).head(100).reset_index(drop=True)
+
+# ── League-mix donuts (borrowed from Season Top) ──────────────
+# Only meaningful when the top-100 spans multiple leagues — i.e. the
+# All-Leagues view (no single club / league selected). At Z2/Z3 it
+# would be a single 100% slice, so it's gated out. Two views because
+# they tell different stories: a league can own few entries but huge
+# views (one viral hit) or many entries with modest views. Computed
+# from the channel's country → league (plain names, matches
+# LEAGUE_COLOR) rather than df["league"] so it works across every
+# all-leagues sub-scope (incl. "Leagues only", which has no league col).
+if club is None and league is None and not filtered.empty:
+    _ch_by_name_lg = {c["name"]: c for c in all_channels}
+    _lg_n: dict[str, int] = {}
+    _lg_v: dict[str, int] = {}
+    for _row in filtered.itertuples(index=False):
+        _c = _ch_by_name_lg.get(getattr(_row, "channel_name", "") or "")
+        if not _c or _c.get("entity_type") in (
+            "Player", "Federation", "GoverningBody", "OtherClub", "WomenClub"
+        ):
+            continue
+        _lg = COUNTRY_TO_LEAGUE.get((_c.get("country") or "").upper()) or "Other"
+        _lg_n[_lg] = _lg_n.get(_lg, 0) + 1
+        _lg_v[_lg] = _lg_v.get(_lg, 0) + int(getattr(_row, "view_count", 0) or 0)
+
+    # ≥2 leagues with data, else a one-slice donut is meaningless.
+    if len([k for k, v in _lg_n.items() if v > 0]) >= 2:
+        def _lg_pie(values_by_lg: dict, hover_unit: str):
+            items = sorted(values_by_lg.items(), key=lambda kv: kv[1],
+                           reverse=True)
+            f = go.Figure()
+            f.add_trace(go.Pie(
+                labels=[k for k, _ in items],
+                values=[v for _, v in items],
+                marker=dict(colors=[LEAGUE_COLOR.get(k, "#888")
+                                    for k, _ in items],
+                            line=dict(color="#0E1117", width=2)),
+                hole=0.45, textinfo="label+percent", sort=False,
+                hovertemplate=("<b>%{label}</b><br>%{value:,} " + hover_unit
+                               + " · %{percent}<extra></extra>"),
+            ))
+            f.update_layout(
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#FAFAFA"),
+                margin=dict(t=10, b=10, l=10, r=10),
+                height=260, showlegend=False,
+            )
+            return f
+
+        _n = len(filtered)
+        _cl, _cr = st.columns(2)
+        with _cl:
+            chart_title(f"League mix — by count (top {_n})")
+            st.plotly_chart(_lg_pie(_lg_n, "videos"),
+                            use_container_width=True)
+        with _cr:
+            chart_title(f"League mix — by views (top {_n})")
+            st.plotly_chart(_lg_pie(_lg_v, "views"),
+                            use_container_width=True)
 
 from zoneinfo import ZoneInfo as _ZoneInfo
 current_year = datetime.now(_ZoneInfo("Europe/Rome")).year
