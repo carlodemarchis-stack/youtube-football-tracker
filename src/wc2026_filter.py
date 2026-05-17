@@ -128,7 +128,20 @@ def render_wc2026_filter(wc_channels: list[dict]) -> tuple[str | None, str | Non
             team = None
 
     _sync_qp(sel_conf, st.session_state[_K_TEAM])
+    # Publish the normalised selection for the pages to read (same
+    # render-in-app.py → read-in-page split as the core filter:
+    # render_header_filter → get_global_filter).
+    st.session_state["_wc2026_sel_confed"] = confed
+    st.session_state["_wc2026_sel_team"] = team
     return confed, team
+
+
+def get_wc2026_filter() -> tuple[str | None, str | None]:
+    """Read the active WC2026 (confederation, team) — set by
+    render_wc2026_filter() in app.py. Mirrors filters.get_global_filter.
+    """
+    return (st.session_state.get("_wc2026_sel_confed"),
+            st.session_state.get("_wc2026_sel_team"))
 
 
 def scope_wc2026(channels: list[dict], confed: str | None,

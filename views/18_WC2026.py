@@ -76,9 +76,9 @@ if not wc:
 # session state. Cache-payload rows carry `competitions`, so this
 # works on both the cached and live-channel shapes.
 from src.wc2026_filter import (
-    render_wc2026_filter, scope_wc2026, scope_label as _wc_scope_label,
+    get_wc2026_filter, scope_wc2026, scope_label as _wc_scope_label,
 )
-_wc_confed, _wc_team = render_wc2026_filter(wc)
+_wc_confed, _wc_team = get_wc2026_filter()
 wc = scope_wc2026(wc, _wc_confed, _wc_team)
 if not wc:
     st.info(f"No WC2026 channels for **{_wc_scope_label(_wc_confed, _wc_team)}**.")

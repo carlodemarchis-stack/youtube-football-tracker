@@ -243,6 +243,19 @@ if SUPABASE_URL and SUPABASE_KEY:
             league, club = render_header_filter(all_channels)
             st.session_state["_global_league"] = league
             st.session_state["_global_club"] = club
+        elif getattr(pg, "url_path", "") in (
+            "wc2026", "wc2026-trends", "wc2026-latest"
+        ):
+            # WC2026 sub-app has its own Confederation→Team filter.
+            # Rendered here (above the page title) so it sits in the
+            # exact same position as the core filter; the WC2026 pages
+            # read it via get_wc2026_filter(). Separate from the core
+            # filter (§10 isolation) — its own session/QP keys.
+            from src.wc2026_filter import render_wc2026_filter
+            _wcch = [c for c in all_channels
+                     if (c.get("competitions") or {}).get("wc2026")]
+            if _wcch:
+                render_wc2026_filter(_wcch)
 
 # Removed the horizontal divider that used to sit between the global
 # filter and the page title — the filter row already reads as its
