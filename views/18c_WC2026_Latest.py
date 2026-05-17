@@ -8,12 +8,12 @@ mosaic, identical CSS) but scoped to `competitions.wc2026` channels.
 Deliberately dropped vs the core page:
   - the LLM "vibe check" note  — core-only dashboard_cache, needs its
     own cron; out of WC2026's lightweight scope.
-  - the 48h timeline strip     — that view is league-structured (one
-    row per Top-5 league). WC2026 channels are Federations /
-    GoverningBodies that all resolve to "Other", so it would collapse
-    to a single meaningless row.
   - the global league/club filter — WC2026 pages are unfiltered by
     design (url_path in app.py `_no_filter_url_paths`).
+
+The 24h published-timeline IS included, but grouped by CONFEDERATION
+instead of Top-5 league (the core grouping would collapse to one
+meaningless "Other" row for WC2026's Federation/GoverningBody set).
 
 Data path is the exact proven one the core page uses
 (`get_recent_videos` with an explicit channel-id scope).
@@ -187,6 +187,38 @@ if live_now:
     <div class="ln-grid">{_ln_cards}</div>
     {yt_popup_js()}
     """, height=310, scrolling=False)
+
+# ── 24h published timeline — grouped by CONFEDERATION ────────
+# The core Latest timeline groups by Top-5 league; WC2026 channels
+# are all Federations/GoverningBodies, so league-grouping would
+# collapse to one meaningless "Other" row. Grouping by confederation
+# (from competitions.wc2026.confederation) gives ~7 meaningful rows.
+# Confederation brand colours are data, not theme (§1 exception).
+_CONF_COLOR = {
+    "UEFA": "#C8102E", "CONMEBOL": "#003F87", "AFC": "#F0A91A",
+    "CAF": "#006B3F", "CONCACAF": "#F26522", "OFC": "#0073CF",
+    "FIFA": "#326295",
+}
+
+
+def _conf_of(v):
+    ch = ch_by_id.get(v.get("channel_id")) or {}
+    return (((ch.get("competitions") or {}).get("wc2026") or {})
+            .get("confederation") or "Other")
+
+
+try:
+    from src.timeline import render_48h_dots
+    render_48h_dots(
+        latest_raw_unscheduled,
+        channel_resolver=_conf_of,
+        color_resolver=lambda v: _CONF_COLOR.get(_conf_of(v), "#888"),
+        badge_resolver=lambda v: "",
+        group_resolver=_conf_of,
+        row_label="confederation",
+    )
+except Exception as _e:
+    st.caption(f"(24h timeline unavailable: {_e})")
 
 # ── Format / scheduled / mosaic controls ─────────────────────
 _fc1, _fc2, _fc3 = st.columns([4, 1, 1])
