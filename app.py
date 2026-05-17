@@ -223,7 +223,7 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 _no_filter_url_paths = {
     "home", "players", "federations", "other-clubs",
     "women", "no1-videos", "wc2026", "wc2026-trends",
-    "wc2026-latest",
+    "wc2026-latest", "quota-monitor",
 }
 _show_filter = getattr(pg, "url_path", "") not in _no_filter_url_paths
 
