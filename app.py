@@ -221,7 +221,10 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 # Match by URL path instead of title so pages stay correctly
 # identified even if two groups ever share a display title.
 _no_filter_url_paths = {
-    "home", "players", "federations", "other-clubs",
+    # "" = the default page (Home) served at the root URL "/": Streamlit
+    # reports url_path="" there, NOT "home", so without it the global
+    # filter wrongly reappears on Home at the root. Keep both.
+    "", "home", "players", "federations", "other-clubs",
     "women", "no1-videos", "wc2026", "wc2026-trends",
     "wc2026-latest", "quota-monitor",
 }
