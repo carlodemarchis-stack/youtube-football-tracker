@@ -1150,13 +1150,31 @@ def refresh_wc2026(db, log=print, channels: list[dict] | None = None) -> None:
 
     Same shape the page used to compute live every render: one row per
     channel with team, confederation, YT identity, basic stats (subs /
-    views / videos / long / shorts / live) + last_fetched. The page
-    just reads + paints; no per-render aggregation.
+    views / videos / long / shorts / live) + last_fetched + last_upload
+    (most recent video's date). The page just reads + paints; no
+    per-render aggregation.
 
     Cache key: ('wc2026', 'all').
     """
     chans = channels if channels is not None else db.get_all_channels()
     wc = [c for c in chans if (c.get("competitions") or {}).get("wc2026")]
+    # Each channel's most recent upload date (YYYY-MM-DD), computed at
+    # write-time (same pattern as refresh_last_upload) so the page never
+    # scans the videos table on render. WC2026 videos are collected by
+    # the daily_wc2026 cron — "" for channels we have no videos for yet.
+    from src.database import _fetch_all
+    _wc_ids = [c["id"] for c in wc if c.get("id")]
+    _last_up: dict[str, str] = {}
+    if _wc_ids:
+        for r in _fetch_all(
+            db.client.table("videos")
+            .select("channel_id,published_at")
+            .in_("channel_id", _wc_ids)
+            .order("published_at", desc=True)
+        ):
+            cid = r.get("channel_id")
+            if cid and cid not in _last_up:
+                _last_up[cid] = (r.get("published_at") or "")[:10]
     # Keep the same shape the page expects — channel-like dict with
     # nested `competitions.wc2026`. Lets the view consume cache rows
     # and live-channel rows interchangeably with no extra branching.
@@ -1177,6 +1195,7 @@ def refresh_wc2026(db, log=print, channels: list[dict] | None = None) -> None:
             "shorts_count":     int(c.get("shorts_count") or 0),
             "live_count":       int(c.get("live_count") or 0),
             "last_fetched":     c.get("last_fetched"),
+            "last_upload":      _last_up.get(c.get("id"), ""),
             "competitions":     {"wc2026": w},
         })
     # Pre-sort by subscribers desc — the page's default ordering, so the

@@ -182,7 +182,10 @@ def _channel_row_html(c, *, show_alt_chip=True):
     longs = int(c.get("long_form_count") or 0)
     shorts = int(c.get("shorts_count") or 0)
     lives = int(c.get("live_count") or 0)
-    last_fetched = c.get("last_fetched") or ""
+    # Age of the channel's most recent upload (not our fetch time).
+    # Precomputed in refresh_wc2026; "" when we have no videos yet
+    # (e.g. cold-cache live fallback, or before daily_wc2026 has run).
+    last_upload = c.get("last_upload") or ""
 
     # Roll alt-channel stats into the primary row so the table shows
     # combined reach per country. Only on primary rows (the alts
@@ -242,7 +245,7 @@ def _channel_row_html(c, *, show_alt_chip=True):
         + td(shorts, fmt_num(shorts))
         + td(lives,  fmt_num(lives))
         + td(int(vpv), fmt_num(int(vpv)))
-        + td(last_fetched, fmt_date(last_fetched) if last_fetched else "—",
+        + td(last_upload, fmt_date(last_upload) if last_upload else "—",
               align="right")
         + "</tr>"
     )
@@ -268,7 +271,7 @@ COLS = [
     ("Shorts",          "num", "right"),
     ("Live",            "num", "right"),
     ("Views / video",   "num", "right"),
-    ("Last updated",    "str", "right"),
+    ("Last upload",     "str", "right"),
 ]
 th_html = "".join(
     f"<th data-col='{i}' data-type='{tp}' "

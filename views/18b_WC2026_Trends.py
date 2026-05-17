@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import os
 from collections import defaultdict
+from datetime import date as _date
 
 import streamlit as st
 import streamlit.components.v1 as _components
@@ -38,6 +39,16 @@ require_login()
 # First day the dedicated daily_wc2026 cron gave full coverage of
 # every WC2026 channel. Everything on this page starts here.
 TRACKING_START = "2026-05-14"
+
+
+def _absd(iso: str) -> str:
+    """Absolute, unambiguous date (e.g. 'May 14, 2026') — used where a
+    caption must be specific about the window. Deliberately NOT
+    analytics.fmt_date, which is fuzzy/relative ('3d ago')."""
+    try:
+        return _date.fromisoformat(str(iso)[:10]).strftime("%b %d, %Y")
+    except Exception:
+        return str(iso)
 
 st.title("FIFA World Cup 2026 — Trends")
 st.caption(
@@ -343,6 +354,13 @@ st.caption(
 # ── Biggest movers — one row per country ──────────────────────────
 st.markdown("---")
 st.subheader("🚀 Biggest movers")
+st.caption(
+    f"Cumulative change from {_absd(first_d)} to {_absd(last_d)} "
+    f"({_n_days} daily snapshots) — each team's {_absd(last_d)} channel "
+    f"totals minus its {_absd(first_d)} totals, across the "
+    f"{len(cohort)} channels tracked every day in that window. "
+    "Not a per-day or last-24h figure."
+)
 
 def _marker(team: str) -> str:
     flag = TEAM_FLAG.get(team, "")
