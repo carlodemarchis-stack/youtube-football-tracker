@@ -217,6 +217,22 @@ st.markdown("""
       .block-container {
         padding-top: 2rem !important;
       }
+      /* Same treatment for the sidebar's own top whitespace (the
+         empty band above "Home"): trim the header row + nav padding.
+         Padding only — the collapse «-button stays usable, not
+         removed/clipped. */
+      [data-testid="stSidebarHeader"] {
+        padding-top: 0.5rem !important;
+        padding-bottom: 0 !important;
+      }
+      [data-testid="stSidebarNav"] {
+        padding-top: 0 !important;
+        margin-top: 0 !important;
+      }
+      [data-testid="stSidebarContent"],
+      [data-testid="stSidebarUserContent"] {
+        padding-top: 0 !important;
+      }
     </style>
 """, unsafe_allow_html=True)
 
