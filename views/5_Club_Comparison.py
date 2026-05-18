@@ -54,7 +54,7 @@ if g_club:
 club_names = sorted([ch["name"] for ch in clubs])
 
 # ── Preset buttons ────────────────────────────────────────────
-st.subheader("Quick Comparisons")
+st.subheader("⚡ Quick Comparisons")
 col1, col2, col3, col4, col5 = st.columns(5)
 preset = None
 with col1:
@@ -95,7 +95,7 @@ compare_channels = [ch for ch in clubs if ch["name"] in selected]
 color_map = get_global_color_map()
 
 # ── Pie charts ────────────────────────────────────────────────
-st.subheader("Side by Side")
+st.subheader("⚖️ Side by Side")
 comp_df = pd.DataFrame(compare_channels)
 comp_df = comp_df.sort_values("subscriber_count", ascending=False)
 comp_df["_season_views"] = comp_df.apply(lambda r: int(r.get("season_views") or 0), axis=1)
@@ -156,7 +156,7 @@ for ch in sorted(compare_channels, key=lambda c: c.get("subscriber_count", 0), r
 st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
 # ── Top 10 videos from each club ──────────────────────────────
-st.subheader("Top Videos Head-to-Head")
+st.subheader("🆚 Top Videos Head-to-Head")
 all_vids = []
 for ch in compare_channels:
     vids = db.get_videos_by_channel(ch["id"])

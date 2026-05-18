@@ -339,7 +339,7 @@ if g_club:
 
 # ── Followers leaderboard ──────────────────────────────────────────
 st.markdown("---")
-st.subheader("Followers across platforms")
+st.subheader("👥 Followers across platforms")
 st.caption(
     "Latest follower count per platform — YouTube updates daily, the rest "
     "are point-in-time snapshots. Click any column header to re-sort. "

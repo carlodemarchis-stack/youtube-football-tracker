@@ -2444,7 +2444,7 @@ else:
         st.plotly_chart(_make_pie_club(_vals(long_comments, short_comments, live_comments), pie_labels, pie_colors, "comments", "Comments"), use_container_width=True)
 
     # ── Breakdown table ────────────────────────────────────────
-    st.subheader("Breakdown")
+    st.subheader("📊 Breakdown")
     st.markdown(f"""
 <table style="width:100%;border-collapse:collapse;font-size:14px;color:#FAFAFA">
 <thead><tr style="border-bottom:2px solid #444">
@@ -2570,7 +2570,7 @@ else:
     except Exception as _e:
         st.caption(f"(videos-per-day chart unavailable: {_e})")
 
-    st.subheader("Monthly output")
+    st.subheader("📅 Monthly output")
 
     # Avg-views-per-video can't be stacked or summed across formats —
     # each (fmt, month) cell is a ratio. Compute it explicitly here.
@@ -2686,7 +2686,7 @@ else:
         st.caption(f"(publishing heatmap unavailable: {_e})")
 
     # ── Views distribution (Pareto) ────────────────────────────
-    st.subheader("Views distribution")
+    st.subheader("👁️ Views distribution")
     st.caption("Are season views balanced across videos, or driven by a few hits? "
                "Bars = views per video (sorted high→low). Line = cumulative share of total views.")
 

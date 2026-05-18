@@ -210,7 +210,7 @@ def _status_dot(days: int | None) -> str:
 
 # ── Leaderboard table ────────────────────────────────────────
 st.markdown("---")
-st.subheader("Leaderboard")
+st.subheader("🏆 Leaderboard")
 st.caption(
     "Every tracked player ranked by subscribers. "
     "Click any row to open the channel on YouTube; click any column header to re-sort."
@@ -356,7 +356,7 @@ components.html(f"""
 
 # ── Charts ───────────────────────────────────────────────────
 st.markdown("---")
-st.subheader("How they compare")
+st.subheader("📊 How they compare")
 
 _df = pd.DataFrame([{
     "Player": p.get("name"),
@@ -395,7 +395,7 @@ with col2:
 # ── Posting activity ─────────────────────────────────────────
 # Fetch last upload date per player (single query, fast)
 st.markdown("---")
-st.subheader("Posting activity")
+st.subheader("📅 Posting activity")
 st.caption(
     "Players run their channels on their own rhythm — unlike clubs, many go dormant "
     "for months or years. This shows who's actually still posting."

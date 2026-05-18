@@ -1257,7 +1257,7 @@ else:
             if fig_pub_trend:
                 st.plotly_chart(fig_pub_trend, use_container_width=True)
 
-    st.subheader("Growth")
+    st.subheader("📈 Growth")
     if not _snaps or len(_snaps) < 2:
         st.caption(
             "Growth tracking starts now — the daily snapshot job has "

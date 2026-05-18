@@ -162,7 +162,7 @@ def _status_dot(days: int | None) -> str:
 
 # ── Leaderboard table ────────────────────────────────────────
 st.markdown("---")
-st.subheader("Leaderboard")
+st.subheader("🏆 Leaderboard")
 st.caption(
     "Every tracked federation ranked by subscribers. "
     "Click any row to open the channel on YouTube; click any column header to re-sort."
@@ -285,7 +285,7 @@ components.html(f"""
 
 # ── Charts ───────────────────────────────────────────────────
 st.markdown("---")
-st.subheader("How they compare")
+st.subheader("📊 How they compare")
 
 _df = pd.DataFrame([{
     "Federation": p.get("name"),
@@ -323,7 +323,7 @@ with col2:
 
 # ── Posting activity ─────────────────────────────────────────
 st.markdown("---")
-st.subheader("Posting activity")
+st.subheader("📅 Posting activity")
 st.caption(
     "Federations spike around tournaments and qualifiers, then go quiet. "
     "This shows who's currently posting."

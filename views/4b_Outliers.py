@@ -223,7 +223,7 @@ if g_club:
                         )
 
     st.markdown("---")
-    st.subheader("Ratios")
+    st.subheader("🎯 Ratios")
     r = p["ratios"]
 
     # 8 metrics in 2 rows of 4 — keeps each cell legible at typical viewports.
@@ -256,7 +256,7 @@ if g_club:
 # ──────────────────────────────────────────────────────────────
 # All flagged channels table
 # ──────────────────────────────────────────────────────────────
-st.subheader("Profile breakdown")
+st.subheader("📊 Profile breakdown")
 st.caption(f"{len(visible)} clubs in scope · sorted by total tag count")
 
 # Filter to clubs with at least one tag

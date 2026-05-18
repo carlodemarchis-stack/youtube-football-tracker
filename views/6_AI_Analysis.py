@@ -126,7 +126,7 @@ if data.get("summary"):
 
 # ── Top 100 All-Time ─────────────────────────────────────────
 st.markdown("---")
-st.subheader("Top 100 All-Time")
+st.subheader("🏆 Top 100 All-Time")
 
 # Channel-Specific Themes - derive from video_themes map
 video_themes_map = data.get("video_themes", {})
@@ -327,7 +327,7 @@ if data.get("season_monthly"):
 # ── Main Issues ──────────────────────────────────────────────
 if data.get("main_issues"):
     st.markdown("---")
-    st.subheader("Main Issues")
+    st.subheader("⚠️ Main Issues")
     for issue in data["main_issues"]:
         sev = issue.get("severity", "medium").lower()
         sev_icon = {"high": "🔴", "medium": "🟡", "low": "🔵"}.get(sev, "⚪")
