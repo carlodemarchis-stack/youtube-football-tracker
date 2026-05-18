@@ -143,6 +143,18 @@ live_now = [v for v in latest_raw if _is_live_now(v)]
 latest_raw_unscheduled = [v for v in latest_raw
                           if not _is_scheduled(v) or _is_live_now(v)]
 
+# Timeline needs EVERY video in the window (not the most-recent N) so a
+# high-volume scope can't lose its oldest hours to the row cap. Own
+# complete, paginated, time-windowed fetch (49h covers 24/48h + buffer).
+try:
+    _timeline_raw = _cached_recent(db, limit=12000,
+                                   channel_ids=tuple(ch_ids),
+                                   since_hours=49)
+except Exception:
+    _timeline_raw = latest_raw
+timeline_unscheduled = [v for v in _timeline_raw
+                        if not _is_scheduled(v) or _is_live_now(v)]
+
 # ── Live Now banner (verbatim from core Latest) ──────────────
 if live_now:
     _ln_cards = ""
@@ -261,12 +273,12 @@ try:
     if _wc_team:
         # Z3 — single team: rich thumbnail strip (core Z3 analog).
         from src.timeline import render_48h_timeline
-        render_48h_timeline(latest_raw_unscheduled)
+        render_48h_timeline(timeline_unscheduled)
     elif _wc_confed:
         # Z2 — one confederation: dots grouped by team within it.
         from src.timeline import render_48h_dots
         render_48h_dots(
-            latest_raw_unscheduled,
+            timeline_unscheduled,
             channel_resolver=_team_of,
             color_resolver=lambda v: _team_color.get(_team_of(v), "#888"),
             badge_resolver=lambda v: "",
@@ -277,7 +289,7 @@ try:
         # Z1 — all WC2026: dots grouped by confederation.
         from src.timeline import render_48h_dots
         render_48h_dots(
-            latest_raw_unscheduled,
+            timeline_unscheduled,
             channel_resolver=_conf_of,
             color_resolver=lambda v: _CONF_COLOR.get(_conf_of(v), "#888"),
             badge_resolver=_conf_badge,

@@ -30,15 +30,20 @@ def get_all_channels(_db) -> list[dict]:
 
 
 @st.cache_data(ttl=60, show_spinner=False)
-def get_recent_videos(_db, limit: int, channel_ids: tuple[str, ...] | None) -> list[dict]:
+def get_recent_videos(_db, limit: int, channel_ids: tuple[str, ...] | None,
+                       since_hours: int | None = None) -> list[dict]:
     """Cached wrapper for db.get_recent_videos().
 
     `channel_ids` is a tuple (not a list) so Streamlit can hash it as a
-    cache key. Callers pass `tuple(ids)`.
+    cache key. Callers pass `tuple(ids)`. `since_hours` (when set) is
+    part of the cache key and switches the underlying query to a
+    complete, paginated time-window fetch — the cutoff is recomputed
+    only on a cache miss, so the 60s TTL still holds.
     """
     return _db.get_recent_videos(
         limit=limit,
         channel_ids=list(channel_ids) if channel_ids is not None else None,
+        since_hours=since_hours,
     ) or []
 
 

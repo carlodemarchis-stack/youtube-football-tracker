@@ -783,28 +783,60 @@ class Database:
         resp = query.execute()
         return resp.data or []
 
-    def get_recent_videos(self, limit: int = 20, channel_ids: list[str] | None = None) -> list[dict]:
+    def get_recent_videos(self, limit: int = 20, channel_ids: list[str] | None = None,
+                          since_hours: int | None = None) -> list[dict]:
         """Return the most recently ingested videos (joined with channel name).
 
         For live videos, actual_start_time (when the stream aired) is more
         meaningful than published_at (when it was scheduled). We fetch both
         and let the caller sort by effective_date.
+
+        Two modes:
+          • Default (since_hours=None): the `limit` most-recent rows. Good
+            for "latest N videos" lists where age doesn't matter.
+          • since_hours set: EVERY video published in the last `since_hours`
+            hours, fetched with pagination so a high-volume scope can't be
+            silently truncated by `limit`. This is what the timeline needs
+            — a fixed row cap was dropping the oldest hours of the window
+            whenever >limit videos existed across the selected channels.
         """
-        q = (
-            self.client.table("videos")
-            .select("id,youtube_video_id,title,channel_id,published_at,"
-                    "actual_start_time,duration_seconds,"
-                    "format,category,view_count,like_count,comment_count,"
-                    "thumbnail_url,language,channels(name)")
-            .order("published_at", desc=True)
-            .limit(limit)
-        )
-        if channel_ids is not None:
-            if not channel_ids:
-                return []
-            q = q.in_("channel_id", channel_ids)
-        resp = q.execute()
-        rows = resp.data or []
+        SELECT = ("id,youtube_video_id,title,channel_id,published_at,"
+                  "actual_start_time,duration_seconds,"
+                  "format,category,view_count,like_count,comment_count,"
+                  "thumbnail_url,language,channels(name)")
+        if channel_ids is not None and not channel_ids:
+            return []
+
+        if since_hours is not None:
+            from datetime import datetime as _dt, timezone as _tz, timedelta as _td
+            cutoff = (_dt.now(_tz.utc) - _td(hours=since_hours)).isoformat()
+            rows: list[dict] = []
+            page = 0
+            PAGE = 1000
+            SAFETY = 12000  # hard ceiling so a runaway scope can't hang
+            while len(rows) < SAFETY:
+                q = (
+                    self.client.table("videos").select(SELECT)
+                    .gte("published_at", cutoff)
+                    .order("published_at", desc=True)
+                    .range(page * PAGE, page * PAGE + PAGE - 1)
+                )
+                if channel_ids is not None:
+                    q = q.in_("channel_id", channel_ids)
+                chunk = q.execute().data or []
+                rows.extend(chunk)
+                if len(chunk) < PAGE:
+                    break
+                page += 1
+        else:
+            q = (
+                self.client.table("videos").select(SELECT)
+                .order("published_at", desc=True)
+                .limit(limit)
+            )
+            if channel_ids is not None:
+                q = q.in_("channel_id", channel_ids)
+            rows = q.execute().data or []
         for r in rows:
             ch = r.pop("channels", None)
             r["channel_name"] = ch["name"] if ch else ""

@@ -158,6 +158,21 @@ live_now = [v for v in latest_raw if _is_live_now(v)]
 latest_raw_unscheduled = [v for v in latest_raw
                           if not _is_scheduled(v) or _is_live_now(v)]
 
+# The table above wants "the most recent N videos regardless of age"
+# (latest_raw, limit-based). The timeline below needs the OPPOSITE:
+# *every* video in the window, or a high-volume scope (e.g. All
+# Leagues — ~480 videos/24h) silently loses its oldest hours to the
+# row cap. So the timeline gets its own complete, paginated,
+# time-windowed fetch (49h covers the 24/48h renders + buffer).
+try:
+    _timeline_raw = _cached_recent(db, limit=12000,
+                                   channel_ids=tuple(ch_ids),
+                                   since_hours=49)
+except Exception:
+    _timeline_raw = latest_raw  # degrade to the capped set, never crash
+timeline_unscheduled = [v for v in _timeline_raw
+                        if not _is_scheduled(v) or _is_live_now(v)]
+
 ch_by_id = {c["id"]: c for c in all_channels}
 
 # EN/GB → England subdivision flag (Premier League is English)
@@ -239,7 +254,7 @@ if live_now:
 if g_club:
     try:
         from src.timeline import render_48h_timeline
-        render_48h_timeline(latest_raw_unscheduled)
+        render_48h_timeline(timeline_unscheduled)
     except Exception as _e:
         st.caption(f"(48h timeline unavailable: {_e})")
 elif g_league:
@@ -261,7 +276,7 @@ elif g_league:
         # last 24h.
         _league_roster = [c for c in all_channels
                           if get_league_for_channel(c) == g_league]
-        render_48h_dots(latest_raw_unscheduled,
+        render_48h_dots(timeline_unscheduled,
                         channel_resolver=_ch_name,
                         color_resolver=_ch_color,
                         badge_resolver=_ch_badge,
@@ -280,7 +295,7 @@ else:
         # rows like "WW" or "AS" in the timeline.
         _SKIP_TYPES = ("Player", "Federation", "GoverningBody",
                        "OtherClub", "WomenClub")
-        _z1_videos = [v for v in latest_raw_unscheduled
+        _z1_videos = [v for v in timeline_unscheduled
                       if (ch_by_id.get(v.get("channel_id")) or {})
                          .get("entity_type") not in _SKIP_TYPES]
         def _league_of(v):
