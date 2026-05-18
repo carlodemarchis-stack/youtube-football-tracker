@@ -16,6 +16,7 @@ from src.filters import get_global_color_map, get_global_color_map_dual
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
 from src.dot import dual_dot, channel_badge
 from src import theme as _T
+from src.auth import is_logged_in
 
 load_dotenv()
 
@@ -222,6 +223,26 @@ try:
 except Exception:
     pass
 
+# Logged-out visitors only: an elegant, low-pressure nudge to sign in.
+# Honest about the mechanism (free, Google / email code, no password)
+# so it reads as an invitation, not a paywall. Hidden once signed in.
+if not is_logged_in():
+    st.markdown(
+        f"""<div style="background:{_T.SURFACE};border-left:3px solid {_T.ACCENT};
+        padding:14px 18px;margin:16px 0 4px 0;border-radius:6px;
+        line-height:1.6;color:{_T.TEXT};font-size:15px">
+        🔓 <b>Most of this lives behind a quick — and free — sign-in.</b>
+        The daily recaps, season cadence, all-time leaderboards, every
+        club's single best video and the road-to-WC2026 tracker are all
+        one step away. Sign in with Google or a one-time email code
+        <span style="color:{_T.MUTED}">(no password, no spam, nothing to
+        install)</span> — the <b>Sign&nbsp;in</b> panel is in the sidebar.
+        It takes seconds, and whatever you're looking at follows you from
+        page to page.
+        </div>""",
+        unsafe_allow_html=True,
+    )
+
 _link = "color:#FAFAFA;text-decoration:underline;text-decoration-color:#555"
 
 st.markdown(
@@ -413,10 +434,11 @@ st.markdown(
 
     ---
 
-    ### Top 5 Leagues (require login)
+    ### Top 5 Leagues *(free sign-in)*
 
     The core of the site — Serie A, Premier League, La Liga, Bundesliga
-    and Ligue 1. These pages respond to the global filter above.
+    and Ligue 1, all responding to the global filter above. A quick
+    sign-in opens every page below.
 
     **Daily Recap** — what happened yesterday: view and subscriber
     gains, leaderboards, new uploads, most-watched videos, and 14-day
