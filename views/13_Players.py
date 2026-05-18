@@ -57,6 +57,7 @@ _players_updated = _cached_last_fetch(db, "daily_players")
 render_page_subtitle(
     "Top football players on YouTube — personal channels",
     updated_raw=_players_updated,
+    show_filter=False,
 )
 
 if not players:

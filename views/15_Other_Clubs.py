@@ -56,6 +56,7 @@ _oc_updated = _cached_last_fetch(db, "daily_other_clubs")
 render_page_subtitle(
     "Top global clubs outside the big-5 — FIFA, UEFA, national FAs",
     updated_raw=_oc_updated,
+    show_filter=False,
 )
 
 if not clubs_o:

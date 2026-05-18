@@ -56,6 +56,7 @@ _oc_updated = _cached_last_fetch(db, "daily_women_clubs")
 render_page_subtitle(
     "Top women's football channels on YouTube — FIFA, UEFA, national FAs",
     updated_raw=_oc_updated,
+    show_filter=False,
 )
 
 if not clubs_o:
@@ -157,11 +158,11 @@ def _status_dot(days: int | None) -> str:
 st.markdown("---")
 st.subheader("Leaderboard")
 st.caption(
-    "Every tracked other club ranked by subscribers. "
+    "Every tracked women's club ranked by subscribers. "
     "Click any row to open the channel on YouTube; click any column header to re-sort."
 )
 st.caption(
-    "**Updates** — days since the other club's latest YouTube upload: "
+    "**Updates** — days since the women's club's latest YouTube upload: "
     "🟢 ≤14d  ·  🟡 ≤30d  ·  🟠 ≤90d  ·  🔴 >90d."
 )
 
@@ -322,7 +323,7 @@ st.caption(
     "This shows who's currently posting."
 )
 st.caption(
-    "**Status** — days since the other club's latest YouTube upload: "
+    "**Status** — days since the women's club's latest YouTube upload: "
     "🟢 Active (≤14d)  ·  🟡 Slowing (≤30d)  ·  🟠 Quiet (≤90d)  ·  🔴 Dormant (>90d)."
 )
 

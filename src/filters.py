@@ -257,7 +257,8 @@ def get_filter_description() -> str:
 
 
 def render_page_subtitle(content: str, updated_raw: str | None = None,
-                         caveat: str | None = None) -> None:
+                         caveat: str | None = None, *,
+                         show_filter: bool = True) -> None:
     """Render a consistent one-line subtitle: content · filter · updated.
 
     Args:
@@ -265,16 +266,20 @@ def render_page_subtitle(content: str, updated_raw: str | None = None,
         updated_raw: ISO timestamp for "updated Xh ago". If None, uses
                      max(last_fetched) from global channels.
         caveat: Optional second-line caveat (e.g. season date disclaimer).
+        show_filter: include the global-filter description segment.
+                     Pass False on standalone, filter-less pages
+                     (Players / Other Clubs / Women) where the inherited
+                     "all clubs + league channels" string is nonsensical.
     """
     from src.analytics import fmt_date
-
-    filter_desc = get_filter_description()
 
     if updated_raw is None:
         all_ch = get_global_channels()
         updated_raw = max((c.get("last_fetched") or "" for c in all_ch), default="") if all_ch else ""
 
-    parts = [content, filter_desc]
+    parts = [content]
+    if show_filter:
+        parts.append(get_filter_description())
     if updated_raw:
         parts.append(f"updated {fmt_date(updated_raw)}")
 
