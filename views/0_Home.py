@@ -513,7 +513,7 @@ st.markdown(
 
     ---
 
-    ### 🗂️ Others — isolated entity types
+    ### 🗂️ Others — Players, Other Clubs & Women
 
     These are tracked but deliberately excluded from every league/club
     view, leaderboard, and aggregate above. They live on their own
