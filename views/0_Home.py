@@ -432,6 +432,10 @@ st.markdown(
       or *All Clubs + League channel*
     - **One Club** — focuses those pages on a single channel
 
+    So in effect every Top 5 Leagues page is three pages in one — the
+    same charts and tables, re-scoped from the whole site down to a
+    single club.
+
     ---
 
     ### ⚽ Top 5 Leagues
