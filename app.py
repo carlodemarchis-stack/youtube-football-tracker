@@ -84,6 +84,13 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# Server-side social-preview meta (LinkedIn / newsletters / Slack /X).
+# Patches Streamlit's static index.html <head> once per process —
+# st.markdown can't (crawlers read server HTML, not JS body). Fully
+# defensive: never raises, self-heals on redeploy.
+from src.og_meta import inject_og_tags
+inject_og_tags()
+
 # ── Navigation ────────────────────────────────────────────────
 # Each st.Page sets an explicit url_path so we can robustly distinguish
 # pages even if two groups ever share a title (the explicit url_path
