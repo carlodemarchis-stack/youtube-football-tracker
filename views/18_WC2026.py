@@ -497,7 +497,12 @@ if _cf:
     )
 
 st.subheader("📋 All channels")
-iframe_h = min(2000, 36 * len(wc_sorted) + 80)
+# Real .wc-tbl row ≈ 30px (6+6 padding + 14px line + 1px border),
+# header ≈ 31px. The old 36/row + 80 over-reserved AND hit the
+# 2000 cap on the full list, leaving a big empty band before the
+# caption. 31/row + 44 with a higher cap fits snugly; scrolling=True
+# means a slight underestimate just adds a small inner scroll.
+iframe_h = min(2400, 31 * len(wc_sorted) + 44)
 _components.html(_render_wc_table(rows_html, "wc-tbl-primary"),
                   height=iframe_h, scrolling=True)
 
@@ -521,6 +526,6 @@ if alts:
             alts, key=lambda x: -(int(x.get("subscriber_count") or 0)))
         alt_rows_html = [_channel_row_html(c, show_alt_chip=False)
                          for c in alts_sorted]
-        alt_h = min(2000, 36 * len(alts_sorted) + 80)
+        alt_h = min(2400, 31 * len(alts_sorted) + 44)
         _components.html(_render_wc_table(alt_rows_html, "wc-tbl-alts"),
                           height=alt_h, scrolling=True)
