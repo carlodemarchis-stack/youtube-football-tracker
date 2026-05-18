@@ -503,7 +503,7 @@ if league is None and _scope == "Overall":
     # channel level (those live in the video rows, not aggregated on the
     # channel record), so the Views and Views/Video groups are single-
     # column and Avg Duration / Engagement are omitted entirely.
-    st.subheader("All Channels")
+    st.subheader("📡 All Channels")
     _all_clubs = [ch for ch in all_channels if ch.get("entity_type") not in ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub")]
     _all_color_map = get_global_color_map()
     _all_dual = get_global_color_map_dual()
