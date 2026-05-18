@@ -518,7 +518,7 @@ if league is None and _scope == "Overall":
         _pie_title("Comments")
         st.plotly_chart(_make_pie(_zv(total_long_comments, total_short_comments, total_live_comments), _pie_labels, _pie_colors, "comments"), use_container_width=True)
 
-    st.subheader("Leagues — Season")
+    st.subheader("🏆 Leagues — Season")
     sorted_leagues = sorted(league_stats.items(), key=lambda kv: kv[1]["views"], reverse=True)
 
     def _v(v):
