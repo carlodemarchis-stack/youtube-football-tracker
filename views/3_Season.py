@@ -1260,7 +1260,7 @@ if league is None and _scope == "Overall":
         st.caption(f"(zero-day chart unavailable: {_e})")
 
     # ── All channels table — precomputed columns (zero video queries) ───
-    st.subheader("All Channels — Season")
+    st.subheader("📡 All Channels — Season")
     st.caption(
         f"Stats cover videos published on/after {SEASON_SINCE}. "
         f"Views on older videos that happen during the season are "
