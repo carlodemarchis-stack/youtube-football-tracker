@@ -141,8 +141,12 @@ def fmt_date(raw: str | None) -> str:
         if days < 30:
             weeks = days // 7
             return f"{weeks}w ago"
-        # Older than a month — show date
-        return dt.strftime("%b %d")
+        # Older than a month — show the calendar date. Render in CET
+        # (Europe/Rome) to stay consistent with every other user-facing
+        # date in the app; the raw UTC date can be a day behind for
+        # items timestamped late-evening UTC.
+        from zoneinfo import ZoneInfo
+        return dt.astimezone(ZoneInfo("Europe/Rome")).strftime("%b %d")
     except Exception:
         # Can't parse — return truncated raw
         return str(raw)[:16]
