@@ -26,10 +26,14 @@ from src.cached_db import (
     read_dashboard_cache as _cached_dc_read,
 )
 from src.filters import (
-    get_global_channels, render_page_subtitle,
+    get_global_channels, render_page_subtitle, get_league_for_channel,
 )
 from src.auth import require_login
 from src.season_top import render_top_season_videos_table
+import pandas as pd
+import plotly.express as px
+from src.channels import LEAGUE_COLOR
+from src import theme as _T
 
 load_dotenv()
 require_login()
@@ -110,6 +114,50 @@ render_page_subtitle(
     updated_raw=allt_when,
 )
 
+def _views_by_rank(rows: list[dict], label: str) -> None:
+    """Each channel's #1 video by rank (x) vs views (y), coloured by
+    league — same formatting as the Top Videos pages' 'Views by Rank'.
+    Tooltip carries the full per-video detail. All rows, no cap."""
+    if not rows:
+        return
+    recs = []
+    for i, v in enumerate(rows, 1):
+        ch = ch_by_id.get(v.get("channel_id")) or {}
+        recs.append({
+            "Rank": i,
+            "Views": int(v.get("view_count") or 0),
+            "League": get_league_for_channel(ch) or "Other",
+            "Channel": ch.get("name") or v.get("channel_name") or "—",
+            "Title": (v.get("title") or "")[:90],
+            "Likes": int(v.get("like_count") or 0),
+            "Comments": int(v.get("comment_count") or 0),
+        })
+    df = pd.DataFrame(recs)
+    st.subheader(f"👁️ Views by rank — {label}")
+    fig = px.bar(
+        df, x="Rank", y="Views", color="League",
+        color_discrete_map=LEAGUE_COLOR,
+        custom_data=["Channel", "Title", "League", "Views",
+                     "Likes", "Comments"],
+    )
+    fig.update_traces(hovertemplate=(
+        "<b>%{customdata[0]}</b> · #%{x}<br>"
+        "%{customdata[1]}<br>"
+        "<i>%{customdata[2]}</i><br>"
+        "👁️ %{customdata[3]:,} · ❤️ %{customdata[4]:,} · "
+        "💬 %{customdata[5]:,}<extra></extra>"
+    ))
+    fig.update_layout(
+        xaxis=dict(title="Rank"),
+        yaxis_title="Views",
+        legend_title_text="League",
+        margin=dict(t=20, b=40), bargap=0.1,
+        plot_bgcolor=_T.BG, paper_bgcolor=_T.BG,
+        font=dict(color=_T.TEXT),
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+
 # ── Render — two tables, all-time first, season below ────────
 if allt_rows:
     render_top_season_videos_table(
@@ -117,6 +165,7 @@ if allt_rows:
         header="🥇 All-Time No. 1 Video by Channel",
         max_height=1100,
     )
+    _views_by_rank(allt_rows, "All-Time No. 1s")
 else:
     st.caption("All-time #1 list not available yet.")
 
@@ -128,5 +177,6 @@ if season_rows:
         header="🌟 Season No. 1 Video by Channel",
         max_height=1100,
     )
+    _views_by_rank(season_rows, "Season No. 1s")
 else:
     st.caption("Season #1 list not available yet.")
