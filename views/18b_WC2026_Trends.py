@@ -333,11 +333,15 @@ _PLOT = dict(
     font=dict(color=_T.TEXT), height=340,
     margin=dict(t=30, l=0, r=0, b=20),
 )
+# The first per-day row is the partial bootstrap day (tracking only
+# just began that day), so its delta is noise — drop it from the
+# charts only. KPIs/movers above still use the full window.
+dfc = dfd.iloc[1:] if len(dfd) > 1 else dfd
 gc1, gc2 = st.columns(2)
 with gc1:
     st.subheader("👁️ Views gained per day")
-    fv = px.bar(dfd, x="Date", y="Δ Views")
-    fv.update_traces(marker_color=_T.ACCENT)
+    fv = px.line(dfc, x="Date", y="Δ Views", markers=True)
+    fv.update_traces(line_color=_T.ACCENT, marker_color=_T.ACCENT)
     fv.update_layout(**_PLOT)
     fv.update_xaxes(gridcolor=_T.BORDER, tickformat="%b %d", title="")
     fv.update_yaxes(gridcolor=_T.BORDER, title="")
@@ -346,7 +350,7 @@ with gc1:
 with gc2:
     st.subheader("🎬 Videos added per day")
     fl = px.bar(
-        dfd, x="Date", y=["Long", "Shorts", "Live"],
+        dfc, x="Date", y=["Long", "Shorts", "Live"],
         color_discrete_map={"Long": _T.ACCENT, "Shorts": _T.POS,
                             "Live": _T.WARN},
     )
