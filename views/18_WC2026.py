@@ -373,8 +373,7 @@ def _render_wc_table(rows_html: list[str], table_id: str) -> str:
 #    detail) and respects the Confederation/Team filter via `wc`.
 _CF_COLS = [
     ("Confederation", "str", "left"), ("Channels", "num", "right"),
-    ("Subscribers", "num", "right"), ("Subs (teams)", "num", "right"),
-    ("Avg Subs/team", "num", "right"), ("Subs (body)", "num", "right"),
+    ("Subscribers", "num", "right"),
     ("Total views", "num", "right"), ("Views/Sub", "num", "right"),
     ("Videos", "num", "right"), ("Long", "num", "right"),
     ("Shorts", "num", "right"), ("Live", "num", "right"),
@@ -449,7 +448,6 @@ if _cf:
     st.subheader("🌐 By confederation")
     _cf_rows = []
     for _name, _s in sorted(_cf.items(), key=lambda kv: -kv[1]["subs"]):
-        _avg = (_s["tsubs"] // _s["tn"]) if _s["tn"] else 0
         _vps = (_s["v"] // _s["subs"]) if _s["subs"] else 0
         _vpv = (_s["v"] // _s["vid"]) if _s["vid"] else 0
         _cf_rows.append(
@@ -457,9 +455,6 @@ if _cf:
             + td(_name, _name, align="left")
             + td(_s["ch"], fmt_num(_s["ch"]))
             + td(_s["subs"], fmt_num(_s["subs"]))
-            + td(_s["tsubs"], fmt_num(_s["tsubs"]))
-            + td(_avg, fmt_num(_avg))
-            + td(_s["gsubs"], fmt_num(_s["gsubs"]))
             + td(_s["v"], fmt_num(_s["v"]))
             + td(_vps, fmt_num(_vps))
             + td(_s["vid"], fmt_num(_s["vid"]))
@@ -475,8 +470,7 @@ if _cf:
     st.caption(
         "Aggregated from the WC2026 channel stats we collect "
         "(subscribers / views / videos / format split). Click a header "
-        "to sort. “body” = the confederation's own channel "
-        "(FIFA / UEFA / …)."
+        "to sort."
     )
 
 st.subheader("📋 All channels")
