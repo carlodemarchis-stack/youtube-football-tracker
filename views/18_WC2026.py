@@ -371,6 +371,23 @@ def _render_wc_table(rows_html: list[str], table_id: str) -> str:
 #    body = club/league split). Uses only the channel stats we
 #    collect. Sits above the per-channel detail table (summary →
 #    detail) and respects the Confederation/Team filter via `wc`.
+#
+# Confederations are governing bodies → §7 marker is a dual-dot
+# (two brand colours). Same pairs as the Latest page's _CONF_DUAL;
+# brand colours are the §1 data-not-theme exception.
+_CONF_DUAL = {
+    "UEFA": ("#C8102E", "#003F87"), "CONMEBOL": ("#003F87", "#F4C300"),
+    "CONCACAF": ("#F26522", "#1E73BE"), "CAF": ("#006B3F", "#FCD116"),
+    "AFC": ("#F0A91A", "#005A36"), "OFC": ("#0073CF", "#FFFFFF"),
+    "FIFA": ("#326295", "#FFFFFF"),
+}
+
+
+def _conf_marker(name: str) -> str:
+    c1, c2 = _CONF_DUAL.get(name, (_T.ACCENT, _T.WHITE))
+    return dual_dot(c1, c2, 14, inline=True)
+
+
 _CF_COLS = [
     ("Confederation", "str", "left"), ("Channels", "num", "right"),
     ("Subscribers", "num", "right"),
@@ -452,7 +469,10 @@ if _cf:
         _vpv = (_s["v"] // _s["vid"]) if _s["vid"] else 0
         _cf_rows.append(
             "<tr>"
-            + td(_name, _name, align="left")
+            + td(_name,
+                  f"<div style='display:flex;align-items:center;gap:8px'>"
+                  f"{_conf_marker(_name)}<span>{_name}</span></div>",
+                  align="left")
             + td(_s["ch"], fmt_num(_s["ch"]))
             + td(_s["subs"], fmt_num(_s["subs"]))
             + td(_s["v"], fmt_num(_s["v"]))
