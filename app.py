@@ -240,8 +240,34 @@ st.markdown("""
       [data-testid="stSidebarUserContent"] {
         padding-top: 0 !important;
       }
+      /* Desktop-first notice: this is a data-dense dashboard (wide
+         non-squashing tables, fixed-height component iframes) — making
+         it truly mobile-good is a ~19-page rework against its own
+         "show all the columns" principle, so instead we set the
+         expectation. Hidden by default; shown only on narrow screens.
+         Neutral/structural CSS only (no brand hex → §1-safe). */
+      .ytft-desktop-note { display:none; }
+      @media (max-width: 768px) {
+        .ytft-desktop-note {
+          display:block;
+          margin:0 0 12px 0;
+          padding:10px 14px;
+          border-radius:6px;
+          background:rgba(255,255,255,0.06);
+          border:1px solid rgba(255,255,255,0.14);
+          font-size:13px; line-height:1.5;
+        }
+      }
     </style>
 """, unsafe_allow_html=True)
+
+st.markdown(
+    "<div class='ytft-desktop-note'>🖥️ <b>Built for desktop.</b> "
+    "This is a data-dense dashboard — for the full picture (wide "
+    "tables, charts and timelines) open it on a laptop or larger "
+    "screen.</div>",
+    unsafe_allow_html=True,
+)
 
 if not is_admin():
     st.markdown("""
