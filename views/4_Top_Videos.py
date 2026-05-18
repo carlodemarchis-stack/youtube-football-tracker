@@ -594,10 +594,11 @@ if not theme_df.empty:
     cat_counts = dict(zip(theme_df["category"], theme_df["count"]))
     st.plotly_chart(build_category_pie(cat_counts, "Theme Distribution", "videos"), use_container_width=True)
 
-# ── KPI Row 2 (Z1/Z2 only): sum of every channel's own top 100 ──
-# Sits right above the channel-stats table since the numbers tie out
-# to that table's "Top 100 views" column.
+# ── "Each channel's Top 100": title → info line → KPI → table.
+# KPI Row 2 (Z1/Z2 only) is the sum of every channel's own top 100;
+# its numbers tie out to the channel-stats table directly below.
 if not club:
+    st.subheader("📡 Each channel's Top 100")
     try:
         _agg_total = sum(int(c.get("top100_views") or 0) for c in _scope_channels)
         _agg_n = sum(1 for c in _scope_channels if int(c.get("top100_views") or 0) > 0)
@@ -639,7 +640,6 @@ if not club:
 
 # ── Channel table (same as Clubs page) ───────────────────────
 if not club:
-    st.subheader("📡 Each channel's Top 100")
     _loading = st.info("⏳ Building channel stats table…")
     now = datetime.now(timezone.utc)
     include_league = get_include_league()
