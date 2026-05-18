@@ -201,11 +201,21 @@ gate_onboarding()
 # Streamlit's native collapse/expand (and its main-content reflow)
 # fully intact, so hiding the sidebar still widens the page. The
 # earlier all-states !important version is exactly what broke that.
+#
+# Same block also trims Streamlit's hardcoded ~6rem .block-container
+# top padding (no native config for it in 1.50) down to ~2rem — pure
+# top spacing, applies to everyone, zero behavioural risk. Reclaims
+# the big empty band at the top of every page.
 st.markdown("""
     <style>
       section[data-testid="stSidebar"][aria-expanded="true"] {
         width: 210px !important;
         min-width: 210px !important;
+      }
+      .stMainBlockContainer,
+      [data-testid="stMainBlockContainer"],
+      .block-container {
+        padding-top: 2rem !important;
       }
     </style>
 """, unsafe_allow_html=True)
@@ -215,6 +225,10 @@ if not is_admin():
         <style>
           #MainMenu {visibility: hidden !important;}
           header [data-testid="stToolbar"] {visibility: hidden !important;}
+          /* Toolbar is already hidden for non-admins — also collapse
+             the now-empty header bar so it stops reserving ~60px at
+             the very top. Admins keep the header (dev toolbar). */
+          [data-testid="stHeader"] {height: 0 !important; min-height: 0 !important;}
           .stDeployButton {display: none !important;}
           .stAppDeployButton {display: none !important;}
           [data-testid="stStatusWidget"] {display: none !important;}
