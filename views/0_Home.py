@@ -236,9 +236,9 @@ if not is_logged_in():
         club's single best video and the road-to-WC2026 tracker are all
         one step away. Sign in with Google or a one-time email code
         <span style="color:{_T.MUTED}">(no password, no spam, nothing to
-        install)</span> — the <b>Sign&nbsp;in</b> panel is in the sidebar.
-        It takes seconds, and whatever you're looking at follows you from
-        page to page.
+        install)</span> — the <b>Sign&nbsp;in</b> panel is in the
+        left&nbsp;sidebar&nbsp;👈 &nbsp;It takes seconds, and whatever
+        you're looking at follows you from page to page.
         </div>""",
         unsafe_allow_html=True,
     )
