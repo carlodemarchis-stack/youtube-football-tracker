@@ -366,6 +366,120 @@ def _render_wc_table(rows_html: list[str], table_id: str) -> str:
     )
 
 
+# ── Confederation summary (aggregate — mirrors the Clubs by-league
+#    table, adapted to WC2026: confederation = league, team/governing-
+#    body = club/league split). Uses only the channel stats we
+#    collect. Sits above the per-channel detail table (summary →
+#    detail) and respects the Confederation/Team filter via `wc`.
+_CF_COLS = [
+    ("Confederation", "str", "left"), ("Channels", "num", "right"),
+    ("Subscribers", "num", "right"), ("Subs (teams)", "num", "right"),
+    ("Avg Subs/team", "num", "right"), ("Subs (body)", "num", "right"),
+    ("Total views", "num", "right"), ("Views/Sub", "num", "right"),
+    ("Videos", "num", "right"), ("Long", "num", "right"),
+    ("Shorts", "num", "right"), ("Live", "num", "right"),
+    ("Views/Video", "num", "right"),
+]
+_cf_th = "".join(
+    f"<th data-col='{i}' data-type='{tp}' "
+    f"style='text-align:{al};cursor:pointer'>{lbl}</th>"
+    for i, (lbl, tp, al) in enumerate(_CF_COLS)
+)
+
+
+def _render_confed_table(rows_html: list[str]) -> str:
+    tid = "wc-tbl-confed"
+    return (
+        _TABLE_CSS
+        + f"<div class='wc-wrap'><table class='wc-tbl' id='{tid}'>"
+        f"<thead><tr style='border-bottom:2px solid {_T.BORDER_STRONG}'>"
+        + _cf_th +
+        "</tr></thead>"
+        f"<tbody>{''.join(rows_html)}</tbody></table></div>"
+        "<script>(function(){"
+        f"const t=document.getElementById('{tid}');"
+        "const tb=t.querySelector('tbody');"
+        "const hs=t.querySelectorAll('th[data-col]');"
+        "let cur=2,asc=false;"
+        "function refresh(){"
+            "const rows=Array.from(tb.rows);"
+            "const isStr=hs[cur].dataset.type==='str';"
+            "rows.sort((a,b)=>{"
+                "const va=a.cells[cur].dataset.val||'';"
+                "const vb=b.cells[cur].dataset.val||'';"
+                "let c=isStr?va.localeCompare(vb,undefined,{sensitivity:'base'})"
+                         ":(parseFloat(va)||0)-(parseFloat(vb)||0);"
+                "return asc?c:-c;"
+            "});"
+            "rows.forEach(r=>tb.appendChild(r));"
+            "hs.forEach(h=>{h.classList.remove('active');h.textContent=h.textContent.replace(/ [▲▼]/g,'');});"
+            "hs[cur].classList.add('active');"
+            "hs[cur].textContent+=asc?' ▲':' ▼';"
+        "}"
+        "hs.forEach((h,i)=>{h.addEventListener('click',()=>{"
+            "if(i===cur)asc=!asc;else{cur=i;asc=hs[i].dataset.type==='str';}"
+            "refresh();"
+        "});});"
+        "refresh();"
+        "})();</script>"
+    )
+
+
+_cf: dict[str, dict] = {}
+for _c in wc:
+    _k = (_wc(_c).get("confederation") or "—")
+    _s = _cf.setdefault(_k, {"ch": 0, "subs": 0, "tsubs": 0, "gsubs": 0,
+                             "tn": 0, "v": 0, "vid": 0,
+                             "lo": 0, "sh": 0, "li": 0})
+    _su = int(_c.get("subscriber_count") or 0)
+    _s["ch"] += 1
+    _s["subs"] += _su
+    if _role(_c) == "governing_body":
+        _s["gsubs"] += _su
+    else:
+        _s["tsubs"] += _su
+        _s["tn"] += 1
+    _s["v"] += int(_c.get("total_views") or 0)
+    _s["vid"] += int(_c.get("video_count") or 0)
+    _s["lo"] += int(_c.get("long_form_count") or 0)
+    _s["sh"] += int(_c.get("shorts_count") or 0)
+    _s["li"] += int(_c.get("live_count") or 0)
+
+if _cf:
+    st.subheader("🌐 By confederation")
+    _cf_rows = []
+    for _name, _s in sorted(_cf.items(), key=lambda kv: -kv[1]["subs"]):
+        _avg = (_s["tsubs"] // _s["tn"]) if _s["tn"] else 0
+        _vps = (_s["v"] // _s["subs"]) if _s["subs"] else 0
+        _vpv = (_s["v"] // _s["vid"]) if _s["vid"] else 0
+        _cf_rows.append(
+            "<tr>"
+            + td(_name, _name, align="left")
+            + td(_s["ch"], fmt_num(_s["ch"]))
+            + td(_s["subs"], fmt_num(_s["subs"]))
+            + td(_s["tsubs"], fmt_num(_s["tsubs"]))
+            + td(_avg, fmt_num(_avg))
+            + td(_s["gsubs"], fmt_num(_s["gsubs"]))
+            + td(_s["v"], fmt_num(_s["v"]))
+            + td(_vps, fmt_num(_vps))
+            + td(_s["vid"], fmt_num(_s["vid"]))
+            + td(_s["lo"], fmt_num(_s["lo"]))
+            + td(_s["sh"], fmt_num(_s["sh"]))
+            + td(_s["li"], fmt_num(_s["li"]))
+            + td(_vpv, fmt_num(_vpv))
+            + "</tr>"
+        )
+    _cf_h = min(700, 40 * len(_cf_rows) + 90)
+    _components.html(_render_confed_table(_cf_rows), height=_cf_h,
+                      scrolling=True)
+    st.caption(
+        "Aggregated from the WC2026 channel stats we collect "
+        "(subscribers / views / videos / format split). Click a header "
+        "to sort. “body” = the confederation's own channel "
+        "(FIFA / UEFA / …)."
+    )
+
+st.subheader("📋 All channels")
 iframe_h = min(2000, 36 * len(wc_sorted) + 80)
 _components.html(_render_wc_table(rows_html, "wc-tbl-primary"),
                   height=iframe_h, scrolling=True)
