@@ -33,34 +33,52 @@ _DESC = (
 )
 # Bumped on every change to the injected block so a redeploy always
 # re-patches even if an old patched index.html persisted in the
-# container. v3 = added the WebSocket reconnect watchdog.
-_MARKER = "<!-- ytft-og v3 -->"
+# container. v4 = socket-state-aware reconnect watchdog.
+_MARKER = "<!-- ytft-og v4 -->"
 
 # Streamlit keeps the app alive over a WebSocket. When the tab is
-# backgrounded / the machine sleeps for a while, the socket is closed
-# (browser background-tab throttling + Railway's proxy dropping idle
-# WebSocket connections) and Streamlit's auto-reconnect is unreliable
-# behind a reverse proxy. Symptom: sidebar st.navigation links change
-# the URL via pushState but nothing reruns (the server never gets the
-# message) — the page looks frozen until a manual refresh.
+# backgrounded / the machine sleeps, that socket is closed (browser
+# background-tab throttling + Railway's proxy dropping idle WebSocket
+# connections). Symptom: sidebar st.navigation links change the URL
+# via pushState but nothing reruns — frozen until a manual refresh.
 #
-# This watchdog runs in the top-level document (so it survives client-
-# side page switches). When the tab regains visibility after being
-# hidden longer than the threshold, it does ONE clean reload so the
-# socket re-establishes before the user clicks anything. The reload
-# keeps the current URL (page + filter query params), so app state is
-# preserved. Reloads only ever happen on return-after-idle, never
-# while the user is active.
+# A true "hot restart without reload" isn't reliably possible (the
+# server session is keyed to the socket and may be GC'd; Streamlit
+# exposes no reconnect API; a discarded tab runs no JS). BUT Streamlit
+# DOES auto-reconnect on its own when it can — and that path needs no
+# reload. So this watchdog is socket-state aware rather than a blunt
+# timer:
+#   • We shim window.WebSocket (a stable web standard, NOT Streamlit
+#     internals) purely to keep a reference to the live stream socket
+#     and watch its readyState.
+#   • On tab-visible: if the socket is OPEN, do nothing.
+#   • If it's not OPEN, give Streamlit a grace window to reconnect
+#     itself (no reload in the common case). Re-check; reload ONLY if
+#     there is still no open socket — last resort.
+# Reload (when it happens) keeps the URL, so page + filter query
+# params are preserved. Fully defensive; never touches an open socket.
 _RECONNECT_JS = (
-    "<script>(function(){"
-    "var STALE=600000;"          # 10 min hidden => assume socket dead
-    "var hiddenAt=null;"
+    "<script>(function(){try{"
+    "var N=window.WebSocket;if(!N)return;"
+    "var live=null;"
+    "function W(u,p){var s=(p===undefined)?new N(u):new N(u,p);"
+    "try{if(String(u).indexOf('stream')!==-1)live=s;}catch(e){}return s;}"
+    "W.prototype=N.prototype;"
+    "W.CONNECTING=N.CONNECTING;W.OPEN=N.OPEN;"
+    "W.CLOSING=N.CLOSING;W.CLOSED=N.CLOSED;"
+    "window.WebSocket=W;"
+    "function ok(){return live&&live.readyState===N.OPEN;}"
+    "var pending=false;"
+    "function check(){"
+    "if(ok()||pending)return;"          # healthy, or already waiting
+    "pending=true;"
+    "setTimeout(function(){pending=false;"  # grace: let ST self-heal
+    "if(!ok())location.reload();},9000);"   # still dead -> last resort
+    "}"
     "document.addEventListener('visibilitychange',function(){"
-    "if(document.hidden){hiddenAt=Date.now();}"
-    "else{var h=hiddenAt;hiddenAt=null;"
-    "if(h&&(Date.now()-h)>STALE){location.reload();}}"
-    "});"
-    "})();</script>"
+    "if(!document.hidden)check();});"
+    "window.addEventListener('online',check);"
+    "}catch(e){}})();</script>"
 )
 # Optional social card, committed in the repo. If present it's copied
 # into Streamlit's static dir at boot (served at <public>/og-card.png,
