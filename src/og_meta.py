@@ -31,10 +31,37 @@ _DESC = (
     "top 5 leagues — daily recaps, season trends, all-time leaderboards "
     "— plus the road to the FIFA World Cup 2026."
 )
-# Bumped to v2 when og:image self-hosting was added — guarantees a
-# redeploy re-patches even if an old (text-only) patched index.html
-# somehow persisted in the container.
-_MARKER = "<!-- ytft-og v2 -->"
+# Bumped on every change to the injected block so a redeploy always
+# re-patches even if an old patched index.html persisted in the
+# container. v3 = added the WebSocket reconnect watchdog.
+_MARKER = "<!-- ytft-og v3 -->"
+
+# Streamlit keeps the app alive over a WebSocket. When the tab is
+# backgrounded / the machine sleeps for a while, the socket is closed
+# (browser background-tab throttling + Railway's proxy dropping idle
+# WebSocket connections) and Streamlit's auto-reconnect is unreliable
+# behind a reverse proxy. Symptom: sidebar st.navigation links change
+# the URL via pushState but nothing reruns (the server never gets the
+# message) — the page looks frozen until a manual refresh.
+#
+# This watchdog runs in the top-level document (so it survives client-
+# side page switches). When the tab regains visibility after being
+# hidden longer than the threshold, it does ONE clean reload so the
+# socket re-establishes before the user clicks anything. The reload
+# keeps the current URL (page + filter query params), so app state is
+# preserved. Reloads only ever happen on return-after-idle, never
+# while the user is active.
+_RECONNECT_JS = (
+    "<script>(function(){"
+    "var STALE=600000;"          # 10 min hidden => assume socket dead
+    "var hiddenAt=null;"
+    "document.addEventListener('visibilitychange',function(){"
+    "if(document.hidden){hiddenAt=Date.now();}"
+    "else{var h=hiddenAt;hiddenAt=null;"
+    "if(h&&(Date.now()-h)>STALE){location.reload();}}"
+    "});"
+    "})();</script>"
+)
 # Optional social card, committed in the repo. If present it's copied
 # into Streamlit's static dir at boot (served at <public>/og-card.png,
 # same mechanism as /favicon.png) and a large-image card is emitted.
@@ -102,7 +129,8 @@ def inject_og_tags() -> bool:
             f'{_img_tags}'
             f'    <meta name="twitter:card" content="{_tw_card}" />\n'
             f'    <meta name="twitter:title" content="{_TITLE}" />\n'
-            f'    <meta name="twitter:description" content="{_DESC}" />'
+            f'    <meta name="twitter:description" content="{_DESC}" />\n'
+            f'    {_RECONNECT_JS}'
         )
 
         # Replace Streamlit's default <title> with our marker+tags so
