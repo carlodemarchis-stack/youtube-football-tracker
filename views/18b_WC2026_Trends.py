@@ -348,7 +348,7 @@ with gc2:
     fl = px.bar(
         dfd, x="Date", y=["Long", "Shorts", "Live"],
         color_discrete_map={"Long": _T.ACCENT, "Shorts": _T.POS,
-                            "Live": _T.NEG},
+                            "Live": _T.WARN},
     )
     fl.update_layout(barmode="stack", **_PLOT)
     fl.update_layout(legend=dict(orientation="h", yanchor="bottom",
