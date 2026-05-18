@@ -31,7 +31,19 @@ _DESC = (
     "top 5 leagues — daily recaps, season trends, all-time leaderboards "
     "— plus the road to the FIFA World Cup 2026."
 )
-_MARKER = "<!-- ytft-og -->"
+# Bumped to v2 when og:image self-hosting was added — guarantees a
+# redeploy re-patches even if an old (text-only) patched index.html
+# somehow persisted in the container.
+_MARKER = "<!-- ytft-og v2 -->"
+# Optional social card, committed in the repo. If present it's copied
+# into Streamlit's static dir at boot (served at <public>/og-card.png,
+# same mechanism as /favicon.png) and a large-image card is emitted.
+# If absent, falls back to the text-only summary card. Must be 1200x630.
+_IMG_NAME = "og-card.png"
+_IMG_REPO = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "assets", _IMG_NAME,
+)
 
 
 @st.cache_resource(show_spinner=False)
@@ -40,14 +52,43 @@ def inject_og_tags() -> bool:
     Runs once per server process (cache_resource). Returns True if the
     file ended up patched, False on any problem (never raises)."""
     try:
-        idx = os.path.join(os.path.dirname(st.__file__), "static",
-                           "index.html")
+        static_dir = os.path.join(os.path.dirname(st.__file__), "static")
+        idx = os.path.join(static_dir, "index.html")
         if not os.path.exists(idx) or not os.access(idx, os.W_OK):
             return False
+
+        # Self-host the card: copy repo asset → Streamlit static dir so
+        # it's reachable at an absolute URL crawlers can fetch. Re-copied
+        # each boot (cheap, keeps it in sync with the committed asset).
+        img_url = ""
+        try:
+            if os.path.exists(_IMG_REPO) and os.access(static_dir, os.W_OK):
+                import shutil
+                shutil.copyfile(_IMG_REPO,
+                                os.path.join(static_dir, _IMG_NAME))
+                img_url = f"{_PUBLIC_URL}/{_IMG_NAME}"
+        except Exception:
+            img_url = ""
+
         with open(idx, encoding="utf-8") as f:
             html = f.read()
         if _MARKER in html:
             return True  # already patched (idempotent)
+
+        if img_url:
+            _img_tags = (
+                f'    <meta property="og:image" content="{img_url}" />\n'
+                f'    <meta property="og:image:secure_url" content="{img_url}" />\n'
+                f'    <meta property="og:image:type" content="image/png" />\n'
+                f'    <meta property="og:image:width" content="1200" />\n'
+                f'    <meta property="og:image:height" content="630" />\n'
+                f'    <meta property="og:image:alt" content="{_TITLE}" />\n'
+                f'    <meta name="twitter:image" content="{img_url}" />\n'
+            )
+            _tw_card = "summary_large_image"
+        else:
+            _img_tags = ""
+            _tw_card = "summary"
 
         tags = (
             f'{_MARKER}\n'
@@ -58,7 +99,8 @@ def inject_og_tags() -> bool:
             f'    <meta property="og:title" content="{_TITLE}" />\n'
             f'    <meta property="og:description" content="{_DESC}" />\n'
             f'    <meta property="og:url" content="{_PUBLIC_URL}" />\n'
-            f'    <meta name="twitter:card" content="summary" />\n'
+            f'{_img_tags}'
+            f'    <meta name="twitter:card" content="{_tw_card}" />\n'
             f'    <meta name="twitter:title" content="{_TITLE}" />\n'
             f'    <meta name="twitter:description" content="{_DESC}" />'
         )
