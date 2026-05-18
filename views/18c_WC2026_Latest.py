@@ -264,10 +264,22 @@ def _team_of(v):
 
 
 _team_color: dict[str, str] = {}
+# Teams are clubs/federations → §7 marker is a dual-dot (the channel's
+# two brand colours). Same source as the WC2026 main table's per-row
+# marker (channel color / color2); brand colours are the §1
+# data-not-theme exception.
+_team_dual: dict[str, tuple[str, str]] = {}
 for _c in wc:
     _w = (_c.get("competitions") or {}).get("wc2026") or {}
     _t = _w.get("team") or _c.get("country") or _c.get("name") or "—"
     _team_color.setdefault(_t, _c.get("color") or "#636EFA")
+    _team_dual.setdefault(_t, (_c.get("color") or "#636EFA",
+                               _c.get("color2") or "#FFFFFF"))
+
+
+def _team_badge(v) -> str:
+    c1, c2 = _team_dual.get(_team_of(v), ("#636EFA", "#FFFFFF"))
+    return dual_dot(c1, c2, 14, inline=True)
 
 try:
     if _wc_team:
@@ -281,7 +293,7 @@ try:
             timeline_unscheduled,
             channel_resolver=_team_of,
             color_resolver=lambda v: _team_color.get(_team_of(v), "#888"),
-            badge_resolver=lambda v: "",
+            badge_resolver=_team_badge,
             group_resolver=_team_of,
             row_label="team",
         )
