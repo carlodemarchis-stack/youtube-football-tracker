@@ -119,18 +119,28 @@ def render_48h_timeline(
                 f'</a>'
             )
 
-        now_cet = now48.astimezone(ZoneInfo("Europe/Rome")).replace(
+        # Each labelled full-hour (CET) is positioned at its TRUE offset
+        # from the window start — the same basis as the cards — so a tick
+        # sits exactly under the cards of that hour. (Previously ticks
+        # were evenly spaced while labelled with a floored "now", which
+        # skewed every interior label up to ~1h off its cards.)
+        now_cet_floor = now48.astimezone(ZoneInfo("Europe/Rome")).replace(
             minute=0, second=0, microsecond=0
         )
-        ticks_html = ""
+        _right = LEFT_MARGIN + USABLE
+        ticks_html = (
+            f'<div class="t48-tick" style="left:{_right:.1f}%"></div>'
+            f'<div class="t48-ticklabel t48-tick-top" style="left:{_right:.1f}%">now</div>'
+            f'<div class="t48-ticklabel t48-tick-bot" style="left:{_right:.1f}%">now</div>'
+        )
         step = max(1, hours // 8)
-        for h in range(0, hours + 1, step):
-            x = LEFT_MARGIN + (hours - h) / hours * USABLE
-            if h == 0:
-                lab = "now"
-            else:
-                t = now_cet - timedelta(hours=h)
-                lab = t.strftime("%a %H:%M")
+        for h in range(step, hours + 1, step):
+            tick_cet = now_cet_floor - timedelta(hours=h)
+            raw = (tick_cet - from48).total_seconds() / (hours * 3600) * 100
+            if raw < 0:
+                continue
+            x = LEFT_MARGIN + raw * USABLE / 100
+            lab = tick_cet.strftime("%a %H:%M")
             ticks_html += (
                 f'<div class="t48-tick" style="left:{x:.1f}%"></div>'
                 f'<div class="t48-ticklabel t48-tick-top" style="left:{x:.1f}%">{lab}</div>'
@@ -277,15 +287,29 @@ def render_48h_dots(
         if caption:
             st.caption(caption)
 
-        # Build axis ticks (every 6h, wall-clock CET, full hour).
-        now_cet = now48.astimezone(ZoneInfo("Europe/Rome")).replace(
+        # Axis ticks: each labelled full-hour (CET) is positioned at its
+        # TRUE offset from the window start — the same basis as the dots
+        # — so a tick sits exactly under the dots of that hour.
+        # (Previously ticks were evenly spaced while labelled with a
+        # floored "now", which skewed every interior label up to ~1h off
+        # its dots.)
+        now_cet_floor = now48.astimezone(ZoneInfo("Europe/Rome")).replace(
             minute=0, second=0, microsecond=0
         )
-        ticks_html = ""
+        _right = LEFT_MARGIN + USABLE
+        ticks_html = (
+            f'<div class="dt-tick" style="left:{_right:.2f}%"></div>'
+            f'<div class="dt-ticklabel dt-tick-top" style="left:{_right:.2f}%">now</div>'
+            f'<div class="dt-ticklabel dt-tick-bot" style="left:{_right:.2f}%">now</div>'
+        )
         step = max(1, hours // 8)
-        for h in range(0, hours + 1, step):
-            x = LEFT_MARGIN + (hours - h) / hours * USABLE
-            lab = "now" if h == 0 else (now_cet - timedelta(hours=h)).strftime("%a %H:%M")
+        for h in range(step, hours + 1, step):
+            tick_cet = now_cet_floor - timedelta(hours=h)
+            raw = (tick_cet - from48).total_seconds() / (hours * 3600) * 100
+            if raw < 0:
+                continue
+            x = LEFT_MARGIN + raw * USABLE / 100
+            lab = tick_cet.strftime("%a %H:%M")
             ticks_html += (
                 f'<div class="dt-tick" style="left:{x:.2f}%"></div>'
                 f'<div class="dt-ticklabel dt-tick-top" style="left:{x:.2f}%">{lab}</div>'
