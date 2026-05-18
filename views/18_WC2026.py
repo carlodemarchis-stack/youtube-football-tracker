@@ -484,7 +484,10 @@ if _cf:
             + td(_vpv, fmt_num(_vpv))
             + "</tr>"
         )
-    _cf_h = min(700, 40 * len(_cf_rows) + 90)
+    # Row height matches the per-channel tables (36px/row, same
+    # .wc-tbl CSS) + a snug header/border allowance — the old
+    # 40/row + 90 over-reserved ~130px, leaving dead space below.
+    _cf_h = min(700, 36 * len(_cf_rows) + 52)
     _components.html(_render_confed_table(_cf_rows), height=_cf_h,
                       scrolling=True)
     st.caption(
