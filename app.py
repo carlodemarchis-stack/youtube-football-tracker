@@ -191,19 +191,21 @@ gate_onboarding()
 # Streamlit" footer / GitHub badge / source link) for non-admin viewers
 # so they get a cleaner public-facing app. Admins keep the full toolbar
 # for debugging and deploys.
-# Tighten the nav sidebar to the minimal width its labels need
-# (default is ~244px+ and reads as a lot of dead space). Applies to
-# everyone. The longest labels ("FIFA World Cup 2026", "Digital
-# Footprint") fit comfortably at 210px; main content reflows
-# automatically off the rendered sidebar width.
+# Tighten the nav sidebar to ~the minimal width its labels need
+# (Streamlit's default ~244px+ reads as dead space). There is no
+# native st.set_page_config option for this in Streamlit 1.50 (only
+# the user-drag resize handle), so a scoped CSS override is the only
+# programmatic route. KEY: scope strictly to [aria-expanded="true"]
+# and only set width/min-width on the <section> itself — do NOT touch
+# the collapsed state, the inner content, or max-width. That leaves
+# Streamlit's native collapse/expand (and its main-content reflow)
+# fully intact, so hiding the sidebar still widens the page. The
+# earlier all-states !important version is exactly what broke that.
 st.markdown("""
     <style>
-      section[data-testid="stSidebar"],
-      section[data-testid="stSidebar"] > div:first-child,
-      section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
+      section[data-testid="stSidebar"][aria-expanded="true"] {
         width: 210px !important;
         min-width: 210px !important;
-        max-width: 210px !important;
       }
     </style>
 """, unsafe_allow_html=True)
