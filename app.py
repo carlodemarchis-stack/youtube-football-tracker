@@ -191,6 +191,23 @@ gate_onboarding()
 # Streamlit" footer / GitHub badge / source link) for non-admin viewers
 # so they get a cleaner public-facing app. Admins keep the full toolbar
 # for debugging and deploys.
+# Tighten the nav sidebar to the minimal width its labels need
+# (default is ~244px+ and reads as a lot of dead space). Applies to
+# everyone. The longest labels ("FIFA World Cup 2026", "Digital
+# Footprint") fit comfortably at 210px; main content reflows
+# automatically off the rendered sidebar width.
+st.markdown("""
+    <style>
+      section[data-testid="stSidebar"],
+      section[data-testid="stSidebar"] > div:first-child,
+      section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
+        width: 210px !important;
+        min-width: 210px !important;
+        max-width: 210px !important;
+      }
+    </style>
+""", unsafe_allow_html=True)
+
 if not is_admin():
     st.markdown("""
         <style>
