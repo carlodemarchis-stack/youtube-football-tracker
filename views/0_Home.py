@@ -434,7 +434,7 @@ st.markdown(
 
     ---
 
-    ### ⚽ Top 5 Leagues *(free sign-in)*
+    ### ⚽ Top 5 Leagues
 
     The core of the site — Serie A, Premier League, La Liga, Bundesliga
     and Ligue 1, all responding to the global filter above. A quick
