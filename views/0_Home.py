@@ -398,15 +398,18 @@ from src.channels import current_season_label_safe as _csl_home
 st.markdown(
     ("""
     ### Global filter
-    At the top of every page you'll find a cascading filter that sets the zoom level
-    for the whole site. Your selection persists as you navigate.
+    At the top of the core **Top 5 Leagues** pages you'll find a cascading
+    filter that sets the zoom level for those views. Your selection persists
+    as you navigate. (Home, the FIFA World Cup 2026 sub-app, and the
+    standalone *Others* pages don't use it — WC2026 has its own
+    Confederation → Team filter instead.)
 
     - **All Leagues** — site-wide view with a secondary scope selector:
       *Overall* (aggregated by league), *Leagues only* (league channels),
       or *All clubs* (every club across leagues)
     - **One League** — narrows to a single competition; pick *All Clubs*
       or *All Clubs + League channel*
-    - **One Club** — focuses every page on a single channel
+    - **One Club** — focuses those pages on a single channel
 
     ---
 
@@ -449,7 +452,9 @@ st.markdown(
     ### FIFA World Cup 2026
 
     Its own sidebar group — a self-contained sub-app, separate from the
-    Top-5 league views and unaffected by the global filter.
+    Top-5 league views and unaffected by the global filter. It has its
+    own **Confederation → Team** filter (top of these pages; the
+    selection persists as you move between them).
 
     **All Channels** — the official YouTube channels of all 48 qualified
     national teams, plus FIFA and the 6 confederations. When a country
@@ -458,9 +463,16 @@ st.markdown(
     individually. Sortable by subscribers, views, season output and
     views/video.
 
+    **Latest Videos** — the most recently published videos across every
+    WC2026 channel: the same feed as the core Latest page (sortable
+    list, format/scheduled controls, live-now banner), scoped to the
+    World Cup, with a 24h published-timeline strip that groups by
+    confederation — or by team / a full thumbnail strip as you filter
+    down.
+
     **Trends** — view gains and videos published (long / shorts / live)
-    night by night on the road to the tournament, plus a biggest-movers
-    leaderboard, built from a nightly snapshot of every WC2026 channel.
+    day by day on the road to the tournament, plus a biggest-movers
+    leaderboard, built from a daily snapshot of every WC2026 channel.
 
     ---
 
@@ -549,9 +561,9 @@ st.caption(
     "**When we fetch data.** New video discovery runs **hourly** via RSS feeds (fast, lightweight). "
     "Full stats refresh runs **daily** — subscriber counts, view counts, and snapshots for ranks and deltas. "
     "A **weekly** sweep recomputes top-100 aggregates and back-fills any missed videos. "
-    "**Players**, **Other Clubs** and **Women's clubs** each have their own "
-    "dedicated daily crons (running at ~01:00, ~01:45 and ~02:00 CET) so those "
-    "features can be paused or killed independently of the main pipeline.\n\n"
+    "**Players**, **Other Clubs**, **Women's clubs** and **WC2026** each have "
+    "their own dedicated daily crons, so each of those features can be paused "
+    "or killed independently of the main pipeline.\n\n"
     "**Players, Other Clubs and Women's clubs are isolated.** They live on their "
     "own pages and are deliberately excluded from every league/club view, leaderboard, and "
     "aggregate — they don't compete with the big-5 clubs in rankings, don't appear in "
