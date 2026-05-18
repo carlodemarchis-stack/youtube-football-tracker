@@ -574,7 +574,6 @@ if g_league and not ONE_CLUB:
 
 # ── Trend chart ──────────────────────────────────────────────
 # Show Δ Views and New Videos per day across all available snapshot dates.
-st.markdown("---")
 st.subheader("📈 Daily trends")
 
 # We already loaded chan_snaps (lookback window). Build per-date aggregates.
@@ -798,7 +797,6 @@ _show_per_league_summary = (
     and not (g_league is None and get_all_leagues_scope() == "Leagues only")
 )
 if _show_per_league_summary:
-    st.markdown("---")
     st.subheader("📊 Per-league summary")
     lg_agg: dict[str, dict] = {}
     # Per-league per-club video counts — used to determine most-active club per league
@@ -1150,7 +1148,6 @@ if not ONE_CLUB:
 # Most-watched block; got out of scope when the two blocks were swapped).
 _mw_scope = ""
 if new_video_rows and not ONE_CLUB:
-    st.markdown("---")
     st.subheader(f"🎬 {_mw_scope}New videos published on {day.strftime('%b %d, %Y')}")
     _mw_sorted = sorted(new_video_rows, key=lambda v: int(v.get("view_count") or 0), reverse=True)
     _mw_top_n = 10 if ONE_CLUB else 20
@@ -1205,7 +1202,6 @@ if new_video_rows and not ONE_CLUB:
     """, height=video_table_height(min(_mw_top_n, len(_mw_sorted))), scrolling=True)
 
 # ── Most watched videos yesterday (by Δ views from snapshots) ──
-st.markdown("---")
 # _mw_scope is set above so both subheaders share the same prefix.
 _top_n = 10 if ONE_CLUB else 20
 
