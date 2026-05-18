@@ -37,7 +37,7 @@ except ImportError:
     def video_table_height(n_rows: int, header_buffer: int = 50) -> int:
         return max(0, int(n_rows)) * 75 + header_buffer
 from src.filters import render_page_subtitle
-from src.dot import channel_badge
+from src.dot import channel_badge, dual_dot
 from src.auth import require_login
 
 load_dotenv()
@@ -221,6 +221,22 @@ _CONF_COLOR = {
     "CAF": "#006B3F", "CONCACAF": "#F26522", "OFC": "#0073CF",
     "FIFA": "#326295",
 }
+# Confederations are governing bodies → §7 marker is a dual-dot (two
+# brand colours). Pairs lifted from src.channels' governing-body brand
+# map, keyed by the confederation code the data uses. Brand colours
+# are the §1 data-not-theme exception.
+_CONF_DUAL = {
+    "UEFA": ("#C8102E", "#003F87"), "CONMEBOL": ("#003F87", "#F4C300"),
+    "CONCACAF": ("#F26522", "#1E73BE"), "CAF": ("#006B3F", "#FCD116"),
+    "AFC": ("#F0A91A", "#005A36"), "OFC": ("#0073CF", "#FFFFFF"),
+    "FIFA": ("#326295", "#FFFFFF"),
+}
+
+
+def _conf_badge(v) -> str:
+    k = _conf_of(v)
+    c1, c2 = _CONF_DUAL.get(k, (_CONF_COLOR.get(k, "#888"), "#888"))
+    return dual_dot(c1, c2, 14, inline=True)
 
 
 def _conf_of(v):
@@ -264,7 +280,7 @@ try:
             latest_raw_unscheduled,
             channel_resolver=_conf_of,
             color_resolver=lambda v: _CONF_COLOR.get(_conf_of(v), "#888"),
-            badge_resolver=lambda v: "",
+            badge_resolver=_conf_badge,
             group_resolver=_conf_of,
             row_label="confederation",
         )
