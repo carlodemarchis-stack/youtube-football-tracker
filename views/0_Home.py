@@ -418,7 +418,7 @@ except Exception:
 from src.channels import current_season_label_safe as _csl_home
 st.markdown(
     ("""
-    ### Global filter
+    ### 🎛️ Global filter
     At the top of the core **Top 5 Leagues** pages you'll find a cascading
     filter that sets the zoom level for those views. Your selection persists
     as you navigate. (Home, the FIFA World Cup 2026 sub-app, and the
@@ -434,7 +434,7 @@ st.markdown(
 
     ---
 
-    ### Top 5 Leagues *(free sign-in)*
+    ### ⚽ Top 5 Leagues *(free sign-in)*
 
     The core of the site — Serie A, Premier League, La Liga, Bundesliga
     and Ligue 1, all responding to the global filter above. A quick
@@ -471,7 +471,7 @@ st.markdown(
 
     ---
 
-    ### FIFA World Cup 2026
+    ### 🏆 FIFA World Cup 2026
 
     Its own sidebar group — a self-contained sub-app, separate from the
     Top-5 league views and unaffected by the global filter. It has its
@@ -498,7 +498,7 @@ st.markdown(
 
     ---
 
-    ### The Lab — experimental views
+    ### 🧪 The Lab — experimental views
 
     **Outliers** — channels whose profile sits unusually far from their
     peers on key metrics. Surfaces "interesting" channels worth a look.
@@ -513,7 +513,7 @@ st.markdown(
 
     ---
 
-    ### Others — isolated entity types
+    ### 🗂️ Others — isolated entity types
 
     These are tracked but deliberately excluded from every league/club
     view, leaderboard, and aggregate above. They live on their own
@@ -553,7 +553,7 @@ st.info(
 st.markdown("---")
 
 # ── About / Promo ────────────────────────────────────────────
-st.subheader("About")
+st.subheader("🧣 About")
 st.markdown(
     """
     **YouTube Football Tracker** is built and maintained by **Carlo De Marchis** — a guy with a scarf
