@@ -1261,6 +1261,11 @@ if league is None and _scope == "Overall":
 
     # ── All channels table — precomputed columns (zero video queries) ───
     st.subheader("All Channels — Season")
+    st.caption(
+        f"Stats cover videos published on/after {SEASON_SINCE}. "
+        f"Views on older videos that happen during the season are "
+        f"not included."
+    )
     color_map = get_global_color_map()
     dual_colors = get_global_color_map_dual()
     # On the All-Leagues "Overall" scope we always include league
