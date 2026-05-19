@@ -106,6 +106,31 @@ else:
     _label = "All Leagues"
 
 
+# ── AI note: the season's biggest hits (All-Leagues scope only) ──
+# Nightly-refreshed; cached league-wide (season_top_vibe / scope_all)
+# so only shown on the unfiltered view — same philosophy as the
+# Season page's AI summary and Latest's vibe check.
+if club is None and league is None:
+    try:
+        from src import dashboard_cache as _dc_stv
+        _stv_row = _cached_dc_read(db, "season_top_vibe", _dc_stv.scope_all())
+        _stv_html = (_stv_row or {}).get("payload", {}).get("html") or ""
+        if _stv_html:
+            st.markdown(
+                f'<div style="background:#1a1c24;border-left:3px solid '
+                f'#FFA15A;padding:12px 16px;margin:8px 0 18px 0;'
+                f'border-radius:4px;font-size:14px;line-height:1.6;'
+                f'color:#FAFAFA">'
+                f'<span style="color:#888;font-size:11px;font-weight:600;'
+                f'letter-spacing:0.5px;text-transform:uppercase">'
+                f'🤖 AI read · the season\'s biggest hits · updated '
+                f'nightly</span>'
+                f'<div style="margin-top:6px">{_stv_html}</div></div>',
+                unsafe_allow_html=True,
+            )
+    except Exception:
+        pass
+
 if not _ids:
     st.caption("No channels in scope.")
     st.stop()

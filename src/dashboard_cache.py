@@ -281,6 +281,10 @@ def rebuild_all(db, log=print) -> None:
     except Exception as e:
         log(f"[dashboard_cache] season_top failed (non-fatal): {e}")
 
+    # 11b. season_top_vibe — AI read of the season's biggest hits.
+    # Runs right after season_top because it reads that cache row.
+    refresh_season_top_vibe(db, log=log, channels=chans)
+
     # 12. top_no1_videos — Each core channel's all-time #1 most-viewed
     #     video, sorted by views. Powers the No. 1 Videos page (top table).
     try:
@@ -887,6 +891,37 @@ def refresh_season_vibe(db, log=print, channels: list[dict] | None = None) -> No
             log("[dashboard_cache] season_vibe skipped — generator returned empty")
     except Exception as e:
         log(f"[dashboard_cache] season_vibe failed (non-fatal): {e}")
+
+
+def refresh_season_top_vibe(db, log=print, channels: list[dict] | None = None) -> None:
+    """Generate the All-Leagues 'season's biggest hits' note from the
+    already-cached season_top payload and persist to dashboard_cache.
+    MUST run after refresh_season_top (it reads that cache row).
+    Nightly only, global scope only — same reasoning as the other
+    vibe notes."""
+    try:
+        from src import ai_note as _an2
+        row = read(db, "season_top", scope_all())
+        top_views = ((row or {}).get("payload") or {}).get("top_views") or []
+        if not top_views:
+            log("[dashboard_cache] season_top_vibe skipped — no season_top cache")
+            return
+        chans = channels if channels is not None else db.get_all_channels()
+        chans_by_id = {c["id"]: c for c in chans}
+        log(f"[dashboard_cache] computing season_top_vibe / all "
+            f"({len(top_views)} top videos)")
+        vibe = _an2.generate_season_top_vibe(
+            top_views, channels_by_id=chans_by_id, log=log)
+        if vibe:
+            vibe_html = vibe.replace("\n", "<br>")
+            write(db, "season_top_vibe", scope_all(),
+                  {"text": vibe, "html": vibe_html,
+                   "n_videos": len(top_views)})
+            log(f"[dashboard_cache] season_top_vibe WRITTEN ({len(vibe)} chars)")
+        else:
+            log("[dashboard_cache] season_top_vibe skipped — generator returned empty")
+    except Exception as e:
+        log(f"[dashboard_cache] season_top_vibe failed (non-fatal): {e}")
 
 
 # ── publishing_pulse: videos-per-day + zero-day-counts per scope ─────────

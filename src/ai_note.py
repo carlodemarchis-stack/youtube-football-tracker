@@ -957,3 +957,175 @@ def generate_season_vibe(channels: list[dict],
     if not note:
         return None
     return _one_sentence_per_line(note)
+
+
+# ── Season-Top vibe ──────────────────────────────────────────────
+# Narrates the *biggest hits* of the season — the top videos by
+# views. Unlike latest_vibe (fresh videos, no audience yet) these
+# numbers ARE meaningful: they're the season's proven winners. So
+# the model may discuss what wins, but only from the figures/titles
+# we hand it — never an invented score, player, or transfer.
+SEASON_TOP_VIBE_PROMPT = """\
+You are the in-house analyst for "YouTube Football Tracker", a
+dashboard watching the top-5 European men's football leagues.
+
+Your job: write a SHORT read on the season's BIGGEST VIDEOS so far —
+the most-viewed uploads since the season started. What kind of
+content actually wins, and who owns the leaderboard.
+
+Voice
+- Smart, dry, observational. A sports-data feature writer.
+- Respect every club and league. No punch-down on smaller clubs.
+- At most one light aside. No more than one optional emoji.
+
+Hard constraints (will be checked)
+- Use ONLY the numbers and video titles in the JSON. Never invent or
+  recompute a figure, ranking, league table, score, transfer, or a
+  player/manager name. If a score/result isn't already printed in a
+  title we gave you, you don't know it.
+- "Season" = videos PUBLISHED since the season start in the data.
+- Don't state the obvious ("popular videos get views"). If there's no
+  non-obvious angle, write less.
+- Don't generalize a whole league from one viral hit.
+
+What you'll get
+- The top videos by views (channel, league, title, format, views)
+  plus aggregates: format mix of the winners, league mix by count and
+  by views, the #1 video's share of the top set, publish-date span.
+
+What to lean on
+- READ THE TITLES. The pattern in what tops the chart is usually
+  printed there — title launches, derbies, cup runs, marquee
+  signings, viral one-offs. Lead with the real pattern.
+- Format of the winners: are the season's biggest hits Shorts or
+  long-form? Only flag it if it's not what you'd expect.
+- Concentration: is the top set one mega-hit + a long tail, or evenly
+  spread — and does one league dominate by views while another
+  dominates by sheer count? That contrast is usually the story.
+
+Output format
+- Exactly 3-5 short sentences, ~70-90 words total.
+- Put each sentence on its own line (single newline between them).
+- Plain text. No markdown, no JSON, no bullets."""
+
+
+def compose_season_top_payload(top_videos: list[dict],
+                               channels_by_id: dict | None = None) -> dict:
+    """Compact digest of the season's top videos for the note."""
+    from src.channels import COUNTRY_TO_LEAGUE
+    if not top_videos:
+        return {"items": [], "totals": {"videos": 0}}
+
+    items = []
+    fmt_counts = {"long": 0, "short": 0, "live": 0}
+    lg_count: dict[str, int] = {}
+    lg_views: dict[str, int] = {}
+    total_views = 0
+    oldest = newest = None
+    for v in top_videos[:40]:
+        ch = (channels_by_id or {}).get(v.get("channel_id")) or {}
+        ch_name = v.get("channel_name") or ch.get("name") or "?"
+        league = COUNTRY_TO_LEAGUE.get((ch.get("country") or "").strip(), "")
+        fmt = (v.get("format") or "").lower()
+        if fmt not in ("long", "short", "live"):
+            fmt = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
+        fmt_counts[fmt] += 1
+        vc = int(v.get("view_count") or 0)
+        if league:
+            lg_count[league] = lg_count.get(league, 0) + 1
+            lg_views[league] = lg_views.get(league, 0) + vc
+        pub = v.get("published_at") or ""
+        if pub:
+            try:
+                d = datetime.fromisoformat(pub.replace("Z", "+00:00"))
+                if oldest is None or d < oldest:
+                    oldest = d
+                if newest is None or d > newest:
+                    newest = d
+            except Exception:
+                pass
+        items.append({
+            "channel": ch_name,
+            "league": league,
+            "title": (v.get("title") or "").strip()[:160],
+            "format": fmt,
+            "view_count": vc,
+        })
+
+    grand_total = sum(int(v.get("view_count") or 0) for v in top_videos)
+    top1 = int(top_videos[0].get("view_count") or 0) if top_videos else 0
+    span_days = None
+    if oldest and newest:
+        span_days = round((newest - oldest).total_seconds() / 86400, 1)
+
+    return {
+        "items": items,
+        "totals": {
+            "videos_in_top_set": len(top_videos),
+            "by_format": fmt_counts,
+            "by_league_count": lg_count,
+            "by_league_views": lg_views,
+            "top1_view_count": top1,
+            "top1_share_pct": round(100 * top1 / grand_total, 1) if grand_total else 0,
+            "publish_span_days": span_days,
+        },
+    }
+
+
+def generate_season_top_vibe(top_videos: list[dict],
+                             channels_by_id: dict | None = None,
+                             log=print) -> str | None:
+    """Call Claude for a short note on the season's top videos. Returns
+    plain text (one sentence per line) or None on failure / empty."""
+    if not top_videos:
+        return None
+
+    api_key = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
+    if not api_key:
+        log("[season_top_vibe] ANTHROPIC_API_KEY missing — skipping")
+        return None
+
+    try:
+        import anthropic
+    except ImportError:
+        log("[season_top_vibe] anthropic package not installed — skipping")
+        return None
+
+    payload = compose_season_top_payload(top_videos,
+                                         channels_by_id=channels_by_id)
+    user_message = json.dumps(payload, indent=2, ensure_ascii=False)
+
+    client = anthropic.Anthropic(api_key=api_key)
+    for attempt in range(3):
+        try:
+            resp = client.messages.create(
+                model="claude-haiku-4-5",
+                max_tokens=260,
+                temperature=0.6,
+                system=SEASON_TOP_VIBE_PROMPT,
+                messages=[{"role": "user", "content": user_message}],
+            )
+            break
+        except anthropic.APIStatusError as e:
+            if getattr(e, "status_code", None) in (429, 529) and attempt < 2:
+                time.sleep(2 ** attempt)
+                continue
+            log(f"[season_top_vibe] Claude API error: {e}")
+            return None
+        except Exception as e:
+            log(f"[season_top_vibe] error: {e}")
+            return None
+    else:
+        return None
+
+    note = "".join(b.text for b in resp.content if hasattr(b, "text")).strip()
+    if not note:
+        return None
+
+    # Anti-BS: reject if the model invented a scoreline not in titles.
+    titles = [it.get("title", "") for it in payload.get("items", [])]
+    if _looks_like_invented_score(note, titles):
+        log("[season_top_vibe] rejected — invented score not in source titles")
+        return None
+
+    return _one_sentence_per_line(note)
