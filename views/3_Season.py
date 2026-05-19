@@ -129,6 +129,30 @@ render_page_subtitle(
     caveat=f"Stats cover videos published on/after {SEASON_SINCE}. Views on older videos that happen during the season are not included.",
 )
 
+# ── AI season summary (All-Leagues scope only) ──────────────────
+# Nightly-refreshed narrative of the season so far. The cached note
+# is league-wide (dashboard_cache.season_vibe / scope_all), so only
+# show it on the unfiltered view — same philosophy as Latest's vibe.
+if club is None and league is None:
+    try:
+        from src import dashboard_cache as _dc_sv
+        _sv_row = _cached_dc_read(db, "season_vibe", _dc_sv.scope_all())
+        _sv_html = (_sv_row or {}).get("payload", {}).get("html") or ""
+        if _sv_html:
+            st.markdown(
+                f'<div style="background:#1a1c24;border-left:3px solid '
+                f'#00CC96;padding:12px 16px;margin:8px 0 18px 0;'
+                f'border-radius:4px;font-size:14px;line-height:1.6;'
+                f'color:#FAFAFA">'
+                f'<span style="color:#888;font-size:11px;font-weight:600;'
+                f'letter-spacing:0.5px;text-transform:uppercase">'
+                f'🤖 AI season summary · updated nightly</span>'
+                f'<div style="margin-top:6px">{_sv_html}</div></div>',
+                unsafe_allow_html=True,
+            )
+    except Exception:
+        pass
+
 
 # ──────────────────────────────────────────────────────────────
 # Shared helpers — used by zoom 1 (All Leagues, Overall) AND

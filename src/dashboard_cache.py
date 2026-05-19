@@ -239,6 +239,11 @@ def rebuild_all(db, log=print) -> None:
     # so the rebuild path stays a single source of truth.
     refresh_latest_vibe(db, log=log, channels=chans)
 
+    # 4b. season_vibe — nightly only (season aggregates change once a
+    # day). Runs after the season recompute earlier in the rebuild so
+    # it narrates fresh season_* numbers.
+    refresh_season_vibe(db, log=log, channels=chans)
+
     # 5. profile_sentences — one AI line per flagged club (Outliers page).
     refresh_profile_sentences(db, log=log, channels=chans)
 
@@ -852,6 +857,36 @@ def refresh_latest_vibe(db, log=print, channels: list[dict] | None = None) -> No
             log(f"[dashboard_cache] latest_vibe skipped — generator returned empty")
     except Exception as e:
         log(f"[dashboard_cache] latest_vibe failed (non-fatal): {e}")
+
+
+def refresh_season_vibe(db, log=print, channels: list[dict] | None = None) -> None:
+    """Generate the All-Leagues 'season so far' note and persist to
+    dashboard_cache. One Anthropic call, nightly only — season
+    aggregates (season_* on channels) move once per day, so an hourly
+    refresh would burn calls for a narrative that doesn't change.
+    Global scope only, same reasoning as refresh_latest_vibe."""
+    try:
+        from src import ai_note as _an2
+        from src.channels import get_season_since as _gss
+        chans = channels if channels is not None else db.get_all_channels()
+        chans = [c for c in chans
+                 if c.get("entity_type") not in ("Player", "Federation",
+                                 "GoverningBody", "OtherClub", "WomenClub")]
+        season_start = _gss()
+        log(f"[dashboard_cache] computing season_vibe / all "
+            f"({len(chans)} channels, since {season_start})")
+        vibe = _an2.generate_season_vibe(chans, season_start=season_start,
+                                         log=log)
+        if vibe:
+            vibe_html = vibe.replace("\n", "<br>")
+            write(db, "season_vibe", scope_all(),
+                  {"text": vibe, "html": vibe_html,
+                   "season_start": season_start})
+            log(f"[dashboard_cache] season_vibe WRITTEN ({len(vibe)} chars)")
+        else:
+            log("[dashboard_cache] season_vibe skipped — generator returned empty")
+    except Exception as e:
+        log(f"[dashboard_cache] season_vibe failed (non-fatal): {e}")
 
 
 # ── publishing_pulse: videos-per-day + zero-day-counts per scope ─────────

@@ -756,3 +756,204 @@ def _one_sentence_per_line(text: str) -> str:
     # by a capital letter or open-quote that starts the next sentence.
     parts = re.split(r"(?<=[.!?])\s+(?=[A-Z\"“])", text)
     return "\n".join(p.strip() for p in parts if p.strip())
+
+
+# ── Season vibe ──────────────────────────────────────────────────
+# Same architecture as the latest vibe (haiku, cached in
+# dashboard_cache, refreshed nightly). DIFFERENCE: this narrates the
+# *season so far* — accumulated output since the season start — so
+# unlike the latest note, season view totals ARE meaningful and may
+# be discussed (they're handed in pre-aggregated; the model never
+# computes or invents them).
+SEASON_VIBE_PROMPT = """\
+You are the in-house analyst for "YouTube Football Tracker", a
+dashboard watching the YouTube output of the top-5 European men's
+football leagues plus the 5 league channels themselves.
+
+Your job: write a SHORT "season so far" read — the narrative of how
+these channels have used YouTube since the season started. Not a
+single day; the shape of the whole season to date.
+
+Voice
+- Smart, dry, observational. A sports-data feature writer.
+- Treat every club and league with respect. No punch-down on
+  lower-resourced clubs — modest output is still part of the story,
+  never a failing to mock.
+- At most one light aside. No more than one optional emoji.
+
+Hard constraints (will be checked)
+- Use ONLY the numbers in the JSON. Never invent or recompute a
+  figure, ranking, percentage, league table, score, transfer, or a
+  player/manager name. If it isn't in the data, you don't know it.
+- "Season" here means videos PUBLISHED since the season start date in
+  the data — say it that way if you reference scope. Do not imply it
+  measures views gained during the season.
+- Don't state the obvious ("clubs post videos", "Shorts are short").
+  If you can't find a non-obvious angle, write less.
+- Don't generalize a whole league from one club.
+
+What you'll get
+- A JSON digest: per-league totals (channels, season videos, season
+  views, format split, views/video), the top channels by season
+  views, and any channels that are unusually Shorts-heavy this season.
+
+What to lean on
+- Who is actually driving the season's attention (the leaders block).
+- Format strategy: is a league or a notable channel leaning hard into
+  Shorts vs long-form this season — only call it out if it stands out.
+- League-level skew: one league out-publishing or out-viewing the
+  rest, and whether volume vs. views diverge (lots of videos, modest
+  views, or vice-versa) — that contrast is usually the real story.
+- Anything genuinely non-obvious in the digest.
+
+Output format
+- Exactly 3-5 short sentences, ~70-90 words total.
+- Put each sentence on its own line (single newline between them).
+- Plain text. No markdown, no JSON, no bullets."""
+
+
+def compose_season_payload(channels: list[dict],
+                           season_start: str = "") -> dict:
+    """Pre-aggregated season digest for the season-vibe note. Small by
+    design (per-league rollup + a few leaders) so the call stays cheap
+    and the model can only narrate figures we computed."""
+    from src.channels import COUNTRY_TO_LEAGUE
+    if not channels:
+        return {"season_start": season_start, "totals": {"channels": 0},
+                "per_league": [], "leaders": [], "shorts_heavy": []}
+
+    def _i(c, k):
+        try:
+            return int(c.get(k) or 0)
+        except Exception:
+            return 0
+
+    lg: dict[str, dict] = {}
+    rows = []
+    for c in channels:
+        # Both clubs and the 5 league channels carry a country that
+        # maps to the league (e.g. the "Premier League" channel →
+        # England → Premier League), so one lookup covers both.
+        league = COUNTRY_TO_LEAGUE.get((c.get("country") or "").strip())
+        if not league:
+            continue
+        sv = _i(c, "season_video_count")
+        svw = _i(c, "season_views")
+        lo = _i(c, "season_long_videos")
+        sh = _i(c, "season_short_videos")
+        li = _i(c, "season_live_videos")
+        b = lg.setdefault(league, {"channels": 0, "videos": 0, "views": 0,
+                                   "long": 0, "short": 0, "live": 0})
+        b["channels"] += 1
+        b["videos"] += sv
+        b["views"] += svw
+        b["long"] += lo
+        b["short"] += sh
+        b["live"] += li
+        rows.append({
+            "channel": c.get("name") or "?",
+            "league": league,
+            "is_league_channel": c.get("entity_type") == "League",
+            "videos": sv,
+            "views": svw,
+            "format_videos": {"long": lo, "short": sh, "live": li},
+        })
+
+    per_league = []
+    for name, b in lg.items():
+        v = b["videos"]
+        fv = b["long"] + b["short"] + b["live"]
+        per_league.append({
+            "league": name,
+            "channels": b["channels"],
+            "season_videos": v,
+            "season_views": b["views"],
+            "views_per_video": (b["views"] // v) if v else 0,
+            "format_pct": {
+                "long": round(100 * b["long"] / fv, 1) if fv else 0,
+                "short": round(100 * b["short"] / fv, 1) if fv else 0,
+                "live": round(100 * b["live"] / fv, 1) if fv else 0,
+            },
+        })
+    per_league.sort(key=lambda r: -r["season_views"])
+
+    leaders = sorted(rows, key=lambda r: -r["views"])[:8]
+
+    shorts_heavy = []
+    for r in rows:
+        fv = sum(r["format_videos"].values())
+        if fv >= 50:
+            pct = round(100 * r["format_videos"]["short"] / fv, 1)
+            if pct >= 70:
+                shorts_heavy.append({"channel": r["channel"],
+                                     "league": r["league"],
+                                     "shorts_pct": pct,
+                                     "season_videos": r["videos"]})
+    shorts_heavy.sort(key=lambda r: -r["shorts_pct"])
+    shorts_heavy = shorts_heavy[:5]
+
+    return {
+        "season_start": season_start,
+        "totals": {
+            "channels": len(rows),
+            "season_videos": sum(r["videos"] for r in rows),
+            "season_views": sum(r["views"] for r in rows),
+        },
+        "per_league": per_league,
+        "leaders": leaders,
+        "shorts_heavy": shorts_heavy,
+    }
+
+
+def generate_season_vibe(channels: list[dict],
+                         season_start: str = "",
+                         log=print) -> str | None:
+    """Call Claude for a short 'season so far' note. Returns plain text
+    (one sentence per line) or None on failure / empty input."""
+    if not channels:
+        return None
+
+    api_key = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
+    if not api_key:
+        log("[season_vibe] ANTHROPIC_API_KEY missing — skipping")
+        return None
+
+    try:
+        import anthropic
+    except ImportError:
+        log("[season_vibe] anthropic package not installed — skipping")
+        return None
+
+    payload = compose_season_payload(channels, season_start=season_start)
+    if not payload.get("leaders"):
+        log("[season_vibe] no season data — skipping")
+        return None
+    user_message = json.dumps(payload, indent=2, ensure_ascii=False)
+
+    client = anthropic.Anthropic(api_key=api_key)
+    for attempt in range(3):
+        try:
+            resp = client.messages.create(
+                model="claude-haiku-4-5",
+                max_tokens=260,
+                temperature=0.6,
+                system=SEASON_VIBE_PROMPT,
+                messages=[{"role": "user", "content": user_message}],
+            )
+            break
+        except anthropic.APIStatusError as e:
+            if getattr(e, "status_code", None) in (429, 529) and attempt < 2:
+                time.sleep(2 ** attempt)
+                continue
+            log(f"[season_vibe] Claude API error: {e}")
+            return None
+        except Exception as e:
+            log(f"[season_vibe] error: {e}")
+            return None
+    else:
+        return None
+
+    note = "".join(b.text for b in resp.content if hasattr(b, "text")).strip()
+    if not note:
+        return None
+    return _one_sentence_per_line(note)
