@@ -23,4 +23,3 @@ env/
 
 # Streamlit cache
 .streamlit/cache/
-.venv-st156/
