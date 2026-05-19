@@ -235,13 +235,23 @@ def kpi_row(
 
 
 def yt_popup_js() -> str:
-    """Return a <script> block that intercepts YouTube video links/window.open
-    calls inside a components.html iframe and sends a postMessage to the
-    parent page to open the video in an overlay player.
+    """No-op. Kept so the ~6 call sites that append it stay unchanged.
 
-    Inject this into every components.html block that contains video links.
-    The overlay itself is created by yt_overlay_html() in app.py.
+    Previously this intercepted in-iframe video clicks and postMessage'd
+    them to an in-page overlay player created by yt_overlay_html(). That
+    overlay needed host-page JS, which under Streamlit 1.56 means either
+    the deprecated st.components.v1.html (removed after 2026-06-01) or
+    st.html(unsafe_allow_javascript=True) — the latter proved unreliable
+    in-browser (DOMPurify / cross-frame). Rather than ship fragile
+    cross-frame JS or a deprecated API at launch, video cards/rows now
+    just use their native ``<a target="_blank">`` (the long-standing
+    no-JS fallback) and open on youtube.com in a new tab. A proper
+    bidirectional-component overlay can be revisited post-launch.
     """
+    return ""
+
+
+def _yt_popup_js_unused() -> str:
     return """<script>
 (function(){
   // If the clicked element (or any ancestor) carries data-fmt="short",

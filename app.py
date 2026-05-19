@@ -347,19 +347,14 @@ if SUPABASE_URL and SUPABASE_KEY:
 # own band, the divider just added visual noise.
 
 # ── YouTube overlay player (one per session) ─────────────────
-# The video-popup overlay must run JS on the HOST page —
-# yt_overlay_html() does `window.parent.document.body.appendChild(...)`
-# and listens for the 'ytplay' postMessage from the card iframes.
-# st.html (1.56) injects into the main document and is NOT iframed, so
-# with unsafe_allow_javascript=True the overlay runs with full host-DOM
-# access — at top level `window.parent === window`, so the existing
-# code resolves to the host doc/window unchanged. This replaces the
-# deprecated st.components.v1.html (removed after 2026-06-01) with a
-# supported API; zero deprecated calls remain. The card tables/
-# timelines stay on the components_compat -> st.iframe shim (they only
-# postMessage out / render self-contained HTML, which st.iframe allows).
-from src.analytics import yt_overlay_html
-st.html(yt_overlay_html(), unsafe_allow_javascript=True)
+# Video-popup overlay removed: it required host-page JS, which under
+# Streamlit 1.56 means the deprecated st.components.v1.html or
+# st.html(unsafe_allow_javascript=True) (unreliable in-browser:
+# DOMPurify / cross-frame sandboxing). Video cards/rows now open on
+# youtube.com in a new tab via their native <a target="_blank"> (the
+# long-standing no-JS fallback). yt_popup_js() is now a no-op. Zero
+# deprecated APIs, zero fragile cross-frame JS. A proper bidirectional-
+# component overlay can be revisited post-launch.
 
 # ── Sidebar promo ────────────────────────────────────────────
 with st.sidebar:
