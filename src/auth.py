@@ -451,16 +451,23 @@ def show_auth_sidebar():
         badge = {"admin": "🛡️ Admin", "premium": "⭐ Premium", "viewer": "👤 Viewer"}.get(role, role.title())
         st.sidebar.caption(badge)
         if st.sidebar.button("Sign out"):
-            method = user.get("auth_method", "google")
-            st.session_state.pop("yt_user", None)
-            st.session_state.pop("sb_email", None)
-            st.session_state.pop("sb_display_name", None)
-            st.session_state.pop("sb_otp_sent", None)
-            st.session_state.pop("sb_otp_email", None)
+            # Clear app + email-session state and the email refresh cookie.
+            for _k in ("yt_user", "sb_email", "sb_display_name",
+                       "sb_otp_sent", "sb_otp_email"):
+                st.session_state.pop(_k, None)
             _clear_refresh_cookie()
+            st.session_state["_cookie_restore_failed"] = True
+            # Drive the Google logout off the AUTHORITATIVE signal
+            # (st.user.is_logged_in), not the stored auth_method field:
+            # if that field wasn't exactly "google", st.logout() was
+            # skipped, so Streamlit's OIDC identity cookie survived and
+            # a reload silently re-authenticated. st.logout() clears
+            # that cookie AND triggers its own rerun/redirect — do NOT
+            # st.rerun() after it (that race can abort the logout).
             try:
-                if method == "google":
+                if st.user.is_logged_in:
                     st.logout()
+                    return
             except Exception:
                 pass
             st.rerun()
