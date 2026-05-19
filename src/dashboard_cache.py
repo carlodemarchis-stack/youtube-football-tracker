@@ -232,6 +232,33 @@ def rebuild_all(db, log=print) -> None:
             log(f"[dashboard_cache] daily_note WRITTEN ({len(note)} chars)")
         else:
             log(f"[dashboard_cache] daily_note skipped — generator returned empty")
+
+        # Z2 — per-league daily note. Same machinery, league-scoped
+        # payload + league-scoped anti-repetition, composite cache key
+        # f"{date}|{league}". The Daily Recap page reads this when a
+        # single league is selected; Home stays on the Z1 date key.
+        for _lg in ("Serie A", "Premier League", "La Liga",
+                    "Bundesliga", "Ligue 1"):
+            try:
+                _key = f"{target.isoformat()}|{_lg}"
+                _pl = _an.compose_payload(db, target, league=_lg)
+                _prev = _an.fetch_previous_notes(db, target, n=3, league=_lg)
+                _nl = _an.generate_daily_note(_pl, previous_notes=_prev, log=log)
+                if _nl:
+                    _hl = _an.decorate_with_badges(_nl, chans).replace("\n", "<br>")
+                    write(db, "daily_note", _key,
+                          {"text": _nl, "html": _hl,
+                           "payload_summary": {
+                              "total_new_videos": _pl["totals"]["new_videos"],
+                              "weekday": _pl["weekday"]}})
+                    log(f"[dashboard_cache] daily_note/{_lg} WRITTEN "
+                        f"({len(_nl)} chars)")
+                else:
+                    log(f"[dashboard_cache] daily_note/{_lg} skipped "
+                        f"— generator returned empty")
+            except Exception as _e:
+                log(f"[dashboard_cache] daily_note/{_lg} failed "
+                    f"(non-fatal): {_e}")
     except Exception as e:
         log(f"[dashboard_cache] daily_note failed (non-fatal): {e}")
 
@@ -833,62 +860,97 @@ def refresh_latest_vibe(db, log=print, channels: list[dict] | None = None) -> No
     dashboard_cache. Lightweight: one Anthropic call.
 
     Called both by rebuild_all (daily) and hourly_rss (every hour) so
-    the vibe stays fresh as new videos land. Per-league / per-club
-    versions are intentionally NOT generated — at ~100 channels the
-    LLM cost would balloon and the All-Leagues read is what users
-    typically open the page on."""
+    the vibe stays fresh as new videos land. Z1 (All Leagues,
+    scope_all) + Z2 (per-league, scope_league) — ~6 haiku calls/hour,
+    a few cents/day, so the Latest page's per-league view is fresh too.
+    Per-CLUB is still skipped (would be ~100 calls/hour)."""
     try:
         from src import ai_note as _an2
+        from src.channels import COUNTRY_TO_LEAGUE
         chans = channels if channels is not None else db.get_all_channels()
         chans = [c for c in chans
                  if c.get("entity_type") not in ("Player", "Federation", "GoverningBody",
                                  "OtherClub", "WomenClub")]
-        all_ch_ids = [c["id"] for c in chans]
-        log(f"[dashboard_cache] computing latest_vibe / all "
-            f"({len(all_ch_ids)} channels)")
-        # 60 instead of 30 so big narrative arcs (championship-clinch,
-        # cup final, manager sack) stay visible to the model for ~12-24h
-        # after publication, not just the very next hour.
-        recent = db.get_recent_videos(limit=60, channel_ids=all_ch_ids)
         chans_by_id = {c["id"]: c for c in chans}
-        vibe = _an2.generate_latest_vibe(recent, channels_by_id=chans_by_id, log=log)
-        if vibe:
-            vibe_html = vibe.replace("\n", "<br>")
-            write(db, "latest_vibe", scope_all(),
-                  {"text": vibe, "html": vibe_html, "n_videos": len(recent)})
-            log(f"[dashboard_cache] latest_vibe WRITTEN ({len(vibe)} chars)")
-        else:
-            log(f"[dashboard_cache] latest_vibe skipped — generator returned empty")
+
+        def _one(scope_key: str, ids: list[str], label: str) -> None:
+            if not ids:
+                log(f"[dashboard_cache] latest_vibe/{label} skipped — no channels")
+                return
+            # 60 (not 30) so big narrative arcs (title clinch, cup
+            # final, manager sack) stay visible ~12-24h, not 1 hour.
+            recent = db.get_recent_videos(limit=60, channel_ids=ids)
+            log(f"[dashboard_cache] computing latest_vibe/{label} "
+                f"({len(ids)} channels, {len(recent)} videos)")
+            vibe = _an2.generate_latest_vibe(recent, channels_by_id=chans_by_id,
+                                             log=log)
+            if vibe:
+                write(db, "latest_vibe", scope_key,
+                      {"text": vibe, "html": vibe.replace("\n", "<br>"),
+                       "n_videos": len(recent)})
+                log(f"[dashboard_cache] latest_vibe/{label} WRITTEN "
+                    f"({len(vibe)} chars)")
+            else:
+                log(f"[dashboard_cache] latest_vibe/{label} skipped "
+                    f"— generator returned empty")
+
+        # Z1 — All Leagues
+        _one(scope_all(), [c["id"] for c in chans], "all")
+        # Z2 — one note per league
+        by_lg: dict[str, list[str]] = {}
+        for c in chans:
+            lg = COUNTRY_TO_LEAGUE.get((c.get("country") or "").upper())
+            if lg:
+                by_lg.setdefault(lg, []).append(c["id"])
+        for lg in sorted(by_lg):
+            _one(scope_league(lg), by_lg[lg], f"league:{lg}")
     except Exception as e:
         log(f"[dashboard_cache] latest_vibe failed (non-fatal): {e}")
 
 
 def refresh_season_vibe(db, log=print, channels: list[dict] | None = None) -> None:
-    """Generate the All-Leagues 'season so far' note and persist to
-    dashboard_cache. One Anthropic call, nightly only — season
-    aggregates (season_* on channels) move once per day, so an hourly
-    refresh would burn calls for a narrative that doesn't change.
-    Global scope only, same reasoning as refresh_latest_vibe."""
+    """Generate the 'season so far' note and persist to dashboard_cache.
+    Nightly only (season aggregates move once a day). Z1 (All Leagues,
+    scope_all) + Z2 (per-league, scope_league) — one haiku call each
+    (~6 total), so the Season page's per-league view is pre-warmed
+    too. Same structure as refresh_season_top_vibe."""
     try:
         from src import ai_note as _an2
-        from src.channels import get_season_since as _gss
+        from src.channels import get_season_since as _gss, COUNTRY_TO_LEAGUE
         chans = channels if channels is not None else db.get_all_channels()
         chans = [c for c in chans
                  if c.get("entity_type") not in ("Player", "Federation",
                                  "GoverningBody", "OtherClub", "WomenClub")]
         season_start = _gss()
-        log(f"[dashboard_cache] computing season_vibe / all "
-            f"({len(chans)} channels, since {season_start})")
-        vibe = _an2.generate_season_vibe(chans, season_start=season_start,
-                                         log=log)
-        if vibe:
-            vibe_html = vibe.replace("\n", "<br>")
-            write(db, "season_vibe", scope_all(),
-                  {"text": vibe, "html": vibe_html,
-                   "season_start": season_start})
-            log(f"[dashboard_cache] season_vibe WRITTEN ({len(vibe)} chars)")
-        else:
-            log("[dashboard_cache] season_vibe skipped — generator returned empty")
+
+        def _one(scope_key: str, subset: list[dict], label: str) -> None:
+            if not subset:
+                log(f"[dashboard_cache] season_vibe/{label} skipped — no channels")
+                return
+            log(f"[dashboard_cache] computing season_vibe/{label} "
+                f"({len(subset)} channels, since {season_start})")
+            vibe = _an2.generate_season_vibe(subset, season_start=season_start,
+                                             log=log)
+            if vibe:
+                write(db, "season_vibe", scope_key,
+                      {"text": vibe, "html": vibe.replace("\n", "<br>"),
+                       "season_start": season_start})
+                log(f"[dashboard_cache] season_vibe/{label} WRITTEN "
+                    f"({len(vibe)} chars)")
+            else:
+                log(f"[dashboard_cache] season_vibe/{label} skipped "
+                    f"— generator returned empty")
+
+        # Z1 — All Leagues
+        _one(scope_all(), chans, "all")
+        # Z2 — one note per league
+        by_lg: dict[str, list[dict]] = {}
+        for c in chans:
+            lg = COUNTRY_TO_LEAGUE.get((c.get("country") or "").upper())
+            if lg:
+                by_lg.setdefault(lg, []).append(c)
+        for lg in sorted(by_lg):
+            _one(scope_league(lg), by_lg[lg], f"league:{lg}")
     except Exception as e:
         log(f"[dashboard_cache] season_vibe failed (non-fatal): {e}")
 

@@ -86,13 +86,15 @@ else:
     # SQL query returns all videos including those isolated entity types.
     ch_ids = [c["id"] for c in all_channels]
 
-# Vibe note — only at the All-Leagues scope. Read from dashboard_cache,
-# which is refreshed by the hourly_rss + daily_refresh crons. We don't
-# generate per-league/per-club versions to keep LLM cost bounded.
-if g_league is None and g_club is None:
+# Vibe note — Z1 (All Leagues) + Z2 (per-league), refreshed by the
+# hourly_rss + daily_refresh crons. Per-club is not generated (would
+# be ~100 LLM calls/hour); a single-club view falls through to no note.
+if g_club is None:
     try:
-        from src.dashboard_cache import scope_all as _dc_scope_all
-        _vibe_row = _cached_dc_read(db, "latest_vibe", _dc_scope_all())
+        from src import dashboard_cache as _dc_lv
+        _vibe_scope = (_dc_lv.scope_league(g_league) if g_league is not None
+                       else _dc_lv.scope_all())
+        _vibe_row = _cached_dc_read(db, "latest_vibe", _vibe_scope)
         _vibe_html = (_vibe_row or {}).get("payload", {}).get("html") or ""
     except Exception:
         _vibe_html = ""

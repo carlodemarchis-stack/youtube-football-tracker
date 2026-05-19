@@ -129,14 +129,16 @@ render_page_subtitle(
     caveat=f"Stats cover videos published on/after {SEASON_SINCE}. Views on older videos that happen during the season are not included.",
 )
 
-# ── AI season summary (All-Leagues scope only) ──────────────────
-# Nightly-refreshed narrative of the season so far. The cached note
-# is league-wide (dashboard_cache.season_vibe / scope_all), so only
-# show it on the unfiltered view — same philosophy as Latest's vibe.
-if club is None and league is None:
+# ── AI season summary ───────────────────────────────────────────
+# Nightly-refreshed. Cached at Z1 (scope_all) AND per-league (Z2,
+# scope_league), so it shows on the All-Leagues view and a single-
+# league view. Z3 (single club) has no note.
+if club is None:
     try:
         from src import dashboard_cache as _dc_sv
-        _sv_row = _cached_dc_read(db, "season_vibe", _dc_sv.scope_all())
+        _sv_scope = (_dc_sv.scope_league(league) if league is not None
+                     else _dc_sv.scope_all())
+        _sv_row = _cached_dc_read(db, "season_vibe", _sv_scope)
         _sv_html = (_sv_row or {}).get("payload", {}).get("html") or ""
         if _sv_html:
             st.markdown(

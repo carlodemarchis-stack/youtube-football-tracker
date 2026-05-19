@@ -66,7 +66,7 @@ Output format
 - Plain text. No markdown headers, no JSON, no list bullets. Don't pad."""
 
 
-def compose_payload(db, target_date: date) -> dict:
+def compose_payload(db, target_date: date, league: str | None = None) -> dict:
     """Build the structured input the model will riff on.
 
     target_date is a CET date (the day we're reporting on).
@@ -74,11 +74,17 @@ def compose_payload(db, target_date: date) -> dict:
     Restricted to the top-5 European leagues only (Serie A, Premier League,
     La Liga, Bundesliga, Ligue 1) plus their 5 league channels. MLS / other
     leagues live in COUNTRY_TO_LEAGUE but are NOT considered here.
+
+    `league` (Z2): when set, the allowlist narrows to just that one
+    league + its channel, so the note becomes a single-league daily
+    recap. None (Z1) = all top-5.
     """
     from src.channels import COUNTRY_TO_LEAGUE
 
     # Hard allowlist — anything outside this set is invisible to the AI note.
     TOP5_LEAGUES = {"Serie A", "Premier League", "La Liga", "Bundesliga", "Ligue 1"}
+    if league:
+        TOP5_LEAGUES = {league} if league in TOP5_LEAGUES else set()
 
     day_iso = target_date.isoformat()
     # Window for yesterday in UTC (the videos table stores UTC timestamps)
@@ -259,18 +265,24 @@ def compose_payload(db, target_date: date) -> dict:
     }
 
 
-def fetch_previous_notes(db, target_date: date, n: int = 3) -> list[dict]:
+def fetch_previous_notes(db, target_date: date, n: int = 3,
+                         league: str | None = None) -> list[dict]:
     """Read the last n days of daily_note rows BEFORE target_date.
     Returns oldest-first list of {date, text}. Used to feed the model
-    so it can avoid repeating yesterday's opener / phrasing."""
+    so it can avoid repeating yesterday's opener / phrasing.
+
+    `league` (Z2): fetch the per-league keyed rows (f'{date}|{league}')
+    so anti-repetition is scoped to the same league, not the global
+    note. None (Z1) = the plain date key."""
     out = []
     for back in range(1, n + 1):
         d = (target_date - timedelta(days=back)).isoformat()
+        key = f"{d}|{league}" if league else d
         try:
             row = (db.client.table("dashboard_cache")
                    .select("payload")
                    .eq("name", "daily_note")
-                   .eq("scope_key", d)
+                   .eq("scope_key", key)
                    .limit(1)
                    .execute().data or [])
         except Exception:

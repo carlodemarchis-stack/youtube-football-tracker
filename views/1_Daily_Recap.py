@@ -283,14 +283,16 @@ day = picked if isinstance(picked, date) else default_day
 prev_day = day - timedelta(days=1)
 
 # ── AI commentary note (cached, computed by daily_refresh) ─────
-# Z1 only — the note is a global "what happened across football
-# YouTube yesterday" summary; under a league/club filter the
-# commentary references clubs that aren't in scope and reads
-# misleading. Hide unless the user has the unfiltered view.
-if g_league is None and g_club is None:
+# Z1 (All Leagues) = global "what happened across football YouTube
+# yesterday" note (date key). Z2 (single league) = a league-scoped
+# note keyed f"{date}|{league}" whose payload is restricted to that
+# league, so it stays in-scope. Z3 (single club) shows no note.
+if g_club is None:
     try:
         from src import dashboard_cache as _dc
-        _note_row = _cached_dc_read(db, "daily_note", day.isoformat())
+        _dn_key = (f"{day.isoformat()}|{g_league}" if g_league
+                   else day.isoformat())
+        _note_row = _cached_dc_read(db, "daily_note", _dn_key)
         if _note_row and _note_row.get("payload"):
             _p = _note_row["payload"]
             # Prefer pre-decorated HTML (with badge injection); fall back to
