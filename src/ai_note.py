@@ -984,6 +984,10 @@ Hard constraints (will be checked)
   player/manager name. If a score/result isn't already printed in a
   title we gave you, you don't know it.
 - "Season" = videos PUBLISHED since the season start in the data.
+- Cite all counts/views ONLY from `totals`. The `items` list is just
+  a sample of the leaders for context — never count or total it, and
+  never describe the set by the sample size. The set size is
+  `totals.videos_in_top_set`; refer to it as that (e.g. "top 100").
 - Don't state the obvious ("popular videos get views"). If there's no
   non-obvious angle, write less.
 - Don't generalize a whole league from one viral hit.
@@ -1016,20 +1020,28 @@ def compose_season_top_payload(top_videos: list[dict],
     if not top_videos:
         return {"items": [], "totals": {"videos": 0}}
 
-    items = []
+    def _league_of(v):
+        ch = (channels_by_id or {}).get(v.get("channel_id")) or {}
+        return COUNTRY_TO_LEAGUE.get((ch.get("country") or "").strip(), "")
+
+    def _fmt_of(v):
+        f = (v.get("format") or "").lower()
+        if f in ("long", "short", "live"):
+            return f
+        return "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
+
+    # Aggregates MUST cover the FULL top set — otherwise the model is
+    # handed "47 of N" numbers while videos_in_top_set / top1_share are
+    # computed over all of them, and it narrates "22 of the top 100"
+    # (the old bug: aggregates were accumulated only over the 40-item
+    # prompt sample).
     fmt_counts = {"long": 0, "short": 0, "live": 0}
     lg_count: dict[str, int] = {}
     lg_views: dict[str, int] = {}
-    total_views = 0
     oldest = newest = None
-    for v in top_videos[:40]:
-        ch = (channels_by_id or {}).get(v.get("channel_id")) or {}
-        ch_name = v.get("channel_name") or ch.get("name") or "?"
-        league = COUNTRY_TO_LEAGUE.get((ch.get("country") or "").strip(), "")
-        fmt = (v.get("format") or "").lower()
-        if fmt not in ("long", "short", "live"):
-            fmt = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
-        fmt_counts[fmt] += 1
+    for v in top_videos:
+        league = _league_of(v)
+        fmt_counts[_fmt_of(v)] += 1
         vc = int(v.get("view_count") or 0)
         if league:
             lg_count[league] = lg_count.get(league, 0) + 1
@@ -1044,12 +1056,19 @@ def compose_season_top_payload(top_videos: list[dict],
                     newest = d
             except Exception:
                 pass
+
+    # The per-video sample handed to the model is capped (token budget);
+    # it's explicitly the "top N shown" and separate from the totals.
+    SAMPLE = 40
+    items = []
+    for v in top_videos[:SAMPLE]:
+        ch = (channels_by_id or {}).get(v.get("channel_id")) or {}
         items.append({
-            "channel": ch_name,
-            "league": league,
+            "channel": v.get("channel_name") or ch.get("name") or "?",
+            "league": _league_of(v),
             "title": (v.get("title") or "").strip()[:160],
-            "format": fmt,
-            "view_count": vc,
+            "format": _fmt_of(v),
+            "view_count": int(v.get("view_count") or 0),
         })
 
     grand_total = sum(int(v.get("view_count") or 0) for v in top_videos)
@@ -1059,6 +1078,10 @@ def compose_season_top_payload(top_videos: list[dict],
         span_days = round((newest - oldest).total_seconds() / 86400, 1)
 
     return {
+        "note_scope": (f"Aggregates below cover the full top "
+                       f"{len(top_videos)} videos by views. 'items' is "
+                       f"only the top {len(items)} shown for reference — "
+                       f"do not say 'top {len(items)}'."),
         "items": items,
         "totals": {
             "videos_in_top_set": len(top_videos),
