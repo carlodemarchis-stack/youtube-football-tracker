@@ -102,7 +102,8 @@ if g_league is None and g_club is None:
             f'padding:12px 16px;margin:8px 0 18px 0;border-radius:4px;'
             f'font-size:14px;line-height:1.6;color:#FAFAFA">'
             f'<span style="color:#888;font-size:11px;font-weight:600;'
-            f'letter-spacing:0.5px;text-transform:uppercase">🤖 Vibe check</span>'
+            f'letter-spacing:0.5px;text-transform:uppercase">'
+            f'🤖 Vibe check · updated hourly</span>'
             f'<div style="margin-top:6px">{_vibe_html}</div></div>',
             unsafe_allow_html=True,
         )

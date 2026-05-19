@@ -106,14 +106,17 @@ else:
     _label = "All Leagues"
 
 
-# ── AI note: the season's biggest hits (All-Leagues scope only) ──
-# Nightly-refreshed; cached league-wide (season_top_vibe / scope_all)
-# so only shown on the unfiltered view — same philosophy as the
-# Season page's AI summary and Latest's vibe check.
-if club is None and league is None:
+# ── AI note: the season's biggest hits ──────────────────────────
+# Nightly-refreshed. Cached at Z1 (scope_all) AND per-league (Z2,
+# scope_league) by refresh_season_top_vibe, so it shows on both the
+# All-Leagues view and a single-league view. Z3 (single club) has no
+# note — same philosophy as the Season page / Latest vibe check.
+if club is None:
     try:
         from src import dashboard_cache as _dc_stv
-        _stv_row = _cached_dc_read(db, "season_top_vibe", _dc_stv.scope_all())
+        _stv_scope = (_dc_stv.scope_league(league) if league is not None
+                      else _dc_stv.scope_all())
+        _stv_row = _cached_dc_read(db, "season_top_vibe", _stv_scope)
         _stv_html = (_stv_row or {}).get("payload", {}).get("html") or ""
         if _stv_html:
             st.markdown(

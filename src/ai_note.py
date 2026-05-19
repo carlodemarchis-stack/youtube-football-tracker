@@ -791,6 +791,10 @@ Hard constraints (will be checked)
 - Don't state the obvious ("clubs post videos", "Shorts are short").
   If you can't find a non-obvious angle, write less.
 - Don't generalize a whole league from one club.
+- Every leader carries its own "league" field. NEVER place a club in
+  a league it doesn't belong to (Barcelona / Real Madrid are La Liga;
+  Arsenal / Man Utd are the Premier League). If you cite a club next
+  to a league, they must match the data.
 
 What you'll get
 - A JSON digest: per-league totals (channels, season videos, season
@@ -807,7 +811,7 @@ What to lean on
 - Anything genuinely non-obvious in the digest.
 
 Output format
-- Exactly 3-5 short sentences, ~70-90 words total.
+- HARD CAP: 3-4 sentences, 90 words MAX. Going over is a failure.
 - Put each sentence on its own line (single newline between them).
 - Plain text. No markdown, no JSON, no bullets."""
 
@@ -1008,7 +1012,7 @@ What to lean on
   dominates by sheer count? That contrast is usually the story.
 
 Output format
-- Exactly 3-5 short sentences, ~70-90 words total.
+- HARD CAP: 3-4 sentences, 90 words MAX. Going over is a failure.
 - Put each sentence on its own line (single newline between them).
 - Plain text. No markdown, no JSON, no bullets."""
 

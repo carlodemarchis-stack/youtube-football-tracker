@@ -894,32 +894,55 @@ def refresh_season_vibe(db, log=print, channels: list[dict] | None = None) -> No
 
 
 def refresh_season_top_vibe(db, log=print, channels: list[dict] | None = None) -> None:
-    """Generate the All-Leagues 'season's biggest hits' note from the
-    already-cached season_top payload and persist to dashboard_cache.
-    MUST run after refresh_season_top (it reads that cache row).
-    Nightly only, global scope only — same reasoning as the other
-    vibe notes."""
+    """Generate the 'season's biggest hits' note from the already-cached
+    season_top payload and persist to dashboard_cache. MUST run after
+    refresh_season_top (it reads those cache rows). Nightly only.
+
+    Z1 (All Leagues, scope_all) + Z2 (per-league, scope_league) — one
+    haiku call each (~6 total), so the per-league reads on the Season
+    Top page are pre-warmed too. Z3 (single club) is skipped: the
+    per-club query is fast live and not worth ~100 LLM calls."""
     try:
         from src import ai_note as _an2
-        row = read(db, "season_top", scope_all())
-        top_views = ((row or {}).get("payload") or {}).get("top_views") or []
-        if not top_views:
-            log("[dashboard_cache] season_top_vibe skipped — no season_top cache")
-            return
+        from src.channels import COUNTRY_TO_LEAGUE
         chans = channels if channels is not None else db.get_all_channels()
         chans_by_id = {c["id"]: c for c in chans}
-        log(f"[dashboard_cache] computing season_top_vibe / all "
-            f"({len(top_views)} top videos)")
-        vibe = _an2.generate_season_top_vibe(
-            top_views, channels_by_id=chans_by_id, log=log)
-        if vibe:
-            vibe_html = vibe.replace("\n", "<br>")
-            write(db, "season_top_vibe", scope_all(),
-                  {"text": vibe, "html": vibe_html,
-                   "n_videos": len(top_views)})
-            log(f"[dashboard_cache] season_top_vibe WRITTEN ({len(vibe)} chars)")
-        else:
-            log("[dashboard_cache] season_top_vibe skipped — generator returned empty")
+
+        def _one(scope_key: str, label: str) -> None:
+            row = read(db, "season_top", scope_key)
+            top_views = ((row or {}).get("payload") or {}).get("top_views") or []
+            if not top_views:
+                log(f"[dashboard_cache] season_top_vibe/{label} skipped "
+                    f"— no season_top cache")
+                return
+            log(f"[dashboard_cache] computing season_top_vibe/{label} "
+                f"({len(top_views)} top videos)")
+            vibe = _an2.generate_season_top_vibe(
+                top_views, channels_by_id=chans_by_id, log=log)
+            if vibe:
+                write(db, "season_top_vibe", scope_key,
+                      {"text": vibe, "html": vibe.replace("\n", "<br>"),
+                       "n_videos": len(top_views)})
+                log(f"[dashboard_cache] season_top_vibe/{label} WRITTEN "
+                    f"({len(vibe)} chars)")
+            else:
+                log(f"[dashboard_cache] season_top_vibe/{label} skipped "
+                    f"— generator returned empty")
+
+        # Z1 — All Leagues
+        _one(scope_all(), "all")
+
+        # Z2 — one note per league (same league set refresh_season_top
+        # built scope_league rows for).
+        leagues = sorted({
+            COUNTRY_TO_LEAGUE.get((c.get("country") or "").upper())
+            for c in chans
+            if c.get("entity_type") not in
+               ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub")
+            and COUNTRY_TO_LEAGUE.get((c.get("country") or "").upper())
+        })
+        for lg in leagues:
+            _one(scope_league(lg), f"league:{lg}")
     except Exception as e:
         log(f"[dashboard_cache] season_top_vibe failed (non-fatal): {e}")
 
