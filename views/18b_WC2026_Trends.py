@@ -21,7 +21,7 @@ from collections import defaultdict
 from datetime import date as _date
 
 import streamlit as st
-import streamlit.components.v1 as _components
+from src import components_compat as _components
 from dotenv import load_dotenv
 
 from src.database import Database
@@ -346,7 +346,7 @@ with gc1:
     fv.update_xaxes(gridcolor=_T.BORDER, tickformat="%b %d", title="")
     fv.update_yaxes(gridcolor=_T.BORDER, title="")
     readable_hover(fv, x_date=True)
-    st.plotly_chart(fv, use_container_width=True)
+    st.plotly_chart(fv, width="stretch")
 with gc2:
     st.subheader("🎬 Videos added per day")
     fl = px.bar(
@@ -361,7 +361,7 @@ with gc2:
     fl.update_xaxes(gridcolor=_T.BORDER, tickformat="%b %d", title="")
     fl.update_yaxes(gridcolor=_T.BORDER, title="")
     readable_hover(fl, x_date=True)
-    st.plotly_chart(fl, use_container_width=True)
+    st.plotly_chart(fl, width="stretch")
 
 st.caption(
     f"Per-day change across the {len(cohort)} channels present every "

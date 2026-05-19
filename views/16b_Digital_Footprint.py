@@ -17,8 +17,7 @@ from pathlib import Path
 from urllib.parse import urlparse, quote_plus
 
 import streamlit as st
-import streamlit.components.v1 as _components
-
+from src import components_compat as _components
 from src.analytics import kpi_row, fmt_num
 from src.auth import require_login
 from src.channels import LEAGUE_FLAG

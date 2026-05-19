@@ -374,13 +374,13 @@ if top_views:
         col_fmt, col_lg_n, col_lg_v = st.columns(3)
         with col_fmt:
             chart_title(_t_fmt)
-            st.plotly_chart(fig_fmt, use_container_width=True)
+            st.plotly_chart(fig_fmt, width="stretch")
         with col_lg_n:
             chart_title(_t_lg_n)
-            st.plotly_chart(fig_lg_n, use_container_width=True)
+            st.plotly_chart(fig_lg_n, width="stretch")
         with col_lg_v:
             chart_title(_t_lg_v)
-            st.plotly_chart(fig_lg_v, use_container_width=True)
+            st.plotly_chart(fig_lg_v, width="stretch")
     elif league is not None and club is None:
         # Z2: format pie + same count/views breakdown but grouped by
         # channel within the league (instead of by league).
@@ -425,13 +425,13 @@ if top_views:
         col_fmt, col_ch_n, col_ch_v = st.columns(3)
         with col_fmt:
             chart_title(_t_fmt)
-            st.plotly_chart(fig_fmt, use_container_width=True)
+            st.plotly_chart(fig_fmt, width="stretch")
         with col_ch_n:
             chart_title(_t_ch_n)
-            st.plotly_chart(fig_ch_n, use_container_width=True)
+            st.plotly_chart(fig_ch_n, width="stretch")
         with col_ch_v:
             chart_title(_t_ch_v)
-            st.plotly_chart(fig_ch_v, use_container_width=True)
+            st.plotly_chart(fig_ch_v, width="stretch")
     # Z3 falls through here with nothing to render — the format
     # breakdown is already inline in the KPI bar above.
 

@@ -5,7 +5,7 @@ import os
 from datetime import datetime, timezone
 
 import streamlit as st
-import streamlit.components.v1 as components
+from src import components_compat as components
 from dotenv import load_dotenv
 
 from src.database import Database

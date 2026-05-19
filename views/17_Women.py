@@ -15,7 +15,7 @@ import os
 from datetime import datetime, timezone
 
 import streamlit as st
-import streamlit.components.v1 as components
+from src import components_compat as components
 import pandas as pd
 import plotly.express as px
 from dotenv import load_dotenv
@@ -303,7 +303,7 @@ with col1:
     )
     fig.update_layout(showlegend=False, xaxis_title="", margin=dict(t=40, b=40))
     readable_hover(fig, x_date=False)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 with col2:
     fig = px.bar(
         _df.sort_values("Subs/Year", ascending=False),
@@ -313,7 +313,7 @@ with col2:
     )
     fig.update_layout(showlegend=False, xaxis_title="", margin=dict(t=40, b=40))
     readable_hover(fig, x_date=False)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 # ── Posting activity ─────────────────────────────────────────
 st.markdown("---")
@@ -459,7 +459,7 @@ if not _mix_long.empty:
         margin=dict(t=40, b=40), legend_title_text="",
     )
     readable_hover(fig, x_date=False)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 from src.channels import get_season_since as _gss_women
 st.caption(

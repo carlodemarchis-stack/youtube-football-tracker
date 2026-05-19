@@ -249,7 +249,7 @@ with st.expander("📅 Daily Snapshot Health", expanded=False):
                 <td style="padding:6px 12px;text-align:right">{h.get('channels_updated', 0)}</td>
                 <td style="padding:6px 12px;color:#888;font-size:12px">{msg}</td>
             </tr>"""
-        import streamlit.components.v1 as _components
+        from src import components_compat as _components
         _components.html(f"""
         <style>
           .sh {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
@@ -799,7 +799,7 @@ with st.expander("Fetch History"):
                 "videos_fetched": "Videos",
                 "error_message": "Details",
             }),
-            use_container_width=True,
+            width="stretch",
         )
     else:
         st.caption("No fetch history yet.")

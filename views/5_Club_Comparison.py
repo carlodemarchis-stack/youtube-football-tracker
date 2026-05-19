@@ -123,15 +123,15 @@ comp_df["_season_videos"] = comp_df["name"].map(_season_vid_counts)
 
 pie_cols = st.columns(5)
 with pie_cols[0]:
-    st.plotly_chart(make_pie(comp_df, "subscriber_count", "Subscribers"), use_container_width=True)
+    st.plotly_chart(make_pie(comp_df, "subscriber_count", "Subscribers"), width="stretch")
 with pie_cols[1]:
-    st.plotly_chart(make_pie(comp_df, "total_views", "Total Views"), use_container_width=True)
+    st.plotly_chart(make_pie(comp_df, "total_views", "Total Views"), width="stretch")
 with pie_cols[2]:
-    st.plotly_chart(make_pie(comp_df, "video_count", "Videos"), use_container_width=True)
+    st.plotly_chart(make_pie(comp_df, "video_count", "Videos"), width="stretch")
 with pie_cols[3]:
-    st.plotly_chart(make_pie(comp_df, "_season_views", "Season Views"), use_container_width=True)
+    st.plotly_chart(make_pie(comp_df, "_season_views", "Season Views"), width="stretch")
 with pie_cols[4]:
-    st.plotly_chart(make_pie(comp_df, "_season_videos", "Season Videos"), use_container_width=True)
+    st.plotly_chart(make_pie(comp_df, "_season_videos", "Season Videos"), width="stretch")
 
 # ── Stats table ───────────────────────────────────────────────
 rows = []
@@ -153,7 +153,7 @@ for ch in sorted(compare_channels, key=lambda c: c.get("subscriber_count", 0), r
         "Season Videos": fmt_num(s_vid_count),
         "Season Avg": fmt_num(s_avg),
     })
-st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
 
 # ── Top 10 videos from each club ──────────────────────────────
 st.subheader("🆚 Top Videos Head-to-Head")
@@ -178,9 +178,9 @@ if all_vids:
         xaxis_title="Rank", yaxis_title="Views",
         legend_title="Club", margin=dict(t=20, b=40),
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
-    import streamlit.components.v1 as components
+    from src import components_compat as components
     from src.filters import get_global_color_map_dual
     _dual = get_global_color_map_dual()
     _ch_by_name_cmp = {c["name"]: c for c in all_channels}

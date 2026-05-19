@@ -347,7 +347,7 @@ if SUPABASE_URL and SUPABASE_KEY:
 # own band, the divider just added visual noise.
 
 # ── YouTube overlay player (one per session) ─────────────────
-import streamlit.components.v1 as _components
+from src import components_compat as _components
 from src.analytics import yt_overlay_html
 _components.html(yt_overlay_html(), height=0)
 

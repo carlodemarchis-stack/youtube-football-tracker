@@ -10,8 +10,7 @@ on the meta line, format/duration/date/category badges, click-to-open.
 from __future__ import annotations
 
 import streamlit as st
-import streamlit.components.v1 as components
-
+from src import components_compat as components
 from src.analytics import fmt_num, yt_popup_js, CATEGORY_COLORS, video_table_height
 from src.dot import channel_badge
 from src import theme as _T

@@ -9,7 +9,7 @@ from __future__ import annotations
 import os
 
 import streamlit as st
-import streamlit.components.v1 as components
+from src import components_compat as components
 from dotenv import load_dotenv
 
 from src.database import Database

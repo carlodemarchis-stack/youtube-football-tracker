@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 CET = ZoneInfo("Europe/Rome")
 
 import streamlit as st
-import streamlit.components.v1 as components
+from src import components_compat as components
 import pandas as pd
 from dotenv import load_dotenv
 
@@ -736,7 +736,7 @@ if len(_all_dates) >= 2:
         # Removed .interactive() — was letting the user accidentally pan/zoom
         # the x-axis, which truncated date labels and desynced this chart's
         # range from the format-trend chart on the right.
-        st.altair_chart(c1, use_container_width=True)
+        st.altair_chart(c1, width="stretch")
 
     with tc2:
         # Inline legend in the caption (instead of Altair's bottom legend) so
@@ -780,7 +780,7 @@ if len(_all_dates) >= 2:
                 ],
             ).properties(height=_CHART_HEIGHT)
             # Match the views chart — no x-axis pan/zoom so the two stay aligned.
-            st.altair_chart(c2, use_container_width=True)
+            st.altair_chart(c2, width="stretch")
         else:
             st.caption("No videos in this window.")
 

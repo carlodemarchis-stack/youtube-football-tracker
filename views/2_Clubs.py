@@ -4,7 +4,7 @@ import os
 from datetime import datetime, timezone
 
 import streamlit as st
-import streamlit.components.v1 as components
+from src import components_compat as components
 import pandas as pd
 import plotly.express as px
 from dotenv import load_dotenv
@@ -101,7 +101,7 @@ def _render_launch_year_chart(channels, league_filter: str | None = None):
         legend=dict(orientation="h", yanchor="top", y=-0.18,
                     xanchor="center", x=0.5),
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def _render_subs_rank_chart(channels, league_filter: str | None = None):
@@ -174,7 +174,7 @@ def _render_subs_rank_chart(channels, league_filter: str | None = None):
         # Z2: single league, ~20 channels. One chart reads cleanly even with
         # the mega-channel-vs-long-tail spread because there are few enough
         # bars that the small ones still register visually.
-        st.plotly_chart(_build_bar(rows), use_container_width=True)
+        st.plotly_chart(_build_bar(rows), width="stretch")
     else:
         # Z1: 100+ channels across 5 leagues. The mega-channels (FC Bayern,
         # Manchester United, Real Madrid…) dwarf clubs in the 100k range, so
@@ -183,12 +183,12 @@ def _render_subs_rank_chart(channels, league_filter: str | None = None):
         small = [r for r in rows if r["subs"] < 1_000_000]
         if big:
             st.markdown("**≥ 1M subscribers**")
-            st.plotly_chart(_build_bar(big), use_container_width=True)
+            st.plotly_chart(_build_bar(big), width="stretch")
         if small:
             st.markdown("**< 1M subscribers**")
-            st.plotly_chart(_build_bar(small), use_container_width=True)
+            st.plotly_chart(_build_bar(small), width="stretch")
         if not big and not small:
-            st.plotly_chart(_build_bar(rows), use_container_width=True)
+            st.plotly_chart(_build_bar(rows), width="stretch")
 
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
@@ -326,15 +326,15 @@ if league is None and _scope == "Overall":
         with _pcols[0]:
             st.plotly_chart(_make_pie(_zv(_t_long_v, _t_short_v, _t_live_v),
                                       "views", "Lifetime Views by Format"),
-                            use_container_width=True)
+                            width="stretch")
         with _pcols[1]:
             st.plotly_chart(_make_pie(_zv(_t_long_n, _t_short_n, _t_live_n),
                                       "videos", "Videos by Format"),
-                            use_container_width=True)
+                            width="stretch")
         with _pcols[2]:
             st.plotly_chart(_make_pie(_zv(_t_long_vpv, _t_short_vpv, _t_live_vpv),
                                       "views/video", "Avg Views/Video by Format"),
-                            use_container_width=True)
+                            width="stretch")
 
         rows_html = ""
         for lg_name, s in sorted_leagues:
@@ -493,7 +493,7 @@ if league is None and _scope == "Overall":
         for i in range(0, len(charts), 4):
             cols = st.columns(4)
             for j, fig in enumerate(charts[i:i+4]):
-                cols[j].plotly_chart(fig, use_container_width=True)
+                cols[j].plotly_chart(fig, width="stretch")
 
 
     # ── All Channels table — lifetime stats, same grouped-headers /
@@ -744,15 +744,15 @@ elif club is None:
     with _pcols[0]:
         st.plotly_chart(_make_pie(_zv(_t_long_v, _t_short_v, _t_live_v),
                                   "views", "Lifetime Views by Format"),
-                        use_container_width=True)
+                        width="stretch")
     with _pcols[1]:
         st.plotly_chart(_make_pie(_zv(_t_long_n, _t_short_n, _t_live_n),
                                   "videos", "Videos by Format"),
-                        use_container_width=True)
+                        width="stretch")
     with _pcols[2]:
         st.plotly_chart(_make_pie(_zv(_t_long_vpv, _t_short_vpv, _t_live_vpv),
                                   "views/video", "Avg Views/Video by Format"),
-                        use_container_width=True)
+                        width="stretch")
 
     # Reserve a slot for AI chat right below totals (hidden for now)
     # _ai_chat_slot = st.container()
@@ -918,10 +918,10 @@ elif club is None:
         for _i in range(0, len(_charts), 2):
             _cols = st.columns(2)
             for _j, _f in enumerate(_charts[_i:_i+2]):
-                _cols[_j].plotly_chart(_f, use_container_width=True)
+                _cols[_j].plotly_chart(_f, width="stretch")
     else:
         for _f in _charts:
-            st.plotly_chart(_f, use_container_width=True)
+            st.plotly_chart(_f, width="stretch")
 
     # ── Season views concentration (read from dashboard_cache) ──
     # Mirrors the parallel section on the Season page so zoom-2 has the
@@ -979,7 +979,7 @@ elif club is None:
                     font=dict(color="#FAFAFA"),
                     showlegend=False,
                 )
-                st.plotly_chart(fig_c, use_container_width=True)
+                st.plotly_chart(fig_c, width="stretch")
         except Exception as _e:
             st.caption(f"(concentration chart unavailable: {_e})")
 
@@ -1137,15 +1137,15 @@ else:
         with _pcols[0]:
             st.plotly_chart(_make_pie(_zv(long_v, short_v, live_v),
                                       "views", "Lifetime Views by Format"),
-                            use_container_width=True)
+                            width="stretch")
         with _pcols[1]:
             st.plotly_chart(_make_pie(_zv(long_n, short_n, live_n),
                                       "videos", "Videos by Format"),
-                            use_container_width=True)
+                            width="stretch")
         with _pcols[2]:
             st.plotly_chart(_make_pie(_zv(long_vpv, short_vpv, live_vpv),
                                       "views/video", "Avg Views/Video by Format"),
-                            use_container_width=True)
+                            width="stretch")
 
     # ── Trend charts: Total Views over time + Videos per Month ───
     # Subscriber count is excluded — YouTube exposes a rounded display
@@ -1250,12 +1250,12 @@ else:
         _tcols = st.columns(2)
         with _tcols[0]:
             if fig_views_trend:
-                st.plotly_chart(fig_views_trend, use_container_width=True)
+                st.plotly_chart(fig_views_trend, width="stretch")
             else:
                 st.caption("Views trend will appear after a few days of snapshots.")
         with _tcols[1]:
             if fig_pub_trend:
-                st.plotly_chart(fig_pub_trend, use_container_width=True)
+                st.plotly_chart(fig_pub_trend, width="stretch")
 
     st.subheader("📈 Growth")
     if not _snaps or len(_snaps) < 2:

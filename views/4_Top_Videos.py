@@ -4,7 +4,7 @@ import os
 from datetime import datetime, timezone
 
 import streamlit as st
-import streamlit.components.v1 as components
+from src import components_compat as components
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -332,15 +332,15 @@ if club is None and not filtered.empty:
         _cf, _cn, _cv = st.columns(3)
         with _cf:
             chart_title(f"Format mix (top {_n})")
-            st.plotly_chart(_fmt_fig, use_container_width=True)
+            st.plotly_chart(_fmt_fig, width="stretch")
         with _cn:
             chart_title(title_n)
             st.plotly_chart(_donut(*pair_n, "videos"),
-                            use_container_width=True)
+                            width="stretch")
         with _cv:
             chart_title(title_v)
             st.plotly_chart(_donut(*pair_v, "views"),
-                            use_container_width=True)
+                            width="stretch")
 
     if league is not None:
         # Z2 — Format + Club mix within the selected league.
@@ -356,7 +356,7 @@ if club is None and not filtered.empty:
     else:
         # Degenerate single-league at Z1 — format mix still meaningful.
         chart_title(f"Format mix (top {_n})")
-        st.plotly_chart(_fmt_fig, use_container_width=True)
+        st.plotly_chart(_fmt_fig, width="stretch")
 
 from zoneinfo import ZoneInfo as _ZoneInfo
 current_year = datetime.now(_ZoneInfo("Europe/Rome")).year
@@ -539,7 +539,7 @@ fig.update_layout(
     margin=dict(t=20, b=40),
     bargap=0.1,
 )
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, width="stretch")
 
 # ── Rank vs Year ──────────────────────────────────────────────
 st.subheader("📅 Rank vs Publication Year")
@@ -572,7 +572,7 @@ fig_scatter.update_layout(
     bargap=0.1,
     barmode="overlay",
 )
-st.plotly_chart(fig_scatter, use_container_width=True)
+st.plotly_chart(fig_scatter, width="stretch")
 
 # ── Videos by Year ────────────────────────────────────────────
 st.subheader("🎬 Top 100 Videos by Publication Year")
@@ -585,14 +585,14 @@ fig_year = px.bar(year_counts, x="year", y="count",
                   color_discrete_sequence=["#636EFA"])
 fig_year.update_layout(xaxis=dict(dtick=1, title="Year"), yaxis_title="Videos in Top 100", margin=dict(t=20, b=40))
 readable_hover(fig_year, x_date=False)
-st.plotly_chart(fig_year, use_container_width=True)
+st.plotly_chart(fig_year, width="stretch")
 
 # ── Theme Distribution ────────────────────────────────────────
 theme_df = compute_theme_distribution(filtered)
 if not theme_df.empty:
     from src.analytics import build_category_pie
     cat_counts = dict(zip(theme_df["category"], theme_df["count"]))
-    st.plotly_chart(build_category_pie(cat_counts, "Theme Distribution", "videos"), use_container_width=True)
+    st.plotly_chart(build_category_pie(cat_counts, "Theme Distribution", "videos"), width="stretch")
 
 # ── "Each channel's Top 100": title → info line → KPI → table.
 # KPI Row 2 (Z1/Z2 only) is the sum of every channel's own top 100;

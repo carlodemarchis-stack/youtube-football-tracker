@@ -155,7 +155,7 @@ def _views_by_rank(rows: list[dict], label: str) -> None:
         plot_bgcolor=_T.BG, paper_bgcolor=_T.BG,
         font=dict(color=_T.TEXT),
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 # ── Render — two tables, all-time first, season below ────────

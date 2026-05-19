@@ -14,7 +14,7 @@ import os
 from datetime import date as _date
 
 import streamlit as st
-import streamlit.components.v1 as _components
+from src import components_compat as _components
 from dotenv import load_dotenv
 
 from src.database import Database

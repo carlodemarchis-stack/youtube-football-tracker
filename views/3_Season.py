@@ -4,7 +4,7 @@ import os
 from datetime import datetime, timezone
 
 import streamlit as st
-import streamlit.components.v1 as components
+from src import components_compat as components
 import pandas as pd
 from dotenv import load_dotenv
 
@@ -100,7 +100,7 @@ def _render_publishing_heatmap_grid(grid_counts, grid_avg_views,
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="#FAFAFA"),
     )
-    st.plotly_chart(fig_hm, use_container_width=True)
+    st.plotly_chart(fig_hm, width="stretch")
 
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
@@ -259,9 +259,9 @@ def _render_per_league_charts(sorted_leagues):
                           font=dict(color="#FAFAFA"))
 
     c1, c2, c3 = st.columns(3)
-    c1.plotly_chart(fig_v, use_container_width=True)
-    c2.plotly_chart(fig_n, use_container_width=True)
-    c3.plotly_chart(fig_vpv, use_container_width=True)
+    c1.plotly_chart(fig_v, width="stretch")
+    c2.plotly_chart(fig_n, width="stretch")
+    c3.plotly_chart(fig_vpv, width="stretch")
 
     # Three secondary charts in one row: Engagement Rate, Avg Duration
     # (Long), Avg Duration (Shorts). Same set, all derived from the
@@ -334,13 +334,13 @@ def _render_per_league_charts(sorted_leagues):
         c1, c2, c3 = st.columns(3)
         with c1:
             if er_fig:
-                st.plotly_chart(er_fig, use_container_width=True)
+                st.plotly_chart(er_fig, width="stretch")
         with c2:
             if ldur_fig:
-                st.plotly_chart(ldur_fig, use_container_width=True)
+                st.plotly_chart(ldur_fig, width="stretch")
         with c3:
             if sdur_fig:
-                st.plotly_chart(sdur_fig, use_container_width=True)
+                st.plotly_chart(sdur_fig, width="stretch")
 
 
 def _render_top_season_videos(channel_ids, channels_by_id, since,
@@ -528,19 +528,19 @@ if league is None and _scope == "Overall":
     col_p1, col_p2, col_p3, col_p4, col_p5 = st.columns(5)
     with col_p1:
         _pie_title("Views")
-        st.plotly_chart(_make_pie(_zv(total_long_views, total_short_views, total_live_views), _pie_labels, _pie_colors, "views"), use_container_width=True)
+        st.plotly_chart(_make_pie(_zv(total_long_views, total_short_views, total_live_views), _pie_labels, _pie_colors, "views"), width="stretch")
     with col_p2:
         _pie_title("Videos")
-        st.plotly_chart(_make_pie(_zv(total_longs, total_shorts, total_lives), _pie_labels, _pie_colors, "videos"), use_container_width=True)
+        st.plotly_chart(_make_pie(_zv(total_longs, total_shorts, total_lives), _pie_labels, _pie_colors, "videos"), width="stretch")
     with col_p3:
         _pie_title("Views/Video")
-        st.plotly_chart(_make_pie(_zv(long_vpv, short_vpv, live_vpv), _pie_labels, _pie_colors, "views/video"), use_container_width=True)
+        st.plotly_chart(_make_pie(_zv(long_vpv, short_vpv, live_vpv), _pie_labels, _pie_colors, "views/video"), width="stretch")
     with col_p4:
         _pie_title("Likes")
-        st.plotly_chart(_make_pie(_zv(total_long_likes, total_short_likes, total_live_likes), _pie_labels, _pie_colors, "likes"), use_container_width=True)
+        st.plotly_chart(_make_pie(_zv(total_long_likes, total_short_likes, total_live_likes), _pie_labels, _pie_colors, "likes"), width="stretch")
     with col_p5:
         _pie_title("Comments")
-        st.plotly_chart(_make_pie(_zv(total_long_comments, total_short_comments, total_live_comments), _pie_labels, _pie_colors, "comments"), use_container_width=True)
+        st.plotly_chart(_make_pie(_zv(total_long_comments, total_short_comments, total_live_comments), _pie_labels, _pie_colors, "comments"), width="stretch")
 
     st.subheader("🏆 Leagues — Season")
     sorted_leagues = sorted(league_stats.items(), key=lambda kv: kv[1]["views"], reverse=True)
@@ -725,7 +725,7 @@ if league is None and _scope == "Overall":
                               axis=alt.Axis(labelExpr="replace(format(datum.value, \"~s\"), \"G\", \"B\")", minExtent=50)),
                       tooltip=_hover,
                   ).properties(height=240))
-            st.altair_chart(cv, use_container_width=True)
+            st.altair_chart(cv, width="stretch")
         with bcol2:
             st.markdown(
                 '<div style="font-size:14px;color:rgba(250,250,250,0.6);'
@@ -740,7 +740,7 @@ if league is None and _scope == "Overall":
                               axis=alt.Axis(labelExpr="replace(format(datum.value, \"~s\"), \"G\", \"B\")", minExtent=50)),
                       tooltip=_hover,
                   ).properties(height=240))
-            st.altair_chart(cn, use_container_width=True)
+            st.altair_chart(cn, width="stretch")
         with bcol3:
             st.markdown(
                 '<div style="font-size:14px;color:rgba(250,250,250,0.6);'
@@ -755,7 +755,7 @@ if league is None and _scope == "Overall":
                               axis=alt.Axis(labelExpr="replace(format(datum.value, \"~s\"), \"G\", \"B\")", minExtent=50)),
                       tooltip=_hover,
                   ).properties(height=240))
-            st.altair_chart(ca, use_container_width=True)
+            st.altair_chart(ca, width="stretch")
 
     # ── Long videos duration distribution — same idea, named buckets ──
     # Long videos span seconds to hours; use content-aware buckets that
@@ -840,7 +840,7 @@ if league is None and _scope == "Overall":
                               axis=alt.Axis(labelExpr="replace(format(datum.value, \"~s\"), \"G\", \"B\")", minExtent=50)),
                       tooltip=_long_hover,
                   ).properties(height=240))
-            st.altair_chart(lv, use_container_width=True)
+            st.altair_chart(lv, width="stretch")
         with lcol2:
             st.markdown(
                 '<div style="font-size:14px;color:rgba(250,250,250,0.6);'
@@ -855,7 +855,7 @@ if league is None and _scope == "Overall":
                               axis=alt.Axis(labelExpr="replace(format(datum.value, \"~s\"), \"G\", \"B\")", minExtent=50)),
                       tooltip=_long_hover,
                   ).properties(height=240))
-            st.altair_chart(ln, use_container_width=True)
+            st.altair_chart(ln, width="stretch")
         with lcol3:
             st.markdown(
                 '<div style="font-size:14px;color:rgba(250,250,250,0.6);'
@@ -870,7 +870,7 @@ if league is None and _scope == "Overall":
                               axis=alt.Axis(labelExpr="replace(format(datum.value, \"~s\"), \"G\", \"B\")", minExtent=50)),
                       tooltip=_long_hover,
                   ).properties(height=240))
-            st.altair_chart(la, use_container_width=True)
+            st.altair_chart(la, width="stretch")
 
     # ── Publish cadence — videos per week, stacked by league ──────────
     # Quick "is anyone slowing down?" view. One bar per ISO week from
@@ -1029,7 +1029,7 @@ if league is None and _scope == "Overall":
                 base.mark_line(point=True, strokeWidth=2)
                 .properties(height=300)
             )
-        st.altair_chart(cadence_chart, use_container_width=True)
+        st.altair_chart(cadence_chart, width="stretch")
 
     # ── Videos per day across the whole ecosystem ─────────────────────
     # Reads precomputed payload from dashboard_cache (rebuilt by
@@ -1105,7 +1105,7 @@ if league is None and _scope == "Overall":
                 font=dict(color="#FAFAFA"),
                 showlegend=False, bargap=0.15,
             )
-            st.plotly_chart(fig_vpd, use_container_width=True)
+            st.plotly_chart(fig_vpd, width="stretch")
     except Exception as _e:
         st.caption(f"(videos-per-day chart unavailable: {_e})")
 
@@ -1180,7 +1180,7 @@ if league is None and _scope == "Overall":
                 font=dict(color="#FAFAFA"),
                 showlegend=False,
             )
-            st.plotly_chart(fig_ca, use_container_width=True)
+            st.plotly_chart(fig_ca, width="stretch")
     except Exception as _e:
         st.caption(f"(concentration chart unavailable: {_e})")
 
@@ -1279,7 +1279,7 @@ if league is None and _scope == "Overall":
                 font=dict(color="#FAFAFA"),
                 showlegend=False,
             )
-            st.plotly_chart(fig_z1zd, use_container_width=True)
+            st.plotly_chart(fig_z1zd, width="stretch")
     except Exception as _e:
         st.caption(f"(zero-day chart unavailable: {_e})")
 
@@ -1617,15 +1617,15 @@ if club is None:
 
     col_p1, col_p2, col_p3, col_p4, col_p5 = st.columns(5)
     with col_p1:
-        st.plotly_chart(_make_pie_lg(_zvals(total_long_views, total_short_views, total_live_views), pie_labels, pie_colors, "views", "Views"), use_container_width=True)
+        st.plotly_chart(_make_pie_lg(_zvals(total_long_views, total_short_views, total_live_views), pie_labels, pie_colors, "views", "Views"), width="stretch")
     with col_p2:
-        st.plotly_chart(_make_pie_lg(_zvals(total_longs, total_shorts, total_lives), pie_labels, pie_colors, "videos", "Videos"), use_container_width=True)
+        st.plotly_chart(_make_pie_lg(_zvals(total_longs, total_shorts, total_lives), pie_labels, pie_colors, "videos", "Videos"), width="stretch")
     with col_p3:
-        st.plotly_chart(_make_pie_lg(_zvals(long_vpv, short_vpv, live_vpv), pie_labels, pie_colors, "views/video", "Views/Video"), use_container_width=True)
+        st.plotly_chart(_make_pie_lg(_zvals(long_vpv, short_vpv, live_vpv), pie_labels, pie_colors, "views/video", "Views/Video"), width="stretch")
     with col_p4:
-        st.plotly_chart(_make_pie_lg(_zvals(total_long_likes, total_short_likes, total_live_likes), pie_labels, pie_colors, "likes", "Likes"), use_container_width=True)
+        st.plotly_chart(_make_pie_lg(_zvals(total_long_likes, total_short_likes, total_live_likes), pie_labels, pie_colors, "likes", "Likes"), width="stretch")
     with col_p5:
-        st.plotly_chart(_make_pie_lg(_zvals(total_long_comments, total_short_comments, total_live_comments), pie_labels, pie_colors, "comments", "Comments"), use_container_width=True)
+        st.plotly_chart(_make_pie_lg(_zvals(total_long_comments, total_short_comments, total_live_comments), pie_labels, pie_colors, "comments", "Comments"), width="stretch")
 
     # Default sort: all views descending
     df = df.sort_values("all_views", ascending=False).reset_index(drop=True)
@@ -1789,7 +1789,7 @@ if club is None:
         legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(color="#FAFAFA"),
     )
-    st.plotly_chart(fig_views, use_container_width=True)
+    st.plotly_chart(fig_views, width="stretch")
 
     # Stacked bar: Season Videos (Long vs Shorts)
     sorted_df_v = df.sort_values("all_videos", ascending=False)
@@ -1805,7 +1805,7 @@ if club is None:
         legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(color="#FAFAFA"),
     )
-    st.plotly_chart(fig_vids, use_container_width=True)
+    st.plotly_chart(fig_vids, width="stretch")
 
     # Grouped bar: Avg Views/Video (Long vs Shorts vs Live)
     sorted_df_vpv = df.sort_values("all_vpv", ascending=False)
@@ -1821,7 +1821,7 @@ if club is None:
         legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(color="#FAFAFA"),
     )
-    st.plotly_chart(fig_vpv_bar, use_container_width=True)
+    st.plotly_chart(fig_vpv_bar, width="stretch")
 
     # Bar: Engagement Rate by club
     sorted_df_er = df.sort_values("eng_rate", ascending=False)
@@ -1839,7 +1839,7 @@ if club is None:
             showlegend=False,
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(color="#FAFAFA"),
         )
-        st.plotly_chart(fig_er, use_container_width=True)
+        st.plotly_chart(fig_er, width="stretch")
 
     # Bar: Avg Duration long-form only
     sorted_df_dur = df[df["long_dur"] > 0].sort_values("long_dur", ascending=False)
@@ -1858,7 +1858,7 @@ if club is None:
             showlegend=False,
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(color="#FAFAFA"),
         )
-        st.plotly_chart(fig_dur, use_container_width=True)
+        st.plotly_chart(fig_dur, width="stretch")
 
     # Bar: Avg Duration shorts only
     sorted_df_sdur = df[df["short_dur"] > 0].sort_values("short_dur", ascending=False)
@@ -1877,7 +1877,7 @@ if club is None:
             showlegend=False,
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(color="#FAFAFA"),
         )
-        st.plotly_chart(fig_sdur, use_container_width=True)
+        st.plotly_chart(fig_sdur, width="stretch")
 
     # ── When in All-Leagues sub-modes, also surface per-league
     # comparison charts (same set as zoom 1's Overall view).
@@ -2009,7 +2009,7 @@ if club is None:
                 else:
                     area_chart = _area_layer(plot_df, 0.85, "Videos") \
                                  .properties(height=300)
-                st.altair_chart(area_chart, use_container_width=True)
+                st.altair_chart(area_chart, width="stretch")
         except Exception as _e:
             st.caption(f"(cadence chart unavailable: {_e})")
 
@@ -2085,7 +2085,7 @@ if club is None:
                     font=dict(color="#FAFAFA"),
                     showlegend=False, bargap=0.15,
                 )
-                st.plotly_chart(fig_vpd_lg, use_container_width=True)
+                st.plotly_chart(fig_vpd_lg, width="stretch")
         except Exception as _e:
             st.caption(f"(videos-per-day chart unavailable: {_e})")
 
@@ -2170,7 +2170,7 @@ if club is None:
                     font=dict(color="#FAFAFA"),
                     showlegend=False,
                 )
-                st.plotly_chart(fig_c, use_container_width=True)
+                st.plotly_chart(fig_c, width="stretch")
         except Exception as _e:
             st.caption(f"(concentration chart unavailable: {_e})")
 
@@ -2264,7 +2264,7 @@ if club is None:
                     font=dict(color="#FAFAFA"),
                     showlegend=False,
                 )
-                st.plotly_chart(fig_zd, use_container_width=True)
+                st.plotly_chart(fig_zd, width="stretch")
         except Exception as _e:
             st.caption(f"(zero-day chart unavailable: {_e})")
 
@@ -2457,15 +2457,15 @@ else:
 
     col_p1, col_p2, col_p3, col_p4, col_p5 = st.columns(5)
     with col_p1:
-        st.plotly_chart(_make_pie_club(_vals(long_views, short_views, live_views), pie_labels, pie_colors, "views", "Views"), use_container_width=True)
+        st.plotly_chart(_make_pie_club(_vals(long_views, short_views, live_views), pie_labels, pie_colors, "views", "Views"), width="stretch")
     with col_p2:
-        st.plotly_chart(_make_pie_club(_vals(long_videos, short_videos, live_videos), pie_labels, pie_colors, "videos", "Videos"), use_container_width=True)
+        st.plotly_chart(_make_pie_club(_vals(long_videos, short_videos, live_videos), pie_labels, pie_colors, "videos", "Videos"), width="stretch")
     with col_p3:
-        st.plotly_chart(_make_pie_club(_vals(long_vpv, short_vpv, live_vpv), pie_labels, pie_colors, "views/video", "Views/Video"), use_container_width=True)
+        st.plotly_chart(_make_pie_club(_vals(long_vpv, short_vpv, live_vpv), pie_labels, pie_colors, "views/video", "Views/Video"), width="stretch")
     with col_p4:
-        st.plotly_chart(_make_pie_club(_vals(long_likes, short_likes, live_likes), pie_labels, pie_colors, "likes", "Likes"), use_container_width=True)
+        st.plotly_chart(_make_pie_club(_vals(long_likes, short_likes, live_likes), pie_labels, pie_colors, "likes", "Likes"), width="stretch")
     with col_p5:
-        st.plotly_chart(_make_pie_club(_vals(long_comments, short_comments, live_comments), pie_labels, pie_colors, "comments", "Comments"), use_container_width=True)
+        st.plotly_chart(_make_pie_club(_vals(long_comments, short_comments, live_comments), pie_labels, pie_colors, "comments", "Comments"), width="stretch")
 
     # ── Breakdown table ────────────────────────────────────────
     st.subheader("📊 Breakdown")
@@ -2590,7 +2590,7 @@ else:
                 font=dict(color="#FAFAFA"),
                 showlegend=False, bargap=0.15,
             )
-            st.plotly_chart(fig_vpd_c, use_container_width=True)
+            st.plotly_chart(fig_vpd_c, width="stretch")
     except Exception as _e:
         st.caption(f"(videos-per-day chart unavailable: {_e})")
 
@@ -2615,7 +2615,7 @@ else:
                                  legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
                                  paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                                  font=dict(color="#FAFAFA"))
-        st.plotly_chart(fig_mviews, use_container_width=True)
+        st.plotly_chart(fig_mviews, width="stretch")
     with col_m2:
         fig_mv = go.Figure()
         fig_mv.add_trace(go.Bar(name="Long", x=months, y=_series("long", "videos"), marker_color=LONG_COLOR))
@@ -2627,7 +2627,7 @@ else:
                              legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
                              paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                              font=dict(color="#FAFAFA"))
-        st.plotly_chart(fig_mv, use_container_width=True)
+        st.plotly_chart(fig_mv, width="stretch")
     with col_m3:
         # Grouped (not stacked) — averages don't aggregate.
         fig_mvpv = go.Figure()
@@ -2640,7 +2640,7 @@ else:
                                legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
                                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                                font=dict(color="#FAFAFA"))
-        st.plotly_chart(fig_mvpv, use_container_width=True)
+        st.plotly_chart(fig_mvpv, width="stretch")
 
     # ── Publishing heatmap (day-of-week × hour, CET) ───────────
     # Reveals the club's editorial rhythm: when do they post highlights,
@@ -2705,7 +2705,7 @@ else:
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
             font=dict(color="#FAFAFA"),
         )
-        st.plotly_chart(fig_hm, use_container_width=True)
+        st.plotly_chart(fig_hm, width="stretch")
     except Exception as _e:
         st.caption(f"(publishing heatmap unavailable: {_e})")
 
@@ -2778,7 +2778,7 @@ else:
         font=dict(color="#FAFAFA"),
         hovermode="x unified",
     )
-    st.plotly_chart(fig_par, use_container_width=True)
+    st.plotly_chart(fig_par, width="stretch")
 
     # ── Category breakdown ────────────────────────────────────
     from collections import Counter
@@ -2792,9 +2792,9 @@ else:
         from src.analytics import build_category_pie
         col_p1, col_p2 = st.columns(2)
         with col_p1:
-            st.plotly_chart(build_category_pie(dict(cat_count), "Videos by Category", "videos"), use_container_width=True)
+            st.plotly_chart(build_category_pie(dict(cat_count), "Videos by Category", "videos"), width="stretch")
         with col_p2:
-            st.plotly_chart(build_category_pie(cat_views, "Views by Category", "views"), use_container_width=True)
+            st.plotly_chart(build_category_pie(cat_views, "Views by Category", "views"), width="stretch")
 
     # ── Top season videos — three leaderboards ─────────────────
     # Use the standard Long/Shorts/Live palette here (not the club's
@@ -2941,8 +2941,8 @@ else:
                 "Avg views / video",
             )
             _col_a, _col_b, _col_c = st.columns(3)
-            _col_a.plotly_chart(fig_sd_v, use_container_width=True)
-            _col_b.plotly_chart(fig_sd_n, use_container_width=True)
-            _col_c.plotly_chart(fig_sd_avg, use_container_width=True)
+            _col_a.plotly_chart(fig_sd_v, width="stretch")
+            _col_b.plotly_chart(fig_sd_n, width="stretch")
+            _col_c.plotly_chart(fig_sd_avg, width="stretch")
     except Exception as _e:
         st.caption(f"(Shorts duration histograms unavailable: {_e})")

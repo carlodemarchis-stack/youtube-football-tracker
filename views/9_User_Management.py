@@ -153,14 +153,14 @@ def _row(u: dict):
             label_visibility="collapsed",
         )
         if new_role != current_role:
-            if st.button("Save role", key=f"save_role_{email}", type="primary", use_container_width=True):
+            if st.button("Save role", key=f"save_role_{email}", type="primary", width="stretch"):
                 db.set_user_role(email, new_role)
                 st.success(f"{email} → {new_role}")
                 st.rerun()
 
     with col_edit:
         edit_key = f"_editing_{email}"
-        if st.button("✏️ Edit", key=f"edit_btn_{email}", use_container_width=True):
+        if st.button("✏️ Edit", key=f"edit_btn_{email}", width="stretch"):
             st.session_state[edit_key] = not st.session_state.get(edit_key, False)
 
     # Expanded edit form

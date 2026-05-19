@@ -290,11 +290,11 @@ if rows:
     # the key actually maxed out.
     fig.update_yaxes(gridcolor="#262730", range=[0, 10000], dtick=2000)
     readable_hover(fig, x_date=True)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     with st.expander("Raw data"):
         st.dataframe(df.sort_values(["date", "key_tail"], ascending=False),
-                     hide_index=True, use_container_width=True)
+                     hide_index=True, width="stretch")
 else:
     st.caption("(no data in the last 14 days yet)")
 

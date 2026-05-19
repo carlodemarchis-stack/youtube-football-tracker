@@ -149,12 +149,12 @@ if video_themes_map and videos:
     fig_ct = px.pie(ct_stats, names="custom_theme", values="count", hole=0.4)
     fig_ct.update_layout(legend_title="Theme")
     readable_hover(fig_ct)
-    st.plotly_chart(fig_ct, use_container_width=True)
+    st.plotly_chart(fig_ct, width="stretch")
 
     ct_display = ct_stats.copy()
     ct_display["avg_views"] = ct_display["avg_views"].apply(fmt_num)
     ct_display.columns = ["Theme", "Videos", "Avg Views"]
-    st.dataframe(ct_display, use_container_width=True, hide_index=True)
+    st.dataframe(ct_display, width="stretch", hide_index=True)
 
     # Bar chart: rank vs views colored by custom theme
     fig_theme_rank = px.bar(
@@ -170,7 +170,7 @@ if video_themes_map and videos:
         margin=dict(t=20, b=40),
         bargap=0.1,
     )
-    st.plotly_chart(fig_theme_rank, use_container_width=True)
+    st.plotly_chart(fig_theme_rank, width="stretch")
 
 elif data.get("custom_themes"):
     st.markdown("**Channel-Specific Themes**")
@@ -179,7 +179,7 @@ elif data.get("custom_themes"):
         fig_ct = px.pie(ct_df, names="theme", values="count", hole=0.4)
         fig_ct.update_layout(legend_title="Theme")
         readable_hover(fig_ct)
-        st.plotly_chart(fig_ct, use_container_width=True)
+        st.plotly_chart(fig_ct, width="stretch")
 
 # Content Themes
 if data.get("themes"):
@@ -218,7 +218,7 @@ if data.get("era_analysis"):
         fig_era.update_layout(margin=dict(t=20, b=40))
         fig_era.update_traces(texttemplate="%{text} videos", textposition="outside")
         readable_hover(fig_era, x_date=False)
-        st.plotly_chart(fig_era, use_container_width=True)
+        st.plotly_chart(fig_era, width="stretch")
 
     for era in data["era_analysis"]:
         st.caption(f"**{era['period']}**: {era.get('trend', '')}")
@@ -318,7 +318,7 @@ if data.get("season_monthly"):
         fig_monthly.update_layout(margin=dict(t=20, b=40))
         fig_monthly.update_traces(texttemplate="%{text} videos", textposition="outside")
         readable_hover(fig_monthly, x_date=False)
-        st.plotly_chart(fig_monthly, use_container_width=True)
+        st.plotly_chart(fig_monthly, width="stretch")
 
     for m in data["season_monthly"]:
         if m.get("note"):

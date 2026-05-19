@@ -15,8 +15,7 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
-
+from src import components_compat as components
 from src.analytics import yt_popup_js
 
 

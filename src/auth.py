@@ -190,7 +190,7 @@ def _show_login_ui():
     col1, col2 = st.columns([1, 2])
     with col1:
         try:
-            if st.button("Sign in with Google", type="primary", use_container_width=True):
+            if st.button("Sign in with Google", type="primary", width="stretch"):
                 st.login("google")
         except Exception as e:
             st.caption(f"Google login unavailable: {e}")
@@ -469,7 +469,7 @@ def show_auth_sidebar():
             st.markdown("---")
             st.markdown("**Sign in**")
             try:
-                if st.button("Continue with Google", use_container_width=True):
+                if st.button("Continue with Google", width="stretch"):
                     st.login("google")
             except Exception as e:
                 st.caption(f"Google unavailable: {e}")

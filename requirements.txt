@@ -1,14 +1,12 @@
-# Upper bound is load-bearing: Streamlit deprecated st.components.v1.html
-# (removed in the release AFTER 2026-06-01) and the use_container_width=
-# kwarg. ~25 call sites render raw HTML in sandboxed iframes WITH embedded
-# <script> (sortable .ac-table/.wc-tbl tables, timelines) — st.html()
-# does not execute scripts and st.iframe (the named replacement) does not
-# exist until a post-1.50 release, so it cannot be migrated against the
-# current API. Unpinned, the first post-removal release would auto-install
-# on the next Railway redeploy and hard-break those tables. Stay on the
-# 1.50.x line (patch fixes OK) until the components.html -> st.iframe +
-# width= migration is done deliberately on a chosen newer version.
-streamlit>=1.42.0,<1.51
+# Pinned to the 1.56.x line: 1.56.0 introduced st.iframe (the named
+# replacement for the deprecated st.components.v1.html, removed after
+# 2026-06-01) and the width='stretch'/'content' API (replacing
+# use_container_width=). The codebase is fully migrated to both
+# (src/components_compat.py shims components.v1 -> st.iframe; all
+# use_container_width= are now width=). Requires Python >= 3.10
+# (see .python-version) — Streamlit dropped 3.9 after 1.50. Cap at
+# <1.57 so the next minor can't silently land a new deprecation.
+streamlit>=1.56.0,<1.57
 # Authlib >=1.6 changed how OAuth state is stored in the session, which is
 # incompatible with Streamlit's OIDC handler in 1.57 and earlier — it surfaces
 # as MismatchingStateError on /oauth2callback after a Cloud reboot resolves
