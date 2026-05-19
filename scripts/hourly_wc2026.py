@@ -14,8 +14,14 @@ Reuses, without duplicating logic:
     (fetch_recent_video_entries + get_known_video_ids diff)
   • daily_wc2026.py step 3b format-classify + upsert block
 
-Key priority mirrors hourly_rss.py:
-    YOUTUBE_API_KEY_HOURLY → YOUTUBE_API_KEY_HEAVY → YOUTUBE_API_KEY
+Key priority (intentionally DIFFERENT from hourly_rss.py):
+    YOUTUBE_API_KEY_BACKUP → YOUTUBE_API_KEY_HOURLY
+    → YOUTUBE_API_KEY_HEAVY → YOUTUBE_API_KEY
+
+Distributes load across keys: BACKUP first so this 24/7 cron's
+~1.5K quota units/day come off a separate GCP project from the
+top-5 hourly_rss (which uses _HOURLY). Falls back if BACKUP isn't
+set on the service.
 
 CONVENTIONS §10: scoped to competitions.wc2026 only — these videos
 never leak into core Latest / Top / Season / Daily Recap.
@@ -28,9 +34,10 @@ Env vars required:
     YOUTUBE_API_KEY        (final fallback)
     SUPABASE_URL
     SUPABASE_KEY
-Env vars optional:
-    YOUTUBE_API_KEY_HOURLY (preferred — shared hourly quota bucket)
-    YOUTUBE_API_KEY_HEAVY  (used only if _HOURLY is unset)
+Env vars optional (in priority order):
+    YOUTUBE_API_KEY_BACKUP (preferred — dedicated quota bucket)
+    YOUTUBE_API_KEY_HOURLY (next — shared with hourly_rss)
+    YOUTUBE_API_KEY_HEAVY  (next)
     NTFY_TOPIC             (run-completion alert)
 """
 from __future__ import annotations
@@ -81,12 +88,17 @@ def fetch_recent_video_entries(yt: YouTubeClient, youtube_channel_id: str) -> li
 
 
 def main() -> int:
-    # Dedicated hourly key preferred, then the heavy key, then the
-    # regular key as a final fallback (identical to hourly_rss.py).
-    _hourly = os.environ.get("YOUTUBE_API_KEY_HOURLY", "").strip().strip('"').strip("'")
-    _heavy = os.environ.get("YOUTUBE_API_KEY_HEAVY", "").strip().strip('"').strip("'")
-    yt_key = _hourly or _heavy or os.environ.get("YOUTUBE_API_KEY", "").strip().strip('"').strip("'")
-    yt_key_source = ("YOUTUBE_API_KEY_HOURLY" if _hourly else
+    # BACKUP first to distribute load — this 24/7 cron lives on its
+    # own quota bucket instead of sharing _HOURLY with hourly_rss.
+    # Falls back if BACKUP isn't set on the service.
+    def _e(name: str) -> str:
+        return os.environ.get(name, "").strip().strip('"').strip("'")
+    _backup = _e("YOUTUBE_API_KEY_BACKUP")
+    _hourly = _e("YOUTUBE_API_KEY_HOURLY")
+    _heavy = _e("YOUTUBE_API_KEY_HEAVY")
+    yt_key = _backup or _hourly or _heavy or _e("YOUTUBE_API_KEY")
+    yt_key_source = ("YOUTUBE_API_KEY_BACKUP" if _backup else
+                     "YOUTUBE_API_KEY_HOURLY" if _hourly else
                      "YOUTUBE_API_KEY_HEAVY" if _heavy else
                      "YOUTUBE_API_KEY")
     sb_url = os.environ.get("SUPABASE_URL", "").strip().strip('"').strip("'")
