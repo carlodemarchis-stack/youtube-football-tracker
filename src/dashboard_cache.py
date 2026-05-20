@@ -24,6 +24,10 @@ from zoneinfo import ZoneInfo
 # page expects (see views/1_Daily_Recap.py: LOOKBACK_DAYS).
 FORMAT_TREND_LOOKBACK_DAYS = 14
 
+# Lookback window for the 30-Day Trends page (views/1c_Trends.py).
+# Must match LOOKBACK_DAYS in that view.
+TRENDS_30D_LOOKBACK_DAYS = 30
+
 # Bucket dates in CET — matches the Daily Recap page (date picker, KPI counts,
 # everything else is CET). UTC bucketing would attribute videos published in
 # the late-night CET hours (≈22:00–23:59 UTC) to the wrong day.
@@ -172,6 +176,359 @@ def compute_format_trend(db, channel_ids: list[str] | None,
     return {"as_of": today_cet.isoformat(), "rows": rows}
 
 
+# ── compute: 30-Day Trends (views/1c_Trends.py) ──────────────────────────
+#
+# The trends_30d cache holds *everything* the page needs to render in one
+# row-read per scope. There are three payload shapes — one per filter
+# zoom level (Z1/Z2/Z3) — and the page picks one based on the global
+# filter state. No live DB calls happen on the read path when the cache
+# is warm.
+#
+# Payload shape (per scope):
+#   {
+#     "as_of":        "2026-05-20",
+#     "window_start": "2026-04-20",
+#     "window_end":   "2026-05-19",
+#     "dates":        ["2026-04-20", ..., "2026-05-19"],   # CET, today excluded
+#     "cohort": {
+#       "by_date": [{"date": ..., "dv": int, "active_videos": int,
+#                    "new_long": int, "new_short": int, "new_live": int}]
+#     },
+#     "breakdown": {                          # absent / empty for Z3
+#       "group_label": "league" | "channel",
+#       "groups": [
+#         {"key": "Premier League" | <channel_id>,
+#          "name": "Premier League" | "Liverpool FC",
+#          "color": "#9B6AC9",
+#          "sort": 0,
+#          "by_date": [{"date": ..., "dv": int, "active_videos": int,
+#                       "new_videos": int}]}
+#       ]
+#     }
+#   }
+
+
+def _trends_30d_window():
+    """Return (today_cet date, start_cet date, utc_start_iso, utc_end_iso,
+    dates_list_iso)."""
+    today_cet = datetime.now(CET).date()
+    start_cet = today_cet - timedelta(days=TRENDS_30D_LOOKBACK_DAYS)
+    start_iso = datetime.combine(start_cet, datetime.min.time(), tzinfo=CET) \
+                       .astimezone(timezone.utc).isoformat()
+    end_iso = datetime.combine(today_cet, datetime.min.time(), tzinfo=CET) \
+                       .astimezone(timezone.utc).isoformat()
+    dates = [(start_cet + timedelta(days=i)).isoformat()
+             for i in range(TRENDS_30D_LOOKBACK_DAYS)]
+    return today_cet, start_cet, start_iso, end_iso, dates
+
+
+def _scan_deltas(db, channel_ids: list[str],
+                 since: str, until: str) -> list[dict]:
+    """One paginated scan of video_daily_deltas with the columns we need."""
+    out: list[dict] = []
+    PAGE = 1000
+    cids = list(channel_ids or [])
+    if not cids:
+        return out
+    for cs in range(0, len(cids), 50):
+        chunk = cids[cs:cs + 50]
+        offset = 0
+        while True:
+            rs = (db.client.table("video_daily_deltas")
+                  .select("video_id,channel_id,captured_date,view_delta")
+                  .in_("channel_id", chunk)
+                  .gte("captured_date", since)
+                  .lt("captured_date", until)
+                  .order("captured_date")
+                  .range(offset, offset + PAGE - 1)
+                  .execute()).data or []
+            out.extend(rs)
+            if len(rs) < PAGE:
+                break
+            offset += PAGE
+    return out
+
+
+def _scan_pub_videos(db, channel_ids: list[str],
+                     start_iso: str, end_iso: str) -> list[dict]:
+    """One paginated scan of videos.published_at filtered to the cohort."""
+    out: list[dict] = []
+    PAGE = 1000
+    cids = list(channel_ids or [])
+    if not cids:
+        return out
+    for cs in range(0, len(cids), 50):
+        chunk = cids[cs:cs + 50]
+        offset = 0
+        while True:
+            rs = (db.client.table("videos")
+                  .select("channel_id,published_at,format,duration_seconds")
+                  .in_("channel_id", chunk)
+                  .gte("published_at", start_iso)
+                  .lt("published_at", end_iso)
+                  .order("published_at")
+                  .range(offset, offset + PAGE - 1)
+                  .execute()).data or []
+            out.extend(rs)
+            if len(rs) < PAGE:
+                break
+            offset += PAGE
+    return out
+
+
+def _pub_to_cet_date(pub: str) -> str | None:
+    try:
+        return datetime.fromisoformat(pub.replace("Z", "+00:00")) \
+                       .astimezone(CET).date().isoformat()
+    except Exception:
+        return None
+
+
+def _format_of(v: dict) -> str:
+    fmt = (v.get("format") or "").lower()
+    if fmt in ("long", "short", "live"):
+        return fmt
+    return "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
+
+
+def _build_cohort_by_date(deltas: list[dict], pub_videos: list[dict],
+                           dates: list[str]) -> list[dict]:
+    """Roll deltas + published videos into the cohort by_date series. Pre-seeds
+    every date so days with zero activity render as 0 (no NaN gaps)."""
+    date_set = set(dates)
+    # deltas: Σ view_delta + distinct video count per date
+    dv: dict[str, int] = {d: 0 for d in dates}
+    seen: dict[str, set[str]] = {d: set() for d in dates}
+    for r in deltas:
+        d = r["captured_date"]
+        if d not in date_set:
+            continue
+        dv[d] += int(r.get("view_delta") or 0)
+        seen[d].add(r["video_id"])
+    # videos: format counts per CET-bucketed date
+    new_l: dict[str, int] = {d: 0 for d in dates}
+    new_s: dict[str, int] = {d: 0 for d in dates}
+    new_v: dict[str, int] = {d: 0 for d in dates}
+    for v in pub_videos:
+        d = _pub_to_cet_date(v.get("published_at") or "")
+        if d not in date_set:
+            continue
+        f = _format_of(v)
+        if f == "long":
+            new_l[d] += 1
+        elif f == "short":
+            new_s[d] += 1
+        else:
+            new_v[d] += 1
+    return [
+        {"date": d, "dv": dv[d], "active_videos": len(seen[d]),
+         "new_long": new_l[d], "new_short": new_s[d], "new_live": new_v[d]}
+        for d in dates
+    ]
+
+
+def _build_group_by_date(deltas: list[dict], pub_videos: list[dict],
+                          dates: list[str],
+                          row_to_group: callable,
+                          group_keys: list[str]) -> dict[str, list[dict]]:
+    """Generic per-group rollup. row_to_group(row) returns a hashable group
+    key (e.g. league name or channel_id), or None to skip. Returns
+    {group_key: by_date_list}."""
+    date_set = set(dates)
+    dv: dict[tuple[str, str], int] = {}
+    seen: dict[tuple[str, str], set[str]] = {}
+    new: dict[tuple[str, str], int] = {}
+    for r in deltas:
+        d = r["captured_date"]
+        if d not in date_set:
+            continue
+        g = row_to_group(r)
+        if g is None:
+            continue
+        k = (g, d)
+        dv[k] = dv.get(k, 0) + int(r.get("view_delta") or 0)
+        seen.setdefault(k, set()).add(r["video_id"])
+    for v in pub_videos:
+        d = _pub_to_cet_date(v.get("published_at") or "")
+        if d not in date_set:
+            continue
+        g = row_to_group(v)
+        if g is None:
+            continue
+        new[(g, d)] = new.get((g, d), 0) + 1
+    out: dict[str, list[dict]] = {}
+    for gk in group_keys:
+        out[gk] = [
+            {"date": d,
+             "dv": dv.get((gk, d), 0),
+             "active_videos": len(seen.get((gk, d), set())),
+             "new_videos": new.get((gk, d), 0)}
+            for d in dates
+        ]
+    return out
+
+
+def compute_trends_30d_all(db, chans: list[dict],
+                           leagues_to_channels: dict[str, list[str]]) -> dict:
+    """Z1 payload — cohort across all 101 top-5 channels (clubs + League HQs)
+    + per-league breakdown for the 5 leagues."""
+    from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_COLOR_CHART
+    today_cet, start_cet, start_iso, end_iso, dates = _trends_30d_window()
+
+    # Cohort = all clubs + the 5 League channels (entity_type Club|League).
+    cohort_ids = [c["id"] for c in chans
+                  if c.get("entity_type") in ("Club", "League")]
+    deltas = _scan_deltas(db, cohort_ids, dates[0], today_cet.isoformat())
+    pubs = _scan_pub_videos(db, cohort_ids, start_iso, end_iso)
+    cohort = _build_cohort_by_date(deltas, pubs, dates)
+
+    # League key resolver — works for both clubs and League HQ channels.
+    # Country-based mapping is used uniformly so quirky brand names
+    # ("LALIGA EA SPORTS", "Ligue 1 McDonald's") still resolve to their
+    # canonical league.
+    ch_to_league: dict[str, str] = {}
+    for c in chans:
+        if c.get("entity_type") in ("Club", "League"):
+            lg = COUNTRY_TO_LEAGUE.get((c.get("country") or "").strip())
+            if lg:
+                ch_to_league[c["id"]] = lg
+
+    LEAGUES = ["Premier League", "La Liga", "Serie A", "Bundesliga", "Ligue 1"]
+    per_league = _build_group_by_date(
+        deltas, pubs, dates,
+        row_to_group=lambda r: ch_to_league.get(r.get("channel_id")),
+        group_keys=LEAGUES,
+    )
+    groups = [
+        {"key": lg, "name": lg, "color": LEAGUE_COLOR_CHART.get(lg, "#888"),
+         "sort": i, "by_date": per_league[lg]}
+        for i, lg in enumerate(LEAGUES)
+    ]
+    return {
+        "as_of": today_cet.isoformat(),
+        "window_start": dates[0], "window_end": dates[-1],
+        "dates": dates,
+        "cohort": {"by_date": cohort},
+        "breakdown": {"group_label": "league", "groups": groups},
+    }
+
+
+def compute_trends_30d_league(db, league: str,
+                              channel_ids: list[str],
+                              chans: list[dict]) -> dict:
+    """Z2 payload — cohort summed across this league's channels + per-channel
+    breakdown (one line per club + the League HQ)."""
+    today_cet, start_cet, start_iso, end_iso, dates = _trends_30d_window()
+    if not channel_ids:
+        return {
+            "as_of": today_cet.isoformat(),
+            "window_start": dates[0], "window_end": dates[-1],
+            "dates": dates,
+            "cohort": {"by_date": _build_cohort_by_date([], [], dates)},
+            "breakdown": {"group_label": "channel", "groups": []},
+        }
+
+    deltas = _scan_deltas(db, channel_ids, dates[0], today_cet.isoformat())
+    pubs = _scan_pub_videos(db, channel_ids, start_iso, end_iso)
+    cohort = _build_cohort_by_date(deltas, pubs, dates)
+
+    # Sort channels: League HQ first, clubs A→Z. Carry name + brand colour.
+    cohort_set = set(channel_ids)
+    z2_chans = [c for c in chans if c["id"] in cohort_set]
+    z2_chans.sort(key=lambda c: (
+        0 if c.get("entity_type") == "League" else 1,
+        (c.get("name") or "").lower(),
+    ))
+    cid_order = [c["id"] for c in z2_chans]
+    per_channel = _build_group_by_date(
+        deltas, pubs, dates,
+        row_to_group=lambda r: r.get("channel_id"),
+        group_keys=cid_order,
+    )
+    name_of = {c["id"]: (c.get("name") or "?") for c in z2_chans}
+    color_of = {c["id"]: (c.get("color") or "#888") for c in z2_chans}
+    groups = [
+        {"key": cid, "name": name_of[cid],
+         "color": color_of[cid], "sort": i,
+         "by_date": per_channel[cid]}
+        for i, cid in enumerate(cid_order)
+    ]
+    return {
+        "as_of": today_cet.isoformat(),
+        "window_start": dates[0], "window_end": dates[-1],
+        "dates": dates,
+        "cohort": {"by_date": cohort},
+        "breakdown": {"group_label": "channel", "groups": groups},
+    }
+
+
+def compute_trends_30d_club(db, channel_id: str) -> dict:
+    """Z3 payload — single channel, cohort series only. Breakdown is empty
+    (per-channel-of-one-channel would be redundant with the cohort line)."""
+    today_cet, start_cet, start_iso, end_iso, dates = _trends_30d_window()
+    deltas = _scan_deltas(db, [channel_id], dates[0], today_cet.isoformat())
+    pubs = _scan_pub_videos(db, [channel_id], start_iso, end_iso)
+    cohort = _build_cohort_by_date(deltas, pubs, dates)
+    return {
+        "as_of": today_cet.isoformat(),
+        "window_start": dates[0], "window_end": dates[-1],
+        "dates": dates,
+        "cohort": {"by_date": cohort},
+        "breakdown": {"group_label": "channel", "groups": []},
+    }
+
+
+def refresh_trends_30d(db, log=print, channels: list[dict] | None = None,
+                       tier: str = "hot") -> None:
+    """Recompute and persist trends_30d for the requested tier.
+
+      tier="hot"  → Z1 (scope_all) + 5 × Z2 (scope_league)
+                    Cheap; runs on every rebuild_all (hourly + nightly).
+      tier="cold" → 101 × Z3 (scope_club) — every cohort channel.
+                    Heavier; runs nightly from scripts/daily_refresh.py
+                    after the hot pass.
+
+    The 101 channels = 96 Clubs + 5 League HQs in the top-5 cohort.
+    """
+    from src.channels import COUNTRY_TO_LEAGUE
+    chans = channels if channels is not None else db.get_all_channels()
+    clubs = [c for c in chans if c.get("entity_type") == "Club"]
+    # All 5 top-5 League HQ channels — entity_type alone identifies them.
+    leagues_chs = [c for c in chans if c.get("entity_type") == "League"]
+
+    # League → channel_ids (clubs in that league + that league's HQ).
+    # Country-based mapping handles both clubs and League HQ uniformly,
+    # so the brand-name leagues (LALIGA EA SPORTS, Ligue 1 McDonald's)
+    # still attach to their canonical league key.
+    league_to_chs: dict[str, list[str]] = {}
+    for c in clubs + leagues_chs:
+        lg = COUNTRY_TO_LEAGUE.get((c.get("country") or "").strip())
+        if lg:
+            league_to_chs.setdefault(lg, []).append(c["id"])
+
+    if tier == "hot":
+        log("[dashboard_cache] trends_30d / all")
+        payload = compute_trends_30d_all(db, chans, league_to_chs)
+        write(db, "trends_30d", scope_all(), payload)
+        for lg, cids in league_to_chs.items():
+            log(f"[dashboard_cache] trends_30d / league:{lg} "
+                f"({len(cids)} channels)")
+            payload = compute_trends_30d_league(db, lg, cids, chans)
+            write(db, "trends_30d", scope_league(lg), payload)
+    elif tier == "cold":
+        cohort = clubs + leagues_chs   # 96 + 5 = 101
+        for i, c in enumerate(cohort, 1):
+            log(f"[dashboard_cache] trends_30d / club:{c['id']} "
+                f"({c.get('name')}) — {i}/{len(cohort)}")
+            try:
+                payload = compute_trends_30d_club(db, c["id"])
+                write(db, "trends_30d", scope_club(c["id"]), payload)
+            except Exception as e:
+                log(f"  failed (non-fatal): {e}")
+    else:
+        log(f"[dashboard_cache] refresh_trends_30d: unknown tier '{tier}'")
+
+
 # ── rebuild orchestrator ─────────────────────────────────────────────────
 def rebuild_all(db, log=print) -> None:
     """Recompute and persist every cached aggregation across every scope.
@@ -201,6 +558,14 @@ def rebuild_all(db, log=print) -> None:
         log(f"[dashboard_cache] computing format_trend / league:{lg} ({len(ids)} clubs)")
         payload = compute_format_trend(db, ids)
         write(db, "format_trend", scope_league(lg), payload)
+
+    # 2b. trends_30d (hot tier) — scope_all + 5 × scope_league. Powers
+    #     views/1c_Trends.py. Cold tier (per-club) is run separately
+    #     from scripts/daily_refresh.py to keep the hourly path light.
+    try:
+        refresh_trends_30d(db, log=log, channels=chans, tier="hot")
+    except Exception as e:
+        log(f"[dashboard_cache] trends_30d (hot) failed (non-fatal): {e}")
 
     # 3. daily_note: yesterday's witty AI commentary (best-effort).
     # Decoration (inline country flags before each club/league name)

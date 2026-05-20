@@ -48,7 +48,9 @@ db = Database(SUPABASE_URL, SUPABASE_KEY)
 from src.cached_db import (
     get_all_channels as _cached_channels,
     get_last_fetch_time as _cached_last_fetch,
+    read_dashboard_cache as _cached_dc_read,
 )
+from src import dashboard_cache as _dc
 
 CET = ZoneInfo("Europe/Rome")
 LOOKBACK_DAYS = 30
@@ -179,23 +181,53 @@ def _load_format_counts(channel_ids_tuple: tuple[str, ...],
 
 _cids_tuple = tuple(sorted(ch_ids))
 
-# Pull both series for the window.
-view_deltas_by_date, video_counts_by_date = _load_view_deltas(
-    _cids_tuple, since=start_d.isoformat(), until=end_d.isoformat()
-)
+# ── Cache-first data path ─────────────────────────────────────────
+# Precomputed payloads come from src/dashboard_cache.refresh_trends_30d:
+#   hot tier (rebuilt every cron) — scope_all + 5 × scope_league
+#   cold tier (rebuilt nightly)    — 101 × scope_club
+# On cache hit, render is one DB row read away. On miss (first load
+# right after deploy, brand-new scope, etc.) we fall through to the
+# live loaders so the page never shows empty.
+if ONE_CLUB:
+    _scope_key = _dc.scope_club(g_club["id"])
+elif g_league:
+    _scope_key = _dc.scope_league(g_league)
+else:
+    _scope_key = _dc.scope_all()
 
-# Format-count window is CET-bucketed but the query filter is UTC-iso,
-# so widen the UTC window by a day on each side to catch CET-bucketed
-# borderline videos without losing them.
+_cached_row = _cached_dc_read(db, "trends_30d", _scope_key)
+_cached_payload = (_cached_row or {}).get("payload") if _cached_row else None
+USE_CACHE = bool(_cached_payload and _cached_payload.get("dates"))
+
+# These names are consumed by chart code below; populated either from
+# the cached payload or from the live loaders (cache-miss fallback).
+view_deltas_by_date: dict[str, int] = {}
+video_counts_by_date: dict[str, int] = {}
+fmt_by_date: dict[str, dict[str, int]] = {}
 _fmt_start_utc = (datetime.combine(start_d - timedelta(days=1),
                                    datetime.min.time(), tzinfo=CET)
                   .astimezone(timezone.utc).isoformat())
 _fmt_end_utc = (datetime.combine(end_d + timedelta(days=1),
                                  datetime.min.time(), tzinfo=CET)
                 .astimezone(timezone.utc).isoformat())
-fmt_by_date = _load_format_counts(_cids_tuple, _fmt_start_utc, _fmt_end_utc)
-# Trim format counts back to the actual window
-fmt_by_date = {d: v for d, v in fmt_by_date.items() if d in window_dates}
+
+if USE_CACHE:
+    for row in _cached_payload["cohort"]["by_date"]:
+        d = row["date"]
+        view_deltas_by_date[d] = int(row.get("dv") or 0)
+        video_counts_by_date[d] = int(row.get("active_videos") or 0)
+        fmt_by_date[d] = {
+            "long": int(row.get("new_long") or 0),
+            "short": int(row.get("new_short") or 0),
+            "live": int(row.get("new_live") or 0),
+        }
+else:
+    st.caption("⏳ Data warming — first render is live; subsequent loads use the precomputed cache.")
+    view_deltas_by_date, video_counts_by_date = _load_view_deltas(
+        _cids_tuple, since=start_d.isoformat(), until=end_d.isoformat()
+    )
+    fmt_by_date = _load_format_counts(_cids_tuple, _fmt_start_utc, _fmt_end_utc)
+    fmt_by_date = {d: v for d, v in fmt_by_date.items() if d in window_dates}
 
 # Build dataframes pre-seeded with all dates so missing days render as 0
 # rather than visually disappearing.
@@ -365,16 +397,33 @@ if not ONE_CLUB and not g_league:
     from src.channels import LEAGUE_COLOR_CHART
     LEAGUES = ["Premier League", "La Liga", "Serie A", "Bundesliga", "Ligue 1"]
 
-    # channel_id → league mapping for the cohort. Club channels resolve
-    # via country; the 5 League-entity_type channels resolve by their name.
-    ch_to_league: dict[str, str] = {}
-    for c in all_channels:
-        if c.get("entity_type") == "League" and c.get("name") in LEAGUES:
-            ch_to_league[c["id"]] = c["name"]
-        elif c.get("entity_type") == "Club":
-            lg = COUNTRY_TO_LEAGUE.get((c.get("country") or "").strip())
-            if lg in LEAGUES:
-                ch_to_league[c["id"]] = lg
+    # Build the per-league dicts the chart code below expects. Two paths:
+    #   • cache hit (USE_CACHE): unpack from payload["breakdown"]
+    #   • cache miss: existing live loaders (kept as fallback)
+    pl_views: dict[tuple[str, str], int] = {}
+    pl_video_counts: dict[tuple[str, str], int] = {}
+    pl_new: dict[tuple[str, str], int] = {}
+
+    if USE_CACHE and _cached_payload.get("breakdown", {}).get("group_label") == "league":
+        for grp in _cached_payload["breakdown"]["groups"]:
+            lg = grp["key"]
+            for r in grp["by_date"]:
+                d = r["date"]
+                pl_views[(lg, d)] = int(r.get("dv") or 0)
+                pl_video_counts[(lg, d)] = int(r.get("active_videos") or 0)
+                pl_new[(lg, d)] = int(r.get("new_videos") or 0)
+    else:
+        # ── Live fallback path (cache miss) ────────────────────────────
+        # Identical to the original implementation; kept verbatim so the
+        # page degrades gracefully when the cron hasn't run yet.
+        ch_to_league: dict[str, str] = {}
+        for c in all_channels:
+            if c.get("entity_type") == "League" and c.get("name") in LEAGUES:
+                ch_to_league[c["id"]] = c["name"]
+            elif c.get("entity_type") == "Club":
+                lg = COUNTRY_TO_LEAGUE.get((c.get("country") or "").strip())
+                if lg in LEAGUES:
+                    ch_to_league[c["id"]] = lg
 
     @st.cache_data(ttl=1800, show_spinner=False)
     def _load_per_league_view_deltas(
@@ -450,22 +499,22 @@ if not ONE_CLUB and not g_league:
                     offset += PAGE
         return out
 
-    # Group cohort channel_ids by league (tuple form so the dict is
-    # hashable for st.cache_data).
-    by_league_ids: dict[str, list[str]] = {lg: [] for lg in LEAGUES}
-    for cid, lg in ch_to_league.items():
-        by_league_ids[lg].append(cid)
-    cids_by_league = tuple(
-        (lg, tuple(sorted(by_league_ids.get(lg, []))))
-        for lg in LEAGUES
-    )
-
-    pl_views, pl_video_counts = _load_per_league_view_deltas(
-        cids_by_league, since=start_d.isoformat(), until=end_d.isoformat()
-    )
-    pl_new = _load_per_league_new_videos(
-        cids_by_league, start_iso=_fmt_start_utc, end_iso=_fmt_end_utc
-    )
+    # Live-fallback execution — skipped entirely when the cache hit
+    # already populated pl_views / pl_video_counts / pl_new above.
+    if not USE_CACHE:
+        by_league_ids: dict[str, list[str]] = {lg: [] for lg in LEAGUES}
+        for cid, lg in ch_to_league.items():
+            by_league_ids[lg].append(cid)
+        cids_by_league = tuple(
+            (lg, tuple(sorted(by_league_ids.get(lg, []))))
+            for lg in LEAGUES
+        )
+        pl_views, pl_video_counts = _load_per_league_view_deltas(
+            cids_by_league, since=start_d.isoformat(), until=end_d.isoformat()
+        )
+        pl_new = _load_per_league_new_videos(
+            cids_by_league, start_iso=_fmt_start_utc, end_iso=_fmt_end_utc
+        )
 
     # Pre-seed (league, date) so missing days plot as 0 rather than gaps.
     pl_views_rows: list[dict] = []
@@ -659,12 +708,25 @@ elif g_league and not ONE_CLUB:
         return out
 
     _z2_cids_tuple = tuple(sorted(z2_cid_to_name.keys()))
-    ch_views, ch_video_counts = _load_per_channel_view_deltas(
-        _z2_cids_tuple, since=start_d.isoformat(), until=end_d.isoformat()
-    )
-    ch_new = _load_per_channel_new_videos(
-        _z2_cids_tuple, start_iso=_fmt_start_utc, end_iso=_fmt_end_utc
-    )
+    ch_views: dict[tuple[str, str], int] = {}
+    ch_video_counts: dict[tuple[str, str], int] = {}
+    ch_new: dict[tuple[str, str], int] = {}
+
+    if USE_CACHE and _cached_payload.get("breakdown", {}).get("group_label") == "channel":
+        for grp in _cached_payload["breakdown"]["groups"]:
+            cid = grp["key"]
+            for r in grp["by_date"]:
+                d = r["date"]
+                ch_views[(cid, d)] = int(r.get("dv") or 0)
+                ch_video_counts[(cid, d)] = int(r.get("active_videos") or 0)
+                ch_new[(cid, d)] = int(r.get("new_videos") or 0)
+    else:
+        ch_views, ch_video_counts = _load_per_channel_view_deltas(
+            _z2_cids_tuple, since=start_d.isoformat(), until=end_d.isoformat()
+        )
+        ch_new = _load_per_channel_new_videos(
+            _z2_cids_tuple, start_iso=_fmt_start_utc, end_iso=_fmt_end_utc
+        )
 
     ch_views_rows, ch_new_rows, ch_per_video_rows = [], [], []
     for cid in _z2_cids_tuple:

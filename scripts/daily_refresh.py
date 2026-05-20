@@ -291,6 +291,11 @@ def main() -> int:
     try:
         from src import dashboard_cache as _dc
         _dc.rebuild_all(db, log=log)
+        # Cold tier of trends_30d (per-channel, 101 scopes). Runs only
+        # nightly because per-channel deltas barely move hour-to-hour;
+        # the hot tier (Z1 + per-league) was already refreshed inside
+        # rebuild_all above and covers Z1/Z2 visitors. Adds ~30-60s.
+        _dc.refresh_trends_30d(db, log=log, tier="cold")
     except Exception as e:
         log(f"dashboard_cache rebuild failed (non-fatal): {e}")
 
