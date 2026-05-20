@@ -101,13 +101,19 @@ class Database:
         )
         return resp.data[0] if resp.data else {}
 
-    def snapshot_channel(self, channel_db_id: str, stats: dict):
+    def snapshot_channel(self, channel_db_id: str, stats: dict,
+                         captured_date: str | None = None):
         """Append a daily snapshot row. Unique on (channel_id, captured_date)
-        so re-runs on the same day no-op via upsert."""
-        today = datetime.now(timezone.utc).date().isoformat()
+        so re-runs on the same day no-op via upsert.
+
+        ``captured_date`` (ISO ``YYYY-MM-DD``) is the day this snapshot
+        represents — when not passed, falls back to the legacy "today
+        in UTC" stamp for backward compatibility with callers that
+        haven't adopted ``src.snapshot_date.intended_capture_date``."""
+        day = captured_date or datetime.now(timezone.utc).date().isoformat()
         row = {
             "channel_id": channel_db_id,
-            "captured_date": today,
+            "captured_date": day,
             "subscriber_count": stats.get("subscriber_count", 0),
             "total_views": stats.get("total_views", 0),
             "video_count": stats.get("video_count", 0),

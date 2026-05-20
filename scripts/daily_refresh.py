@@ -45,6 +45,34 @@ def log(msg: str) -> None:
 
 
 def main() -> int:
+    # ── Intent-based captured_date (CET policy) ──
+    # See src/snapshot_date.py for the rationale. We compute the
+    # logical day ONCE at startup and thread it through every write,
+    # so a delayed catch-up across UTC midnight (the 2026-05-19 Railway
+    # incident) doesn't silently mis-date the snapshot. Outside the
+    # 22:00–06:00 CET window the script aborts, unless --force-date is
+    # passed (manual catch-up during business hours).
+    import argparse as _argparse
+    _ap = _argparse.ArgumentParser(add_help=False)
+    _ap.add_argument("--force-date", default=None,
+                     help="ISO YYYY-MM-DD; bypass the CET window check.")
+    _args, _ = _ap.parse_known_args()
+    from src.snapshot_date import intended_capture_date, OutOfWindowError
+    try:
+        capture_date = intended_capture_date(force_date=_args.force_date)
+        log(f"captured_date = {capture_date}"
+            + (" (forced)" if _args.force_date else ""))
+    except OutOfWindowError as _e:
+        log(f"FATAL: {_e}")
+        try:
+            from src.notify import send_run_alert
+            send_run_alert("daily_refresh", ok=False,
+                           summary="aborted — outside CET snapshot window",
+                           error=str(_e)[:300], priority="urgent")
+        except Exception:
+            pass
+        return 3
+
     # Prefer the daily-dedicated key (separate GCP project, isolated 10K
     # quota), then fall back to HEAVY (shared with weekly + hourly), then
     # to the regular key. Three-tier fallback so we can roll out the new
@@ -101,7 +129,8 @@ def main() -> int:
             row = db.upsert_channel({**ch, **stats})
             channel_db_id = row.get("id") or ch.get("id")
             if channel_db_id:
-                db.snapshot_channel(channel_db_id, stats)
+                db.snapshot_channel(channel_db_id, stats,
+                                    captured_date=capture_date)
 
             # ── 2. Ingest any NEW season videos ──
             ch_season_since = get_season_since(ch)
@@ -207,16 +236,16 @@ def main() -> int:
                     })
                 if b % 500 == 0:
                     log(f"  fetched stats for {min(b+50, len(yt_ids))}/{len(yt_ids)}")
-            video_snapshots_written = db.snapshot_videos_batch(snap_rows)
-            log(f"  wrote {video_snapshots_written} video_snapshots rows")
+            video_snapshots_written = db.snapshot_videos_batch(
+                snap_rows, captured_date=capture_date)
+            log(f"  wrote {video_snapshots_written} video_snapshots rows "
+                f"for {capture_date}")
 
             # Pre-compute per-video daily deltas — powers the Daily Recap
             # "Most watched" section without scanning raw snapshots at page load.
             try:
-                from datetime import date as _date
-                _today_iso = _date.today().isoformat()
-                deltas_written = db.compute_video_daily_deltas(_today_iso)
-                log(f"  wrote {deltas_written} video_daily_deltas rows for {_today_iso}")
+                deltas_written = db.compute_video_daily_deltas(capture_date)
+                log(f"  wrote {deltas_written} video_daily_deltas rows for {capture_date}")
             except Exception as e:
                 log(f"  video_daily_deltas step skipped: {e}")
 
