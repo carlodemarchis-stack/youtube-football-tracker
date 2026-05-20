@@ -43,6 +43,13 @@ Hard constraints (will be checked)
   score isn't already in a video title we hand you, you don't know it.
 - Never name a player who isn't in our data unless commenting on a
   notable absence ("nothing from Madrid all day").
+- If the payload includes `league_scope`, EVERYTHING you've been
+  given is already filtered to that single league. Do NOT observe
+  that the league "dominates", "leads", or "publishes the most" — by
+  construction it's the only thing in scope, and the user already
+  knows. Frame observations as "within <league>": which clubs, which
+  formats, which themes stand out INSIDE that league. Never compare
+  to other leagues (there's no other-league data here).
 - Don't generalize from one channel to a league ("Bayern was quiet" is
   fine; "the Bundesliga was quiet" needs the league-level number).
 - If yesterday was clearly a quiet/empty day, say so plainly. Don't
@@ -246,6 +253,10 @@ def compose_payload(db, target_date: date, league: str | None = None) -> dict:
     quiet = sorted(quiet)[:20]  # cap so the prompt doesn't bloat
 
     return {
+        # When set, the model is told to frame observations as "within
+        # <league>" instead of stating obvious truths ("La Liga leads"
+        # when by construction it's the only league in the payload).
+        **({"league_scope": league} if league else {}),
         "as_of_date": day_iso,
         "weekday": target_date.strftime("%A"),
         "totals": {
@@ -592,6 +603,13 @@ Hard constraints (will be checked)
 - Never invent match results, scores, standings, or transfer news. If
   a score isn't already in a video title we hand you, you don't know it.
 - Never name a player who isn't in the data.
+- If the payload includes `league_scope`, EVERYTHING you've been
+  given is already filtered to that single league. Do NOT observe
+  that the league "dominates", "leads", or "publishes the most" — by
+  construction it's the only thing in scope. Frame observations as
+  "within <league>": which clubs, which formats, which themes stand
+  out INSIDE that league. Never compare to other leagues (there's
+  no other-league data here).
 - Don't generalize from one channel to a league.
 - Don't write the obvious ("there are videos from many clubs",
   "Shorts are short"). If you can't find a non-obvious observation,
@@ -697,7 +715,8 @@ def compose_latest_payload(videos: list[dict],
 
 def generate_latest_vibe(videos: list[dict],
                          channels_by_id: dict | None = None,
-                         log=print) -> str | None:
+                         log=print,
+                         league: str | None = None) -> str | None:
     """Call Claude for a short vibe note on the latest videos. Returns
     plain text (one sentence per line) or None on failure / empty input."""
     if not videos:
@@ -715,6 +734,8 @@ def generate_latest_vibe(videos: list[dict],
         return None
 
     payload = compose_latest_payload(videos, channels_by_id=channels_by_id)
+    if league:
+        payload = {"league_scope": league, **payload}
     user_message = json.dumps(payload, indent=2, ensure_ascii=False)
 
     client = anthropic.Anthropic(api_key=api_key)
@@ -803,6 +824,13 @@ Hard constraints (will be checked)
 - Don't state the obvious ("clubs post videos", "Shorts are short").
   If you can't find a non-obvious angle, write less.
 - Don't generalize a whole league from one club.
+- If the payload includes `league_scope`, EVERYTHING you've been
+  given is already filtered to that single league. Do NOT observe
+  that the league "dominates", "leads", or "publishes the most" — by
+  construction it's the only thing in scope. Frame observations as
+  "within <league>": which clubs, which formats, which themes stand
+  out INSIDE that league. Never compare to other leagues (there's
+  no other-league data here).
 - Every leader carries its own "league" field. NEVER place a club in
   a league it doesn't belong to (Barcelona / Real Madrid are La Liga;
   Arsenal / Man Utd are the Premier League). If you cite a club next
@@ -923,7 +951,8 @@ def compose_season_payload(channels: list[dict],
 
 def generate_season_vibe(channels: list[dict],
                          season_start: str = "",
-                         log=print) -> str | None:
+                         log=print,
+                         league: str | None = None) -> str | None:
     """Call Claude for a short 'season so far' note. Returns plain text
     (one sentence per line) or None on failure / empty input."""
     if not channels:
@@ -941,6 +970,8 @@ def generate_season_vibe(channels: list[dict],
         return None
 
     payload = compose_season_payload(channels, season_start=season_start)
+    if league:
+        payload = {"league_scope": league, **payload}
     if not payload.get("leaders"):
         log("[season_vibe] no season data — skipping")
         return None
@@ -1007,6 +1038,13 @@ Hard constraints (will be checked)
 - Don't state the obvious ("popular videos get views"). If there's no
   non-obvious angle, write less.
 - Don't generalize a whole league from one viral hit.
+- If the payload includes `league_scope`, EVERYTHING you've been
+  given is already filtered to that single league. Do NOT observe
+  that the league "dominates" the top set or "owns" the leaderboard
+  — by construction it's the only thing in scope. Frame observations
+  as "within <league>": which clubs lead, which formats win, which
+  themes recur INSIDE that league. Never compare to other leagues
+  (there's no other-league data here).
 
 What you'll get
 - The top videos by views (channel, league, title, format, views)
@@ -1113,7 +1151,8 @@ def compose_season_top_payload(top_videos: list[dict],
 
 def generate_season_top_vibe(top_videos: list[dict],
                              channels_by_id: dict | None = None,
-                             log=print) -> str | None:
+                             log=print,
+                             league: str | None = None) -> str | None:
     """Call Claude for a short note on the season's top videos. Returns
     plain text (one sentence per line) or None on failure / empty."""
     if not top_videos:
@@ -1132,6 +1171,8 @@ def generate_season_top_vibe(top_videos: list[dict],
 
     payload = compose_season_top_payload(top_videos,
                                          channels_by_id=channels_by_id)
+    if league:
+        payload = {"league_scope": league, **payload}
     user_message = json.dumps(payload, indent=2, ensure_ascii=False)
 
     client = anthropic.Anthropic(api_key=api_key)

@@ -873,7 +873,8 @@ def refresh_latest_vibe(db, log=print, channels: list[dict] | None = None) -> No
                                  "OtherClub", "WomenClub")]
         chans_by_id = {c["id"]: c for c in chans}
 
-        def _one(scope_key: str, ids: list[str], label: str) -> None:
+        def _one(scope_key: str, ids: list[str], label: str,
+                 league: str | None = None) -> None:
             if not ids:
                 log(f"[dashboard_cache] latest_vibe/{label} skipped — no channels")
                 return
@@ -883,7 +884,7 @@ def refresh_latest_vibe(db, log=print, channels: list[dict] | None = None) -> No
             log(f"[dashboard_cache] computing latest_vibe/{label} "
                 f"({len(ids)} channels, {len(recent)} videos)")
             vibe = _an2.generate_latest_vibe(recent, channels_by_id=chans_by_id,
-                                             log=log)
+                                             log=log, league=league)
             if vibe:
                 write(db, "latest_vibe", scope_key,
                       {"text": vibe, "html": vibe.replace("\n", "<br>"),
@@ -903,7 +904,7 @@ def refresh_latest_vibe(db, log=print, channels: list[dict] | None = None) -> No
             if lg:
                 by_lg.setdefault(lg, []).append(c["id"])
         for lg in sorted(by_lg):
-            _one(scope_league(lg), by_lg[lg], f"league:{lg}")
+            _one(scope_league(lg), by_lg[lg], f"league:{lg}", league=lg)
     except Exception as e:
         log(f"[dashboard_cache] latest_vibe failed (non-fatal): {e}")
 
@@ -923,14 +924,15 @@ def refresh_season_vibe(db, log=print, channels: list[dict] | None = None) -> No
                                  "GoverningBody", "OtherClub", "WomenClub")]
         season_start = _gss()
 
-        def _one(scope_key: str, subset: list[dict], label: str) -> None:
+        def _one(scope_key: str, subset: list[dict], label: str,
+                 league: str | None = None) -> None:
             if not subset:
                 log(f"[dashboard_cache] season_vibe/{label} skipped — no channels")
                 return
             log(f"[dashboard_cache] computing season_vibe/{label} "
                 f"({len(subset)} channels, since {season_start})")
             vibe = _an2.generate_season_vibe(subset, season_start=season_start,
-                                             log=log)
+                                             log=log, league=league)
             if vibe:
                 write(db, "season_vibe", scope_key,
                       {"text": vibe, "html": vibe.replace("\n", "<br>"),
@@ -950,7 +952,7 @@ def refresh_season_vibe(db, log=print, channels: list[dict] | None = None) -> No
             if lg:
                 by_lg.setdefault(lg, []).append(c)
         for lg in sorted(by_lg):
-            _one(scope_league(lg), by_lg[lg], f"league:{lg}")
+            _one(scope_league(lg), by_lg[lg], f"league:{lg}", league=lg)
     except Exception as e:
         log(f"[dashboard_cache] season_vibe failed (non-fatal): {e}")
 
@@ -970,7 +972,8 @@ def refresh_season_top_vibe(db, log=print, channels: list[dict] | None = None) -
         chans = channels if channels is not None else db.get_all_channels()
         chans_by_id = {c["id"]: c for c in chans}
 
-        def _one(scope_key: str, label: str) -> None:
+        def _one(scope_key: str, label: str,
+                 league: str | None = None) -> None:
             row = read(db, "season_top", scope_key)
             top_views = ((row or {}).get("payload") or {}).get("top_views") or []
             if not top_views:
@@ -980,7 +983,7 @@ def refresh_season_top_vibe(db, log=print, channels: list[dict] | None = None) -
             log(f"[dashboard_cache] computing season_top_vibe/{label} "
                 f"({len(top_views)} top videos)")
             vibe = _an2.generate_season_top_vibe(
-                top_views, channels_by_id=chans_by_id, log=log)
+                top_views, channels_by_id=chans_by_id, log=log, league=league)
             if vibe:
                 write(db, "season_top_vibe", scope_key,
                       {"text": vibe, "html": vibe.replace("\n", "<br>"),
@@ -1004,7 +1007,7 @@ def refresh_season_top_vibe(db, log=print, channels: list[dict] | None = None) -
             and COUNTRY_TO_LEAGUE.get((c.get("country") or "").upper())
         })
         for lg in leagues:
-            _one(scope_league(lg), f"league:{lg}")
+            _one(scope_league(lg), f"league:{lg}", league=lg)
     except Exception as e:
         log(f"[dashboard_cache] season_top_vibe failed (non-fatal): {e}")
 
