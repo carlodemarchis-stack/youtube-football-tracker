@@ -241,6 +241,14 @@ st.markdown("""
       [data-testid="stSidebarUserContent"] {
         padding-top: 0 !important;
       }
+      /* 30-Day Trends — hidden from the sidebar at launch but still
+         routable via /trends-30d. Kept registered in st.navigation
+         so the URL resolves; hidden in the DOM by matching its
+         url_path. Re-enable for launch by removing this rule. */
+      [data-testid="stSidebarNav"] a[href$="/trends-30d"],
+      [data-testid="stSidebarNav"] li:has(a[href$="/trends-30d"]) {
+        display: none !important;
+      }
       /* Desktop-first notice: this is a data-dense dashboard (wide
          non-squashing tables, fixed-height component iframes) — making
          it truly mobile-good is a ~19-page rework against its own
