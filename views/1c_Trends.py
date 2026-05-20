@@ -304,6 +304,189 @@ with tc2:
     else:
         st.caption("No new videos in this window.")
 
+# ── Second row — per-league breakdown ─────────────────────────────
+# Only meaningful in Z1 (cross-league) scope; in Z2 it collapses to a
+# single line which the chart above already shows, and in Z3 there's
+# no league split at all.
+if not ONE_CLUB and not g_league:
+    from src.channels import LEAGUE_COLOR_CHART
+    LEAGUES = ["Premier League", "La Liga", "Serie A", "Bundesliga", "Ligue 1"]
+
+    # channel_id → league mapping for the cohort. Club channels resolve
+    # via country; the 5 League-entity_type channels resolve by their name.
+    ch_to_league: dict[str, str] = {}
+    for c in all_channels:
+        if c.get("entity_type") == "League" and c.get("name") in LEAGUES:
+            ch_to_league[c["id"]] = c["name"]
+        elif c.get("entity_type") == "Club":
+            lg = COUNTRY_TO_LEAGUE.get((c.get("country") or "").strip())
+            if lg in LEAGUES:
+                ch_to_league[c["id"]] = lg
+
+    @st.cache_data(ttl=1800, show_spinner=False)
+    def _load_per_league_view_deltas(
+        cids_by_league: tuple[tuple[str, tuple[str, ...]], ...],
+        since: str, until: str,
+    ) -> dict[tuple[str, str], int]:
+        """Return {(league, captured_date): Σ view_delta}. We re-query per
+        league rather than join in Python — keeps each query under the
+        URL-length limit for the .in_() filter and tags rows at fetch time."""
+        out: dict[tuple[str, str], int] = {}
+        PAGE = 1000
+        for league, cids in cids_by_league:
+            cids = list(cids)
+            for cs in range(0, len(cids), 50):
+                chunk = cids[cs:cs + 50]
+                offset = 0
+                while True:
+                    rs = (db.client.table("video_daily_deltas")
+                          .select("captured_date,view_delta")
+                          .in_("channel_id", chunk)
+                          .gte("captured_date", since)
+                          .lt("captured_date", until)
+                          .order("captured_date")
+                          .range(offset, offset + PAGE - 1)
+                          .execute()).data or []
+                    for r in rs:
+                        key = (league, r["captured_date"])
+                        out[key] = out.get(key, 0) + int(r.get("view_delta") or 0)
+                    if len(rs) < PAGE:
+                        break
+                    offset += PAGE
+        return out
+
+    @st.cache_data(ttl=1800, show_spinner=False)
+    def _load_per_league_new_videos(
+        cids_by_league: tuple[tuple[str, tuple[str, ...]], ...],
+        start_iso: str, end_iso: str,
+    ) -> dict[tuple[str, str], int]:
+        """Return {(league, captured_date_cet): count} for videos published
+        in the window."""
+        out: dict[tuple[str, str], int] = {}
+        PAGE = 1000
+        for league, cids in cids_by_league:
+            cids = list(cids)
+            for cs in range(0, len(cids), 50):
+                chunk = cids[cs:cs + 50]
+                offset = 0
+                while True:
+                    rs = (db.client.table("videos")
+                          .select("published_at")
+                          .in_("channel_id", chunk)
+                          .gte("published_at", start_iso)
+                          .lt("published_at", end_iso)
+                          .order("published_at")
+                          .range(offset, offset + PAGE - 1)
+                          .execute()).data or []
+                    for v in rs:
+                        pub = v.get("published_at") or ""
+                        try:
+                            dt_cet = datetime.fromisoformat(
+                                pub.replace("Z", "+00:00")
+                            ).astimezone(CET)
+                        except Exception:
+                            continue
+                        key = (league, dt_cet.date().isoformat())
+                        out[key] = out.get(key, 0) + 1
+                    if len(rs) < PAGE:
+                        break
+                    offset += PAGE
+        return out
+
+    # Group cohort channel_ids by league (tuple form so the dict is
+    # hashable for st.cache_data).
+    by_league_ids: dict[str, list[str]] = {lg: [] for lg in LEAGUES}
+    for cid, lg in ch_to_league.items():
+        by_league_ids[lg].append(cid)
+    cids_by_league = tuple(
+        (lg, tuple(sorted(by_league_ids.get(lg, []))))
+        for lg in LEAGUES
+    )
+
+    pl_views = _load_per_league_view_deltas(
+        cids_by_league, since=start_d.isoformat(), until=end_d.isoformat()
+    )
+    pl_new = _load_per_league_new_videos(
+        cids_by_league, start_iso=_fmt_start_utc, end_iso=_fmt_end_utc
+    )
+
+    # Pre-seed (league, date) so missing days plot as 0 rather than gaps.
+    pl_views_rows = []
+    pl_new_rows = []
+    for lg in LEAGUES:
+        for d in window_dates:
+            pl_views_rows.append({
+                "Date": d, "League": lg,
+                "Δ Views": pl_views.get((lg, d), 0),
+            })
+            pl_new_rows.append({
+                "Date": d, "League": lg,
+                "New Videos": pl_new.get((lg, d), 0),
+            })
+
+    pl_views_df = pd.DataFrame(pl_views_rows)
+    pl_new_df = pd.DataFrame(pl_new_rows)
+
+    # Inline legend (one chip per league, league brand colour).
+    _league_legend_html = "  ".join(
+        f'<span style="display:inline-flex;align-items:center;gap:4px">'
+        f'<span style="display:inline-block;width:10px;height:10px;'
+        f'border-radius:2px;background:{LEAGUE_COLOR_CHART[lg]}"></span>'
+        f'<span style="font-size:0.8rem;color:{_T.MUTED_2}">{lg}</span></span>'
+        for lg in LEAGUES
+    )
+
+    _league_color = alt.Color(
+        "League:N",
+        sort=LEAGUES,
+        scale=alt.Scale(
+            domain=LEAGUES,
+            range=[LEAGUE_COLOR_CHART[lg] for lg in LEAGUES],
+        ),
+        legend=None,  # rendered inline above each chart
+    )
+
+    pc1, pc2 = st.columns(2)
+    with pc1:
+        st.markdown(
+            f'<div style="font-size:14px;color:rgba(250,250,250,0.6);'
+            f'line-height:1.6">👁️ Δ Video views per day — by league &nbsp;&nbsp; '
+            f'{_league_legend_html}</div>',
+            unsafe_allow_html=True,
+        )
+        cpl1 = alt.Chart(pl_views_df).mark_line(strokeWidth=2, point=False).encode(
+            x=alt.X("Date:T", axis=_X_AXIS),
+            y=alt.Y("Δ Views:Q", title=None,
+                    axis=alt.Axis(format="~s", minExtent=_Y_AXIS_GUTTER)),
+            color=_league_color,
+            tooltip=[
+                alt.Tooltip("Date:T", title="Date", format="%a %b %d, %Y"),
+                "League",
+                alt.Tooltip("Δ Views:Q", format=","),
+            ],
+        ).properties(height=_CHART_HEIGHT)
+        st.altair_chart(cpl1, width="stretch")
+
+    with pc2:
+        st.markdown(
+            f'<div style="font-size:14px;color:rgba(250,250,250,0.6);'
+            f'line-height:1.6">🎬 New videos per day — by league &nbsp;&nbsp; '
+            f'{_league_legend_html}</div>',
+            unsafe_allow_html=True,
+        )
+        cpl2 = alt.Chart(pl_new_df).mark_line(strokeWidth=2, point=False).encode(
+            x=alt.X("Date:T", axis=_X_AXIS),
+            y=alt.Y("New Videos:Q", title=None,
+                    axis=alt.Axis(minExtent=_Y_AXIS_GUTTER)),
+            color=_league_color,
+            tooltip=[
+                alt.Tooltip("Date:T", title="Date", format="%a %b %d, %Y"),
+                "League",
+                alt.Tooltip("New Videos:Q", format=","),
+            ],
+        ).properties(height=_CHART_HEIGHT)
+        st.altair_chart(cpl2, width="stretch")
+
 st.caption(
     f"Window: {start_d.isoformat()} → {(end_d - timedelta(days=1)).isoformat()} "
     f"(trailing {LOOKBACK_DAYS} CET days, today excluded as partial). "
