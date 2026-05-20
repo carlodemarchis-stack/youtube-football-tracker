@@ -109,16 +109,25 @@ def _video_left_cell(v: dict, context_html: str = "") -> str:
 # data arrived late.
 @st.cache_data(ttl=120, show_spinner=False)
 def _data_version() -> str:
-    """Newest captured_date in channel_snapshots — a monotonic change
-    token. One tiny indexed query per ≤2min per server; used only as a
-    cache-key arg for the heavy loaders below (slightly over-eager refill
-    is harmless, staleness is not)."""
+    """Change token for the heavy channel_snapshots loaders below.
+
+    Combines: (a) newest captured_date — covers the normal nightly
+    arrival of a new day; AND (b) row count over the last 14 days —
+    covers HISTORICAL edits (e.g. relabeling a misdated catch-up row
+    after a cron outage). Without (b), an UPDATE that shuffles rows
+    between existing dates leaves the newest-date unchanged and the
+    1-hour loader caches keep serving stale data."""
     try:
-        r = (db.client.table("channel_snapshots")
-             .select("captured_date")
-             .order("captured_date", desc=True)
-             .limit(1).execute())
-        return (r.data or [{}])[0].get("captured_date", "") or ""
+        from datetime import date as _d, timedelta as _td
+        latest = ((db.client.table("channel_snapshots")
+                   .select("captured_date")
+                   .order("captured_date", desc=True)
+                   .limit(1).execute()).data or [{}])[0].get("captured_date", "") or ""
+        since = (_d.today() - _td(days=14)).isoformat()
+        cnt = (db.client.table("channel_snapshots")
+               .select("channel_id", count="exact")
+               .gte("captured_date", since).limit(1).execute()).count or 0
+        return f"{latest}:{cnt}"
     except Exception:
         return ""
 
