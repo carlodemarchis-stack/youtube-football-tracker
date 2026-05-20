@@ -29,7 +29,9 @@ from src.database import Database
 from src.auth import require_login
 from src.filters import (
     get_global_channels, get_global_filter, render_page_subtitle,
+    get_global_color_map, get_global_color_map_dual,
 )
+from src.dot import channel_badge
 from src.channels import COUNTRY_TO_LEAGUE
 from src import theme as _T
 
@@ -68,6 +70,9 @@ all_channels = [
 
 g_league, g_club = get_global_filter()
 ONE_CLUB = g_club is not None
+# Centralised channel-decoration maps (clubs → dual_dot, leagues → flag).
+_color_map = get_global_color_map()
+_dual_map = get_global_color_map_dual()
 
 if ONE_CLUB:
     from src.filters import render_club_header
@@ -355,40 +360,6 @@ if fmt_rows and total_new > 0:
 else:
     st.caption("No new videos in this window.")
 
-# ── Chart 3 — Δ views per active video per day (cohort total) ────
-# Cohort-level engagement efficiency: total view-delta ÷ # distinct
-# videos that received an update on that day. Levels the daily reading
-# regardless of how many videos happen to be in the rolling window.
-per_video_rows = []
-for d in window_dates:
-    dv = view_deltas_by_date.get(d, 0)
-    cnt = video_counts_by_date.get(d, 0)
-    per_video_rows.append({
-        "Date": d,
-        "Δ Views / video": int(dv / cnt) if cnt else 0,
-        "Active videos": cnt,
-    })
-per_video_df = pd.DataFrame(per_video_rows)
-
-st.caption("⚡ Δ Views per active video per day (cohort)")
-_pv_vals = [r["Δ Views / video"] for r in per_video_rows]
-if _pv_vals and max(_pv_vals) > 0:
-    c3 = alt.Chart(per_video_df).mark_line(
-        color=_T.ACCENT, strokeWidth=2, point=True
-    ).encode(
-        x=alt.X("Date:T", axis=_X_AXIS),
-        y=alt.Y("Δ Views / video:Q", title=None,
-                axis=alt.Axis(format="~s", minExtent=_Y_AXIS_GUTTER)),
-        tooltip=[
-            alt.Tooltip("Date:T", title="Date", format="%a %b %d, %Y"),
-            alt.Tooltip("Δ Views / video:Q", format=","),
-            alt.Tooltip("Active videos:Q", format=","),
-        ],
-    ).properties(height=_CHART_HEIGHT)
-    st.altair_chart(_with_sundays(c3), width="stretch")
-else:
-    st.caption("No tracked-video deltas in this window.")
-
 # ── Second row — per-league breakdown ─────────────────────────────
 # Only meaningful in Z1 (cross-league) scope; in Z2 it collapses to a
 # single line which the chart above already shows, and in Z3 there's
@@ -519,27 +490,19 @@ if not ONE_CLUB and not g_league:
     # Pre-seed (league, date) so missing days plot as 0 rather than gaps.
     pl_views_rows: list[dict] = []
     pl_new_rows: list[dict] = []
-    pl_per_video_rows: list[dict] = []
     for lg in LEAGUES:
         for d in window_dates:
-            dv = pl_views.get((lg, d), 0)
-            cnt = pl_video_counts.get((lg, d), 0)
-            pl_views_rows.append({"Date": d, "League": lg, "Δ Views": dv})
+            pl_views_rows.append({
+                "Date": d, "League": lg,
+                "Δ Views": pl_views.get((lg, d), 0),
+            })
             pl_new_rows.append({
                 "Date": d, "League": lg,
                 "New Videos": pl_new.get((lg, d), 0),
             })
-            # Δ views per tracked video that contributed on that day.
-            # Zero when no videos are active (clean line, no NaN spike).
-            pl_per_video_rows.append({
-                "Date": d, "League": lg,
-                "Δ Views / video": int(dv / cnt) if cnt else 0,
-                "Active videos": cnt,
-            })
 
     pl_views_df = pd.DataFrame(pl_views_rows)
     pl_new_df = pd.DataFrame(pl_new_rows)
-    pl_per_video_df = pd.DataFrame(pl_per_video_rows)
 
     # Inline legend (one chip per league, league brand colour).
     _league_legend_html = "  ".join(
@@ -587,21 +550,11 @@ if not ONE_CLUB and not g_league:
     _lg_summary_rows = []
     for lg in LEAGUES:
         dv_total = sum(pl_views.get((lg, d), 0) for d in window_dates)
-        active_avg = sum(pl_video_counts.get((lg, d), 0) for d in window_dates)
-        # Δ views / video averaged across the window (use day-by-day means
-        # then average — same as the chart). Guard against 0 days.
-        day_means = [
-            pl_views.get((lg, d), 0) / pl_video_counts.get((lg, d), 1)
-            for d in window_dates
-            if pl_video_counts.get((lg, d), 0) > 0
-        ]
-        per_video_avg = int(sum(day_means) / len(day_means)) if day_means else 0
         new_total = sum(pl_new.get((lg, d), 0) for d in window_dates)
         ft = _lg_format_totals[lg]
         _lg_summary_rows.append({
             "lg": lg, "dv": dv_total, "new": new_total,
             "long": ft["long"], "short": ft["short"], "live": ft["live"],
-            "per_video": per_video_avg,
             "channels": _ch_count_by_lg[lg],
         })
     _lg_summary_rows.sort(key=lambda r: -r["dv"])
@@ -617,7 +570,6 @@ if not ONE_CLUB and not g_league:
           <td style="padding:8px 12px;text-align:right;color:{_dv_col}">{_sign}{_fmt(r['dv'])}</td>
           <td style="padding:8px 12px;text-align:right">{_fmt(r['new'])}</td>
           <td style="padding:8px 12px;text-align:right">{r['long']} / {r['short']} / {r['live']}</td>
-          <td style="padding:8px 12px;text-align:right">{_fmt(r['per_video'])}</td>
         </tr>"""
     st.markdown(f"""
     <style>
@@ -632,7 +584,6 @@ if not ONE_CLUB and not g_league:
       <th style="text-align:right">Δ Views (30d)</th>
       <th style="text-align:right">Videos</th>
       <th style="text-align:right">Long / Shorts / Live</th>
-      <th style="text-align:right">⚡ Δ Views / video (avg)</th>
     </tr></thead><tbody>{_lg_html}</tbody></table>
     """, unsafe_allow_html=True)
 
@@ -675,30 +626,6 @@ if not ONE_CLUB and not g_league:
         ],
     ).properties(height=_CHART_HEIGHT)
     st.altair_chart(_with_sundays(cpl2), width="stretch")
-
-    # Chart 5 — Δ views per active video per day, one line per league.
-    # "Active" = videos within their 30-day rolling tracking window that
-    # received a non-null view_delta on that day. Levels the playing field
-    # between leagues with very different catalogue sizes.
-    st.markdown(
-        f'<div style="font-size:14px;color:rgba(250,250,250,0.6);'
-        f'line-height:1.6">⚡ Δ Views per active video per day — by league'
-        f' &nbsp;&nbsp; {_league_legend_html}</div>',
-        unsafe_allow_html=True,
-    )
-    cpl3 = alt.Chart(pl_per_video_df).mark_line(strokeWidth=2, point=False).encode(
-        x=alt.X("Date:T", axis=_X_AXIS),
-        y=alt.Y("Δ Views / video:Q", title=None,
-                axis=alt.Axis(format="~s", minExtent=_Y_AXIS_GUTTER)),
-        color=_league_color,
-        tooltip=[
-            alt.Tooltip("Date:T", title="Date", format="%a %b %d, %Y"),
-            "League",
-            alt.Tooltip("Δ Views / video:Q", format=","),
-            alt.Tooltip("Active videos:Q", format=","),
-        ],
-    ).properties(height=_CHART_HEIGHT)
-    st.altair_chart(_with_sundays(cpl3), width="stretch")
 
 # ── Z2 — per-channel breakdown within the picked league ──────────
 # Mirrors the Z1 per-league trio (charts 4/5/6) but one line per
@@ -805,24 +732,17 @@ elif g_league and not ONE_CLUB:
             _z2_cids_tuple, start_iso=_fmt_start_utc, end_iso=_fmt_end_utc
         )
 
-    ch_views_rows, ch_new_rows, ch_per_video_rows = [], [], []
+    ch_views_rows, ch_new_rows = [], []
     for cid in _z2_cids_tuple:
         name = z2_cid_to_name[cid]
         for d in window_dates:
-            dv = ch_views.get((cid, d), 0)
-            cnt = ch_video_counts.get((cid, d), 0)
-            ch_views_rows.append({"Date": d, "Channel": name, "Δ Views": dv})
+            ch_views_rows.append({"Date": d, "Channel": name,
+                                  "Δ Views": ch_views.get((cid, d), 0)})
             ch_new_rows.append({"Date": d, "Channel": name,
                                 "New Videos": ch_new.get((cid, d), 0)})
-            ch_per_video_rows.append({
-                "Date": d, "Channel": name,
-                "Δ Views / video": int(dv / cnt) if cnt else 0,
-                "Active videos": cnt,
-            })
 
     ch_views_df = pd.DataFrame(ch_views_rows)
     ch_new_df = pd.DataFrame(ch_new_rows)
-    ch_per_video_df = pd.DataFrame(ch_per_video_rows)
 
     # Inline legend — chips wrap naturally on narrow viewports.
     _channel_legend_html = "  ".join(
@@ -861,20 +781,11 @@ elif g_league and not ONE_CLUB:
         cid = c["id"]
         dv_total = sum(ch_views.get((cid, d), 0) for d in window_dates)
         new_total = sum(ch_new.get((cid, d), 0) for d in window_dates)
-        day_means = [
-            ch_views.get((cid, d), 0) / ch_video_counts.get((cid, d), 1)
-            for d in window_dates
-            if ch_video_counts.get((cid, d), 0) > 0
-        ]
-        per_video_avg = int(sum(day_means) / len(day_means)) if day_means else 0
         ft = _z2_format_totals.get(cid, {"long": 0, "short": 0, "live": 0})
         _ch_summary_rows.append({
-            "name": c.get("name") or "?",
-            "color": c.get("color") or _T.ACCENT,
-            "entity_type": c.get("entity_type") or "",
+            "ch": c,
             "dv": dv_total, "new": new_total,
             "long": ft["long"], "short": ft["short"], "live": ft["live"],
-            "per_video": per_video_avg,
         })
     _ch_summary_rows.sort(key=lambda r: -r["dv"])
 
@@ -883,19 +794,20 @@ elif g_league and not ONE_CLUB:
     for r in _ch_summary_rows:
         _dv_col = _T.POS if r["dv"] > 0 else (_T.NEG if r["dv"] < 0 else _T.MUTED)
         _sign = "+" if r["dv"] >= 0 else ""
-        _dot = (
-            f'<span style="display:inline-block;width:10px;height:10px;'
-            f'border-radius:2px;background:{r["color"]};vertical-align:middle"></span>'
-        )
-        _row_label = r["name"]
-        if r["entity_type"] == "League":
-            _row_label = f"<b>{_row_label}</b>"
+        # Canonical badge: dual_dot for clubs, flag_span for leagues.
+        _badge = channel_badge(r["ch"], _color_map, _dual_map, 14)
+        _name = r["ch"].get("name") or "?"
+        if r["ch"].get("entity_type") == "League":
+            _name = f"<b>{_name}</b>"
         _ch_html += f"""<tr>
-          <td style="padding:8px 12px">{_dot}&nbsp;&nbsp;{_row_label}</td>
+          <td style="padding:8px 12px">
+            <span style="display:inline-flex;align-items:center;gap:8px">
+              {_badge}<span>{_name}</span>
+            </span>
+          </td>
           <td style="padding:8px 12px;text-align:right;color:{_dv_col}">{_sign}{_fmt(r['dv'])}</td>
           <td style="padding:8px 12px;text-align:right">{_fmt(r['new'])}</td>
           <td style="padding:8px 12px;text-align:right">{r['long']} / {r['short']} / {r['live']}</td>
-          <td style="padding:8px 12px;text-align:right">{_fmt(r['per_video'])}</td>
         </tr>"""
     st.markdown(f"""
     <style>
@@ -909,7 +821,6 @@ elif g_league and not ONE_CLUB:
       <th style="text-align:right">Δ Views (30d)</th>
       <th style="text-align:right">Videos</th>
       <th style="text-align:right">Long / Shorts / Live</th>
-      <th style="text-align:right">⚡ Δ Views / video (avg)</th>
     </tr></thead><tbody>{_ch_html}</tbody></table>
     """, unsafe_allow_html=True)
 
@@ -950,27 +861,6 @@ elif g_league and not ONE_CLUB:
         ],
     ).properties(height=_CHART_HEIGHT)
     st.altair_chart(_with_sundays(cz2), width="stretch")
-
-    # Chart 6 — Δ views per active video per day, one line per channel
-    st.markdown(
-        f'<div style="font-size:14px;color:rgba(250,250,250,0.6);'
-        f'line-height:1.6">⚡ Δ Views per active video per day — by channel'
-        f' &nbsp;&nbsp; {_channel_legend_html}</div>',
-        unsafe_allow_html=True,
-    )
-    cz3 = alt.Chart(ch_per_video_df).mark_line(strokeWidth=1.5, point=False).encode(
-        x=alt.X("Date:T", axis=_X_AXIS),
-        y=alt.Y("Δ Views / video:Q", title=None,
-                axis=alt.Axis(format="~s", minExtent=_Y_AXIS_GUTTER)),
-        color=_channel_color,
-        tooltip=[
-            alt.Tooltip("Date:T", title="Date", format="%a %b %d, %Y"),
-            "Channel",
-            alt.Tooltip("Δ Views / video:Q", format=","),
-            alt.Tooltip("Active videos:Q", format=","),
-        ],
-    ).properties(height=_CHART_HEIGHT)
-    st.altair_chart(_with_sundays(cz3), width="stretch")
 
 # ── Top 25 videos in the window (all Z levels) ───────────────────
 # Read from the cached payload; falls back to a live aggregation if
@@ -1060,10 +950,18 @@ if _top_videos:
             _pub_d = datetime.fromisoformat(_pub_raw.replace("Z", "+00:00")).astimezone(CET).strftime("%b %d")
         except Exception:
             _pub_d = "—"
-        _dot = (
+        # Canonical badge from the full channel object (dual_dot for clubs,
+        # flag_span for leagues) — falls back to a minimal dot if the
+        # channel isn't in the loaded cohort (shouldn't happen at Z1, but
+        # defensive against payload/channel drift).
+        _ch_obj = next(
+            (c for c in all_channels if c["id"] == v.get("channel_id")), None
+        )
+        _badge = (
+            channel_badge(_ch_obj, _color_map, _dual_map, 14)
+            if _ch_obj else
             f'<span style="display:inline-block;width:10px;height:10px;'
-            f'border-radius:2px;background:{v.get("channel_color", "#888")};'
-            f'vertical-align:middle"></span>'
+            f'border-radius:2px;background:#888;vertical-align:middle"></span>'
         )
         _tv_html += f"""<tr>
           <td style="padding:6px 10px;color:{_T.MUTED};text-align:right;width:32px">{i}</td>
@@ -1076,7 +974,9 @@ if _top_videos:
             <a href="{_yt}" target="_blank" rel="noopener"
                style="color:{_T.TEXT};text-decoration:none;font-weight:500">{_title_safe}</a>
             <div style="margin-top:4px;font-size:12px;color:{_T.MUTED_2}">
-              {_dot}&nbsp;{v.get("channel_name", "?")}
+              <span style="display:inline-flex;align-items:center;gap:6px;vertical-align:middle">
+                {_badge}<span>{v.get("channel_name", "?")}</span>
+              </span>
               &nbsp;·&nbsp;<span style="color:{_fmt_color}">{_fmt_label}</span>
               &nbsp;·&nbsp;Published {_pub_d}
             </div>
