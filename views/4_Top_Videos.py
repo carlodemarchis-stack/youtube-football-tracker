@@ -371,155 +371,48 @@ elif league is not None:
     _vl_label = league
 else:
     _vl_label = "All Leagues"
-st.subheader(f"🏆 Top {len(filtered)} All-Time Videos — {_vl_label}")
-dual_colors = get_global_color_map_dual()
-color_map_tbl = get_global_color_map()
-_now = pd.Timestamp.now(tz="UTC")
+# Sort selector — replaces the JS-sortable header click pattern that the
+# old bespoke table had. Three official ranking keys, matches the
+# canonical renderer's order_by contract.
+_sort_label = st.radio(
+    "Sort by",
+    options=["Views", "Likes", "Comments"],
+    horizontal=True, label_visibility="collapsed",
+    key="top_videos_sort",
+)
+_sort_field = {"Views": "view_count",
+               "Likes": "like_count",
+               "Comments": "comment_count"}[_sort_label]
+_sort_order_by = _sort_label.lower()  # "views" | "likes" | "comments"
+filtered = filtered.sort_values(_sort_field, ascending=False)
 
-# Name → flag lookup, plus a name → channel-dict map so we can render the
-# standard channel_badge marker (flag for League channels, dual_dot for clubs)
-# instead of the previous flag+dot combo that produced a doubled glyph on
-# league rows.
-_ch_flag = {}
-_ch_by_name = {}
-for _c in all_channels:
-    _lg = COUNTRY_TO_LEAGUE.get((_c.get("country") or "").strip(), "")
-    _ch_flag[_c["name"]] = LEAGUE_FLAG.get(_lg, "")
-    _ch_by_name[_c["name"]] = _c
-
-_rows_html = ""
-for i, r in enumerate(filtered.itertuples(index=False), 1):
-    ch = getattr(r, "channel_name", "") or ""
-    title = (getattr(r, "title", "") or "").replace("<", "&lt;").replace(">", "&gt;")
-    yt_id = getattr(r, "youtube_video_id", "") or ""
-    title_cell = (
-        f'<a href="https://www.youtube.com/watch?v={yt_id}" target="_blank" rel="noopener" '
-        f'style="color:#FAFAFA;text-decoration:none;font-weight:700">{title}</a>' if yt_id else title
-    )
-    pub = pd.to_datetime(getattr(r, "published_at", None), utc=True) if getattr(r, "published_at", None) else None
-    age = f"{((_now - pub).days / 365.25):.1f}y" if pub is not None else ""
-    pub_s = pub.strftime("%Y-%m-%d") if pub is not None else ""
-    dur = getattr(r, "duration_seconds", 0) or 0
-    dur_s = f"{dur // 60}:{dur % 60:02d}" if dur else "0:00"
-    cat = getattr(r, "category", "") or ""
-    fmt_raw = (getattr(r, "format", "") or "").lower()
-    if fmt_raw not in ("long", "short", "live"):
-        fmt_raw = "long" if dur >= 60 else "short"
-    # Detect scheduled/premiere (future actual_start_time) for any format
-    _is_sched = False
-    _ast = getattr(r, "actual_start_time", None) or ""
-    if _ast:
-        try:
-            _ast_dt = pd.to_datetime(_ast, utc=True)
-            if _ast_dt > _now:
-                _is_sched = True
-        except Exception:
-            pass
-    elif fmt_raw == "live" and dur == 0:
-        _is_sched = True
-    if _is_sched:
-        fmt_label = "Scheduled"
-        fmt_color = "#AB63FA"
-    else:
-        fmt_label = {"long": "Long", "short": "Shorts", "live": "Live"}[fmt_raw]
-        fmt_color = {"long": "#636EFA", "short": "#00CC96", "live": "#FFA15A"}[fmt_raw]
-    fmt_cell = f'<span style="color:{fmt_color}">{fmt_label}</span>'
-    row_url = f"https://www.youtube.com/watch?v={yt_id}" if yt_id else ""
-    row_attrs = f'onclick="window.open(\'{row_url}\',\'_blank\',\'noopener\')" style="cursor:pointer"' if row_url else ''
-    # channel_badge: flag for League channels, dual_dot for clubs. Replaces
-    # the older `{flag} {dot}` combo which on league rows rendered both a
-    # flag AND a dot — the doubled-marker bug.
-    # Size 14 to match Daily Recap / Latest / Other Social / Channels / Season
-    _badge = channel_badge(_ch_by_name.get(ch, {"name": ch}), color_map_tbl, dual_colors, 14)
-    _cat_color = CATEGORY_COLORS.get(cat, "#888")
-    _cat_span = f' · <span style="color:{_cat_color}">{cat}</span>' if cat and cat != "Other" else ""
-    _meta = f'{_badge} <span style="color:#AAA">{ch}</span> · {fmt_cell}{_cat_span}'
-    _views = int(getattr(r, 'view_count', 0) or 0)
-    _likes = int(getattr(r, 'like_count', 0) or 0)
-    _comments = int(getattr(r, 'comment_count', 0) or 0)
-    _age_days = round((_now - pub).total_seconds() / 86400, 2) if pub is not None else 0
-    _rows_html += f"""<tr {row_attrs} data-fmt="{fmt_raw}" data-views="{_views}" data-likes="{_likes}" data-comments="{_comments}" data-age="{_age_days}" data-dur="{dur}">
-        <td style="padding:6px 12px;text-align:right;color:#888;vertical-align:top">{i}</td>
-        <td style="padding:6px 12px;vertical-align:top">
-          <div>{title_cell}</div>
-          <div style="font-size:12px;margin-top:3px;white-space:nowrap">{_meta}</div>
-        </td>
-        <td style="padding:6px 12px;text-align:right">{fmt_num(_views)}</td>
-        <td style="padding:6px 12px;text-align:right">{fmt_num(_likes)}</td>
-        <td style="padding:6px 12px;text-align:right">{fmt_num(_comments)}</td>
-        <td style="padding:6px 12px;white-space:nowrap">{age}</td>
-        <td style="padding:6px 12px;white-space:nowrap">{dur_s}</td>
-    </tr>"""
-
-# Two-line rows (channel meta + title) actually run ~50px each, header ~45px.
-# Old formula `80 + 34*n, cap 1200` undercounted per-row but capped too low,
-# so when filters narrowed results we got both inner-scroll AND empty tail.
-# New: 50px×n + 50 header, capped at viewport-friendly 1400.
-_table_height = min(50 + 50 * len(filtered), 1400)
-components.html(
-    f"""
-    <style>
-      .vidlist {{ width:100%; border-collapse:collapse; font-size:14px; color:#FAFAFA;
-                  font-family:"Source Sans Pro",sans-serif; }}
-      .vidlist th {{ padding:8px 12px; border-bottom:2px solid #444; text-align:left;
-                     background:#0E1117; position:sticky; top:0; z-index:1;
-                     user-select:none; }}
-      .vidlist td {{ border-bottom:1px solid #262730; }}
-      .vidlist tr:hover td {{ background:#1a1c24; }}
-      .vidlist th[data-col] {{ cursor:pointer; }}
-      .vidlist th[data-col]:hover {{ color:#58A6FF; }}
-      /* Match the inline text-arrow + .active pattern used everywhere else
-         on the site (Channels, Season, Daily Recap, Federations, …). */
-      .vidlist th.active {{ color:#58A6FF; }}
-    </style>
-    <div style="max-height:1350px;overflow:auto">
-    <table class="vidlist" id="vlTable"><thead><tr>
-      <th style="text-align:right">#</th>
-      <th>Video</th>
-      <th data-col="views" style="text-align:right" class="active">Views ▼</th>
-      <th data-col="likes" style="text-align:right">Likes</th>
-      <th data-col="comments" style="text-align:right">Comments</th>
-      <th data-col="age">Age</th>
-      <th data-col="dur">Duration</th>
-    </tr></thead><tbody>{_rows_html}</tbody></table>
-    </div>
-    <script>
-    (function() {{
-      const table = document.getElementById('vlTable');
-      const headers = table.querySelectorAll('th[data-col]');
-      // Initial sort: rows arrive ordered by view_count DESC. Views ▼ marked.
-      let currentCol = 'views', asc = false;
-      headers.forEach(th => {{
-        th.addEventListener('click', () => {{
-          const col = th.dataset.col;
-          if (currentCol === col) {{ asc = !asc; }}
-          else {{ currentCol = col; asc = false; }}
-          // Strip arrows + active class from everyone, then mark this one.
-          headers.forEach(h => {{
-            h.classList.remove('active');
-            h.textContent = h.textContent.replace(/ [▲▼]/g, '');
-          }});
-          th.classList.add('active');
-          th.textContent += asc ? ' ▲' : ' ▼';
-          const tbody = table.querySelector('tbody');
-          const rows = Array.from(tbody.querySelectorAll('tr'));
-          rows.sort((a, b) => {{
-            const va = parseFloat(a.dataset[col]) || 0;
-            const vb = parseFloat(b.dataset[col]) || 0;
-            return asc ? va - vb : vb - va;
-          }});
-          rows.forEach((r, idx) => {{
-            r.querySelector('td').textContent = idx + 1;
-            tbody.appendChild(r);
-          }});
-        }});
-      }});
-    }})();
-    </script>
-    {yt_popup_js()}
-    """,
-    height=_table_height,
-    scrolling=True,
+# Hand the filtered DataFrame to the canonical video-list renderer
+# (src.season_top.render_top_season_videos_table). Single source of
+# truth for video tables across the app — channel_badge marker, format
+# chip + duration + fmt_pub_date + category meta line, sticky header.
+from src.season_top import render_top_season_videos_table
+_ch_by_id = {c["id"]: c for c in all_channels}
+_vids_list = []
+for r in filtered.itertuples(index=False):
+    _vids_list.append({
+        "id": getattr(r, "id", None),
+        "youtube_video_id": getattr(r, "youtube_video_id", "") or "",
+        "title": getattr(r, "title", "") or "",
+        "channel_id": getattr(r, "channel_id", None),
+        "thumbnail_url": getattr(r, "thumbnail_url", "") or "",
+        "duration_seconds": int(getattr(r, "duration_seconds", 0) or 0),
+        "format": getattr(r, "format", "") or "",
+        "published_at": getattr(r, "published_at", None),
+        "view_count": int(getattr(r, "view_count", 0) or 0),
+        "like_count": int(getattr(r, "like_count", 0) or 0),
+        "comment_count": int(getattr(r, "comment_count", 0) or 0),
+        "category": getattr(r, "category", "") or "",
+    })
+render_top_season_videos_table(
+    _vids_list, _ch_by_id,
+    header=f"🏆 Top {len(filtered)} All-Time Videos — {_vl_label}",
+    order_by=_sort_order_by,
+    max_height=1400,
 )
 # ── Views by Rank chart ───────────────────────────────────────
 st.subheader("👁️ Views by Rank")

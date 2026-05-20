@@ -774,6 +774,279 @@ def generate_latest_vibe(videos: list[dict],
     return _one_sentence_per_line(note)
 
 
+# ── 30-Day Trends vibe ───────────────────────────────────────────
+# Narrates a trailing-30-day shape: Δ video views (from per-video
+# deltas), new uploads by format, league/channel breakdown, top
+# performers. Reads from the precomputed trends_30d cache payload —
+# no fresh aggregation in the model's hands. Z1 (All Leagues,
+# scope_all) + Z2 (per-league, scope_league).
+TRENDS_30D_VIBE_PROMPT = """\
+You are the in-house analyst for "YouTube Football Tracker", a
+dashboard watching the YouTube output of the top-5 European men's
+football leagues plus the 5 league channels themselves.
+
+Your job: write a SHORT "30-day shape" read — the narrative of how
+these channels' YouTube output has moved over the trailing 30 days.
+Not yesterday, not the season — the past month, the trajectory.
+
+Voice
+- Smart, dry, observational. A sports-data feature writer.
+- Treat every club and league with respect. No punch-down on
+  lower-resourced clubs. Modest output is still the story.
+- At most one light aside. No more than one optional emoji.
+
+Hard constraints (will be checked)
+- Use ONLY the numbers in the JSON. Never invent or recompute a
+  figure, ranking, percentage, league table, score, transfer, or a
+  player/manager name. If it isn't in the data, you don't know it.
+- "Δ views" here is each channel's lifetime view-count growth (the
+  day-over-day diff of `total_views` on the channel), summed across
+  the cohort. So it captures growth on EVERY video on those channels
+  — including older archive videos still earning views — not just
+  the recently-published cohort.
+- "New videos" = videos PUBLISHED during the trailing 30 days. This
+  is a DIFFERENT cohort from the views above. Don't divide Δ views by
+  new-video count to fake an "engagement per upload" rate — old
+  videos contribute heavily to the numerator.
+- Occasional sharp negative dips happen when YouTube scrubs a
+  channel's lifetime view counter (anti-spam recalibration). If you
+  see a clear single-day -X drop on a specific channel, note it as
+  a recalibration, not a real audience loss.
+- If the payload includes `league_scope`, EVERYTHING you've been
+  given is already filtered to that single league. Do NOT observe
+  that the league "dominates", "leads", or "publishes the most" — by
+  construction it's the only thing in scope. Frame inside the
+  league: which clubs, which formats, which themes drove the trend.
+  Never compare to other leagues (no other-league data here).
+- Don't generalize from one channel to a league.
+- Don't state the obvious ("clubs post videos", "Shorts are short",
+  "Premier League is popular"). If you can't find a non-obvious
+  observation, keep it shorter.
+
+What you'll get
+- A JSON payload with:
+  - `window`: trailing dates covered
+  - `totals`: cohort Δ views, new-video count, format split
+  - `by_week`: 5 weekly buckets so you can see acceleration / decay
+  - `by_league` (Z1) or `by_channel` (Z2): the breakdown
+  - `top_videos`: titles + channel + format + window-delta for the
+    biggest movers — READ THE TITLES, they tell you what happened
+    (championships, debuts, viral moments, kit launches)
+
+What to lean on
+- `archive_share_pct` is the headline metric most weeks: it tells you
+  what % of the cohort's 30-day Δ views came from videos OLDER than
+  30 days post-publish (i.e. the back-catalogue still earning). A
+  high archive share (>50%) means new uploads aren't pulling the
+  cohort — the legacy library is. A low archive share means the
+  cycle is fresh-content-driven. ALWAYS mention this if it's
+  >50% or <30% — it's the most non-obvious observation on the page.
+  Per-league/per-channel groups also carry their own archive_share_pct
+  so you can spot the divergence (e.g. "Bayern's growth is 35%
+  archive vs. Inter's 75%").
+- Trajectory: is the cohort's Δ views climbing week-over-week or
+  decaying? Is uploading pace ramping into matchweek bursts?
+- Format mix shifts: Shorts surging in week 4, Live spike on a
+  specific weekend (probably matchday).
+- Concentration: did one league or one club carry an outsized share
+  of the cohort delta? Cite the figure from `by_league` /
+  `by_channel` directly.
+- Top video narrative: the top-5 titles often hand you the headline
+  for free — title clinches, Coppa Italia finals, late-season
+  drama, viral dressing-room clips.
+
+Output format
+- Exactly 3-5 short sentences total, ~70-90 words.
+- Put each sentence on its own line (single newline between them).
+- Plain text. No markdown, no JSON, no list bullets, no bold."""
+
+
+def _weekly_buckets(by_date: list[dict], window_dates: list[str]) -> list[dict]:
+    """Roll a daily by_date series into 5 weekly buckets so the model
+    can see week-over-week shape without 30 individual data points."""
+    from datetime import date as _d, timedelta as _td
+    if not window_dates:
+        return []
+    start = _d.fromisoformat(window_dates[0])
+    end = _d.fromisoformat(window_dates[-1])
+    # Five rolling 6-day buckets aligned to the start; the trailing
+    # bucket may be 5 days if the window isn't a perfect 30.
+    bucket_size = max(1, (end - start).days // 5 or 6)
+    rows_by_date = {r["date"]: r for r in (by_date or [])}
+    out: list[dict] = []
+    d = start
+    while d <= end:
+        b_end = min(d + _td(days=bucket_size - 1), end)
+        b_view_delta = 0
+        b_new = 0
+        b_long = b_short = b_live = 0
+        cur = d
+        while cur <= b_end:
+            row = rows_by_date.get(cur.isoformat()) or {}
+            b_view_delta += int(row.get("dv") or 0)
+            b_long += int(row.get("new_long") or 0)
+            b_short += int(row.get("new_short") or 0)
+            b_live += int(row.get("new_live") or 0)
+            b_new += int(row.get("new_long") or 0) + int(row.get("new_short") or 0) + int(row.get("new_live") or 0)
+            cur += _td(days=1)
+        out.append({
+            "week_start": d.isoformat(),
+            "week_end": b_end.isoformat(),
+            "view_delta": b_view_delta,
+            "new_videos": b_new,
+            "long": b_long, "short": b_short, "live": b_live,
+        })
+        d = b_end + _td(days=1)
+    return out
+
+
+def compose_trends_30d_payload(trends_payload: dict,
+                                league: str | None = None) -> dict:
+    """Condense a cached trends_30d payload into the smaller blob the
+    LLM sees. Keeps totals + weekly buckets + the breakdown summary +
+    top 10 videos. Strips the raw 30 per-day points for the model.
+    """
+    if not trends_payload:
+        return {"totals": {}, "by_week": [], "top_videos": []}
+
+    dates = trends_payload.get("dates") or []
+    cohort_by_date = (trends_payload.get("cohort") or {}).get("by_date") or []
+
+    total_dv = sum(int(r.get("dv") or 0) for r in cohort_by_date)
+    total_long = sum(int(r.get("new_long") or 0) for r in cohort_by_date)
+    total_short = sum(int(r.get("new_short") or 0) for r in cohort_by_date)
+    total_live = sum(int(r.get("new_live") or 0) for r in cohort_by_date)
+    total_new = total_long + total_short + total_live
+    days = max(len(dates), 1)
+
+    # Archive contribution split — what % of the Δ views came from
+    # videos OLDER than 30 days post-publish (channel-wide growth that
+    # the tracked-pool can't see). Pre-computed by the cache builder.
+    split = (trends_payload.get("cohort") or {}).get("split") or {}
+
+    totals = {
+        "view_delta": total_dv,
+        "new_videos": total_new,
+        "by_format": {"long": total_long, "short": total_short, "live": total_live},
+        "avg_dv_per_day": int(total_dv / days),
+        "avg_new_per_day": round(total_new / days, 1),
+        "archive_share_pct": float(split.get("archive_share_pct") or 0.0),
+        "archive_view_delta": int(split.get("archive_view_delta") or 0),
+        "tracked_view_delta": int(split.get("tracked_view_delta") or 0),
+    }
+
+    by_week = _weekly_buckets(cohort_by_date, dates)
+
+    # Breakdown groups — compress each group's per-day series into
+    # window totals. The label depends on whether it's a per-league
+    # (Z1) or per-channel (Z2) payload.
+    bd = trends_payload.get("breakdown") or {}
+    groups_summary = []
+    for g in (bd.get("groups") or []):
+        g_dv = sum(int(r.get("dv") or 0) for r in (g.get("by_date") or []))
+        g_new = sum(int(r.get("new_videos") or 0) for r in (g.get("by_date") or []))
+        groups_summary.append({
+            "name": g.get("name") or g.get("key"),
+            "view_delta": g_dv,
+            "new_videos": g_new,
+        })
+    # Each group's archive share too — useful when the model wants to
+    # contrast "X earns from new uploads" vs "Y still lives off the
+    # back-catalogue".
+    for g, summary in zip((bd.get("groups") or []), groups_summary):
+        gs = g.get("split") or {}
+        summary["archive_share_pct"] = float(gs.get("archive_share_pct") or 0.0)
+    # Sort by Δ views desc so the model sees the heaviest contributors first.
+    groups_summary.sort(key=lambda r: -r["view_delta"])
+
+    top_videos_in = trends_payload.get("top_videos") or []
+    top_videos = []
+    for v in top_videos_in[:10]:
+        pub = (v.get("published_at") or "")
+        try:
+            pub_date = pub[:10]
+        except Exception:
+            pub_date = ""
+        top_videos.append({
+            "title": (v.get("title") or "").strip()[:160],
+            "channel": v.get("channel_name") or "?",
+            "format": (v.get("format") or "").lower() or "?",
+            "delta_in_window": int(v.get("delta_in_window") or 0),
+            "published": pub_date,
+        })
+
+    out = {
+        "window": {
+            "start": trends_payload.get("window_start"),
+            "end": trends_payload.get("window_end"),
+            "days": days,
+        },
+        "totals": totals,
+        "by_week": by_week,
+        "top_videos": top_videos,
+    }
+    label = "by_channel" if bd.get("group_label") == "channel" else "by_league"
+    out[label] = groups_summary
+    if league:
+        out = {"league_scope": league, **out}
+    return out
+
+
+def generate_trends_30d_vibe(trends_payload: dict,
+                              league: str | None = None,
+                              log=print) -> str | None:
+    """Call Claude (haiku) for a 30-day-shape vibe note. Returns plain
+    text (one sentence per line) or None on failure / empty input."""
+    if not trends_payload or not trends_payload.get("dates"):
+        return None
+
+    api_key = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
+    if not api_key:
+        log("[trends_30d_vibe] ANTHROPIC_API_KEY missing — skipping")
+        return None
+    try:
+        import anthropic
+    except ImportError:
+        log("[trends_30d_vibe] anthropic package not installed — skipping")
+        return None
+
+    payload = compose_trends_30d_payload(trends_payload, league=league)
+    user_message = json.dumps(payload, indent=2, ensure_ascii=False)
+
+    client = anthropic.Anthropic(api_key=api_key)
+    for attempt in range(3):
+        try:
+            resp = client.messages.create(
+                model="claude-haiku-4-5",
+                max_tokens=240,
+                temperature=0.6,
+                system=TRENDS_30D_VIBE_PROMPT,
+                messages=[{"role": "user", "content": user_message}],
+            )
+            break
+        except anthropic.APIStatusError as e:
+            if getattr(e, "status_code", None) in (429, 529) and attempt < 2:
+                time.sleep(2 ** attempt)
+                continue
+            log(f"[trends_30d_vibe] Claude API error: {e}")
+            return None
+        except Exception as e:
+            log(f"[trends_30d_vibe] error: {e}")
+            return None
+    else:
+        return None
+
+    note = "".join(b.text for b in resp.content if hasattr(b, "text")).strip()
+    if not note:
+        return None
+    # Anti-BS: reject if model invented a score not present in top_videos titles.
+    titles = [it.get("title", "") for it in payload.get("top_videos", [])]
+    if _looks_like_invented_score(note, titles):
+        log("[trends_30d_vibe] rejected — note contains a score not in source titles")
+        return None
+    return _one_sentence_per_line(note)
+
+
 def _one_sentence_per_line(text: str) -> str:
     """Reformat so each sentence sits on its own line.
 

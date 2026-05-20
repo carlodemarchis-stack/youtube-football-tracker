@@ -249,6 +249,29 @@ for d in window_dates:
         fmt_rows.append({"Date": d, "Format": label, "New Videos": b[key]})
 fmt_df = pd.DataFrame(fmt_rows)
 
+# ── AI vibe note (Z1 + Z2) ───────────────────────────────────────
+# Precomputed nightly by src.dashboard_cache.refresh_trends_30d_vibe.
+# Z3 (single club) intentionally skipped — a 30-day vibe for one
+# channel is thin enough that the chart series tells the story.
+if not ONE_CLUB:
+    _vibe_scope = _dc.scope_league(g_league) if g_league else _dc.scope_all()
+    try:
+        _vibe_row = _cached_dc_read(db, "trends_30d_vibe", _vibe_scope)
+        _vibe_html = (_vibe_row or {}).get("payload", {}).get("html") or ""
+    except Exception:
+        _vibe_html = ""
+    if _vibe_html:
+        st.markdown(
+            f'<div style="background:#1a1c24;border-left:3px solid #58A6FF;'
+            f'padding:12px 16px;margin:8px 0 18px 0;border-radius:4px;'
+            f'font-size:14px;line-height:1.6;color:#FAFAFA">'
+            f'<span style="color:#888;font-size:11px;font-weight:600;'
+            f'letter-spacing:0.5px;text-transform:uppercase">'
+            f'🤖 30-day shape · updated nightly</span>'
+            f'<div style="margin-top:6px">{_vibe_html}</div></div>',
+            unsafe_allow_html=True,
+        )
+
 # KPI row — totals across the 30 days
 total_dv = sum(v for v in view_deltas_by_date.values())
 total_new = sum(b["long"] + b["short"] + b["live"]
@@ -257,13 +280,23 @@ total_long = sum(b["long"] for b in fmt_by_date.values())
 total_short = sum(b["short"] for b in fmt_by_date.values())
 total_live = sum(b["live"] for b in fmt_by_date.values())
 
+# Archive-share split — what % of the cohort's 30-day Δ views came from
+# videos OLDER than their 30-day tracking window (i.e. back-catalogue
+# still earning). Pulled from the cached payload's cohort.split; falls
+# back to 0/0 when the cache row predates the schema bump.
+_split = ((_cached_payload or {}).get("cohort") or {}).get("split") or {}
+_archive_pct = float(_split.get("archive_share_pct") or 0.0)
+_archive_abs = int(_split.get("archive_view_delta") or 0)
+_tracked_abs = int(_split.get("tracked_view_delta") or 0)
+
 from src.analytics import fmt_num, kpi_row
 st.markdown(kpi_row([
-    ("Δ Video views (30d)", fmt_num(total_dv), "across tracked videos"),
-    ("New videos (30d)", fmt_num(total_new), ""),
-    ("Long / Shorts / Live",
-     f"{fmt_num(total_long)} / {fmt_num(total_short)} / {fmt_num(total_live)}",
-     ""),
+    ("Δ Channel views (30d)", fmt_num(total_dv), "across cohort channels"),
+    ("🗄️ Archive contribution",
+     f"{_archive_pct:.1f}%" if _split else "—",
+     f"{fmt_num(_archive_abs)} from older videos"),
+    ("New videos (30d)", fmt_num(total_new),
+     f"{fmt_num(total_long)} / {fmt_num(total_short)} / {fmt_num(total_live)} L/S/Lv"),
     ("Daily avg Δ views", fmt_num(int(total_dv / max(len(window_dates), 1))),
      "per day"),
 ]), unsafe_allow_html=True)
@@ -298,7 +331,7 @@ def _with_sundays(chart):
 
 
 # ── Chart 1 — Δ video views per day (cohort total) ───────────────
-st.caption("👁️ Δ Video views per day (summed across cohort)")
+st.caption("👁️ Δ Channel views per day (summed across cohort)")
 _vals = [r["Δ Views"] for r in trend_rows]
 if _vals and max(_vals) > 0:
     _ymax = max(_vals); _ymin = min(_vals)
@@ -540,6 +573,7 @@ if not ONE_CLUB and not g_league:
     _lg_format_totals: dict[str, dict[str, int]] = {
         lg: {"long": 0, "short": 0, "live": 0} for lg in LEAGUES
     }
+    _lg_splits: dict[str, dict] = {lg: {} for lg in LEAGUES}
     if USE_CACHE and _cached_payload.get("breakdown", {}).get("group_label") == "league":
         for grp in _cached_payload["breakdown"]["groups"]:
             lg = grp["key"]
@@ -547,6 +581,7 @@ if not ONE_CLUB and not g_league:
                 _lg_format_totals[lg]["long"] += int(r.get("new_long") or 0)
                 _lg_format_totals[lg]["short"] += int(r.get("new_short") or 0)
                 _lg_format_totals[lg]["live"] += int(r.get("new_live") or 0)
+            _lg_splits[lg] = grp.get("split") or {}
     _lg_summary_rows = []
     for lg in LEAGUES:
         dv_total = sum(pl_views.get((lg, d), 0) for d in window_dates)
@@ -556,6 +591,7 @@ if not ONE_CLUB and not g_league:
             "lg": lg, "dv": dv_total, "new": new_total,
             "long": ft["long"], "short": ft["short"], "live": ft["live"],
             "channels": _ch_count_by_lg[lg],
+            "archive_pct": float(_lg_splits[lg].get("archive_share_pct") or 0.0),
         })
     _lg_summary_rows.sort(key=lambda r: -r["dv"])
 
@@ -568,6 +604,7 @@ if not ONE_CLUB and not g_league:
           <td style="padding:8px 12px;font-weight:600">{_LF.get(r['lg'], '')} {r['lg']}</td>
           <td style="padding:8px 12px;text-align:right">{r['channels']}</td>
           <td style="padding:8px 12px;text-align:right;color:{_dv_col}">{_sign}{_fmt(r['dv'])}</td>
+          <td style="padding:8px 12px;text-align:right;color:{_T.MUTED_2}">{r['archive_pct']:.1f}%</td>
           <td style="padding:8px 12px;text-align:right">{_fmt(r['new'])}</td>
           <td style="padding:8px 12px;text-align:right">{r['long']} / {r['short']} / {r['live']}</td>
         </tr>"""
@@ -582,6 +619,7 @@ if not ONE_CLUB and not g_league:
       <th>League</th>
       <th style="text-align:right">Channels</th>
       <th style="text-align:right">Δ Views (30d)</th>
+      <th style="text-align:right" title="Share of Δ views from videos older than 30d post-publish">🗄️ Archive %</th>
       <th style="text-align:right">Videos</th>
       <th style="text-align:right">Long / Shorts / Live</th>
     </tr></thead><tbody>{_lg_html}</tbody></table>
@@ -590,7 +628,7 @@ if not ONE_CLUB and not g_league:
     # Chart 3 — Δ views per day, one line per league
     st.markdown(
         f'<div style="font-size:14px;color:rgba(250,250,250,0.6);'
-        f'line-height:1.6">👁️ Δ Video views per day — by league &nbsp;&nbsp; '
+        f'line-height:1.6">👁️ Δ Channel views per day — by league &nbsp;&nbsp; '
         f'{_league_legend_html}</div>',
         unsafe_allow_html=True,
     )
@@ -767,6 +805,7 @@ elif g_league and not ONE_CLUB:
     _z2_format_totals: dict[str, dict[str, int]] = {
         c["id"]: {"long": 0, "short": 0, "live": 0} for c in _z2_chans
     }
+    _z2_splits: dict[str, dict] = {c["id"]: {} for c in _z2_chans}
     if USE_CACHE and _cached_payload.get("breakdown", {}).get("group_label") == "channel":
         for grp in _cached_payload["breakdown"]["groups"]:
             cid = grp["key"]
@@ -775,6 +814,7 @@ elif g_league and not ONE_CLUB:
                     _z2_format_totals[cid]["long"] += int(r.get("new_long") or 0)
                     _z2_format_totals[cid]["short"] += int(r.get("new_short") or 0)
                     _z2_format_totals[cid]["live"] += int(r.get("new_live") or 0)
+                _z2_splits[cid] = grp.get("split") or {}
 
     _ch_summary_rows = []
     for c in _z2_chans:
@@ -786,6 +826,7 @@ elif g_league and not ONE_CLUB:
             "ch": c,
             "dv": dv_total, "new": new_total,
             "long": ft["long"], "short": ft["short"], "live": ft["live"],
+            "archive_pct": float(_z2_splits.get(cid, {}).get("archive_share_pct") or 0.0),
         })
     _ch_summary_rows.sort(key=lambda r: -r["dv"])
 
@@ -794,7 +835,6 @@ elif g_league and not ONE_CLUB:
     for r in _ch_summary_rows:
         _dv_col = _T.POS if r["dv"] > 0 else (_T.NEG if r["dv"] < 0 else _T.MUTED)
         _sign = "+" if r["dv"] >= 0 else ""
-        # Canonical badge: dual_dot for clubs, flag_span for leagues.
         _badge = channel_badge(r["ch"], _color_map, _dual_map, 14)
         _name = r["ch"].get("name") or "?"
         if r["ch"].get("entity_type") == "League":
@@ -806,6 +846,7 @@ elif g_league and not ONE_CLUB:
             </span>
           </td>
           <td style="padding:8px 12px;text-align:right;color:{_dv_col}">{_sign}{_fmt(r['dv'])}</td>
+          <td style="padding:8px 12px;text-align:right;color:{_T.MUTED_2}">{r['archive_pct']:.1f}%</td>
           <td style="padding:8px 12px;text-align:right">{_fmt(r['new'])}</td>
           <td style="padding:8px 12px;text-align:right">{r['long']} / {r['short']} / {r['live']}</td>
         </tr>"""
@@ -819,6 +860,7 @@ elif g_league and not ONE_CLUB:
     <table class="ctbl"><thead><tr>
       <th>Channel</th>
       <th style="text-align:right">Δ Views (30d)</th>
+      <th style="text-align:right" title="Share of Δ views from videos older than 30d post-publish">🗄️ Archive %</th>
       <th style="text-align:right">Videos</th>
       <th style="text-align:right">Long / Shorts / Live</th>
     </tr></thead><tbody>{_ch_html}</tbody></table>
@@ -827,7 +869,7 @@ elif g_league and not ONE_CLUB:
     # Chart 4 — Δ views per day, one line per channel
     st.markdown(
         f'<div style="font-size:14px;color:rgba(250,250,250,0.6);'
-        f'line-height:1.6">👁️ Δ Video views per day — by channel &nbsp;&nbsp; '
+        f'line-height:1.6">👁️ Δ Channel views per day — by channel &nbsp;&nbsp; '
         f'{_channel_legend_html}</div>',
         unsafe_allow_html=True,
     )
@@ -947,8 +989,9 @@ if _top_videos:
 st.caption(
     f"Window: {start_d.isoformat()} → {(end_d - timedelta(days=1)).isoformat()} "
     f"(trailing {LOOKBACK_DAYS} CET days, today excluded as partial). "
-    "Δ Views are summed from per-video daily deltas — only videos within "
-    "30 days of publish are tracked, so the trend reflects current-cycle "
-    "content. New-video counts come from the videos catalogue and may "
-    "include backfilled older uploads."
+    "Δ Channel views = day-over-day diff of each channel's lifetime "
+    "total_views, summed across the cohort — captures growth on ALL "
+    "content including archive videos. The Top 25 videos column uses "
+    "per-video deltas (one row's growth in the 30-day window) so the "
+    "ranking surfaces the individual movers."
 )

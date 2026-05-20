@@ -222,6 +222,76 @@ def _trends_30d_window():
     return today_cet, start_cet, start_iso, end_iso, dates
 
 
+def _scan_channel_view_deltas(db, channel_ids: list[str],
+                                dates: list[str]) -> list[dict]:
+    """Per-channel-per-day view-deltas computed from channel_snapshots.
+
+    Used as the numerator for the cohort/per-league/per-channel Δ-views
+    series on the 30-Day Trends page. Captures view growth across ALL
+    content on the channel (including archive videos still earning),
+    not only videos within their 30-day tracking window.
+
+    Need one day before `dates[0]` so the first date can be diffed
+    against its predecessor. If a channel was added mid-window or
+    is missing snapshots, missing-day pairs are silently skipped (no
+    fake zeros).
+
+    Returns rows shaped like video_daily_deltas (channel_id,
+    captured_date, view_delta) so the existing _build_cohort_by_date /
+    _build_group_by_date can consume them unchanged — `video_id` is
+    set to the channel_id (active_videos counts then degenerate to
+    "channels active that day", which the page no longer renders).
+    """
+    if not channel_ids or not dates:
+        return []
+    from datetime import date as _d, timedelta as _td
+    extended_start = (_d.fromisoformat(dates[0]) - _td(days=1)).isoformat()
+    rows: list[dict] = []
+    PAGE = 1000
+    cids = list(channel_ids)
+    for cs in range(0, len(cids), 50):
+        chunk = cids[cs:cs + 50]
+        offset = 0
+        while True:
+            rs = (db.client.table("channel_snapshots")
+                  .select("channel_id,captured_date,total_views")
+                  .in_("channel_id", chunk)
+                  .gte("captured_date", extended_start)
+                  .lte("captured_date", dates[-1])
+                  .order("captured_date")
+                  .range(offset, offset + PAGE - 1)
+                  .execute()).data or []
+            rows.extend(rs)
+            if len(rs) < PAGE:
+                break
+            offset += PAGE
+    # Group by channel, sort by date, compute consecutive deltas.
+    by_ch: dict[str, list[dict]] = {}
+    for r in rows:
+        by_ch.setdefault(r["channel_id"], []).append(r)
+    out: list[dict] = []
+    date_set = set(dates)
+    for cid, ch_rows in by_ch.items():
+        ch_rows.sort(key=lambda r: r["captured_date"])
+        for i in range(1, len(ch_rows)):
+            cur_d = ch_rows[i]["captured_date"]
+            if cur_d not in date_set:
+                continue
+            prev_v = int(ch_rows[i - 1].get("total_views") or 0)
+            cur_v = int(ch_rows[i].get("total_views") or 0)
+            out.append({
+                "channel_id": cid,
+                "captured_date": cur_d,
+                "view_delta": cur_v - prev_v,
+                # video_id absent in source; reuse channel_id so the
+                # active-videos set in _build_*_by_date contains one
+                # entry per channel-that-reported-that-day. The page no
+                # longer renders this, but keeps the shape unchanged.
+                "video_id": cid,
+            })
+    return out
+
+
 def _scan_deltas(db, channel_ids: list[str],
                  since: str, until: str) -> list[dict]:
     """One paginated scan of video_daily_deltas with the columns we need."""
@@ -440,6 +510,69 @@ def _build_top_videos(deltas: list[dict], db, chans: list[dict],
     return out
 
 
+def _split_archive_share(chan_deltas: list[dict],
+                          video_deltas: list[dict],
+                          row_to_group: callable | None = None,
+                          group_keys: list[str] | None = None
+                          ) -> dict | list[dict]:
+    """Compute the channel-wide vs tracked-pool split for the period.
+
+    Channel-wide (chan_deltas) − tracked-pool (video_deltas) = views earned
+    by videos OLDER than their 30-day post-publish tracking window
+    ("archive share"). Used both for the cohort KPI and per-group rows.
+
+    If row_to_group + group_keys are provided, returns a list of per-group
+    splits (one dict per group, in group_keys order). Otherwise returns a
+    single cohort-wide split dict.
+
+    Schema:
+        {
+          "channel_view_delta": int,      # channel_snapshots Δ
+          "tracked_view_delta": int,      # video_daily_deltas Δ (≤30d)
+          "archive_view_delta": int,      # channel - tracked, clamped ≥ 0
+          "archive_share_pct": float,     # 0..100, one decimal
+        }
+    """
+    def _emp() -> dict:
+        return {"channel_view_delta": 0, "tracked_view_delta": 0,
+                "archive_view_delta": 0, "archive_share_pct": 0.0}
+
+    def _finalise(d: dict) -> dict:
+        cw = max(d["channel_view_delta"], 0)
+        tr = max(d["tracked_view_delta"], 0)
+        # Clamp archive ≥ 0 to swallow counter-recalibration noise. If
+        # the channel Δ is smaller than the per-video Δ (would happen
+        # only if YouTube purged channel views during the window),
+        # archive share goes to 0 rather than negative.
+        archive = max(cw - tr, 0)
+        pct = (archive / cw * 100.0) if cw > 0 else 0.0
+        return {
+            "channel_view_delta": cw,
+            "tracked_view_delta": tr,
+            "archive_view_delta": archive,
+            "archive_share_pct": round(pct, 1),
+        }
+
+    if row_to_group is None:
+        agg = _emp()
+        for r in chan_deltas:
+            agg["channel_view_delta"] += int(r.get("view_delta") or 0)
+        for r in video_deltas:
+            agg["tracked_view_delta"] += int(r.get("view_delta") or 0)
+        return _finalise(agg)
+
+    per: dict[str, dict] = {gk: _emp() for gk in (group_keys or [])}
+    for r in chan_deltas:
+        g = row_to_group(r)
+        if g in per:
+            per[g]["channel_view_delta"] += int(r.get("view_delta") or 0)
+    for r in video_deltas:
+        g = row_to_group(r)
+        if g in per:
+            per[g]["tracked_view_delta"] += int(r.get("view_delta") or 0)
+    return [_finalise(per[gk]) for gk in (group_keys or [])]
+
+
 def compute_trends_30d_all(db, chans: list[dict],
                            leagues_to_channels: dict[str, list[str]]) -> dict:
     """Z1 payload — cohort across all 101 top-5 channels (clubs + League HQs)
@@ -450,9 +583,18 @@ def compute_trends_30d_all(db, chans: list[dict],
     # Cohort = all clubs + the 5 League channels (entity_type Club|League).
     cohort_ids = [c["id"] for c in chans
                   if c.get("entity_type") in ("Club", "League")]
-    deltas = _scan_deltas(db, cohort_ids, dates[0], today_cet.isoformat())
+    # Cohort + breakdown Δ-views: derived from channel_snapshots so the
+    # number is channel-wide (captures archive videos still earning).
+    # We ALSO pull video_daily_deltas — partly for the Top-25 ranking
+    # at the bottom of the page, and partly to compute the "archive
+    # share" split: channel_Δ - tracked_Δ = how much of the cohort's
+    # view growth came from videos OLDER than their 30-day post-publish
+    # tracking window. Surfaces as totals_split.archive_share_pct in
+    # the payload + a KPI on the page.
+    chan_deltas = _scan_channel_view_deltas(db, cohort_ids, dates)
     pubs = _scan_pub_videos(db, cohort_ids, start_iso, end_iso)
-    cohort = _build_cohort_by_date(deltas, pubs, dates)
+    cohort = _build_cohort_by_date(chan_deltas, pubs, dates)
+    video_deltas = _scan_deltas(db, cohort_ids, dates[0], today_cet.isoformat())
 
     # League key resolver — works for both clubs and League HQ channels.
     # Country-based mapping is used uniformly so quirky brand names
@@ -467,22 +609,30 @@ def compute_trends_30d_all(db, chans: list[dict],
 
     LEAGUES = ["Premier League", "La Liga", "Serie A", "Bundesliga", "Ligue 1"]
     per_league = _build_group_by_date(
-        deltas, pubs, dates,
+        chan_deltas, pubs, dates,
+        row_to_group=lambda r: ch_to_league.get(r.get("channel_id")),
+        group_keys=LEAGUES,
+    )
+    # Channel-wide vs tracked-pool split — cohort + per-league
+    cohort_split = _split_archive_share(chan_deltas, video_deltas)
+    league_splits = _split_archive_share(
+        chan_deltas, video_deltas,
         row_to_group=lambda r: ch_to_league.get(r.get("channel_id")),
         group_keys=LEAGUES,
     )
     groups = [
         {"key": lg, "name": lg, "color": LEAGUE_COLOR_CHART.get(lg, "#888"),
-         "sort": i, "by_date": per_league[lg]}
+         "sort": i, "by_date": per_league[lg],
+         "split": league_splits[i]}
         for i, lg in enumerate(LEAGUES)
     ]
     return {
         "as_of": today_cet.isoformat(),
         "window_start": dates[0], "window_end": dates[-1],
         "dates": dates,
-        "cohort": {"by_date": cohort},
+        "cohort": {"by_date": cohort, "split": cohort_split},
         "breakdown": {"group_label": "league", "groups": groups},
-        "top_videos": _build_top_videos(deltas, db, chans, dates, limit=25),
+        "top_videos": _build_top_videos(video_deltas, db, chans, dates, limit=25),
     }
 
 
@@ -501,9 +651,12 @@ def compute_trends_30d_league(db, league: str,
             "breakdown": {"group_label": "channel", "groups": []},
         }
 
-    deltas = _scan_deltas(db, channel_ids, dates[0], today_cet.isoformat())
+    # Channel-snapshot deltas drive the cohort + per-channel Δ-views series.
+    # Per-video deltas (video_daily_deltas) only feed the Top-25 list.
+    chan_deltas = _scan_channel_view_deltas(db, channel_ids, dates)
+    video_deltas = _scan_deltas(db, channel_ids, dates[0], today_cet.isoformat())
     pubs = _scan_pub_videos(db, channel_ids, start_iso, end_iso)
-    cohort = _build_cohort_by_date(deltas, pubs, dates)
+    cohort = _build_cohort_by_date(chan_deltas, pubs, dates)
 
     # Sort channels: League HQ first, clubs A→Z. Carry name + brand colour.
     cohort_set = set(channel_ids)
@@ -514,25 +667,33 @@ def compute_trends_30d_league(db, league: str,
     ))
     cid_order = [c["id"] for c in z2_chans]
     per_channel = _build_group_by_date(
-        deltas, pubs, dates,
+        chan_deltas, pubs, dates,
         row_to_group=lambda r: r.get("channel_id"),
         group_keys=cid_order,
     )
     name_of = {c["id"]: (c.get("name") or "?") for c in z2_chans}
     color_of = {c["id"]: (c.get("color") or "#888") for c in z2_chans}
+    # Cohort split + per-channel splits.
+    cohort_split = _split_archive_share(chan_deltas, video_deltas)
+    channel_splits = _split_archive_share(
+        chan_deltas, video_deltas,
+        row_to_group=lambda r: r.get("channel_id"),
+        group_keys=cid_order,
+    )
     groups = [
         {"key": cid, "name": name_of[cid],
          "color": color_of[cid], "sort": i,
-         "by_date": per_channel[cid]}
+         "by_date": per_channel[cid],
+         "split": channel_splits[i]}
         for i, cid in enumerate(cid_order)
     ]
     return {
         "as_of": today_cet.isoformat(),
         "window_start": dates[0], "window_end": dates[-1],
         "dates": dates,
-        "cohort": {"by_date": cohort},
+        "cohort": {"by_date": cohort, "split": cohort_split},
         "breakdown": {"group_label": "channel", "groups": groups},
-        "top_videos": _build_top_videos(deltas, db, chans, dates, limit=25),
+        "top_videos": _build_top_videos(video_deltas, db, chans, dates, limit=25),
     }
 
 
@@ -540,20 +701,23 @@ def compute_trends_30d_club(db, channel_id: str,
                               chans: list[dict] | None = None) -> dict:
     """Z3 payload — single channel, cohort series only. Breakdown is empty
     (per-channel-of-one-channel would be redundant with the cohort line).
-    Includes a 25-video top list scoped to this channel."""
+    Cohort Δ-views uses channel_snapshots; Top-25 still uses per-video
+    deltas so the ranking remains meaningful at single-channel scope."""
     today_cet, start_cet, start_iso, end_iso, dates = _trends_30d_window()
-    deltas = _scan_deltas(db, [channel_id], dates[0], today_cet.isoformat())
+    chan_deltas = _scan_channel_view_deltas(db, [channel_id], dates)
+    video_deltas = _scan_deltas(db, [channel_id], dates[0], today_cet.isoformat())
     pubs = _scan_pub_videos(db, [channel_id], start_iso, end_iso)
-    cohort = _build_cohort_by_date(deltas, pubs, dates)
+    cohort = _build_cohort_by_date(chan_deltas, pubs, dates)
     if chans is None:
         chans = db.get_all_channels()
     return {
         "as_of": today_cet.isoformat(),
         "window_start": dates[0], "window_end": dates[-1],
         "dates": dates,
-        "cohort": {"by_date": cohort},
+        "cohort": {"by_date": cohort,
+                    "split": _split_archive_share(chan_deltas, video_deltas)},
         "breakdown": {"group_label": "channel", "groups": []},
-        "top_videos": _build_top_videos(deltas, db, chans, dates, limit=25),
+        "top_videos": _build_top_videos(video_deltas, db, chans, dates, limit=25),
     }
 
 
@@ -604,8 +768,65 @@ def refresh_trends_30d(db, log=print, channels: list[dict] | None = None,
                 write(db, "trends_30d", scope_club(c["id"]), payload)
             except Exception as e:
                 log(f"  failed (non-fatal): {e}")
+        # AI vibe note runs once at the end of the cold tier — keeps it
+        # to a nightly cadence even when the hot tier ticks hourly via
+        # rebuild_all. Z1 + 5 × Z2 ≈ 6 haiku calls per day; Z3 is
+        # skipped intentionally (a per-club vibe over 30 days would be
+        # ~100 calls/night for marginal narrative value).
+        refresh_trends_30d_vibe(db, log=log)
     else:
         log(f"[dashboard_cache] refresh_trends_30d: unknown tier '{tier}'")
+
+
+def refresh_trends_30d_vibe(db, log=print) -> None:
+    """Read back the just-written trends_30d cache rows and generate
+    a short Claude vibe note per scope (scope_all + 5 × scope_league).
+    Persists under cache key 'trends_30d_vibe' so the page reads a
+    single row at render time.
+
+    Best-effort; failures are non-fatal (the page already falls back
+    to no-note when the row is missing)."""
+    try:
+        from src import ai_note as _an2
+        from src.channels import COUNTRY_TO_LEAGUE
+
+        # Z1 — All Leagues
+        z1 = read(db, "trends_30d", scope_all())
+        z1_payload = (z1 or {}).get("payload") if z1 else None
+        if z1_payload:
+            log("[dashboard_cache] computing trends_30d_vibe / all")
+            note = _an2.generate_trends_30d_vibe(z1_payload, log=log)
+            if note:
+                write(db, "trends_30d_vibe", scope_all(),
+                      {"text": note, "html": note.replace("\n", "<br>")})
+                log(f"[dashboard_cache] trends_30d_vibe/all WRITTEN "
+                    f"({len(note)} chars)")
+            else:
+                log("[dashboard_cache] trends_30d_vibe/all skipped — empty")
+        else:
+            log("[dashboard_cache] trends_30d_vibe/all skipped — no payload")
+
+        # Z2 — one note per top-5 league
+        for lg in ("Premier League", "La Liga", "Serie A",
+                   "Bundesliga", "Ligue 1"):
+            row = read(db, "trends_30d", scope_league(lg))
+            row_payload = (row or {}).get("payload") if row else None
+            if not row_payload:
+                log(f"[dashboard_cache] trends_30d_vibe/league:{lg} "
+                    f"skipped — no payload")
+                continue
+            log(f"[dashboard_cache] computing trends_30d_vibe / league:{lg}")
+            note = _an2.generate_trends_30d_vibe(row_payload, league=lg, log=log)
+            if note:
+                write(db, "trends_30d_vibe", scope_league(lg),
+                      {"text": note, "html": note.replace("\n", "<br>")})
+                log(f"[dashboard_cache] trends_30d_vibe/league:{lg} "
+                    f"WRITTEN ({len(note)} chars)")
+            else:
+                log(f"[dashboard_cache] trends_30d_vibe/league:{lg} "
+                    f"skipped — empty")
+    except Exception as e:
+        log(f"[dashboard_cache] trends_30d_vibe failed (non-fatal): {e}")
 
 
 # ── rebuild orchestrator ─────────────────────────────────────────────────
