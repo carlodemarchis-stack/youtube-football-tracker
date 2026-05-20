@@ -124,10 +124,17 @@ def _data_version() -> str:
                    .order("captured_date", desc=True)
                    .limit(1).execute()).data or [{}])[0].get("captured_date", "") or ""
         since = (_d.today() - _td(days=14)).isoformat()
-        cnt = (db.client.table("channel_snapshots")
-               .select("channel_id", count="exact")
-               .gte("captured_date", since).limit(1).execute()).count or 0
-        return f"{latest}:{cnt}"
+        cnt_ch = (db.client.table("channel_snapshots")
+                  .select("channel_id", count="exact")
+                  .gte("captured_date", since).limit(1).execute()).count or 0
+        # Also count video_snapshots in the same window — the "Most
+        # watched" loader keys off video_snapshots and would otherwise
+        # ignore historical edits there (the May-19 Top-5 video-snap
+        # relabel after the Railway outage is exactly that scenario).
+        cnt_vs = (db.client.table("video_snapshots")
+                  .select("id", count="exact")
+                  .gte("captured_date", since).limit(1).execute()).count or 0
+        return f"{latest}:{cnt_ch}:{cnt_vs}"
     except Exception:
         return ""
 
@@ -226,9 +233,11 @@ def _load_videos_by_ids(ids_tuple: tuple) -> list[dict]:
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def _load_video_snapshots_cached(captured_date: str, channel_ids_tuple: tuple | None) -> list[dict]:
+def _load_video_snapshots_cached(captured_date: str, channel_ids_tuple: tuple | None,
+                                 data_version: str = "") -> list[dict]:
     """Per-day video snapshots, server-side filtered by channel via inner
-    join to videos. Returns trimmed rows {video_id, view_count, channel_id}."""
+    join to videos. Returns trimmed rows {video_id, view_count, channel_id}.
+    `data_version` is part of the cache key — see _data_version()."""
     rows = db.get_video_snapshots_for_date_filtered(
         captured_date,
         channel_ids=list(channel_ids_tuple) if channel_ids_tuple else None,
@@ -373,8 +382,9 @@ def _ensure_video_snaps_loaded():
     global vid_snaps_day, vid_snaps_prev, vmap_day, vmap_prev
     if vmap_day or vmap_prev:
         return
-    vid_snaps_day = _load_video_snapshots_cached(day_iso, _fc_tuple)
-    vid_snaps_prev = _load_video_snapshots_cached(_prev_snap_date, _fc_tuple) if _prev_snap_date else []
+    _dv = _data_version()
+    vid_snaps_day = _load_video_snapshots_cached(day_iso, _fc_tuple, _dv)
+    vid_snaps_prev = _load_video_snapshots_cached(_prev_snap_date, _fc_tuple, _dv) if _prev_snap_date else []
     vmap_day = {s["video_id"]: s for s in vid_snaps_day}
     vmap_prev = {s["video_id"]: s for s in vid_snaps_prev}
 
