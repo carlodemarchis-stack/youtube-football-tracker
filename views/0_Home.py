@@ -557,7 +557,7 @@ st.info(
 st.markdown("---")
 
 # ── About / Promo ────────────────────────────────────────────
-st.subheader("🧣 About")
+st.subheader("ℹ️ About")
 st.markdown(
     """
     **YouTube Football Tracker** is built and maintained by **Carlo De Marchis** — a guy with a scarf
