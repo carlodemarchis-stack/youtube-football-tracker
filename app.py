@@ -109,6 +109,7 @@ from src.channels import current_season_label_safe as _csl
 viewer_pages = [
     st.Page("views/1_Daily_Recap.py",       title="Daily Recap",       url_path="daily-recap"),
     st.Page("views/1b_Latest.py",           title="Latest Videos",     url_path="latest-videos"),
+    st.Page("views/1c_Trends.py",           title="30-Day Trends",     url_path="trends-30d"),
     st.Page("views/3_Season.py",            title=f"Season ({_csl()})", url_path="season"),
     st.Page("views/3b_Season_Top_Videos.py",title="Season Top",        url_path="season-top"),
     st.Page("views/2_Clubs.py",             title="All-time",          url_path="all-channels"),
