@@ -15,7 +15,8 @@ from src.cached_db import (
     get_recent_videos as _cached_recent,
     read_dashboard_cache as _cached_dc_read,
 )
-from src.analytics import fmt_num, yt_popup_js, CATEGORY_COLORS, kpi_row
+from src.analytics import (fmt_num, fmt_pub_date, yt_popup_js,
+                            CATEGORY_COLORS, kpi_row)
 try:
     from src.analytics import video_table_height
 except ImportError:
@@ -394,7 +395,7 @@ def _render_top_season_videos(channel_ids, channels_by_id, since,
         _f = _fmt_of_local(v)
         fmt_label = _LABEL[_f]
         fmt_color = _COLOR[_f]
-        pub = (v.get("published_at") or "")[:10]
+        pub = fmt_pub_date(v.get("published_at"))
         title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;")
         _cat = (v.get("category") or "").replace("<", "&lt;")
         _cat_color = CATEGORY_COLORS.get(_cat, "#888")
@@ -2810,7 +2811,7 @@ else:
         _f = _fmt_of(v)
         fmt_label = {"long": "Long", "short": "Shorts", "live": "Live"}[_f]
         fmt_color = _ROW_FMT_COLORS[_f]
-        pub = (v.get("published_at") or "")[:10]
+        pub = fmt_pub_date(v.get("published_at"))
         title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;")
         _cat = (v.get("category") or "").replace("<", "&lt;")
         _cat_color = CATEGORY_COLORS.get(_cat, "#888")

@@ -108,6 +108,34 @@ def get_channel_colors(channel_names: list[str]) -> dict[str, str]:
     return {name: CHANNEL_PALETTE[i % len(CHANNEL_PALETTE)] for i, name in enumerate(sorted(channel_names))}
 
 
+def fmt_pub_date(raw: str | None) -> str:
+    """Canonical publish-date format for video lists.
+
+    DESIGN RULE (single source of truth): always render as
+        "May 04"           — when the publish year == current year
+        "Oct 10 2025"      — when the publish year != current year
+
+    Use this anywhere a video's published_at is shown to users.
+    Avoid local `(published_at or "")[:10]` ISO slicing in views —
+    that's how the format drifts.
+
+    Returns "" if `raw` is empty / unparseable so callers can do
+    simple truthy checks without try/except.
+    """
+    if not raw:
+        return ""
+    try:
+        dt = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        cur_year = datetime.now(timezone.utc).year
+        if dt.year == cur_year:
+            return dt.strftime("%b %d")
+        return dt.strftime("%b %d %Y")
+    except Exception:
+        return str(raw)[:10]
+
+
 def fmt_date(raw: str | None) -> str:
     """Format an ISO timestamp as a human-friendly relative string.
 

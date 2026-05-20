@@ -404,7 +404,8 @@ def _build_top_videos(deltas: list[dict], db, chans: list[dict],
         chunk = top_ids[cs:cs + PAGE]
         rs = (db.client.table("videos")
               .select("id,youtube_video_id,title,channel_id,thumbnail_url,"
-                      "duration_seconds,format,published_at,view_count")
+                      "duration_seconds,format,published_at,view_count,"
+                      "like_count,comment_count,category")
               .in_("id", chunk).execute()).data or []
         for r in rs:
             meta_by_id[r["id"]] = r
@@ -416,6 +417,7 @@ def _build_top_videos(deltas: list[dict], db, chans: list[dict],
             continue
         ch = ch_by_id.get(m.get("channel_id")) or {}
         out.append({
+            "id": vid,                       # for renderer compatibility
             "video_id": vid,
             "youtube_video_id": m.get("youtube_video_id"),
             "title": m.get("title") or "",
@@ -424,6 +426,9 @@ def _build_top_videos(deltas: list[dict], db, chans: list[dict],
             "format": m.get("format") or "",
             "published_at": m.get("published_at"),
             "view_count": int(m.get("view_count") or 0),
+            "like_count": int(m.get("like_count") or 0),
+            "comment_count": int(m.get("comment_count") or 0),
+            "category": m.get("category") or "",
             "delta_in_window": int(sums[vid]),
             "channel_id": m.get("channel_id"),
             "channel_name": ch.get("name") or "?",

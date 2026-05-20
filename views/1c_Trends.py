@@ -900,16 +900,16 @@ if not _top_videos:
             chunk = top_ids[cs:cs + 100]
             rs = (db.client.table("videos")
                   .select("id,youtube_video_id,title,channel_id,thumbnail_url,"
-                          "duration_seconds,format,published_at,view_count")
+                          "duration_seconds,format,published_at,view_count,"
+                          "like_count,comment_count,category")
                   .in_("id", chunk).execute()).data or []
             meta = {r["id"]: r for r in rs}
             for vid in chunk:
                 m = meta.get(vid)
                 if not m:
                     continue
-                ch = next((c for c in all_channels if c["id"] == m.get("channel_id")), {})
                 out.append({
-                    "video_id": vid,
+                    "id": vid, "video_id": vid,
                     "youtube_video_id": m.get("youtube_video_id"),
                     "title": m.get("title") or "",
                     "thumbnail_url": m.get("thumbnail_url") or "",
@@ -917,10 +917,11 @@ if not _top_videos:
                     "format": m.get("format") or "",
                     "published_at": m.get("published_at"),
                     "view_count": int(m.get("view_count") or 0),
+                    "like_count": int(m.get("like_count") or 0),
+                    "comment_count": int(m.get("comment_count") or 0),
+                    "category": m.get("category") or "",
                     "delta_in_window": int(sums[vid]),
                     "channel_id": m.get("channel_id"),
-                    "channel_name": ch.get("name") or "?",
-                    "channel_color": ch.get("color") or "#888",
                 })
         out.sort(key=lambda r: -r["delta_in_window"])
         return out[:limit]
@@ -929,76 +930,19 @@ if not _top_videos:
                                     end_d.isoformat())
 
 if _top_videos:
-    from src.analytics import fmt_num as _fmt
+    from src.season_top import render_top_season_videos_table
+    _ch_by_id = {c["id"]: c for c in all_channels}
     st.markdown("---")
     _scope_label = (
         g_club.get("name") if ONE_CLUB else (g_league or "all top-5 leagues")
     )
-    st.subheader(f"🏆 Top 25 videos by Δ views — {_scope_label} (30d)")
-    _tv_html = ""
-    for i, v in enumerate(_top_videos, 1):
-        _yt = f"https://www.youtube.com/watch?v={v.get('youtube_video_id', '')}"
-        _title_safe = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;")
-        _thumb = v.get("thumbnail_url") or ""
-        _fmt_key = (v.get("format") or "").lower()
-        if _fmt_key not in ("long", "short", "live"):
-            _fmt_key = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
-        _fmt_color = {"long": _T.ACCENT, "short": _T.POS, "live": _T.WARN}.get(_fmt_key, _T.MUTED_2)
-        _fmt_label = {"long": "Long", "short": "Shorts", "live": "Live"}.get(_fmt_key, _fmt_key.title())
-        _pub_raw = v.get("published_at") or ""
-        try:
-            _pub_d = datetime.fromisoformat(_pub_raw.replace("Z", "+00:00")).astimezone(CET).strftime("%b %d")
-        except Exception:
-            _pub_d = "—"
-        # Canonical badge from the full channel object (dual_dot for clubs,
-        # flag_span for leagues) — falls back to a minimal dot if the
-        # channel isn't in the loaded cohort (shouldn't happen at Z1, but
-        # defensive against payload/channel drift).
-        _ch_obj = next(
-            (c for c in all_channels if c["id"] == v.get("channel_id")), None
-        )
-        _badge = (
-            channel_badge(_ch_obj, _color_map, _dual_map, 14)
-            if _ch_obj else
-            f'<span style="display:inline-block;width:10px;height:10px;'
-            f'border-radius:2px;background:#888;vertical-align:middle"></span>'
-        )
-        _tv_html += f"""<tr>
-          <td style="padding:6px 10px;color:{_T.MUTED};text-align:right;width:32px">{i}</td>
-          <td style="padding:6px 10px;width:140px">
-            <a href="{_yt}" target="_blank" rel="noopener">
-              <img src="{_thumb}" style="width:130px;height:73px;object-fit:cover;border-radius:4px;display:block">
-            </a>
-          </td>
-          <td style="padding:6px 10px">
-            <a href="{_yt}" target="_blank" rel="noopener"
-               style="color:{_T.TEXT};text-decoration:none;font-weight:500">{_title_safe}</a>
-            <div style="margin-top:4px;font-size:12px;color:{_T.MUTED_2}">
-              <span style="display:inline-flex;align-items:center;gap:6px;vertical-align:middle">
-                {_badge}<span>{v.get("channel_name", "?")}</span>
-              </span>
-              &nbsp;·&nbsp;<span style="color:{_fmt_color}">{_fmt_label}</span>
-              &nbsp;·&nbsp;Published {_pub_d}
-            </div>
-          </td>
-          <td style="padding:6px 10px;text-align:right;font-weight:600;color:{_T.POS}">+{_fmt(v.get("delta_in_window", 0))}</td>
-          <td style="padding:6px 10px;text-align:right;color:{_T.MUTED_2}">{_fmt(v.get("view_count", 0))}</td>
-        </tr>"""
-    st.markdown(f"""
-    <style>
-      .tv25 {{ width:100%; border-collapse:collapse; font-size:14px;
-              color:{_T.TEXT}; font-family:"Source Sans Pro",sans-serif; }}
-      .tv25 th {{ padding:6px 10px; border-bottom:2px solid {_T.BORDER_STRONG}; text-align:left; }}
-      .tv25 td {{ border-bottom:1px solid {_T.BORDER}; vertical-align:middle; }}
-    </style>
-    <table class="tv25"><thead><tr>
-      <th style="width:32px;text-align:right">#</th>
-      <th style="width:140px">&nbsp;</th>
-      <th>Title</th>
-      <th style="text-align:right">Δ Views (30d)</th>
-      <th style="text-align:right">Total views</th>
-    </tr></thead><tbody>{_tv_html}</tbody></table>
-    """, unsafe_allow_html=True)
+    render_top_season_videos_table(
+        _top_videos, _ch_by_id,
+        header=f"🏆 Top 25 videos by Δ views — {_scope_label} (30d)",
+        order_by="extra",   # highlight the Δ column as the ranking key
+        extra_metric_col={"field": "delta_in_window", "label": "Δ Views (30d)"},
+        max_height=1200,
+    )
 
 st.caption(
     f"Window: {start_d.isoformat()} → {(end_d - timedelta(days=1)).isoformat()} "

@@ -11,7 +11,8 @@ from __future__ import annotations
 
 import streamlit as st
 from src import components_compat as components
-from src.analytics import fmt_num, yt_popup_js, CATEGORY_COLORS, video_table_height
+from src.analytics import (fmt_num, fmt_pub_date, yt_popup_js,
+                            CATEGORY_COLORS, video_table_height)
 from src.dot import channel_badge
 from src import theme as _T
 from src.filters import get_global_color_map, get_global_color_map_dual
@@ -79,6 +80,7 @@ def render_top_season_videos_table(
     header: str,
     order_by: str = "views",
     max_height: int | None = None,
+    extra_metric_col: dict | None = None,
 ) -> int:
     """Renderer-only path. Takes a pre-fetched video list so callers
     that also need the same data for KPIs aren't paying for the query
@@ -120,10 +122,18 @@ def render_top_season_videos_table(
     # highlight (same "active column = accent" idiom as the other
     # tables). Empty class on the others.
     _ob = (order_by or "views").lower()
-    if _ob not in ("views", "likes", "comments"):
+    if _ob not in ("views", "likes", "comments", "extra"):
         _ob = "views"
-    _ordc = {"views": "", "likes": "", "comments": ""}
+    _ordc = {"views": "", "likes": "", "comments": "", "extra": ""}
     _ordc[_ob] = "ord"
+
+    # extra_metric_col, when provided, inserts an additional metric
+    # column LEFT of "Views" (label/field per call). Common use: the
+    # 30-Day Trends page wants Δ views per video on top of the standard
+    # cumulative views/likes/comments. Set order_by="extra" to make
+    # the inserted column the highlighted (ranking) column.
+    _xc_field = (extra_metric_col or {}).get("field")
+    _xc_label = (extra_metric_col or {}).get("label") or "Δ Views"
 
     rows = ""
     for i, v in enumerate(vids, 1):
@@ -136,7 +146,8 @@ def render_top_season_videos_table(
         fmt_label = _LABEL[_f]
         fmt_color = _COLOR[_f]
         dur_s = _dur_local(v.get("duration_seconds", 0))
-        pub = (v.get("published_at") or "")[:10]
+        # Canonical pub-date format (see src.analytics.fmt_pub_date).
+        pub = fmt_pub_date(v.get("published_at"))
         title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;")
         cat = (v.get("category") or "").replace("<", "&lt;")
         _cat_color = CATEGORY_COLORS.get(cat, _T.MUTED)
@@ -149,6 +160,12 @@ def render_top_season_videos_table(
             f' · <span style="color:{_T.MUTED}">{pub}</span>'
             f'{_cat_span}'
         )
+        _extra_cell = ""
+        if _xc_field:
+            _xv = int(v.get(_xc_field) or 0)
+            _xstr = ("+" if _xv > 0 else "") + fmt_num(_xv)
+            _extra_cell = (f'<td class="{_ordc["extra"]}" '
+                           f'style="padding:6px 12px;text-align:right">{_xstr}</td>')
         rows += f"""<tr onclick="window.open('{yt_url}','_blank','noopener')" style="cursor:pointer">
             <td style="padding:6px 12px;text-align:right;color:{_T.MUTED};vertical-align:top">{i}</td>
             <td style="padding:6px 12px;vertical-align:top"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px;display:block"></td>
@@ -159,6 +176,7 @@ def render_top_season_videos_table(
                 <div class="v-meta">{_context}</div>
               </div>
             </td>
+            {_extra_cell}
             <td class="{_ordc['views']}" style="padding:6px 12px;text-align:right">{fmt_num(int(v.get('view_count') or 0))}</td>
             <td class="{_ordc['likes']}" style="padding:6px 12px;text-align:right">{fmt_num(int(v.get('like_count') or 0))}</td>
             <td class="{_ordc['comments']}" style="padding:6px 12px;text-align:right">{fmt_num(int(v.get('comment_count') or 0))}</td>
@@ -172,7 +190,8 @@ def render_top_season_videos_table(
         '<col style="width:44px">'
         '<col style="width:134px">'
         "<col>"
-        '<col style="width:96px">'
+        + ('<col style="width:120px">' if _xc_field else "")
+        + '<col style="width:96px">'
         '<col style="width:96px">'
         '<col style="width:110px">'
         "</colgroup>"
@@ -189,6 +208,7 @@ def render_top_season_videos_table(
         '<th style="text-align:right">#</th>'
         "<th></th>"
         "<th>Video</th>"
+        + (_hd(_xc_label, "extra") if _xc_field else "")
         + _hd("Views", "views")
         + _hd("Likes", "likes")
         + _hd("Comments", "comments")
