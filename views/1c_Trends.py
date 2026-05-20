@@ -230,79 +230,95 @@ st.markdown(kpi_row([
 
 st.markdown("---")
 
-# ── Charts — same geometry as Daily Recap so the two pages feel matched ──
+# ── Chart geometry + shared Sunday rule layer ─────────────────────
 _CHART_HEIGHT = 320
 _Y_AXIS_GUTTER = 60
 _X_AXIS = alt.Axis(
     labelAngle=-45, title=None, format="%b %d",
-    tickCount={"interval": "day", "step": 2},  # every 2 days on a 30-day strip
+    tickCount={"interval": "day", "step": 2},
     labelOverlap=False,
 )
 
-tc1, tc2 = st.columns(2)
+# Sundays inside the window — used as dashed vertical rules so the eye can
+# segment the trend into weeks. Python weekday(): Mon=0, Sun=6.
+_sundays = [d for d in window_dates
+            if date.fromisoformat(d).weekday() == 6]
+_sun_df = pd.DataFrame({"Date": _sundays})
 
-with tc1:
-    st.caption("👁️ Δ Video views per day (summed across cohort)")
-    _vals = [r["Δ Views"] for r in trend_rows]
-    if _vals and max(_vals) > 0:
-        _ymax = max(_vals); _ymin = min(_vals)
-        _pad = max((_ymax - _ymin) * 0.1, 1)
-        c1 = alt.Chart(trend_df).mark_line(
-            color=_T.ACCENT, strokeWidth=2, point=True
-        ).encode(
-            x=alt.X("Date:T", axis=_X_AXIS),
-            y=alt.Y("Δ Views:Q",
-                    scale=alt.Scale(domain=[_ymin - _pad, _ymax + _pad]),
-                    title=None,
-                    axis=alt.Axis(format="~s", minExtent=_Y_AXIS_GUTTER)),
-            tooltip=[
-                alt.Tooltip("Date:T", title="Date", format="%a %b %d, %Y"),
-                alt.Tooltip("Δ Views:Q", format=","),
-            ],
-        ).properties(height=_CHART_HEIGHT)
-        st.altair_chart(c1, width="stretch")
-    else:
-        st.caption("No tracked-video deltas in this window.")
 
-with tc2:
-    _FORMAT_COLORS = {"Long": _T.ACCENT, "Shorts": _T.POS, "Live": _T.WARN}
-    _legend_html = "  ".join(
-        f'<span style="display:inline-flex;align-items:center;gap:4px">'
-        f'<span style="display:inline-block;width:10px;height:10px;'
-        f'border-radius:2px;background:{c}"></span>'
-        f'<span style="font-size:0.8rem;color:{_T.MUTED_2}">{lbl}</span></span>'
-        for lbl, c in _FORMAT_COLORS.items()
-    )
-    st.markdown(
-        f'<div style="font-size:14px;color:rgba(250,250,250,0.6);'
-        f'line-height:1.6">🎬 New videos per day — by format &nbsp;&nbsp; '
-        f'{_legend_html}</div>',
-        unsafe_allow_html=True,
-    )
-    if fmt_rows and total_new > 0:
-        c2 = alt.Chart(fmt_df).mark_area(opacity=0.85).encode(
-            x=alt.X("Date:T", axis=_X_AXIS),
-            y=alt.Y("New Videos:Q", stack="zero", title=None,
-                    axis=alt.Axis(minExtent=_Y_AXIS_GUTTER)),
-            color=alt.Color(
-                "Format:N",
-                sort=["Long", "Shorts", "Live"],
-                scale=alt.Scale(
-                    domain=list(_FORMAT_COLORS.keys()),
-                    range=list(_FORMAT_COLORS.values()),
-                ),
-                legend=None,
+def _with_sundays(chart):
+    """Layer dashed Sunday rules behind a chart. Returns a layered chart
+    or the original if there are no Sundays in the window."""
+    if not _sundays:
+        return chart
+    rule = alt.Chart(_sun_df).mark_rule(
+        color=_T.MUTED, strokeDash=[3, 3], opacity=0.45, strokeWidth=1,
+    ).encode(x="Date:T")
+    return (rule + chart).properties(height=_CHART_HEIGHT)
+
+
+# ── Chart 1 — Δ video views per day (cohort total) ───────────────
+st.caption("👁️ Δ Video views per day (summed across cohort)")
+_vals = [r["Δ Views"] for r in trend_rows]
+if _vals and max(_vals) > 0:
+    _ymax = max(_vals); _ymin = min(_vals)
+    _pad = max((_ymax - _ymin) * 0.1, 1)
+    c1 = alt.Chart(trend_df).mark_line(
+        color=_T.ACCENT, strokeWidth=2, point=True
+    ).encode(
+        x=alt.X("Date:T", axis=_X_AXIS),
+        y=alt.Y("Δ Views:Q",
+                scale=alt.Scale(domain=[_ymin - _pad, _ymax + _pad]),
+                title=None,
+                axis=alt.Axis(format="~s", minExtent=_Y_AXIS_GUTTER)),
+        tooltip=[
+            alt.Tooltip("Date:T", title="Date", format="%a %b %d, %Y"),
+            alt.Tooltip("Δ Views:Q", format=","),
+        ],
+    ).properties(height=_CHART_HEIGHT)
+    st.altair_chart(_with_sundays(c1), width="stretch")
+else:
+    st.caption("No tracked-video deltas in this window.")
+
+# ── Chart 2 — New videos per day by format ───────────────────────
+_FORMAT_COLORS = {"Long": _T.ACCENT, "Shorts": _T.POS, "Live": _T.WARN}
+_legend_html = "  ".join(
+    f'<span style="display:inline-flex;align-items:center;gap:4px">'
+    f'<span style="display:inline-block;width:10px;height:10px;'
+    f'border-radius:2px;background:{c}"></span>'
+    f'<span style="font-size:0.8rem;color:{_T.MUTED_2}">{lbl}</span></span>'
+    for lbl, c in _FORMAT_COLORS.items()
+)
+st.markdown(
+    f'<div style="font-size:14px;color:rgba(250,250,250,0.6);'
+    f'line-height:1.6">🎬 New videos per day — by format &nbsp;&nbsp; '
+    f'{_legend_html}</div>',
+    unsafe_allow_html=True,
+)
+if fmt_rows and total_new > 0:
+    c2 = alt.Chart(fmt_df).mark_area(opacity=0.85).encode(
+        x=alt.X("Date:T", axis=_X_AXIS),
+        y=alt.Y("New Videos:Q", stack="zero", title=None,
+                axis=alt.Axis(minExtent=_Y_AXIS_GUTTER)),
+        color=alt.Color(
+            "Format:N",
+            sort=["Long", "Shorts", "Live"],
+            scale=alt.Scale(
+                domain=list(_FORMAT_COLORS.keys()),
+                range=list(_FORMAT_COLORS.values()),
             ),
-            order=alt.Order("Format:N", sort="ascending"),
-            tooltip=[
-                alt.Tooltip("Date:T", title="Date", format="%a %b %d, %Y"),
-                "Format",
-                alt.Tooltip("New Videos:Q", format=","),
-            ],
-        ).properties(height=_CHART_HEIGHT)
-        st.altair_chart(c2, width="stretch")
-    else:
-        st.caption("No new videos in this window.")
+            legend=None,
+        ),
+        order=alt.Order("Format:N", sort="ascending"),
+        tooltip=[
+            alt.Tooltip("Date:T", title="Date", format="%a %b %d, %Y"),
+            "Format",
+            alt.Tooltip("New Videos:Q", format=","),
+        ],
+    ).properties(height=_CHART_HEIGHT)
+    st.altair_chart(_with_sundays(c2), width="stretch")
+else:
+    st.caption("No new videos in this window.")
 
 # ── Second row — per-league breakdown ─────────────────────────────
 # Only meaningful in Z1 (cross-league) scope; in Z2 it collapses to a
@@ -327,11 +343,13 @@ if not ONE_CLUB and not g_league:
     def _load_per_league_view_deltas(
         cids_by_league: tuple[tuple[str, tuple[str, ...]], ...],
         since: str, until: str,
-    ) -> dict[tuple[str, str], int]:
-        """Return {(league, captured_date): Σ view_delta}. We re-query per
-        league rather than join in Python — keeps each query under the
-        URL-length limit for the .in_() filter and tags rows at fetch time."""
-        out: dict[tuple[str, str], int] = {}
+    ) -> tuple[dict[tuple[str, str], int], dict[tuple[str, str], int]]:
+        """Returns ((league, date) → Σ view_delta, (league, date) → # distinct
+        videos that contributed). The second value enables the views-per-video
+        chart without a second round-trip."""
+        sums: dict[tuple[str, str], int] = {}
+        # Track distinct videos via per-key sets, then collapse to counts.
+        seen: dict[tuple[str, str], set[str]] = {}
         PAGE = 1000
         for league, cids in cids_by_league:
             cids = list(cids)
@@ -340,7 +358,7 @@ if not ONE_CLUB and not g_league:
                 offset = 0
                 while True:
                     rs = (db.client.table("video_daily_deltas")
-                          .select("captured_date,view_delta")
+                          .select("video_id,captured_date,view_delta")
                           .in_("channel_id", chunk)
                           .gte("captured_date", since)
                           .lt("captured_date", until)
@@ -349,11 +367,13 @@ if not ONE_CLUB and not g_league:
                           .execute()).data or []
                     for r in rs:
                         key = (league, r["captured_date"])
-                        out[key] = out.get(key, 0) + int(r.get("view_delta") or 0)
+                        sums[key] = sums.get(key, 0) + int(r.get("view_delta") or 0)
+                        seen.setdefault(key, set()).add(r["video_id"])
                     if len(rs) < PAGE:
                         break
                     offset += PAGE
-        return out
+        counts = {k: len(v) for k, v in seen.items()}
+        return sums, counts
 
     @st.cache_data(ttl=1800, show_spinner=False)
     def _load_per_league_new_videos(
@@ -403,7 +423,7 @@ if not ONE_CLUB and not g_league:
         for lg in LEAGUES
     )
 
-    pl_views = _load_per_league_view_deltas(
+    pl_views, pl_video_counts = _load_per_league_view_deltas(
         cids_by_league, since=start_d.isoformat(), until=end_d.isoformat()
     )
     pl_new = _load_per_league_new_videos(
@@ -411,21 +431,29 @@ if not ONE_CLUB and not g_league:
     )
 
     # Pre-seed (league, date) so missing days plot as 0 rather than gaps.
-    pl_views_rows = []
-    pl_new_rows = []
+    pl_views_rows: list[dict] = []
+    pl_new_rows: list[dict] = []
+    pl_per_video_rows: list[dict] = []
     for lg in LEAGUES:
         for d in window_dates:
-            pl_views_rows.append({
-                "Date": d, "League": lg,
-                "Δ Views": pl_views.get((lg, d), 0),
-            })
+            dv = pl_views.get((lg, d), 0)
+            cnt = pl_video_counts.get((lg, d), 0)
+            pl_views_rows.append({"Date": d, "League": lg, "Δ Views": dv})
             pl_new_rows.append({
                 "Date": d, "League": lg,
                 "New Videos": pl_new.get((lg, d), 0),
             })
+            # Δ views per tracked video that contributed on that day.
+            # Zero when no videos are active (clean line, no NaN spike).
+            pl_per_video_rows.append({
+                "Date": d, "League": lg,
+                "Δ Views / video": int(dv / cnt) if cnt else 0,
+                "Active videos": cnt,
+            })
 
     pl_views_df = pd.DataFrame(pl_views_rows)
     pl_new_df = pd.DataFrame(pl_new_rows)
+    pl_per_video_df = pd.DataFrame(pl_per_video_rows)
 
     # Inline legend (one chip per league, league brand colour).
     _league_legend_html = "  ".join(
@@ -435,7 +463,6 @@ if not ONE_CLUB and not g_league:
         f'<span style="font-size:0.8rem;color:{_T.MUTED_2}">{lg}</span></span>'
         for lg in LEAGUES
     )
-
     _league_color = alt.Color(
         "League:N",
         sort=LEAGUES,
@@ -443,49 +470,72 @@ if not ONE_CLUB and not g_league:
             domain=LEAGUES,
             range=[LEAGUE_COLOR_CHART[lg] for lg in LEAGUES],
         ),
-        legend=None,  # rendered inline above each chart
+        legend=None,
     )
 
-    pc1, pc2 = st.columns(2)
-    with pc1:
-        st.markdown(
-            f'<div style="font-size:14px;color:rgba(250,250,250,0.6);'
-            f'line-height:1.6">👁️ Δ Video views per day — by league &nbsp;&nbsp; '
-            f'{_league_legend_html}</div>',
-            unsafe_allow_html=True,
-        )
-        cpl1 = alt.Chart(pl_views_df).mark_line(strokeWidth=2, point=False).encode(
-            x=alt.X("Date:T", axis=_X_AXIS),
-            y=alt.Y("Δ Views:Q", title=None,
-                    axis=alt.Axis(format="~s", minExtent=_Y_AXIS_GUTTER)),
-            color=_league_color,
-            tooltip=[
-                alt.Tooltip("Date:T", title="Date", format="%a %b %d, %Y"),
-                "League",
-                alt.Tooltip("Δ Views:Q", format=","),
-            ],
-        ).properties(height=_CHART_HEIGHT)
-        st.altair_chart(cpl1, width="stretch")
+    # Chart 3 — Δ views per day, one line per league
+    st.markdown(
+        f'<div style="font-size:14px;color:rgba(250,250,250,0.6);'
+        f'line-height:1.6">👁️ Δ Video views per day — by league &nbsp;&nbsp; '
+        f'{_league_legend_html}</div>',
+        unsafe_allow_html=True,
+    )
+    cpl1 = alt.Chart(pl_views_df).mark_line(strokeWidth=2, point=False).encode(
+        x=alt.X("Date:T", axis=_X_AXIS),
+        y=alt.Y("Δ Views:Q", title=None,
+                axis=alt.Axis(format="~s", minExtent=_Y_AXIS_GUTTER)),
+        color=_league_color,
+        tooltip=[
+            alt.Tooltip("Date:T", title="Date", format="%a %b %d, %Y"),
+            "League",
+            alt.Tooltip("Δ Views:Q", format=","),
+        ],
+    ).properties(height=_CHART_HEIGHT)
+    st.altair_chart(_with_sundays(cpl1), width="stretch")
 
-    with pc2:
-        st.markdown(
-            f'<div style="font-size:14px;color:rgba(250,250,250,0.6);'
-            f'line-height:1.6">🎬 New videos per day — by league &nbsp;&nbsp; '
-            f'{_league_legend_html}</div>',
-            unsafe_allow_html=True,
-        )
-        cpl2 = alt.Chart(pl_new_df).mark_line(strokeWidth=2, point=False).encode(
-            x=alt.X("Date:T", axis=_X_AXIS),
-            y=alt.Y("New Videos:Q", title=None,
-                    axis=alt.Axis(minExtent=_Y_AXIS_GUTTER)),
-            color=_league_color,
-            tooltip=[
-                alt.Tooltip("Date:T", title="Date", format="%a %b %d, %Y"),
-                "League",
-                alt.Tooltip("New Videos:Q", format=","),
-            ],
-        ).properties(height=_CHART_HEIGHT)
-        st.altair_chart(cpl2, width="stretch")
+    # Chart 4 — New videos per day, one line per league
+    st.markdown(
+        f'<div style="font-size:14px;color:rgba(250,250,250,0.6);'
+        f'line-height:1.6">🎬 New videos per day — by league &nbsp;&nbsp; '
+        f'{_league_legend_html}</div>',
+        unsafe_allow_html=True,
+    )
+    cpl2 = alt.Chart(pl_new_df).mark_line(strokeWidth=2, point=False).encode(
+        x=alt.X("Date:T", axis=_X_AXIS),
+        y=alt.Y("New Videos:Q", title=None,
+                axis=alt.Axis(minExtent=_Y_AXIS_GUTTER)),
+        color=_league_color,
+        tooltip=[
+            alt.Tooltip("Date:T", title="Date", format="%a %b %d, %Y"),
+            "League",
+            alt.Tooltip("New Videos:Q", format=","),
+        ],
+    ).properties(height=_CHART_HEIGHT)
+    st.altair_chart(_with_sundays(cpl2), width="stretch")
+
+    # Chart 5 — Δ views per active video per day, one line per league.
+    # "Active" = videos within their 30-day rolling tracking window that
+    # received a non-null view_delta on that day. Levels the playing field
+    # between leagues with very different catalogue sizes.
+    st.markdown(
+        f'<div style="font-size:14px;color:rgba(250,250,250,0.6);'
+        f'line-height:1.6">⚡ Δ Views per active video per day — by league'
+        f' &nbsp;&nbsp; {_league_legend_html}</div>',
+        unsafe_allow_html=True,
+    )
+    cpl3 = alt.Chart(pl_per_video_df).mark_line(strokeWidth=2, point=False).encode(
+        x=alt.X("Date:T", axis=_X_AXIS),
+        y=alt.Y("Δ Views / video:Q", title=None,
+                axis=alt.Axis(format="~s", minExtent=_Y_AXIS_GUTTER)),
+        color=_league_color,
+        tooltip=[
+            alt.Tooltip("Date:T", title="Date", format="%a %b %d, %Y"),
+            "League",
+            alt.Tooltip("Δ Views / video:Q", format=","),
+            alt.Tooltip("Active videos:Q", format=","),
+        ],
+    ).properties(height=_CHART_HEIGHT)
+    st.altair_chart(_with_sundays(cpl3), width="stretch")
 
 st.caption(
     f"Window: {start_d.isoformat()} → {(end_d - timedelta(days=1)).isoformat()} "
