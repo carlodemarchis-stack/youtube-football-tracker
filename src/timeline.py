@@ -345,6 +345,11 @@ def render_48h_dots(
                 f'<span class="dt-count">{count_text}</span>'
                 f'</div>'
             )
+            # Pre-decide the hover-preview anchor: dots in the top half of
+            # the chart get the preview BELOW them, dots in the bottom
+            # half get it ABOVE. Keeps the popup inside .dt-wrap (which
+            # has overflow:hidden) without needing to grow the iframe.
+            preview_pos = "above" if ridx >= (len(rows) // 2) else "below"
             for v, ts in by_ch[cid]:
                 f = _fmt_of(v)
                 color = "#636EFA"
@@ -357,16 +362,29 @@ def render_48h_dots(
                 x_pct = LEFT_MARGIN + raw_pct * USABLE / 100
                 yt_url = f"https://www.youtube.com/watch?v={v.get('youtube_video_id','')}"
                 title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+                thumb = (v.get("thumbnail_url") or "").replace('"', "&quot;")
                 pub_str = ts.tz_convert("Europe/Rome").strftime("%a %H:%M")
                 fmt_label = {"long": "Long", "short": "Shorts", "live": "Live"}[f]
                 shape_cls = {"long": "dt-long", "short": "dt-short", "live": "dt-live"}[f]
+                # Channel label used in the preview meta line — same as
+                # what's shown in the rowlabel on the left, just safe to
+                # interpolate (already HTML-escaped above).
+                preview_meta = f"{label} · {fmt_label} · {pub_str}"
+                preview_html = (
+                    f'<span class="dt-preview {preview_pos}">'
+                    f'<img src="{thumb}" loading="lazy" alt="">'
+                    f'<span class="t">{title}</span>'
+                    f'<span class="m">{preview_meta}</span>'
+                    f'</span>'
+                ) if thumb else ""
                 rows_html += (
                     f'<a href="{yt_url}" target="_blank" rel="noopener" '
-                    f'data-fmt="{f}" '
-                    f'class="dt-dot {shape_cls}" '
-                    f'style="left:{x_pct:.3f}%;top:{top_px + ROW_H // 2}px;'
-                    f'background:{color}" '
-                    f'title="{label} · {title} · {fmt_label} · {pub_str}"></a>'
+                    f'data-fmt="{f}" class="dt-card" '
+                    f'style="left:{x_pct:.3f}%;top:{top_px + ROW_H // 2}px" '
+                    f'title="{label} · {title} · {fmt_label} · {pub_str}">'
+                    f'<span class="dt-dot {shape_cls}" style="background:{color}"></span>'
+                    f'{preview_html}'
+                    f'</a>'
                 )
 
         total_height = TOP_PAD + len(rows) * ROW_H + BOT_PAD
@@ -400,16 +418,46 @@ def render_48h_dots(
              but visually quieter so they don't compete with active rows. */
           .dt-row-empty .dt-name {{ color:#666; }}
           .dt-row-empty .dt-count {{ color:#555; background:transparent; }}
+          /* Dot wrapper — positions the anchor; the visible shape is
+             the .dt-dot inside, the rich hover popup is .dt-preview. */
+          .dt-card {{ position:absolute; z-index:1; cursor:pointer;
+                      text-decoration:none; }}
+          .dt-card:hover {{ z-index:300; }}
           .dt-dot {{ position:absolute; transform:translate(-50%,-50%);
-                     border:1px solid rgba(0,0,0,0.5); cursor:pointer;
+                     border:1px solid rgba(0,0,0,0.5);
                      transition:transform 0.1s ease; }}
-          .dt-dot:hover {{ transform:translate(-50%,-50%) scale(1.6);
-                           z-index:10; box-shadow:0 0 0 2px rgba(255,255,255,0.4); }}
+          .dt-card:hover .dt-dot {{ transform:translate(-50%,-50%) scale(1.6);
+                                    box-shadow:0 0 0 2px rgba(255,255,255,0.4); }}
           .dt-long  {{ width:11px; height:11px; border-radius:50%; }}
           .dt-short {{ width:10px; height:10px;
                        transform:translate(-50%,-50%) rotate(45deg); }}
-          .dt-short:hover {{ transform:translate(-50%,-50%) rotate(45deg) scale(1.6); }}
+          .dt-card:hover .dt-dot.dt-short {{ transform:translate(-50%,-50%) rotate(45deg) scale(1.6); }}
           .dt-live  {{ width:11px; height:11px; }}
+          /* Hover-preview card: thumbnail + title + meta. Anchored
+             above or below the dot based on row position so it stays
+             inside .dt-wrap (which has overflow:hidden). pointer-events
+             off so the dot's hover state isn't broken when the cursor
+             moves onto the preview. */
+          .dt-preview {{ display:none; position:absolute;
+                          left:0; transform:translateX(-50%);
+                          width:170px; padding:6px;
+                          background:#1a1c24; border:1px solid #2a2c34;
+                          border-radius:6px;
+                          box-shadow:0 4px 16px rgba(0,0,0,0.6);
+                          pointer-events:none; z-index:300; }}
+          .dt-preview.below {{ top:14px; }}
+          .dt-preview.above {{ bottom:14px; }}
+          .dt-card:hover .dt-preview {{ display:block; }}
+          .dt-preview img {{ width:100%; aspect-ratio:16/9; object-fit:cover;
+                              border-radius:4px; display:block;
+                              background:#000; }}
+          .dt-preview .t {{ display:-webkit-box; -webkit-line-clamp:2;
+                             -webkit-box-orient:vertical; overflow:hidden;
+                             font-size:11px; line-height:1.3; font-weight:600;
+                             color:#fff; margin-top:4px; }}
+          .dt-preview .m {{ font-size:10px; color:#999; margin-top:2px;
+                             white-space:nowrap; overflow:hidden;
+                             text-overflow:ellipsis; }}
         </style>
         <div class="dt-wrap">
           {ticks_html}
