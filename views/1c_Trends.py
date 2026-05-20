@@ -559,6 +559,83 @@ if not ONE_CLUB and not g_league:
         legend=None,
     )
 
+    # ── Per-league summary table (sits above chart 4) ────────────────
+    # 30-day totals per league — same shape as Daily Recap's per-league
+    # block, but aggregated across the trends window rather than one day.
+    from src.channels import LEAGUE_FLAG as _LF
+    from src.analytics import fmt_num as _fmt
+    # Cohort channel counts per league (cheap — small in-memory loop).
+    _ch_count_by_lg: dict[str, int] = {lg: 0 for lg in LEAGUES}
+    for _c in all_channels:
+        if _c.get("entity_type") in ("Club", "League"):
+            _lg = COUNTRY_TO_LEAGUE.get((_c.get("country") or "").strip())
+            if _lg in _ch_count_by_lg:
+                _ch_count_by_lg[_lg] += 1
+    # Pull aggregates from pl_views / pl_video_counts / pl_new (already
+    # populated above from cache or live fallback) plus per-format from
+    # cached payload when available.
+    _lg_format_totals: dict[str, dict[str, int]] = {
+        lg: {"long": 0, "short": 0, "live": 0} for lg in LEAGUES
+    }
+    if USE_CACHE and _cached_payload.get("breakdown", {}).get("group_label") == "league":
+        for grp in _cached_payload["breakdown"]["groups"]:
+            lg = grp["key"]
+            for r in grp["by_date"]:
+                _lg_format_totals[lg]["long"] += int(r.get("new_long") or 0)
+                _lg_format_totals[lg]["short"] += int(r.get("new_short") or 0)
+                _lg_format_totals[lg]["live"] += int(r.get("new_live") or 0)
+    _lg_summary_rows = []
+    for lg in LEAGUES:
+        dv_total = sum(pl_views.get((lg, d), 0) for d in window_dates)
+        active_avg = sum(pl_video_counts.get((lg, d), 0) for d in window_dates)
+        # Δ views / video averaged across the window (use day-by-day means
+        # then average — same as the chart). Guard against 0 days.
+        day_means = [
+            pl_views.get((lg, d), 0) / pl_video_counts.get((lg, d), 1)
+            for d in window_dates
+            if pl_video_counts.get((lg, d), 0) > 0
+        ]
+        per_video_avg = int(sum(day_means) / len(day_means)) if day_means else 0
+        new_total = sum(pl_new.get((lg, d), 0) for d in window_dates)
+        ft = _lg_format_totals[lg]
+        _lg_summary_rows.append({
+            "lg": lg, "dv": dv_total, "new": new_total,
+            "long": ft["long"], "short": ft["short"], "live": ft["live"],
+            "per_video": per_video_avg,
+            "channels": _ch_count_by_lg[lg],
+        })
+    _lg_summary_rows.sort(key=lambda r: -r["dv"])
+
+    st.subheader("📊 Per-league summary (30-day totals)")
+    _lg_html = ""
+    for r in _lg_summary_rows:
+        _dv_col = _T.POS if r["dv"] > 0 else (_T.NEG if r["dv"] < 0 else _T.MUTED)
+        _sign = "+" if r["dv"] >= 0 else ""
+        _lg_html += f"""<tr>
+          <td style="padding:8px 12px;font-weight:600">{_LF.get(r['lg'], '')} {r['lg']}</td>
+          <td style="padding:8px 12px;text-align:right">{r['channels']}</td>
+          <td style="padding:8px 12px;text-align:right;color:{_dv_col}">{_sign}{_fmt(r['dv'])}</td>
+          <td style="padding:8px 12px;text-align:right">{_fmt(r['new'])}</td>
+          <td style="padding:8px 12px;text-align:right">{r['long']} / {r['short']} / {r['live']}</td>
+          <td style="padding:8px 12px;text-align:right">{_fmt(r['per_video'])}</td>
+        </tr>"""
+    st.markdown(f"""
+    <style>
+      .ltbl {{ width:100%; border-collapse:collapse; font-size:14px;
+              color:{_T.TEXT}; font-family:"Source Sans Pro",sans-serif; }}
+      .ltbl th {{ padding:8px 12px; border-bottom:2px solid {_T.BORDER_STRONG}; text-align:left; }}
+      .ltbl td {{ border-bottom:1px solid {_T.BORDER}; vertical-align:middle; }}
+    </style>
+    <table class="ltbl"><thead><tr>
+      <th>League</th>
+      <th style="text-align:right">Channels</th>
+      <th style="text-align:right">Δ Views (30d)</th>
+      <th style="text-align:right">Videos</th>
+      <th style="text-align:right">Long / Shorts / Live</th>
+      <th style="text-align:right">⚡ Δ Views / video (avg)</th>
+    </tr></thead><tbody>{_lg_html}</tbody></table>
+    """, unsafe_allow_html=True)
+
     # Chart 3 — Δ views per day, one line per league
     st.markdown(
         f'<div style="font-size:14px;color:rgba(250,250,250,0.6);'
@@ -765,6 +842,77 @@ elif g_league and not ONE_CLUB:
         legend=None,
     )
 
+    # ── Per-channel summary table (sits above chart 4) ───────────────
+    from src.analytics import fmt_num as _fmt
+    _z2_format_totals: dict[str, dict[str, int]] = {
+        c["id"]: {"long": 0, "short": 0, "live": 0} for c in _z2_chans
+    }
+    if USE_CACHE and _cached_payload.get("breakdown", {}).get("group_label") == "channel":
+        for grp in _cached_payload["breakdown"]["groups"]:
+            cid = grp["key"]
+            if cid in _z2_format_totals:
+                for r in grp["by_date"]:
+                    _z2_format_totals[cid]["long"] += int(r.get("new_long") or 0)
+                    _z2_format_totals[cid]["short"] += int(r.get("new_short") or 0)
+                    _z2_format_totals[cid]["live"] += int(r.get("new_live") or 0)
+
+    _ch_summary_rows = []
+    for c in _z2_chans:
+        cid = c["id"]
+        dv_total = sum(ch_views.get((cid, d), 0) for d in window_dates)
+        new_total = sum(ch_new.get((cid, d), 0) for d in window_dates)
+        day_means = [
+            ch_views.get((cid, d), 0) / ch_video_counts.get((cid, d), 1)
+            for d in window_dates
+            if ch_video_counts.get((cid, d), 0) > 0
+        ]
+        per_video_avg = int(sum(day_means) / len(day_means)) if day_means else 0
+        ft = _z2_format_totals.get(cid, {"long": 0, "short": 0, "live": 0})
+        _ch_summary_rows.append({
+            "name": c.get("name") or "?",
+            "color": c.get("color") or _T.ACCENT,
+            "entity_type": c.get("entity_type") or "",
+            "dv": dv_total, "new": new_total,
+            "long": ft["long"], "short": ft["short"], "live": ft["live"],
+            "per_video": per_video_avg,
+        })
+    _ch_summary_rows.sort(key=lambda r: -r["dv"])
+
+    st.subheader(f"📊 Per-channel summary — {g_league} (30-day totals)")
+    _ch_html = ""
+    for r in _ch_summary_rows:
+        _dv_col = _T.POS if r["dv"] > 0 else (_T.NEG if r["dv"] < 0 else _T.MUTED)
+        _sign = "+" if r["dv"] >= 0 else ""
+        _dot = (
+            f'<span style="display:inline-block;width:10px;height:10px;'
+            f'border-radius:2px;background:{r["color"]};vertical-align:middle"></span>'
+        )
+        _row_label = r["name"]
+        if r["entity_type"] == "League":
+            _row_label = f"<b>{_row_label}</b>"
+        _ch_html += f"""<tr>
+          <td style="padding:8px 12px">{_dot}&nbsp;&nbsp;{_row_label}</td>
+          <td style="padding:8px 12px;text-align:right;color:{_dv_col}">{_sign}{_fmt(r['dv'])}</td>
+          <td style="padding:8px 12px;text-align:right">{_fmt(r['new'])}</td>
+          <td style="padding:8px 12px;text-align:right">{r['long']} / {r['short']} / {r['live']}</td>
+          <td style="padding:8px 12px;text-align:right">{_fmt(r['per_video'])}</td>
+        </tr>"""
+    st.markdown(f"""
+    <style>
+      .ctbl {{ width:100%; border-collapse:collapse; font-size:14px;
+              color:{_T.TEXT}; font-family:"Source Sans Pro",sans-serif; }}
+      .ctbl th {{ padding:8px 12px; border-bottom:2px solid {_T.BORDER_STRONG}; text-align:left; }}
+      .ctbl td {{ border-bottom:1px solid {_T.BORDER}; vertical-align:middle; }}
+    </style>
+    <table class="ctbl"><thead><tr>
+      <th>Channel</th>
+      <th style="text-align:right">Δ Views (30d)</th>
+      <th style="text-align:right">Videos</th>
+      <th style="text-align:right">Long / Shorts / Live</th>
+      <th style="text-align:right">⚡ Δ Views / video (avg)</th>
+    </tr></thead><tbody>{_ch_html}</tbody></table>
+    """, unsafe_allow_html=True)
+
     # Chart 4 — Δ views per day, one line per channel
     st.markdown(
         f'<div style="font-size:14px;color:rgba(250,250,250,0.6);'
@@ -823,6 +971,134 @@ elif g_league and not ONE_CLUB:
         ],
     ).properties(height=_CHART_HEIGHT)
     st.altair_chart(_with_sundays(cz3), width="stretch")
+
+# ── Top 25 videos in the window (all Z levels) ───────────────────
+# Read from the cached payload; falls back to a live aggregation if
+# the cache is cold or the payload doesn't carry top_videos yet (older
+# format).
+_top_videos = (
+    list(_cached_payload.get("top_videos") or [])
+    if USE_CACHE else []
+)
+if not _top_videos:
+    @st.cache_data(ttl=1800, show_spinner=False)
+    def _live_top_videos(cids_tuple: tuple[str, ...],
+                         since: str, until: str, limit: int = 25) -> list[dict]:
+        from collections import defaultdict
+        sums: dict[str, int] = defaultdict(int)
+        PAGE = 1000
+        for cs in range(0, len(cids_tuple), 50):
+            chunk = list(cids_tuple)[cs:cs + 50]
+            offset = 0
+            while True:
+                rs = (db.client.table("video_daily_deltas")
+                      .select("video_id,view_delta")
+                      .in_("channel_id", chunk)
+                      .gte("captured_date", since)
+                      .lt("captured_date", until)
+                      .range(offset, offset + PAGE - 1).execute()).data or []
+                for r in rs:
+                    sums[r["video_id"]] += int(r.get("view_delta") or 0)
+                if len(rs) < PAGE:
+                    break
+                offset += PAGE
+        if not sums:
+            return []
+        top_ids = sorted(sums, key=lambda v: -sums[v])[:limit]
+        out = []
+        for cs in range(0, len(top_ids), 100):
+            chunk = top_ids[cs:cs + 100]
+            rs = (db.client.table("videos")
+                  .select("id,youtube_video_id,title,channel_id,thumbnail_url,"
+                          "duration_seconds,format,published_at,view_count")
+                  .in_("id", chunk).execute()).data or []
+            meta = {r["id"]: r for r in rs}
+            for vid in chunk:
+                m = meta.get(vid)
+                if not m:
+                    continue
+                ch = next((c for c in all_channels if c["id"] == m.get("channel_id")), {})
+                out.append({
+                    "video_id": vid,
+                    "youtube_video_id": m.get("youtube_video_id"),
+                    "title": m.get("title") or "",
+                    "thumbnail_url": m.get("thumbnail_url") or "",
+                    "duration_seconds": int(m.get("duration_seconds") or 0),
+                    "format": m.get("format") or "",
+                    "published_at": m.get("published_at"),
+                    "view_count": int(m.get("view_count") or 0),
+                    "delta_in_window": int(sums[vid]),
+                    "channel_id": m.get("channel_id"),
+                    "channel_name": ch.get("name") or "?",
+                    "channel_color": ch.get("color") or "#888",
+                })
+        out.sort(key=lambda r: -r["delta_in_window"])
+        return out[:limit]
+    _top_videos = _live_top_videos(_cids_tuple,
+                                    start_d.isoformat(),
+                                    end_d.isoformat())
+
+if _top_videos:
+    from src.analytics import fmt_num as _fmt
+    st.markdown("---")
+    _scope_label = (
+        g_club.get("name") if ONE_CLUB else (g_league or "all top-5 leagues")
+    )
+    st.subheader(f"🏆 Top 25 videos by Δ views — {_scope_label} (30d)")
+    _tv_html = ""
+    for i, v in enumerate(_top_videos, 1):
+        _yt = f"https://www.youtube.com/watch?v={v.get('youtube_video_id', '')}"
+        _title_safe = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;")
+        _thumb = v.get("thumbnail_url") or ""
+        _fmt_key = (v.get("format") or "").lower()
+        if _fmt_key not in ("long", "short", "live"):
+            _fmt_key = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
+        _fmt_color = {"long": _T.ACCENT, "short": _T.POS, "live": _T.WARN}.get(_fmt_key, _T.MUTED_2)
+        _fmt_label = {"long": "Long", "short": "Shorts", "live": "Live"}.get(_fmt_key, _fmt_key.title())
+        _pub_raw = v.get("published_at") or ""
+        try:
+            _pub_d = datetime.fromisoformat(_pub_raw.replace("Z", "+00:00")).astimezone(CET).strftime("%b %d")
+        except Exception:
+            _pub_d = "—"
+        _dot = (
+            f'<span style="display:inline-block;width:10px;height:10px;'
+            f'border-radius:2px;background:{v.get("channel_color", "#888")};'
+            f'vertical-align:middle"></span>'
+        )
+        _tv_html += f"""<tr>
+          <td style="padding:6px 10px;color:{_T.MUTED};text-align:right;width:32px">{i}</td>
+          <td style="padding:6px 10px;width:140px">
+            <a href="{_yt}" target="_blank" rel="noopener">
+              <img src="{_thumb}" style="width:130px;height:73px;object-fit:cover;border-radius:4px;display:block">
+            </a>
+          </td>
+          <td style="padding:6px 10px">
+            <a href="{_yt}" target="_blank" rel="noopener"
+               style="color:{_T.TEXT};text-decoration:none;font-weight:500">{_title_safe}</a>
+            <div style="margin-top:4px;font-size:12px;color:{_T.MUTED_2}">
+              {_dot}&nbsp;{v.get("channel_name", "?")}
+              &nbsp;·&nbsp;<span style="color:{_fmt_color}">{_fmt_label}</span>
+              &nbsp;·&nbsp;Published {_pub_d}
+            </div>
+          </td>
+          <td style="padding:6px 10px;text-align:right;font-weight:600;color:{_T.POS}">+{_fmt(v.get("delta_in_window", 0))}</td>
+          <td style="padding:6px 10px;text-align:right;color:{_T.MUTED_2}">{_fmt(v.get("view_count", 0))}</td>
+        </tr>"""
+    st.markdown(f"""
+    <style>
+      .tv25 {{ width:100%; border-collapse:collapse; font-size:14px;
+              color:{_T.TEXT}; font-family:"Source Sans Pro",sans-serif; }}
+      .tv25 th {{ padding:6px 10px; border-bottom:2px solid {_T.BORDER_STRONG}; text-align:left; }}
+      .tv25 td {{ border-bottom:1px solid {_T.BORDER}; vertical-align:middle; }}
+    </style>
+    <table class="tv25"><thead><tr>
+      <th style="width:32px;text-align:right">#</th>
+      <th style="width:140px">&nbsp;</th>
+      <th>Title</th>
+      <th style="text-align:right">Δ Views (30d)</th>
+      <th style="text-align:right">Total views</th>
+    </tr></thead><tbody>{_tv_html}</tbody></table>
+    """, unsafe_allow_html=True)
 
 st.caption(
     f"Window: {start_d.isoformat()} → {(end_d - timedelta(days=1)).isoformat()} "

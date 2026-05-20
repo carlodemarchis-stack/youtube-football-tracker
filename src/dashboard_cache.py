@@ -333,11 +333,16 @@ def _build_group_by_date(deltas: list[dict], pub_videos: list[dict],
                           group_keys: list[str]) -> dict[str, list[dict]]:
     """Generic per-group rollup. row_to_group(row) returns a hashable group
     key (e.g. league name or channel_id), or None to skip. Returns
-    {group_key: by_date_list}."""
+    {group_key: by_date_list}. Each entry includes the per-format split
+    (new_long/short/live) so the per-league / per-channel summary table
+    on the page can render the Long/Shorts/Live column without a second
+    query."""
     date_set = set(dates)
     dv: dict[tuple[str, str], int] = {}
     seen: dict[tuple[str, str], set[str]] = {}
-    new: dict[tuple[str, str], int] = {}
+    new_l: dict[tuple[str, str], int] = {}
+    new_s: dict[tuple[str, str], int] = {}
+    new_v: dict[tuple[str, str], int] = {}
     for r in deltas:
         d = r["captured_date"]
         if d not in date_set:
@@ -355,16 +360,78 @@ def _build_group_by_date(deltas: list[dict], pub_videos: list[dict],
         g = row_to_group(v)
         if g is None:
             continue
-        new[(g, d)] = new.get((g, d), 0) + 1
+        f = _format_of(v)
+        k = (g, d)
+        if f == "long":
+            new_l[k] = new_l.get(k, 0) + 1
+        elif f == "short":
+            new_s[k] = new_s.get(k, 0) + 1
+        else:
+            new_v[k] = new_v.get(k, 0) + 1
     out: dict[str, list[dict]] = {}
     for gk in group_keys:
         out[gk] = [
             {"date": d,
              "dv": dv.get((gk, d), 0),
              "active_videos": len(seen.get((gk, d), set())),
-             "new_videos": new.get((gk, d), 0)}
+             "new_videos": (new_l.get((gk, d), 0) + new_s.get((gk, d), 0)
+                            + new_v.get((gk, d), 0)),
+             "new_long": new_l.get((gk, d), 0),
+             "new_short": new_s.get((gk, d), 0),
+             "new_live": new_v.get((gk, d), 0)}
             for d in dates
         ]
+    return out
+
+
+def _build_top_videos(deltas: list[dict], db, chans: list[dict],
+                       dates: list[str], limit: int = 25) -> list[dict]:
+    """Top-N videos by Δ views accumulated across the window. Aggregates
+    the already-loaded delta scan, then one batch fetch for video metadata
+    + a join with the channels list. Returns plain dicts the page can
+    render directly."""
+    sums: dict[str, int] = {}
+    for r in deltas:
+        vid = r["video_id"]
+        sums[vid] = sums.get(vid, 0) + int(r.get("view_delta") or 0)
+    if not sums:
+        return []
+    top_ids = sorted(sums.keys(), key=lambda v: -sums[v])[:limit]
+    # Fetch metadata in one or two batches.
+    meta_by_id: dict[str, dict] = {}
+    PAGE = 100
+    for cs in range(0, len(top_ids), PAGE):
+        chunk = top_ids[cs:cs + PAGE]
+        rs = (db.client.table("videos")
+              .select("id,youtube_video_id,title,channel_id,thumbnail_url,"
+                      "duration_seconds,format,published_at,view_count")
+              .in_("id", chunk).execute()).data or []
+        for r in rs:
+            meta_by_id[r["id"]] = r
+    ch_by_id = {c["id"]: c for c in chans}
+    out: list[dict] = []
+    for vid in top_ids:
+        m = meta_by_id.get(vid)
+        if not m:
+            continue
+        ch = ch_by_id.get(m.get("channel_id")) or {}
+        out.append({
+            "video_id": vid,
+            "youtube_video_id": m.get("youtube_video_id"),
+            "title": m.get("title") or "",
+            "thumbnail_url": m.get("thumbnail_url") or "",
+            "duration_seconds": int(m.get("duration_seconds") or 0),
+            "format": m.get("format") or "",
+            "published_at": m.get("published_at"),
+            "view_count": int(m.get("view_count") or 0),
+            "delta_in_window": int(sums[vid]),
+            "channel_id": m.get("channel_id"),
+            "channel_name": ch.get("name") or "?",
+            "channel_color": ch.get("color") or "#888",
+            "channel_color2": ch.get("color2") or "#fff",
+            "channel_entity_type": ch.get("entity_type") or "",
+            "channel_country": ch.get("country") or "",
+        })
     return out
 
 
@@ -410,6 +477,7 @@ def compute_trends_30d_all(db, chans: list[dict],
         "dates": dates,
         "cohort": {"by_date": cohort},
         "breakdown": {"group_label": "league", "groups": groups},
+        "top_videos": _build_top_videos(deltas, db, chans, dates, limit=25),
     }
 
 
@@ -459,22 +527,28 @@ def compute_trends_30d_league(db, league: str,
         "dates": dates,
         "cohort": {"by_date": cohort},
         "breakdown": {"group_label": "channel", "groups": groups},
+        "top_videos": _build_top_videos(deltas, db, chans, dates, limit=25),
     }
 
 
-def compute_trends_30d_club(db, channel_id: str) -> dict:
+def compute_trends_30d_club(db, channel_id: str,
+                              chans: list[dict] | None = None) -> dict:
     """Z3 payload — single channel, cohort series only. Breakdown is empty
-    (per-channel-of-one-channel would be redundant with the cohort line)."""
+    (per-channel-of-one-channel would be redundant with the cohort line).
+    Includes a 25-video top list scoped to this channel."""
     today_cet, start_cet, start_iso, end_iso, dates = _trends_30d_window()
     deltas = _scan_deltas(db, [channel_id], dates[0], today_cet.isoformat())
     pubs = _scan_pub_videos(db, [channel_id], start_iso, end_iso)
     cohort = _build_cohort_by_date(deltas, pubs, dates)
+    if chans is None:
+        chans = db.get_all_channels()
     return {
         "as_of": today_cet.isoformat(),
         "window_start": dates[0], "window_end": dates[-1],
         "dates": dates,
         "cohort": {"by_date": cohort},
         "breakdown": {"group_label": "channel", "groups": []},
+        "top_videos": _build_top_videos(deltas, db, chans, dates, limit=25),
     }
 
 
@@ -521,7 +595,7 @@ def refresh_trends_30d(db, log=print, channels: list[dict] | None = None,
             log(f"[dashboard_cache] trends_30d / club:{c['id']} "
                 f"({c.get('name')}) — {i}/{len(cohort)}")
             try:
-                payload = compute_trends_30d_club(db, c["id"])
+                payload = compute_trends_30d_club(db, c["id"], chans=chans)
                 write(db, "trends_30d", scope_club(c["id"]), payload)
             except Exception as e:
                 log(f"  failed (non-fatal): {e}")
