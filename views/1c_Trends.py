@@ -105,19 +105,20 @@ window_dates = [
 # ── Δ views per day (from video_daily_deltas, summed over cohort) ──
 @st.cache_data(ttl=1800, show_spinner=False)
 def _load_view_deltas(channel_ids_tuple: tuple[str, ...],
-                      since: str, until: str) -> dict[str, int]:
-    """Return {captured_date: Σ view_delta} for videos whose channel_id is
-    in the cohort. Paginated to bypass Supabase's 1000-row default."""
+                      since: str, until: str) -> tuple[dict[str, int], dict[str, int]]:
+    """Return (date → Σ view_delta, date → # distinct videos contributing).
+    Paginated to bypass Supabase's 1000-row default. The distinct-video
+    counter powers the cohort views/video chart."""
     sums: dict[str, int] = {}
+    seen: dict[str, set[str]] = {}
     PAGE = 1000
     cid_list = list(channel_ids_tuple)
-    # Chunk channel_ids so the in_() filter stays under URL-length limits.
     for cs in range(0, len(cid_list), 50):
         chunk = cid_list[cs:cs + 50]
         offset = 0
         while True:
             rs = (db.client.table("video_daily_deltas")
-                  .select("captured_date,view_delta")
+                  .select("video_id,captured_date,view_delta")
                   .in_("channel_id", chunk)
                   .gte("captured_date", since)
                   .lt("captured_date", until)
@@ -127,10 +128,12 @@ def _load_view_deltas(channel_ids_tuple: tuple[str, ...],
             for r in rs:
                 d = r["captured_date"]
                 sums[d] = sums.get(d, 0) + int(r.get("view_delta") or 0)
+                seen.setdefault(d, set()).add(r["video_id"])
             if len(rs) < PAGE:
                 break
             offset += PAGE
-    return sums
+    counts = {d: len(v) for d, v in seen.items()}
+    return sums, counts
 
 
 # ── New uploads per day by format (from videos.published_at) ──
@@ -177,9 +180,9 @@ def _load_format_counts(channel_ids_tuple: tuple[str, ...],
 _cids_tuple = tuple(sorted(ch_ids))
 
 # Pull both series for the window.
-view_deltas_by_date = _load_view_deltas(_cids_tuple,
-                                        since=start_d.isoformat(),
-                                        until=end_d.isoformat())
+view_deltas_by_date, video_counts_by_date = _load_view_deltas(
+    _cids_tuple, since=start_d.isoformat(), until=end_d.isoformat()
+)
 
 # Format-count window is CET-bucketed but the query filter is UTC-iso,
 # so widen the UTC window by a day on each side to catch CET-bucketed
@@ -319,6 +322,40 @@ if fmt_rows and total_new > 0:
     st.altair_chart(_with_sundays(c2), width="stretch")
 else:
     st.caption("No new videos in this window.")
+
+# ── Chart 3 — Δ views per active video per day (cohort total) ────
+# Cohort-level engagement efficiency: total view-delta ÷ # distinct
+# videos that received an update on that day. Levels the daily reading
+# regardless of how many videos happen to be in the rolling window.
+per_video_rows = []
+for d in window_dates:
+    dv = view_deltas_by_date.get(d, 0)
+    cnt = video_counts_by_date.get(d, 0)
+    per_video_rows.append({
+        "Date": d,
+        "Δ Views / video": int(dv / cnt) if cnt else 0,
+        "Active videos": cnt,
+    })
+per_video_df = pd.DataFrame(per_video_rows)
+
+st.caption("⚡ Δ Views per active video per day (cohort)")
+_pv_vals = [r["Δ Views / video"] for r in per_video_rows]
+if _pv_vals and max(_pv_vals) > 0:
+    c3 = alt.Chart(per_video_df).mark_line(
+        color=_T.ACCENT, strokeWidth=2, point=True
+    ).encode(
+        x=alt.X("Date:T", axis=_X_AXIS),
+        y=alt.Y("Δ Views / video:Q", title=None,
+                axis=alt.Axis(format="~s", minExtent=_Y_AXIS_GUTTER)),
+        tooltip=[
+            alt.Tooltip("Date:T", title="Date", format="%a %b %d, %Y"),
+            alt.Tooltip("Δ Views / video:Q", format=","),
+            alt.Tooltip("Active videos:Q", format=","),
+        ],
+    ).properties(height=_CHART_HEIGHT)
+    st.altair_chart(_with_sundays(c3), width="stretch")
+else:
+    st.caption("No tracked-video deltas in this window.")
 
 # ── Second row — per-league breakdown ─────────────────────────────
 # Only meaningful in Z1 (cross-league) scope; in Z2 it collapses to a
@@ -536,6 +573,194 @@ if not ONE_CLUB and not g_league:
         ],
     ).properties(height=_CHART_HEIGHT)
     st.altair_chart(_with_sundays(cpl3), width="stretch")
+
+# ── Z2 — per-channel breakdown within the picked league ──────────
+# Mirrors the Z1 per-league trio (charts 4/5/6) but one line per
+# channel in the league. League HQ is sorted first; clubs follow
+# alphabetically. Each line uses the channel's own brand colour
+# (`channels.color`) — falls back to ACCENT if a channel has none.
+elif g_league and not ONE_CLUB:
+    # Cohort channels in display order: League HQ first, then clubs A→Z.
+    _z2_chans = [c for c in all_channels if c["id"] in set(ch_ids)]
+    _z2_chans.sort(key=lambda c: (
+        0 if c.get("entity_type") == "League" else 1,
+        (c.get("name") or "").lower(),
+    ))
+    z2_cid_to_name = {c["id"]: c.get("name") or "?" for c in _z2_chans}
+    z2_cid_to_color = {
+        c["id"]: (c.get("color") or _T.ACCENT) for c in _z2_chans
+    }
+    z2_names_ordered = [c.get("name") or "?" for c in _z2_chans]
+
+    @st.cache_data(ttl=1800, show_spinner=False)
+    def _load_per_channel_view_deltas(
+        cids: tuple[str, ...], since: str, until: str,
+    ) -> tuple[dict[tuple[str, str], int], dict[tuple[str, str], int]]:
+        """((channel_id, date) → Σ view_delta, (channel_id, date) → distinct
+        video count). Same pattern as the per-league helper."""
+        sums: dict[tuple[str, str], int] = {}
+        seen: dict[tuple[str, str], set[str]] = {}
+        PAGE = 1000
+        cids = list(cids)
+        for cs in range(0, len(cids), 50):
+            chunk = cids[cs:cs + 50]
+            offset = 0
+            while True:
+                rs = (db.client.table("video_daily_deltas")
+                      .select("video_id,channel_id,captured_date,view_delta")
+                      .in_("channel_id", chunk)
+                      .gte("captured_date", since)
+                      .lt("captured_date", until)
+                      .order("captured_date")
+                      .range(offset, offset + PAGE - 1)
+                      .execute()).data or []
+                for r in rs:
+                    key = (r["channel_id"], r["captured_date"])
+                    sums[key] = sums.get(key, 0) + int(r.get("view_delta") or 0)
+                    seen.setdefault(key, set()).add(r["video_id"])
+                if len(rs) < PAGE:
+                    break
+                offset += PAGE
+        counts = {k: len(v) for k, v in seen.items()}
+        return sums, counts
+
+    @st.cache_data(ttl=1800, show_spinner=False)
+    def _load_per_channel_new_videos(
+        cids: tuple[str, ...], start_iso: str, end_iso: str,
+    ) -> dict[tuple[str, str], int]:
+        out: dict[tuple[str, str], int] = {}
+        PAGE = 1000
+        cids = list(cids)
+        for cs in range(0, len(cids), 50):
+            chunk = cids[cs:cs + 50]
+            offset = 0
+            while True:
+                rs = (db.client.table("videos")
+                      .select("channel_id,published_at")
+                      .in_("channel_id", chunk)
+                      .gte("published_at", start_iso)
+                      .lt("published_at", end_iso)
+                      .order("published_at")
+                      .range(offset, offset + PAGE - 1)
+                      .execute()).data or []
+                for v in rs:
+                    pub = v.get("published_at") or ""
+                    try:
+                        dt_cet = datetime.fromisoformat(
+                            pub.replace("Z", "+00:00")
+                        ).astimezone(CET)
+                    except Exception:
+                        continue
+                    key = (v["channel_id"], dt_cet.date().isoformat())
+                    out[key] = out.get(key, 0) + 1
+                if len(rs) < PAGE:
+                    break
+                offset += PAGE
+        return out
+
+    _z2_cids_tuple = tuple(sorted(z2_cid_to_name.keys()))
+    ch_views, ch_video_counts = _load_per_channel_view_deltas(
+        _z2_cids_tuple, since=start_d.isoformat(), until=end_d.isoformat()
+    )
+    ch_new = _load_per_channel_new_videos(
+        _z2_cids_tuple, start_iso=_fmt_start_utc, end_iso=_fmt_end_utc
+    )
+
+    ch_views_rows, ch_new_rows, ch_per_video_rows = [], [], []
+    for cid in _z2_cids_tuple:
+        name = z2_cid_to_name[cid]
+        for d in window_dates:
+            dv = ch_views.get((cid, d), 0)
+            cnt = ch_video_counts.get((cid, d), 0)
+            ch_views_rows.append({"Date": d, "Channel": name, "Δ Views": dv})
+            ch_new_rows.append({"Date": d, "Channel": name,
+                                "New Videos": ch_new.get((cid, d), 0)})
+            ch_per_video_rows.append({
+                "Date": d, "Channel": name,
+                "Δ Views / video": int(dv / cnt) if cnt else 0,
+                "Active videos": cnt,
+            })
+
+    ch_views_df = pd.DataFrame(ch_views_rows)
+    ch_new_df = pd.DataFrame(ch_new_rows)
+    ch_per_video_df = pd.DataFrame(ch_per_video_rows)
+
+    # Inline legend — chips wrap naturally on narrow viewports.
+    _channel_legend_html = "  ".join(
+        f'<span style="display:inline-flex;align-items:center;gap:4px;margin-right:4px">'
+        f'<span style="display:inline-block;width:10px;height:10px;'
+        f'border-radius:2px;background:{z2_cid_to_color[c["id"]]}"></span>'
+        f'<span style="font-size:0.8rem;color:{_T.MUTED_2}">{c.get("name")}</span></span>'
+        for c in _z2_chans
+    )
+    _channel_color = alt.Color(
+        "Channel:N",
+        sort=z2_names_ordered,
+        scale=alt.Scale(
+            domain=z2_names_ordered,
+            range=[z2_cid_to_color[c["id"]] for c in _z2_chans],
+        ),
+        legend=None,
+    )
+
+    # Chart 4 — Δ views per day, one line per channel
+    st.markdown(
+        f'<div style="font-size:14px;color:rgba(250,250,250,0.6);'
+        f'line-height:1.6">👁️ Δ Video views per day — by channel &nbsp;&nbsp; '
+        f'{_channel_legend_html}</div>',
+        unsafe_allow_html=True,
+    )
+    cz1 = alt.Chart(ch_views_df).mark_line(strokeWidth=1.5, point=False).encode(
+        x=alt.X("Date:T", axis=_X_AXIS),
+        y=alt.Y("Δ Views:Q", title=None,
+                axis=alt.Axis(format="~s", minExtent=_Y_AXIS_GUTTER)),
+        color=_channel_color,
+        tooltip=[
+            alt.Tooltip("Date:T", title="Date", format="%a %b %d, %Y"),
+            "Channel", alt.Tooltip("Δ Views:Q", format=","),
+        ],
+    ).properties(height=_CHART_HEIGHT)
+    st.altair_chart(_with_sundays(cz1), width="stretch")
+
+    # Chart 5 — New videos per day, one line per channel
+    st.markdown(
+        f'<div style="font-size:14px;color:rgba(250,250,250,0.6);'
+        f'line-height:1.6">🎬 New videos per day — by channel &nbsp;&nbsp; '
+        f'{_channel_legend_html}</div>',
+        unsafe_allow_html=True,
+    )
+    cz2 = alt.Chart(ch_new_df).mark_line(strokeWidth=1.5, point=False).encode(
+        x=alt.X("Date:T", axis=_X_AXIS),
+        y=alt.Y("New Videos:Q", title=None,
+                axis=alt.Axis(minExtent=_Y_AXIS_GUTTER)),
+        color=_channel_color,
+        tooltip=[
+            alt.Tooltip("Date:T", title="Date", format="%a %b %d, %Y"),
+            "Channel", alt.Tooltip("New Videos:Q", format=","),
+        ],
+    ).properties(height=_CHART_HEIGHT)
+    st.altair_chart(_with_sundays(cz2), width="stretch")
+
+    # Chart 6 — Δ views per active video per day, one line per channel
+    st.markdown(
+        f'<div style="font-size:14px;color:rgba(250,250,250,0.6);'
+        f'line-height:1.6">⚡ Δ Views per active video per day — by channel'
+        f' &nbsp;&nbsp; {_channel_legend_html}</div>',
+        unsafe_allow_html=True,
+    )
+    cz3 = alt.Chart(ch_per_video_df).mark_line(strokeWidth=1.5, point=False).encode(
+        x=alt.X("Date:T", axis=_X_AXIS),
+        y=alt.Y("Δ Views / video:Q", title=None,
+                axis=alt.Axis(format="~s", minExtent=_Y_AXIS_GUTTER)),
+        color=_channel_color,
+        tooltip=[
+            alt.Tooltip("Date:T", title="Date", format="%a %b %d, %Y"),
+            "Channel",
+            alt.Tooltip("Δ Views / video:Q", format=","),
+            alt.Tooltip("Active videos:Q", format=","),
+        ],
+    ).properties(height=_CHART_HEIGHT)
+    st.altair_chart(_with_sundays(cz3), width="stretch")
 
 st.caption(
     f"Window: {start_d.isoformat()} → {(end_d - timedelta(days=1)).isoformat()} "
