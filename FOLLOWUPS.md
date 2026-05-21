@@ -5,19 +5,6 @@ after.
 
 ## AI notes
 
-- **Hyperlink channel / league mentions** inside every AI note.
-  `src/ai_note.py:decorate_with_badges()` already injects flags / dots
-  in front of recognized names. Extend it (or pair it) to wrap each
-  matched name in an `<a href>` pointing at:
-  - Channels → the global-filter URL for that club's view
-    (e.g. `/daily-recap?club=<channel_id>`)
-  - Leagues → the league-scoped URL
-    (e.g. `/season?league=<league>`)
-  - Pages where the link doesn't make sense (Home tutorial) keep
-    plain text.
-  Same regex pass that does badges should be reused so we don't
-  re-walk the text twice.
-
 - **Verify AI note numerical accuracy.** Add a sanity-check layer
   that re-validates the figures the model cites against the payload
   before persisting the note. Today's anti-BS guard only catches
