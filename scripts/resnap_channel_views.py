@@ -166,13 +166,18 @@ def _run_check_only(db, top5: list[dict], target_date: str) -> int:
     print(f"  missing_prev {missing_prev:>4}  (no row on {prev_date})")
     print(f"  Σ Δ views    {total_dv:>14,}")
     print(f"  frozen %     {pct_frozen:.1f}% of compared cohort")
-    if pct_frozen >= 50:
+    # Threshold tuned from a 35-day historical audit (Apr 16 → May 20):
+    # three events at 10.9% / 6.9% / 25.7%. 15% catches mid-sized
+    # events without firing on routine YouTube counter-batching noise.
+    _FROZEN_THRESHOLD_PCT = 15
+    if pct_frozen >= _FROZEN_THRESHOLD_PCT:
         print(f"\n⚠️ {pct_frozen:.0f}% frozen — last cron likely caught a "
               "stale YouTube aggregate. Run `python "
               "scripts/resnap_channel_views.py` (no flag) to re-pull live "
               "values and recover; or wait 2-3 hours and re-check.")
     else:
-        print(f"\n✓ Healthy — {pct_frozen:.1f}% frozen (threshold 50%).")
+        print(f"\n✓ Healthy — {pct_frozen:.1f}% frozen (threshold "
+              f"{_FROZEN_THRESHOLD_PCT}%).")
     return 0
 
 
@@ -285,8 +290,11 @@ def main() -> int:
     print(f"  errors       {errors:>4}")
     if total_gain:
         print(f"  Σ recovered  {total_gain:>14,}  views")
+    # Threshold tuned from a 35-day historical audit — see comment in
+    # scripts/daily_refresh.py.
+    _FROZEN_THRESHOLD_PCT = 15
     pct_frozen = (unchanged / len(top5) * 100) if top5 else 0
-    if pct_frozen >= 50:
+    if pct_frozen >= _FROZEN_THRESHOLD_PCT:
         print(f"  ⚠️ {pct_frozen:.0f}% of cohort STILL frozen — YouTube's "
               "batch hasn't caught up; consider re-running in 2-3 hours.")
     if args.dry_run:

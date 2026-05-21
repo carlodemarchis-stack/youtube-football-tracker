@@ -346,7 +346,11 @@ def main() -> int:
     # with yesterday's value across every channel. When that happens
     # the Δ Channel Views chart on the dashboard flat-lines for the
     # day. Surface it loudly so we don't have to diagnose by hand.
-    frozen_threshold_pct = 50
+    # 15% picked after a historical audit (Apr 16 → May 20, 35 days):
+    # three frozen-cohort events at 10.9% / 6.9% / 25.7%. 15% catches
+    # the mid-sized events (which are silent at 50%) without firing on
+    # routine 5-7% YouTube counter-batching noise.
+    frozen_threshold_pct = 15
     if ok > 0 and prev_views:
         frozen_pct = round(frozen_views / ok * 100, 1)
         if frozen_pct >= frozen_threshold_pct:
