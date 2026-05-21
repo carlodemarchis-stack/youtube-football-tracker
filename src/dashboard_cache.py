@@ -802,6 +802,13 @@ def refresh_trends_30d_vibe(db, log=print) -> None:
     try:
         from src import ai_note as _an2
         from src.channels import COUNTRY_TO_LEAGUE
+        _chans_for_decor = db.get_all_channels()
+
+        def _html(_note: str) -> str:
+            # Badge + YouTube-link decoration on each recognized name,
+            # then <br>-ify line breaks for HTML rendering.
+            return _an2.decorate_with_badges(_note, _chans_for_decor) \
+                       .replace("\n", "<br>")
 
         # Z1 — All Leagues
         z1 = read(db, "trends_30d", scope_all())
@@ -811,7 +818,7 @@ def refresh_trends_30d_vibe(db, log=print) -> None:
             note = _an2.generate_trends_30d_vibe(z1_payload, log=log)
             if note:
                 write(db, "trends_30d_vibe", scope_all(),
-                      {"text": note, "html": note.replace("\n", "<br>")})
+                      {"text": note, "html": _html(note)})
                 log(f"[dashboard_cache] trends_30d_vibe/all WRITTEN "
                     f"({len(note)} chars)")
             else:
@@ -832,7 +839,7 @@ def refresh_trends_30d_vibe(db, log=print) -> None:
             note = _an2.generate_trends_30d_vibe(row_payload, league=lg, log=log)
             if note:
                 write(db, "trends_30d_vibe", scope_league(lg),
-                      {"text": note, "html": note.replace("\n", "<br>")})
+                      {"text": note, "html": _html(note)})
                 log(f"[dashboard_cache] trends_30d_vibe/league:{lg} "
                     f"WRITTEN ({len(note)} chars)")
             else:
@@ -1564,8 +1571,10 @@ def refresh_latest_vibe(db, log=print, channels: list[dict] | None = None) -> No
             vibe = _an2.generate_latest_vibe(recent, channels_by_id=chans_by_id,
                                              log=log, league=league)
             if vibe:
+                # Badge + YouTube-link decoration on each recognized name.
+                _html = _an2.decorate_with_badges(vibe, chans).replace("\n", "<br>")
                 write(db, "latest_vibe", scope_key,
-                      {"text": vibe, "html": vibe.replace("\n", "<br>"),
+                      {"text": vibe, "html": _html,
                        "n_videos": len(recent)})
                 log(f"[dashboard_cache] latest_vibe/{label} WRITTEN "
                     f"({len(vibe)} chars)")
@@ -1612,8 +1621,10 @@ def refresh_season_vibe(db, log=print, channels: list[dict] | None = None) -> No
             vibe = _an2.generate_season_vibe(subset, season_start=season_start,
                                              log=log, league=league)
             if vibe:
+                # Badge + YouTube-link decoration on each recognized name.
+                _html = _an2.decorate_with_badges(vibe, chans).replace("\n", "<br>")
                 write(db, "season_vibe", scope_key,
-                      {"text": vibe, "html": vibe.replace("\n", "<br>"),
+                      {"text": vibe, "html": _html,
                        "season_start": season_start})
                 log(f"[dashboard_cache] season_vibe/{label} WRITTEN "
                     f"({len(vibe)} chars)")
@@ -1663,8 +1674,10 @@ def refresh_season_top_vibe(db, log=print, channels: list[dict] | None = None) -
             vibe = _an2.generate_season_top_vibe(
                 top_views, channels_by_id=chans_by_id, log=log, league=league)
             if vibe:
+                # Badge + YouTube-link decoration on each recognized name.
+                _html = _an2.decorate_with_badges(vibe, chans).replace("\n", "<br>")
                 write(db, "season_top_vibe", scope_key,
-                      {"text": vibe, "html": vibe.replace("\n", "<br>"),
+                      {"text": vibe, "html": _html,
                        "n_videos": len(top_views)})
                 log(f"[dashboard_cache] season_top_vibe/{label} WRITTEN "
                     f"({len(vibe)} chars)")
