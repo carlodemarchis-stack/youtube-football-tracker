@@ -452,6 +452,13 @@ st.markdown(
     tracked channels. Sortable by views, likes, comments, duration, and
     age. Includes a 24h timeline strip and a live-now banner at the top.
 
+    **30-Day Trends** — the past 30 days of cohort momentum: Δ channel
+    views per day, new videos per day by format, and an archive-share
+    metric showing how much of the growth came from videos older than
+    30 days post-publish. At Z1 you see per-league breakdowns; at Z2,
+    per-channel within a league. Top-25 videos by window-Δ at the bottom
+    of the page. AI-written "30-day shape" note at the top.
+
     **Season ({_season_label})** — current-season rhythm and cadence:
     videos-per-day, publishing heatmap, monthly output by format
     (long / Shorts / Live), view concentration per league or club,
@@ -608,4 +615,27 @@ st.caption(
     "All-Time Top, Latest Videos, Season Top, or Compare. Treat them as separate lenses.\n\n"
     "**Work in progress.** This is a research project. Expect it to evolve constantly — "
     "new metrics, new leagues, new views, occasional bugs, and the odd late-night experiment."
+)
+
+# YouTube API latency — bright-white boxed callout under the fine print.
+# Same visual treatment as the season-scope disclaimer on the Season page.
+# Flagged loudly because users keep asking why a chart bar reads "0" on a
+# given day — it's almost always YouTube's lazy lifetime-aggregate update,
+# not our pipeline. We retro-fit the data once their API catches up.
+st.markdown(
+    '<div style="background:#1a1c24;border:1px solid #2a2c34;'
+    'border-left:3px solid #FAFAFA;border-radius:4px;'
+    'padding:10px 14px;margin:12px 0 0 0;'
+    'font-size:14px;line-height:1.5;color:#FAFAFA">'
+    '⏱️ <b>YouTube API latency.</b> The public view-count aggregate on '
+    'each channel updates on Google\'s schedule — sometimes a few hours, '
+    'occasionally 24–36 hours after the views actually happened. If you '
+    'see a day reading <b>~0 Δ views</b> while uploads kept flowing, that\'s '
+    'almost always YouTube\'s counter sitting frozen rather than a real '
+    'collapse in engagement. Our pipeline writes whatever Google returns '
+    'at fetch time, then retrofits the missed growth as soon as their API '
+    'reflects it. The lifetime totals are always correct; the daily '
+    'attribution can shift by a day or two.'
+    '</div>',
+    unsafe_allow_html=True,
 )
