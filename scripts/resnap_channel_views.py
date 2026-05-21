@@ -97,6 +97,13 @@ def _parse_args() -> argparse.Namespace:
                         "frozen?). Zero YouTube API calls, zero writes.")
     p.add_argument("--skip-cache", action="store_true",
                    help="Skip the trends_30d hot-tier cache refresh.")
+    p.add_argument("--all", action="store_true",
+                   help="Re-fetch all cohort channels regardless of "
+                        "current Δ-status. Default is to fetch only the "
+                        "channels whose target_date row equals their "
+                        "target_date-1 row (the actually-frozen ones), "
+                        "saving ~75%% of YouTube quota when only a "
+                        "fraction of the cohort is stale.")
     return p.parse_args()
 
 
@@ -226,19 +233,67 @@ def main() -> int:
               "(or pass --check-only to skip API entirely)")
         return 2
 
-    print(f"Target date: {target_date}  (dry-run={args.dry_run})")
+    print(f"Target date: {target_date}  (dry-run={args.dry_run}, "
+          f"mode={'all' if args.all else 'frozen-only'})")
     yt = YouTubeClient(yt_key)
     print(f"Cohort: {len(top5)} channels (Clubs + League HQs)")
 
     # Pre-fetch existing rows for target_date in ONE query — saves 101
     # round-trips and lets us print Δ per channel.
+    cohort_ids = [c["id"] for c in top5]
     existing = (db.client.table("channel_snapshots")
                 .select("channel_id,total_views,captured_at")
                 .eq("captured_date", target_date)
-                .in_("channel_id", [c["id"] for c in top5])
+                .in_("channel_id", cohort_ids)
                 .execute().data or [])
     prev = {r["channel_id"]: int(r.get("total_views") or 0) for r in existing}
     print(f"Existing rows for {target_date}: {len(prev)}/{len(top5)}")
+
+    # Frozen-detection: identify which channels' target_date row equals
+    # their target_date-1 row. Those are the ones the last cron caught
+    # in YouTube's stale-aggregate window. Default mode targets ONLY
+    # these; --all forces a full-cohort refetch.
+    yesterday = (date.fromisoformat(target_date) - timedelta(days=1)).isoformat()
+    yest_rows = (db.client.table("channel_snapshots")
+                 .select("channel_id,total_views")
+                 .eq("captured_date", yesterday)
+                 .in_("channel_id", cohort_ids)
+                 .execute().data or [])
+    yest_views = {r["channel_id"]: int(r.get("total_views") or 0)
+                  for r in yest_rows}
+
+    frozen_ids: set[str] = set()
+    advanced_n = receded_n = missing_prev_n = 0
+    for cid, cur_tv in prev.items():
+        prev_tv = yest_views.get(cid)
+        if prev_tv is None:
+            missing_prev_n += 1
+            continue
+        diff = cur_tv - prev_tv
+        if diff == 0:
+            frozen_ids.add(cid)
+        elif diff > 0:
+            advanced_n += 1
+        else:
+            receded_n += 1
+    print(f"Frozen detection ({yesterday} → {target_date}): "
+          f"frozen={len(frozen_ids)}  advanced={advanced_n}  "
+          f"receded={receded_n}  missing_prev={missing_prev_n}")
+
+    # Select the channel subset we'll actually call YouTube for.
+    if args.all:
+        target_chans = top5
+        print(f"Mode=all → fetching all {len(target_chans)} channels")
+    else:
+        target_chans = [c for c in top5 if c["id"] in frozen_ids]
+        if not target_chans:
+            print(f"No frozen channels detected — nothing to do. "
+                  f"Pass --all to force a full refetch.")
+            return 0
+        skipped = len(top5) - len(target_chans)
+        print(f"Mode=frozen-only → fetching {len(target_chans)} frozen "
+              f"channels (skipping {skipped} already-healthy; pass "
+              f"--all to force all)")
 
     # The diagnostic gold — count what changes.
     started = time.time()
@@ -247,12 +302,12 @@ def main() -> int:
     new_row = 0
     errors = 0
     total_gain = 0   # Σ of positive deltas (the "recovered" Δ views)
-    for i, c in enumerate(top5, 1):
+    for i, c in enumerate(target_chans, 1):
         try:
             stats = yt.get_channel_stats(c["youtube_channel_id"])
             if not stats:
                 errors += 1
-                print(f"  [{i:>3}/{len(top5)}]  {c['name']:<32}  ERROR empty stats")
+                print(f"  [{i:>3}/{len(target_chans)}]  {c['name']:<32}  ERROR empty stats")
                 continue
             new_tv = int(stats.get("total_views", 0) or 0)
             cur_tv = prev.get(c["id"])
@@ -262,7 +317,7 @@ def main() -> int:
                     db.snapshot_channel(c["id"], stats,
                                         captured_date=target_date)
                 new_row += 1
-                print(f"  [{i:>3}/{len(top5)}]  {c['name']:<32}  NEW  "
+                print(f"  [{i:>3}/{len(target_chans)}]  {c['name']:<32}  NEW  "
                       f"{new_tv:>14,}")
             elif new_tv != cur_tv:
                 delta = new_tv - cur_tv
@@ -272,14 +327,14 @@ def main() -> int:
                     db.snapshot_channel(c["id"], stats,
                                         captured_date=target_date)
                 updated += 1
-                print(f"  [{i:>3}/{len(top5)}]  {c['name']:<32}  "
+                print(f"  [{i:>3}/{len(target_chans)}]  {c['name']:<32}  "
                       f"{cur_tv:>14,} → {new_tv:>14,}  Δ={delta:+,}")
             else:
                 unchanged += 1
                 # Quiet on still-frozen channels — keeps the log readable.
         except Exception as e:
             errors += 1
-            print(f"  [{i:>3}/{len(top5)}]  {c['name']:<32}  ERROR {e}")
+            print(f"  [{i:>3}/{len(target_chans)}]  {c['name']:<32}  ERROR {e}")
 
     elapsed = time.time() - started
     print()
@@ -291,12 +346,18 @@ def main() -> int:
     if total_gain:
         print(f"  Σ recovered  {total_gain:>14,}  views")
     # Threshold tuned from a 35-day historical audit — see comment in
-    # scripts/daily_refresh.py.
+    # scripts/daily_refresh.py. Denominator is the SUBSET we actually
+    # queried (frozen-only by default; full cohort with --all). The
+    # warning here is "how much of what I just asked is still frozen
+    # on YouTube's side" — not "how much of the cohort overall".
     _FROZEN_THRESHOLD_PCT = 15
-    pct_frozen = (unchanged / len(top5) * 100) if top5 else 0
+    denom = len(target_chans)
+    pct_frozen = (unchanged / denom * 100) if denom else 0
     if pct_frozen >= _FROZEN_THRESHOLD_PCT:
-        print(f"  ⚠️ {pct_frozen:.0f}% of cohort STILL frozen — YouTube's "
-              "batch hasn't caught up; consider re-running in 2-3 hours.")
+        scope_label = ("queried subset" if not args.all else "cohort")
+        print(f"  ⚠️ {pct_frozen:.0f}% of {scope_label} STILL frozen — "
+              "YouTube's batch hasn't caught up; consider re-running "
+              "in 2-3 hours.")
     if args.dry_run:
         print("\n(dry-run: no writes performed)")
         return 0
