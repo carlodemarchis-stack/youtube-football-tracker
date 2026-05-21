@@ -421,6 +421,15 @@ def decorate_with_badges(note_text: str, channels: list[dict],
     # League names always win over channel names. The Bundesliga channel
     # (entity_type='League') has the same name as the league itself; we
     # want the German flag rendered, not the channel's own brand color.
+    # We keep the league HQ channel record on the side so the link
+    # target for a league mention can still point at YouTube.
+    from src.channels import COUNTRY_TO_LEAGUE as _C2L
+    _league_hq_by_canonical: dict[str, dict] = {}
+    for c in channels:
+        if c.get("entity_type") == "League":
+            lg = _C2L.get((c.get("country") or "").strip()) or c.get("name")
+            if lg:
+                _league_hq_by_canonical[lg] = c
     for lg in leagues:
         targets.pop(lg, None)
 
@@ -450,14 +459,22 @@ def decorate_with_badges(note_text: str, channels: list[dict],
         # league channels get a country flag in a fixed-size box, clubs get
         # the standard concentric dual_dot. Identical visual treatment makes
         # the inline AI note match the dots in every table on the site.
+        def _yt_url(ch: dict) -> str | None:
+            """YouTube channel URL — prefers @handle, falls back to /channel/<id>.
+            Returns None if neither is available so the rendered name stays
+            unlinked rather than producing a broken <a>."""
+            handle = (ch.get("handle") or "").lstrip("@").strip()
+            yt_id = (ch.get("youtube_channel_id") or "").strip()
+            if handle:
+                return f"https://www.youtube.com/@{handle}"
+            if yt_id:
+                return f"https://www.youtube.com/channel/{yt_id}"
+            return None
+
         if kind == "club":
             ch = payload
             badge = channel_badge(ch, color_map, dual_map, 14)
-            # Deep-link target — opens Daily Recap with the global filter
-            # pre-set to this club. New tab + noopener so the reader keeps
-            # the original page open.
-            from urllib.parse import quote as _q
-            link_url = f"/daily-recap?club={_q(ch.get('name') or '')}"
+            link_url = _yt_url(ch)
         else:
             # Synthetic League channel record so channel_badge returns the
             # flag in the same standard box wrapper as table cells.
@@ -469,22 +486,26 @@ def decorate_with_badges(note_text: str, channels: list[dict],
                 {"entity_type": "League", "country": country_for_league},
                 color_map, dual_map, 14,
             )
-            from urllib.parse import quote as _q
-            link_url = f"/daily-recap?league={_q(name)}"
+            league_hq = _league_hq_by_canonical.get(name)
+            link_url = _yt_url(league_hq) if league_hq else None
 
         def _build_repl(m, _url=link_url, _badge=badge):
             displayed = m.group(0)  # includes any possessive suffix
             # Inline span: small gap between badge and name, no flex wrapper
             # (flex changes baseline alignment inside italic body text).
-            # The whole span (badge + name) is wrapped in an <a> so the
-            # click target is generous; color:inherit so it doesn't read as
-            # a blue external link inside body prose.
+            inner = (
+                f'<span style="white-space:nowrap">'
+                f'{_badge}&nbsp;<span style="vertical-align:middle">{displayed}</span>'
+                f'</span>'
+            )
+            if not _url:
+                return inner   # no link target — render the badged name plain
+            # color:inherit so the link doesn't read as a blue external
+            # link inside body prose; the badge stays the visual cue.
             return (
                 f'<a href="{_url}" target="_blank" rel="noopener" '
                 f'style="color:inherit;text-decoration:none">'
-                f'<span style="white-space:nowrap">'
-                f'{_badge}&nbsp;<span style="vertical-align:middle">{displayed}</span>'
-                f'</span></a>'
+                f'{inner}</a>'
             )
         # Replace each match with a placeholder; the real HTML for each
         # placeholder is stored separately so a later regex never sees
