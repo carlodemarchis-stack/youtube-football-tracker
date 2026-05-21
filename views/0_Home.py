@@ -186,7 +186,8 @@ try:
             f"{LEAGUE_FLAG.get(lg, '')} **{lg}** ({n}{'+1' if _league_has_channel.get(lg) else ''})"
             for lg, n in sorted(_league_counts.items(), key=lambda x: -x[1])
         ]
-        st.caption(f"Covering {len(_league_counts)} leagues: " + " · ".join(_parts))
+        st.caption(f"Covering {len(_league_counts)} leagues "
+                    "(Clubs and League Channels): " + " · ".join(_parts))
 
     # WC2026 coverage — its own prominent line (dedicated sidebar group,
     # tournament ~1 month out). Counts every channel tagged
