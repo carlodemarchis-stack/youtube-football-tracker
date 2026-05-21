@@ -112,7 +112,31 @@ def main() -> int:
     new_videos_total = 0
     video_snapshots_written = 0
     failed: list[tuple[str, str]] = []
+    frozen_views = 0   # # of channels where today's viewCount == yesterday's
     start = time.time()
+
+    # Pre-fetch yesterday's channel_snapshots in one query so the per-channel
+    # log line can include "Δ views vs yesterday" without 101 round-trips.
+    # Yesterday = the day before `capture_date` (the day this run represents).
+    # On a frozen YouTube-aggregate day we'll see Δ=+0 print loudly for the
+    # whole cohort; the end-of-run guard below flags it explicitly.
+    prev_views: dict[str, int] = {}
+    try:
+        from datetime import date as _date, timedelta as _td
+        _yday = (_date.fromisoformat(capture_date) - _td(days=1)).isoformat()
+        _ids = [c["id"] for c in channels if c.get("id")]
+        if _ids:
+            _rs = (db.client.table("channel_snapshots")
+                   .select("channel_id,total_views")
+                   .eq("captured_date", _yday)
+                   .in_("channel_id", _ids)
+                   .execute().data or [])
+            prev_views = {r["channel_id"]: int(r.get("total_views") or 0)
+                          for r in _rs}
+        log(f"Pre-fetched yesterday's ({_yday}) viewCount for "
+            f"{len(prev_views)}/{len(_ids)} channels")
+    except Exception as _e:
+        log(f"prev_views pre-fetch skipped (non-fatal): {_e}")
 
     for i, ch in enumerate(channels, 1):
         name = ch.get("name", "?")
@@ -185,7 +209,22 @@ def main() -> int:
 
             ok += 1
             extra = f" (+{len(new_ids)} new)" if new_ids else ""
-            log(f"[{i}/{total}] {name} — subs={stats.get('subscriber_count', 0):,} videos={stats.get('video_count', 0)}{extra}")
+            # Δ views vs yesterday — surfaces stale-aggregate days at a
+            # glance ("(Δ+0)" everywhere = YouTube counter frozen for
+            # the cohort). Empty string when yesterday's row is missing.
+            cur_views = int(stats.get("total_views", 0) or 0)
+            prev = prev_views.get(channel_db_id)
+            if prev is not None:
+                delta = cur_views - prev
+                delta_str = f" (Δ{'+' if delta >= 0 else ''}{delta:,})"
+                if delta == 0:
+                    frozen_views += 1
+            else:
+                delta_str = ""
+            log(f"[{i}/{total}] {name} — "
+                f"subs={stats.get('subscriber_count', 0):,} "
+                f"views={cur_views:,}{delta_str} "
+                f"videos={stats.get('video_count', 0)}{extra}")
         except Exception as e:
             failed.append((name, str(e)[:200]))
             log(f"[{i}/{total}] {name} — ERROR: {e}")
@@ -302,6 +341,23 @@ def main() -> int:
     elapsed = time.time() - start
     log(f"Done in {elapsed:.1f}s — channels_ok={ok} failed={len(failed)} new_videos={new_videos_total} video_snapshots={video_snapshots_written}")
 
+    # Frozen-cohort guard — YouTube periodically batches their channel
+    # statistics.viewCount aggregate, so an entire run can come back
+    # with yesterday's value across every channel. When that happens
+    # the Δ Channel Views chart on the dashboard flat-lines for the
+    # day. Surface it loudly so we don't have to diagnose by hand.
+    frozen_threshold_pct = 50
+    if ok > 0 and prev_views:
+        frozen_pct = round(frozen_views / ok * 100, 1)
+        if frozen_pct >= frozen_threshold_pct:
+            log(f"⚠️ {frozen_views}/{ok} channels showed Δ views == 0 "
+                f"({frozen_pct:.1f}%) — YouTube channel-aggregate "
+                f"likely batched/stale; expect Daily Recap chart to "
+                f"under-report today and catch up tomorrow.")
+        else:
+            log(f"views-Δ healthy: {frozen_views}/{ok} channels at "
+                f"Δ=0 ({frozen_pct:.1f}%, threshold {frozen_threshold_pct}%)")
+
     # Surface the snapshot-step failure (if any) loudly: log it as a
     # *partial* run so it stands out in fetch_history. Zero snapshots
     # written when the step errored is the silent failure mode that
@@ -323,9 +379,22 @@ def main() -> int:
             db.log_fetch(ok, new_videos_total, "daily_snapshot_partial",
                          f"{ok} channels OK but 0 video snapshots written (no error raised) in {elapsed:.1f}s")
         else:
+            # On a frozen-aggregate day, append the warning to the
+            # success message so the next dashboard glance / fetch_history
+            # row surfaces it. Status stays 'daily_snapshot' — the run
+            # itself was healthy; YouTube was the stale side.
+            _frozen_suffix = ""
+            if ok > 0 and prev_views:
+                _frozen_pct = frozen_views / ok * 100
+                if _frozen_pct >= frozen_threshold_pct:
+                    _frozen_suffix = (f" | ⚠️ frozen_views={frozen_views}/{ok}"
+                                      f" ({_frozen_pct:.0f}%) — YouTube counter"
+                                      f" batched/stale, cohort Δ ≈ 0 today")
             db.log_fetch(
                 ok, new_videos_total, "daily_snapshot",
-                f"{ok} channels, {new_videos_total} new videos, {video_snapshots_written} video snapshots in {elapsed:.1f}s",
+                f"{ok} channels, {new_videos_total} new videos, "
+                f"{video_snapshots_written} video snapshots in {elapsed:.1f}s"
+                f"{_frozen_suffix}",
             )
     except Exception as e:
         log(f"log_fetch failed (non-fatal): {e}")
