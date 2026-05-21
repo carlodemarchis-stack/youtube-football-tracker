@@ -95,9 +95,20 @@ ROLE_ICONS = {"admin": "🛡️", "premium": "⭐", "viewer": "👤"}
 
 
 def _fmt_date(raw: str | None) -> str:
+    """Format a UTC timestamp as 'YYYY-MM-DD HH:MM CET' for the admin
+    user table. Falls back to the raw ISO date when parsing fails so
+    the page never blanks out on a malformed row."""
     if not raw:
         return "—"
-    return str(raw)[:10]
+    try:
+        from datetime import datetime, timezone
+        from zoneinfo import ZoneInfo
+        dt = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(ZoneInfo("Europe/Rome")).strftime("%Y-%m-%d %H:%M CET")
+    except Exception:
+        return str(raw)[:10]
 
 
 def _row(u: dict):
