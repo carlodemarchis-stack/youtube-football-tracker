@@ -357,19 +357,43 @@ try:
             color_map = get_global_color_map()
             dual = get_global_color_map_dual()
 
+            def _yt_url(ch: dict) -> str:
+                """YouTube channel URL — prefers @handle, falls back to
+                /channel/<id>. Returns '' when neither is available so
+                the caller can render the name without an <a>."""
+                handle = (ch.get("handle") or "").lstrip("@").strip()
+                yt_id = (ch.get("youtube_channel_id") or "").strip()
+                if handle:
+                    return f"https://www.youtube.com/@{handle}"
+                if yt_id:
+                    return f"https://www.youtube.com/channel/{yt_id}"
+                return ""
+
+            def _name_link(name: str, ch: dict) -> str:
+                """Wrap a channel name in an <a> that opens its YouTube
+                page in a new tab. No underline by default; hover
+                underline + cursor:pointer rules live in the table's
+                CSS block."""
+                url = _yt_url(ch or {})
+                if not url:
+                    return name
+                return (f'<a href="{url}" target="_blank" rel="noopener" '
+                        f'class="ch">{name}</a>')
+
             # ── Two side-by-side tables ─────────────────────────────
             _gcol1, _gcol2 = st.columns(2)
             with _gcol1:
                 st.subheader("👁️ Biggest view gains (last 7 days)")
                 rows = ""
                 for i, g in enumerate(top5_views, 1):
-                    dot = channel_badge(g.get("_ch") or {}, color_map, dual, 14)
+                    ch = g.get("_ch") or {}
+                    dot = channel_badge(ch, color_map, dual, 14)
                     col = _T.POS if g["d7_views"] > 0 else (_T.NEG if g["d7_views"] < 0 else _T.MUTED)
                     sgn = "+" if g["d7_views"] >= 0 else ""
                     rows += f"""<tr>
                         <td style="padding:6px 12px;color:{_T.MUTED}">{i}</td>
                         <td style="padding:6px 12px">{dot}</td>
-                        <td style="padding:6px 12px">{g['name']}</td>
+                        <td style="padding:6px 12px">{_name_link(g['name'], ch)}</td>
                         <td style="padding:6px 12px;text-align:right">{fmt_num(g['views'])}</td>
                         <td style="padding:6px 12px;text-align:right;color:{col}">{sgn}{fmt_num(g['d7_views'])}</td>
                     </tr>"""
@@ -379,6 +403,8 @@ try:
                              font-family:"Source Sans Pro",sans-serif; }}
                   .home-g th {{ padding:6px 12px; border-bottom:2px solid {_T.BORDER_STRONG}; text-align:left; }}
                   .home-g td {{ border-bottom:1px solid {_T.BORDER}; }}
+                  .home-g a.ch {{ color:inherit; text-decoration:none; cursor:pointer; }}
+                  .home-g a.ch:hover {{ text-decoration:underline; }}
                 </style>
                 <table class="home-g"><thead><tr>
                   <th>#</th><th></th><th>Channel</th>
@@ -392,12 +418,13 @@ try:
                 if top5_pubs:
                     rows2 = ""
                     for i, r in enumerate(top5_pubs, 1):
-                        dot = channel_badge(r.get("_ch") or {}, color_map, dual, 14)
+                        ch = r.get("_ch") or {}
+                        dot = channel_badge(ch, color_map, dual, 14)
                         lsl = f'{r["long"]} / {r["short"]} / {r["live"]}'
                         rows2 += f"""<tr>
                             <td style="padding:6px 12px;color:{_T.MUTED}">{i}</td>
                             <td style="padding:6px 12px">{dot}</td>
-                            <td style="padding:6px 12px">{r['name']}</td>
+                            <td style="padding:6px 12px">{_name_link(r['name'], ch)}</td>
                             <td style="padding:6px 12px;text-align:center;color:{_T.MUTED_2}">{lsl}</td>
                             <td style="padding:6px 12px;text-align:right;font-weight:600">{r['count']}</td>
                         </tr>"""
@@ -407,6 +434,8 @@ try:
                                  font-family:"Source Sans Pro",sans-serif; }}
                       .home-p th {{ padding:6px 12px; border-bottom:2px solid {_T.BORDER_STRONG}; text-align:left; }}
                       .home-p td {{ border-bottom:1px solid {_T.BORDER}; }}
+                      .home-p a.ch {{ color:inherit; text-decoration:none; cursor:pointer; }}
+                      .home-p a.ch:hover {{ text-decoration:underline; }}
                     </style>
                     <table class="home-p"><thead><tr>
                       <th>#</th><th></th><th>Channel</th>
