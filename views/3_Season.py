@@ -127,7 +127,24 @@ _season_updated = max(filter(None, [_daily_updated, _rss_updated]), default=None
 render_page_subtitle(
     f"Season performance since {SEASON_SINCE}",
     updated_raw=_season_updated,
-    caveat=f"Stats cover videos published on/after {SEASON_SINCE}. Views on older videos that happen during the season are not included.",
+)
+# Season-scope disclaimer — bright white, boxed, same font size as
+# the body. The previous st.caption rendering was easy to miss; users
+# kept confusing "season views" with "channel-wide growth during the
+# season". Same wording reused at the bottom near the All Channels
+# table (see _SEASON_SCOPE_NOTE below).
+_SEASON_SCOPE_NOTE = (
+    f"Stats cover videos <b>published on/after {SEASON_SINCE}</b>. "
+    f"It’s not the total views added this season — views on older "
+    f"videos earned during the season are not included."
+)
+st.markdown(
+    f'<div style="background:#1a1c24;border:1px solid #2a2c34;'
+    f'border-left:3px solid #FAFAFA;border-radius:4px;'
+    f'padding:10px 14px;margin:6px 0 14px 0;'
+    f'font-size:14px;line-height:1.5;color:#FAFAFA">'
+    f'ℹ️ {_SEASON_SCOPE_NOTE}</div>',
+    unsafe_allow_html=True,
 )
 
 # ── AI season summary ───────────────────────────────────────────
@@ -1288,10 +1305,15 @@ if league is None and _scope == "Overall":
 
     # ── All channels table — precomputed columns (zero video queries) ───
     st.subheader("📡 All Channels — Season")
-    st.caption(
-        f"Stats cover videos published on/after {SEASON_SINCE}. "
-        f"Views on older videos that happen during the season are "
-        f"not included."
+    # Re-emphasize the season-scope disclaimer right before the channels
+    # table — same styling as the top-of-page version (see _SEASON_SCOPE_NOTE).
+    st.markdown(
+        f'<div style="background:#1a1c24;border:1px solid #2a2c34;'
+        f'border-left:3px solid #FAFAFA;border-radius:4px;'
+        f'padding:10px 14px;margin:6px 0 14px 0;'
+        f'font-size:14px;line-height:1.5;color:#FAFAFA">'
+        f'ℹ️ {_SEASON_SCOPE_NOTE}</div>',
+        unsafe_allow_html=True,
     )
     color_map = get_global_color_map()
     dual_colors = get_global_color_map_dual()
