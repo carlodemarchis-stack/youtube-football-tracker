@@ -308,7 +308,7 @@ _CHART_HEIGHT = 320
 _Y_AXIS_GUTTER = 60
 _X_AXIS = alt.Axis(
     labelAngle=-45, title=None, format="%b %d",
-    tickCount={"interval": "day", "step": 2},
+    tickCount={"interval": "day", "step": 1},  # every day on the strip
     labelOverlap=False,
 )
 
