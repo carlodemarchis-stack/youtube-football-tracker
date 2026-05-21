@@ -121,19 +121,46 @@ def _role_level(role: str | None) -> int:
     return ROLE_LEVELS.get((role or "viewer").lower(), 0)
 
 
-def _load_profile(email: str, display_name: str) -> dict:
-    """Fetch or create the user_profiles row, return normalized user dict."""
+def _load_profile(email: str, display_name: str,
+                  auth_method: str = "google") -> dict:
+    """Fetch or create the user_profiles row, return normalized user dict.
+
+    auth_method ('google' or 'email') is persisted ONLY on the initial
+    profile-creation write. Subsequent logins by the same user don't
+    overwrite it — we want to remember how they signed up the first
+    time, not which method they happened to use today.
+
+    Requires `user_profiles.auth_method` column to exist; the write is
+    wrapped in try/except so a missing column doesn't break login
+    (graceful degradation for the migration window). One-time SQL:
+        ALTER TABLE user_profiles
+        ADD COLUMN IF NOT EXISTS auth_method text;
+    """
     email = (email or "").lower().strip()
     db = _get_db()
     profile = db.get_user_profile(email)
-    if not profile:
+    is_new = profile is None
+    if is_new:
         role = "admin" if email == ADMIN_EMAIL else "viewer"
         profile = db.upsert_user_profile(email, display_name or "", role)
+        # Record initial auth method — separate UPDATE so the primary
+        # upsert above stays compatible with the pre-migration schema.
+        try:
+            db.client.table("user_profiles").update(
+                {"auth_method": auth_method}
+            ).eq("email", email).execute()
+            # Reflect the just-written value so the returned dict matches.
+            profile = {**profile, "auth_method": auth_method}
+        except Exception as e:
+            print(f"[auth] auth_method write skipped (column missing?): {e}",
+                  flush=True)
     return {
         "email": email,
         "display_name": display_name or profile.get("display_name", ""),
         "role": profile.get("role", "viewer"),
-        "auth_method": "google",  # overwritten by caller if needed
+        # In-memory field — read from stored row when present, else
+        # default to whatever the caller said (best guess for this session).
+        "auth_method": profile.get("auth_method") or auth_method,
     }
 
 
@@ -146,8 +173,8 @@ def get_current_user() -> dict | None:
             cached = st.session_state.get("yt_user")
             if cached and cached.get("email") == email:
                 return cached
-            user = _load_profile(email, st.user.name or "")
-            user["auth_method"] = "google"
+            user = _load_profile(email, st.user.name or "",
+                                  auth_method="google")
             st.session_state["yt_user"] = user
             return user
     except Exception:
@@ -162,8 +189,9 @@ def get_current_user() -> dict | None:
         cached = st.session_state.get("yt_user")
         if cached and cached.get("email") == email:
             return cached
-        user = _load_profile(email, st.session_state.get("sb_display_name", ""))
-        user["auth_method"] = "email"
+        user = _load_profile(email,
+                              st.session_state.get("sb_display_name", ""),
+                              auth_method="email")
         st.session_state["yt_user"] = user
         return user
 
