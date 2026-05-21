@@ -1,0 +1,52 @@
+# FOLLOWUPS
+
+Deferred ideas surfaced during launch prep. Not blocking launch — revisit
+after.
+
+## AI notes
+
+- **Hyperlink channel / league mentions** inside every AI note.
+  `src/ai_note.py:decorate_with_badges()` already injects flags / dots
+  in front of recognized names. Extend it (or pair it) to wrap each
+  matched name in an `<a href>` pointing at:
+  - Channels → the global-filter URL for that club's view
+    (e.g. `/daily-recap?club=<channel_id>`)
+  - Leagues → the league-scoped URL
+    (e.g. `/season?league=<league>`)
+  - Pages where the link doesn't make sense (Home tutorial) keep
+    plain text.
+  Same regex pass that does badges should be reused so we don't
+  re-walk the text twice.
+
+- **Verify AI note numerical accuracy.** Add a sanity-check layer
+  that re-validates the figures the model cites against the payload
+  before persisting the note. Today's anti-BS guard only catches
+  invented scores. Numbers like "+206.4M views" or "35% of total" go
+  in untouched. Concrete idea: after `generate_*_vibe`, run a regex
+  pass over the note to extract numeric claims (X%, X views, X
+  uploads), match each against the payload's actual values, and
+  reject if any are off by >5%. Same rejection path as the score
+  guard.
+
+## Data quality
+
+- **90-day retention on video_snapshots + video_daily_deltas** —
+  size-control. (Earlier convo: parked.)
+
+- **Investigate weekly_refresh April 19 → May 3 silent breakage**
+  + add a 7-day heartbeat alert. (Earlier convo: parked.)
+
+- **DROP video_catalog table** — legacy, 89,987 rows, no readers.
+  (Earlier convo: "leave it for now".)
+
+- **CET captured_date policy** for the other daily_* crons
+  (federations / players / other_clubs / women_clubs / wc2026). The
+  top-5 cron now uses `intended_capture_date`; the satellite crons
+  still UTC-bucket.
+
+## Diagnostics / tooling
+
+- **Extend resnap_channel_views.py + interpolate_frozen_runs.py to
+  cover the WC2026 cohort.** Today the toolkit is top-5 only. Same
+  shape (62 channels instead of 101). Surface via `--cohort wc2026`
+  flag.
