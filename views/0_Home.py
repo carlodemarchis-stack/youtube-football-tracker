@@ -243,7 +243,9 @@ if not is_logged_in():
         unsafe_allow_html=True,
     )
 
-_link = "color:#FAFAFA;text-decoration:underline;text-decoration-color:#555"
+# Canonical link blue (_T.LINK = #58A6FF) so name links read like
+# links, not as muted body text. Underline only on hover.
+_link = f"color:{_T.LINK};text-decoration:none"
 
 st.markdown(
     f"""<div style="line-height:1.6">
