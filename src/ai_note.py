@@ -453,6 +453,11 @@ def decorate_with_badges(note_text: str, channels: list[dict],
         if kind == "club":
             ch = payload
             badge = channel_badge(ch, color_map, dual_map, 14)
+            # Deep-link target — opens Daily Recap with the global filter
+            # pre-set to this club. New tab + noopener so the reader keeps
+            # the original page open.
+            from urllib.parse import quote as _q
+            link_url = f"/daily-recap?club={_q(ch.get('name') or '')}"
         else:
             # Synthetic League channel record so channel_badge returns the
             # flag in the same standard box wrapper as table cells.
@@ -464,14 +469,22 @@ def decorate_with_badges(note_text: str, channels: list[dict],
                 {"entity_type": "League", "country": country_for_league},
                 color_map, dual_map, 14,
             )
+            from urllib.parse import quote as _q
+            link_url = f"/daily-recap?league={_q(name)}"
 
-        def _build_repl(m):
+        def _build_repl(m, _url=link_url, _badge=badge):
             displayed = m.group(0)  # includes any possessive suffix
             # Inline span: small gap between badge and name, no flex wrapper
             # (flex changes baseline alignment inside italic body text).
+            # The whole span (badge + name) is wrapped in an <a> so the
+            # click target is generous; color:inherit so it doesn't read as
+            # a blue external link inside body prose.
             return (
+                f'<a href="{_url}" target="_blank" rel="noopener" '
+                f'style="color:inherit;text-decoration:none">'
                 f'<span style="white-space:nowrap">'
-                f'{badge}&nbsp;<span style="vertical-align:middle">{displayed}</span></span>'
+                f'{_badge}&nbsp;<span style="vertical-align:middle">{displayed}</span>'
+                f'</span></a>'
             )
         # Replace each match with a placeholder; the real HTML for each
         # placeholder is stored separately so a later regex never sees
