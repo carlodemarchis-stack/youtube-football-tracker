@@ -362,6 +362,15 @@ def _show_onboarding_card(user: dict):
                 ]
                 if linkedin_url.strip():
                     _body_lines.append(f"🔗 {linkedin_url.strip()}")
+                # Running user count — onboarded rows only, so the
+                # number reads as 'real signed-up users', not 'auth
+                # rows from one-time guest visits'.
+                try:
+                    _all = db.get_all_users() or []
+                    _onboarded = sum(1 for u in _all if u.get("onboarded"))
+                    _body_lines.append(f"👥 Total users: {_onboarded}")
+                except Exception:
+                    pass
                 send_ntfy(
                     title="🎉 NEW USER",
                     message="\n".join(_body_lines),
