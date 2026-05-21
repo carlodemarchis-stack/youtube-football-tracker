@@ -41,7 +41,11 @@ Usage
     python scripts/resnap_channel_views.py --target-date 2026-05-20
 
     # dry-run: report what would change, write nothing
+    # (still calls YouTube API for live values — ~101 quota units)
     python scripts/resnap_channel_views.py --dry-run
+
+    # pure-DB diagnostic: was the last cron frozen? zero API calls.
+    python scripts/resnap_channel_views.py --check-only
 
 Exit codes
 ==========
@@ -85,10 +89,91 @@ def _parse_args() -> argparse.Namespace:
                         "written).")
     p.add_argument("--dry-run", action="store_true",
                    help="Compare live API to stored values, print diff, "
-                        "write nothing.")
+                        "write nothing. Still calls the YouTube API.")
+    p.add_argument("--check-only", action="store_true",
+                   help="Pure-DB diagnostic: read the last two days of "
+                        "channel_snapshots for the cohort and report how "
+                        "many channels had Δ=0 (i.e. was the last cron "
+                        "frozen?). Zero YouTube API calls, zero writes.")
     p.add_argument("--skip-cache", action="store_true",
                    help="Skip the trends_30d hot-tier cache refresh.")
     return p.parse_args()
+
+
+def _run_check_only(db, top5: list[dict], target_date: str) -> int:
+    """Pure-DB diagnostic. Reads target_date + the previous day with
+    snapshots for the cohort, computes per-channel Δ total_views.
+    Reports frozen count + percentage. No YT, no writes."""
+    # Find the most recent date strictly before target_date that has
+    # at least one cohort snapshot. We can't just subtract 1 day because
+    # the cohort might have skipped a day (e.g. cron failure).
+    cohort_ids = [c["id"] for c in top5]
+    rs = (db.client.table("channel_snapshots")
+          .select("captured_date,channel_id,total_views")
+          .lte("captured_date", target_date)
+          .in_("channel_id", cohort_ids)
+          .order("captured_date", desc=True)
+          .limit(2 * len(cohort_ids))
+          .execute().data or [])
+    if not rs:
+        print(f"FATAL: no channel_snapshots found for cohort on/before {target_date}")
+        return 2
+
+    # Group by date
+    by_date: dict[str, dict[str, int]] = {}
+    for r in rs:
+        by_date.setdefault(r["captured_date"], {})[r["channel_id"]] = \
+            int(r.get("total_views") or 0)
+    dates = sorted(by_date.keys(), reverse=True)
+    if dates[0] != target_date:
+        print(f"NOTE: no rows for target {target_date}; using "
+              f"most-recent available {dates[0]} as 'today'")
+    cur_date = dates[0]
+    prev_date = dates[1] if len(dates) >= 2 else None
+    cur = by_date[cur_date]
+    prev = by_date.get(prev_date, {}) if prev_date else {}
+
+    if not prev_date:
+        print(f"NOTE: only one date of data ({cur_date}); cannot compute Δ")
+        return 0
+
+    frozen = 0
+    advanced = 0
+    receded = 0
+    missing_prev = 0
+    total_dv = 0
+    for cid in cur:
+        if cid not in prev:
+            missing_prev += 1
+            continue
+        d = cur[cid] - prev[cid]
+        if d == 0:
+            frozen += 1
+        elif d > 0:
+            advanced += 1
+            total_dv += d
+        else:
+            receded += 1
+            total_dv += d
+    n = advanced + frozen + receded
+    pct_frozen = (frozen / n * 100) if n else 0
+
+    print(f"Cohort: {len(top5)} channels")
+    print(f"Comparing {prev_date} → {cur_date}")
+    print(f"  advanced     {advanced:>4}  (Δ > 0)")
+    print(f"  frozen       {frozen:>4}  (Δ == 0)")
+    print(f"  receded      {receded:>4}  (Δ < 0 — YouTube counter scrub)")
+    print(f"  missing_prev {missing_prev:>4}  (no row on {prev_date})")
+    print(f"  Σ Δ views    {total_dv:>14,}")
+    print(f"  frozen %     {pct_frozen:.1f}% of compared cohort")
+    if pct_frozen >= 50:
+        print(f"\n⚠️ {pct_frozen:.0f}% frozen — last cron likely caught a "
+              "stale YouTube aggregate. Run `python "
+              "scripts/resnap_channel_views.py` (no flag) to re-pull live "
+              "values and recover; or wait 2-3 hours and re-check.")
+    else:
+        print(f"\n✓ Healthy — {pct_frozen:.1f}% frozen (threshold 50%).")
+    return 0
 
 
 def main() -> int:
@@ -102,20 +187,13 @@ def main() -> int:
         print(f"FATAL: --target-date must be YYYY-MM-DD, got {target_date!r}")
         return 2
 
-    # Writes go through service key so RLS doesn't silently drop them.
-    yt_key = (os.environ.get("YOUTUBE_API_KEY")
-              or os.environ.get("YOUTUBE_API_KEY_DAILY")
-              or os.environ.get("YOUTUBE_API_KEY_HEAVY"))
     sb_url = os.environ.get("SUPABASE_URL")
     sb_key = (os.environ.get("SUPABASE_SERVICE_KEY")
               or os.environ.get("SUPABASE_KEY"))
-    if not (yt_key and sb_url and sb_key):
-        print("FATAL: need YOUTUBE_API_KEY (or _DAILY/_HEAVY) + SUPABASE_URL "
-              "+ SUPABASE_SERVICE_KEY (or SUPABASE_KEY) in env / .env")
+    if not (sb_url and sb_key):
+        print("FATAL: need SUPABASE_URL + SUPABASE_SERVICE_KEY (or "
+              "SUPABASE_KEY) in env / .env")
         return 2
-
-    print(f"Target date: {target_date}  (dry-run={args.dry_run})")
-    yt = YouTubeClient(yt_key)
     db = Database(sb_url, sb_key)
 
     # Cohort = top-5 (Clubs + Leagues). Same shape as Daily Recap +
@@ -127,6 +205,24 @@ def main() -> int:
     if not top5:
         print("FATAL: empty top-5 cohort")
         return 2
+
+    # --check-only: pure-DB diagnostic, zero YouTube API, zero writes.
+    # Short-circuits before YT client init so we don't even need the key.
+    if args.check_only:
+        print(f"Mode: check-only (zero YouTube API, zero writes)")
+        return _run_check_only(db, top5, target_date)
+
+    # YT key only required for paths that actually call the API.
+    yt_key = (os.environ.get("YOUTUBE_API_KEY")
+              or os.environ.get("YOUTUBE_API_KEY_DAILY")
+              or os.environ.get("YOUTUBE_API_KEY_HEAVY"))
+    if not yt_key:
+        print("FATAL: need YOUTUBE_API_KEY (or _DAILY/_HEAVY) in env / .env "
+              "(or pass --check-only to skip API entirely)")
+        return 2
+
+    print(f"Target date: {target_date}  (dry-run={args.dry_run})")
+    yt = YouTubeClient(yt_key)
     print(f"Cohort: {len(top5)} channels (Clubs + League HQs)")
 
     # Pre-fetch existing rows for target_date in ONE query — saves 101
