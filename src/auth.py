@@ -349,6 +349,27 @@ def _show_onboarding_card(user: dict):
                 first_name=first_name, last_name=last_name,
                 company=company, linkedin_url=linkedin_url,
             )
+            # Notify the admin (ntfy push) — this is the canonical
+            # "someone signed up" moment. Best-effort: send_ntfy
+            # swallows any error so a flaky notification can't break
+            # the sign-up flow itself.
+            try:
+                from src.notify import send_ntfy
+                _body_lines = [
+                    f"{first_name.strip()} {last_name.strip()}",
+                    f"📧 {email}",
+                    f"🏢 {company.strip()}",
+                ]
+                if linkedin_url.strip():
+                    _body_lines.append(f"🔗 {linkedin_url.strip()}")
+                send_ntfy(
+                    title="🎉 NEW USER",
+                    message="\n".join(_body_lines),
+                    priority="high",
+                    tags=["tada"],
+                )
+            except Exception:
+                pass
             # Invalidate cache so next run loads the updated profile
             st.session_state.pop("yt_user", None)
             st.rerun()
