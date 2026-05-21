@@ -362,18 +362,32 @@ def main() -> int:
         print("\n(dry-run: no writes performed)")
         return 0
 
-    # Refresh trends_30d hot tier so the page picks up the corrected
-    # totals immediately. Daily Recap reads channel_snapshots live so
-    # doesn't need a cache rebuild.
+    # Refresh trends_30d caches so the page picks up the corrected
+    # totals immediately at ALL filter scopes:
+    #   • hot tier  → Z1 (all leagues) + 5 × Z2 (per-league) views
+    #   • cold tier → 101 × Z3 (per-channel) views
+    # Without the cold-tier rebuild, anyone filtering to a single
+    # channel still sees the pre-fix values (the Z3 cache is stale).
+    # Daily Recap reads channel_snapshots live so doesn't need either.
+    # We pass refresh_vibes=False to skip ~6 haiku calls — vibes will
+    # refresh at the next nightly cron run.
     if not args.skip_cache:
-        print("\nRefreshing trends_30d hot tier…")
+        from src import dashboard_cache as _dc
         try:
-            from src import dashboard_cache as _dc
+            print("\nRefreshing trends_30d hot tier…")
             t = time.time()
             _dc.refresh_trends_30d(db, tier="hot")
-            print(f"  done in {time.time() - t:.1f}s")
+            print(f"  hot tier done in {time.time() - t:.1f}s")
         except Exception as e:
-            print(f"  cache refresh failed (non-fatal): {e}")
+            print(f"  hot-tier refresh failed (non-fatal): {e}")
+        try:
+            print("Refreshing trends_30d cold tier (per-channel Z3)…")
+            t = time.time()
+            _dc.refresh_trends_30d(db, tier="cold", refresh_vibes=False)
+            print(f"  cold tier done in {time.time() - t:.1f}s "
+                  f"(vibes skipped)")
+        except Exception as e:
+            print(f"  cold-tier refresh failed (non-fatal): {e}")
     else:
         print("\n(skipping cache refresh per --skip-cache)")
     return 0

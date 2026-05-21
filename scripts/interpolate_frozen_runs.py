@@ -247,14 +247,28 @@ def main() -> int:
         return 0
 
     if not args.skip_cache:
-        print("\nRefreshing trends_30d hot tier…")
+        from src import dashboard_cache as _dc
+        # Refresh both tiers so all filter scopes (Z1/Z2/Z3) see the
+        # interpolated values. Without the cold-tier rebuild, anyone
+        # filtering to a single channel still sees the pre-interp
+        # values (their per-channel cache row is stale). Skip vibe
+        # regen — they'll refresh at the next nightly cron, no need
+        # to burn ~6 haiku calls per recovery run.
         try:
-            from src import dashboard_cache as _dc
+            print("\nRefreshing trends_30d hot tier…")
             t = time.time()
             _dc.refresh_trends_30d(db, tier="hot")
-            print(f"  done in {time.time() - t:.1f}s")
+            print(f"  hot tier done in {time.time() - t:.1f}s")
         except Exception as e:
-            print(f"  cache refresh failed (non-fatal): {e}")
+            print(f"  hot-tier refresh failed (non-fatal): {e}")
+        try:
+            print("Refreshing trends_30d cold tier (per-channel Z3)…")
+            t = time.time()
+            _dc.refresh_trends_30d(db, tier="cold", refresh_vibes=False)
+            print(f"  cold tier done in {time.time() - t:.1f}s "
+                  f"(vibes skipped)")
+        except Exception as e:
+            print(f"  cold-tier refresh failed (non-fatal): {e}")
     else:
         print("\n(skipping cache refresh per --skip-cache)")
     return 0

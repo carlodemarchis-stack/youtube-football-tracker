@@ -722,7 +722,8 @@ def compute_trends_30d_club(db, channel_id: str,
 
 
 def refresh_trends_30d(db, log=print, channels: list[dict] | None = None,
-                       tier: str = "hot") -> None:
+                       tier: str = "hot",
+                       refresh_vibes: bool = True) -> None:
     """Recompute and persist trends_30d for the requested tier.
 
       tier="hot"  → Z1 (scope_all) + 5 × Z2 (scope_league)
@@ -730,6 +731,13 @@ def refresh_trends_30d(db, log=print, channels: list[dict] | None = None,
       tier="cold" → 101 × Z3 (scope_club) — every cohort channel.
                     Heavier; runs nightly from scripts/daily_refresh.py
                     after the hot pass.
+
+    refresh_vibes: when running tier="cold", also regenerate the
+      trends_30d_vibe AI notes (Z1 + 5 × Z2). Default True so the
+      nightly cron stays self-contained. Manual data-correction
+      scripts (resnap_channel_views, interpolate_frozen_runs) pass
+      False since they only need the cache rows rebuilt — re-firing
+      ~6 haiku calls per recovery run wastes LLM quota.
 
     The 101 channels = 96 Clubs + 5 League HQs in the top-5 cohort.
     """
@@ -773,7 +781,12 @@ def refresh_trends_30d(db, log=print, channels: list[dict] | None = None,
         # rebuild_all. Z1 + 5 × Z2 ≈ 6 haiku calls per day; Z3 is
         # skipped intentionally (a per-club vibe over 30 days would be
         # ~100 calls/night for marginal narrative value).
-        refresh_trends_30d_vibe(db, log=log)
+        # Manual recovery scripts pass refresh_vibes=False to skip this.
+        if refresh_vibes:
+            refresh_trends_30d_vibe(db, log=log)
+        else:
+            log("[dashboard_cache] skipping trends_30d_vibe regen "
+                "(refresh_vibes=False)")
     else:
         log(f"[dashboard_cache] refresh_trends_30d: unknown tier '{tier}'")
 
