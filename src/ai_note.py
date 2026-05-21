@@ -500,11 +500,15 @@ def decorate_with_badges(note_text: str, channels: list[dict],
             )
             if not _url:
                 return inner   # no link target — render the badged name plain
-            # color:inherit so the link doesn't read as a blue external
-            # link inside body prose; the badge stays the visual cue.
+            # color:inherit so the link doesn't read as a bright blue
+            # external link inside body prose, but text-decoration:underline
+            # with a subtle gray color so it's visibly clickable. Tightening
+            # the underline offset keeps it under the name not the badge.
             return (
                 f'<a href="{_url}" target="_blank" rel="noopener" '
-                f'style="color:inherit;text-decoration:none">'
+                f'style="color:inherit;text-decoration:underline;'
+                f'text-decoration-color:rgba(255,255,255,0.45);'
+                f'text-underline-offset:3px">'
                 f'{inner}</a>'
             )
         # Replace each match with a placeholder; the real HTML for each
