@@ -18,7 +18,8 @@ from __future__ import annotations
 
 import os
 from collections import defaultdict
-from datetime import date as _date
+from datetime import date as _date, datetime as _datetime
+from zoneinfo import ZoneInfo as _ZoneInfo
 
 import streamlit as st
 from src import components_compat as _components
@@ -217,6 +218,15 @@ snaps = _load_wc_snapshots(tuple(sorted(ch_by_id.keys())))
 by_date: dict[str, dict[str, dict]] = defaultdict(dict)
 for s in snaps:
     by_date[s["captured_date"]][s["channel_id"]] = s
+
+# Drop today (CET): the daily_wc2026 cron writes at 00:00 UTC ≈ 02:00 CET,
+# which is "today's first row" — but it represents only a few hours of
+# growth at best, and routinely hits YouTube's frozen-aggregate window
+# so the cohort Δ for today comes back ~0. Either way, today is partial
+# and would distort the chart's right edge. Tomorrow's row (May 22 at
+# 00:00 UTC) becomes the new "last complete day" automatically.
+_today_cet_iso = _datetime.now(_ZoneInfo("Europe/Rome")).date().isoformat()
+by_date = {d: v for d, v in by_date.items() if d < _today_cet_iso}
 
 dates = sorted(by_date.keys())
 
