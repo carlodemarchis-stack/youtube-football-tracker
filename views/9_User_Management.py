@@ -47,7 +47,8 @@ _csv_buf = io.StringIO()
 _writer = csv.DictWriter(
     _csv_buf,
     fieldnames=["email", "first_name", "last_name", "company", "linkedin_url",
-                "role", "onboarded", "display_name", "created_at", "last_login"],
+                "role", "onboarded", "auth_method", "display_name",
+                "created_at", "last_login"],
     extrasaction="ignore",
 )
 _writer.writeheader()
@@ -147,6 +148,21 @@ def _row(u: dict):
             bits.append(f"🏢 {company}")
         if linkedin:
             bits.append(f"<a href='{linkedin}' target='_blank' style='color:#0A66C2;text-decoration:none'>💼 LinkedIn</a>")
+        # Auth-method chip — Google in their red, email-OTP in our link blue.
+        # Stored values: 'google' | 'email' | NULL (legacy rows pre-migration).
+        _am = (u.get("auth_method") or "").lower()
+        if _am == "google":
+            bits.append(
+                "<span style='background:#EA433533;color:#EA4335;"
+                "padding:1px 6px;border-radius:3px;font-size:11px'>"
+                "🔑 google</span>"
+            )
+        elif _am == "email":
+            bits.append(
+                "<span style='background:#58A6FF33;color:#58A6FF;"
+                "padding:1px 6px;border-radius:3px;font-size:11px'>"
+                "✉️ email</span>"
+            )
         bits.append(f"<span style='color:#666'>joined {_fmt_date(u.get('created_at'))}</span>")
         if u.get("last_login"):
             bits.append(f"<span style='color:#666'>last {_fmt_date(u.get('last_login'))}</span>")
