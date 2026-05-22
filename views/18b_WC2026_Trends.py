@@ -200,10 +200,35 @@ for c in sorted(
     team_url.setdefault(_team_of(c), _ch_url(c))
 
 
+@st.cache_data(ttl=60, show_spinner=False)
+def _wc_data_version(cid_tuple: tuple[str, ...]) -> str:
+    """Freshness fingerprint of the two most-recent snapshot days for the
+    cohort (~2×N rows). Fed into _load_wc_snapshots' cache key so the
+    heavy full-window read busts the instant data changes — a new daily
+    row (new captured_date) OR an in-place resnap of a recent day (same
+    date, moved total_views, which captured_at doesn't track). Re-probed
+    at most once a minute. A rare manual historical interpolation of
+    older days isn't caught here — it surfaces on the next daily write."""
+    ids = list(cid_tuple)
+    if not ids:
+        return "0"
+    rows = (db.client.table("channel_snapshots")
+            .select("captured_date,total_views")
+            .in_("channel_id", ids)
+            .order("captured_date", desc=True)
+            .limit(2 * len(ids))
+            .execute().data or [])
+    latest = max((r["captured_date"] for r in rows), default="-")
+    checksum = sum(int(r.get("total_views") or 0) for r in rows)
+    return f"{latest}:{checksum}"
+
+
 @st.cache_data(ttl=1800, show_spinner=False)
-def _load_wc_snapshots(cid_tuple: tuple[str, ...]) -> list[dict]:
+def _load_wc_snapshots(cid_tuple: tuple[str, ...], version: str) -> list[dict]:
     """Paginated read of channel_snapshots for the WC2026 channel ids.
-    Cached 30 min — the data only changes once a day."""
+    `version` (from _wc_data_version) isn't read inside — it's only part
+    of the cache key, so a data change busts this immediately; the 30-min
+    TTL is just a memory ceiling."""
     ids = list(cid_tuple)
     if not ids:
         return []
@@ -230,7 +255,8 @@ def _load_wc_snapshots(cid_tuple: tuple[str, ...]) -> list[dict]:
     return out
 
 
-snaps = _load_wc_snapshots(tuple(sorted(ch_by_id.keys())))
+_cids = tuple(sorted(ch_by_id.keys()))
+snaps = _load_wc_snapshots(_cids, _wc_data_version(_cids))
 
 # date -> {channel_id -> snapshot row}
 by_date: dict[str, dict[str, dict]] = defaultdict(dict)
