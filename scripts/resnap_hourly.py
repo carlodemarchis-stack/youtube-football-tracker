@@ -134,16 +134,45 @@ def main() -> int:
     # distinguishable.
     clabel = "WC2026" if args.cohort == "wc2026" else "Top-5"
 
+    # "Healthy already announced" sentinel — persisted in dashboard_cache
+    # keyed by cohort:target_date so it survives across the separate
+    # hourly cron invocations. Once we've sent the all-healthy push for
+    # a given night, later passes stay silent. Keyed by target_date, so
+    # the next cycle (new yesterday-CET date) resets automatically — no
+    # cleanup needed.
+    from src import dashboard_cache as _dc
+    _SENTINEL = "resnap_healthy_alert"
+    _skey = f"{args.cohort}:{target}"
+
+    def _healthy_already_announced() -> bool:
+        try:
+            row = _dc.read(db, _SENTINEL, _skey)
+            return bool(row and row.get("payload"))
+        except Exception:
+            return False
+
+    def _mark_healthy_announced() -> None:
+        try:
+            _dc.write(db, _SENTINEL, _skey,
+                      {"ts": datetime.now(CET).isoformat()})
+        except Exception as e:
+            print(f"[resnap_hourly] sentinel write skipped: {e}")
+
     print(f"[resnap_hourly] cohort={args.cohort} target={target}  "
           f"n={n_cohort}  frozen={len(frozen_ids)}")
 
     # ── All caught up → cheap no-op ───────────────────────────────
     if not frozen_ids:
+        if _healthy_already_announced():
+            print(f"[resnap_hourly] all {n_cohort} healthy for {target} — "
+                  f"already announced this cycle, staying silent.")
+            return 0
         msg = f"All {n_cohort} channels caught up for {target}. ✓"
         print(f"[resnap_hourly] {msg}")
         send_ntfy(title=f"🔄 Resnap {clabel} — all healthy",
                   message=f"{target}: 0 frozen / {n_cohort}. {msg}",
                   priority="low", tags=["white_check_mark"])
+        _mark_healthy_announced()
         return 0
 
     # ── Re-pull the frozen channels from YouTube ──────────────────
@@ -190,19 +219,27 @@ def main() -> int:
         except Exception as e:
             print(f"[resnap_hourly] cache rebuild failed (non-fatal): {e}")
 
-    # ── Always ntfy with the still-frozen count ───────────────────
+    # ── ntfy: progress while still frozen (every pass); the all-healthy
+    #    push fires only once per cycle (sentinel-gated). ──────────────
     remaining = still_frozen + errors
     healthy = remaining == 0
     body = (f"{target}: recovered {updated} (+{recovered_views:,} views), "
             f"still frozen {remaining}/{n_cohort}"
             + (f", {errors} errors" if errors else ""))
-    send_ntfy(
-        title=(f"🔄 Resnap {clabel} — all healthy" if healthy
-               else f"🔄 Resnap {clabel} — {remaining} still frozen"),
-        message=body,
-        priority="low" if healthy else "default",
-        tags=["white_check_mark"] if healthy else ["hourglass_flowing_sand"],
-    )
+    if healthy:
+        if _healthy_already_announced():
+            print(f"[resnap_hourly] became healthy but already announced "
+                  f"this cycle — staying silent.")
+        else:
+            send_ntfy(title=f"🔄 Resnap {clabel} — all healthy",
+                      message=body, priority="low",
+                      tags=["white_check_mark"])
+            _mark_healthy_announced()
+    else:
+        # Still frozen → progress alert every pass (per your request).
+        send_ntfy(title=f"🔄 Resnap {clabel} — {remaining} still frozen",
+                  message=body, priority="default",
+                  tags=["hourglass_flowing_sand"])
     return 0
 
 
