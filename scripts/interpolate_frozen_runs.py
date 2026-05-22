@@ -95,6 +95,11 @@ def _parse_args() -> argparse.Namespace:
                         "Default 0.025 (±2.5%%).")
     p.add_argument("--skip-cache", action="store_true",
                    help="Skip the post-write trends_30d hot-tier rebuild.")
+    p.add_argument("--cohort", choices=["top5", "wc2026"], default="top5",
+                   help="Channel cohort. top5 (default) = Club + League "
+                        "HQs, rebuilds trends_30d after writes. wc2026 = "
+                        "competitions.wc2026 channels; no cache rebuild "
+                        "(that page reads channel_snapshots live).")
     return p.parse_args()
 
 
@@ -166,15 +171,20 @@ def main() -> int:
         return 2
     db = Database(sb_url, sb_key)
 
-    # Cohort = top-5 (Clubs + Leagues), unless --channel-id is set.
+    # Cohort selection. --channel-id wins; else top5 (Club + League) or
+    # wc2026 (competitions.wc2026 tag) per --cohort.
     chans = (db.client.table("channels")
-             .select("id,name,entity_type")
+             .select("id,name,entity_type,competitions")
              .execute().data or [])
     if args.channel_id:
         cohort = [c for c in chans if c["id"] == args.channel_id]
         if not cohort:
             print(f"FATAL: channel_id {args.channel_id!r} not found")
             return 2
+    elif args.cohort == "wc2026":
+        cohort = [c for c in chans
+                  if isinstance(c.get("competitions"), dict)
+                  and c["competitions"].get("wc2026")]
     else:
         cohort = [c for c in chans
                   if c.get("entity_type") in ("Club", "League")]
@@ -246,7 +256,11 @@ def main() -> int:
         print("\n(dry-run: no writes performed, cache not refreshed)")
         return 0
 
-    if not args.skip_cache:
+    # WC2026 has no dashboard_cache layer — its Trends page reads
+    # channel_snapshots live (@st.cache_data ttl=1800), nothing to rebuild.
+    if args.cohort == "wc2026":
+        print("\n(cohort=wc2026 — no trends_30d cache to rebuild)")
+    elif not args.skip_cache:
         from src import dashboard_cache as _dc
         # Refresh both tiers so all filter scopes (Z1/Z2/Z3) see the
         # interpolated values. Without the cold-tier rebuild, anyone

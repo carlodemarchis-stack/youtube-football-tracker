@@ -104,6 +104,11 @@ def _parse_args() -> argparse.Namespace:
                         "target_date-1 row (the actually-frozen ones), "
                         "saving ~75%% of YouTube quota when only a "
                         "fraction of the cohort is stale.")
+    p.add_argument("--cohort", choices=["top5", "wc2026"], default="top5",
+                   help="Channel cohort. top5 (default) = Club + League "
+                        "HQs, rebuilds trends_30d after writes. wc2026 = "
+                        "competitions.wc2026 channels; that page reads "
+                        "channel_snapshots live so no cache rebuild runs.")
     return p.parse_args()
 
 
@@ -208,14 +213,21 @@ def main() -> int:
         return 2
     db = Database(sb_url, sb_key)
 
-    # Cohort = top-5 (Clubs + Leagues). Same shape as Daily Recap +
-    # 30-Day Trends cohort.
+    # Select the cohort. Variable kept named `top5` (the original) so the
+    # downstream logic is untouched; for --cohort wc2026 it just holds the
+    # WC2026 channels instead. top5 = Club + League HQs; wc2026 =
+    # competitions.wc2026 tag.
     chans = (db.client.table("channels")
-             .select("id,name,youtube_channel_id,entity_type")
+             .select("id,name,youtube_channel_id,entity_type,competitions")
              .execute().data or [])
-    top5 = [c for c in chans if c.get("entity_type") in ("Club", "League")]
+    if args.cohort == "wc2026":
+        top5 = [c for c in chans
+                if isinstance(c.get("competitions"), dict)
+                and c["competitions"].get("wc2026")]
+    else:
+        top5 = [c for c in chans if c.get("entity_type") in ("Club", "League")]
     if not top5:
-        print("FATAL: empty top-5 cohort")
+        print(f"FATAL: empty {args.cohort} cohort")
         return 2
 
     # --check-only: pure-DB diagnostic, zero YouTube API, zero writes.
@@ -374,7 +386,13 @@ def main() -> int:
     # Daily Recap reads channel_snapshots live so doesn't need either.
     # We pass refresh_vibes=False to skip ~6 haiku calls — vibes will
     # refresh at the next nightly cron run.
-    if not args.skip_cache:
+    # WC2026 has no dashboard_cache layer (its Trends page reads
+    # channel_snapshots live via @st.cache_data ttl=1800), so there's
+    # nothing to rebuild — the page self-refreshes within 30 min.
+    if args.cohort == "wc2026":
+        print("\n(cohort=wc2026 — no trends_30d cache to rebuild; "
+              "WC2026 Trends page refreshes via its own 30-min TTL)")
+    elif not args.skip_cache:
         from src import dashboard_cache as _dc
         try:
             print("\nRefreshing trends_30d hot tier…")

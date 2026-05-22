@@ -57,10 +57,26 @@ def _yesterday_cet() -> str:
     return (datetime.now(CET).date() - timedelta(days=1)).isoformat()
 
 
+def _select_cohort(chans: list[dict], cohort: str) -> list[dict]:
+    """Pick the channel cohort. 'top5' = Club + League HQ entity types
+    (101). 'wc2026' = anything tagged competitions.wc2026 (~62 teams,
+    FIFA, confederations, alt channels)."""
+    if cohort == "wc2026":
+        return [c for c in chans
+                if isinstance(c.get("competitions"), dict)
+                and c["competitions"].get("wc2026")]
+    return [c for c in chans if c.get("entity_type") in ("Club", "League")]
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     p.add_argument("--target-date", default=_yesterday_cet(),
                    help="ISO date to top up (default: yesterday CET).")
+    p.add_argument("--cohort", choices=["top5", "wc2026"], default="top5",
+                   help="Which channel cohort to top up. Default top5 "
+                        "(Club + League HQs). wc2026 = competitions.wc2026 "
+                        "channels; that cohort's page reads channel_snapshots "
+                        "live so no trends_30d cache rebuild is needed.")
     args = p.parse_args()
     target = args.target_date
     try:
@@ -87,11 +103,12 @@ def main() -> int:
     db = Database(sb_url, sb_key)
     yt = YouTubeClient(yt_key)
 
-    # Cohort = top-5 (Clubs + League HQs).
+    # Select the cohort (top5 default; wc2026 via --cohort). competitions
+    # column is needed for the wc2026 tag check.
     chans = (db.client.table("channels")
-             .select("id,name,youtube_channel_id,entity_type")
+             .select("id,name,youtube_channel_id,entity_type,competitions")
              .execute().data or [])
-    cohort = [c for c in chans if c.get("entity_type") in ("Club", "League")]
+    cohort = _select_cohort(chans, args.cohort)
     cohort_by_id = {c["id"]: c for c in cohort}
     cohort_ids = list(cohort_by_id.keys())
     n_cohort = len(cohort_ids)
@@ -113,14 +130,18 @@ def main() -> int:
     frozen_ids = [cid for cid, v in cur.items()
                   if cid in prev and v == prev[cid]]
 
-    print(f"[resnap_hourly] target={target}  cohort={n_cohort}  "
-          f"frozen={len(frozen_ids)}")
+    # Cohort label for logs + ntfy so the two services' pushes are
+    # distinguishable.
+    clabel = "WC2026" if args.cohort == "wc2026" else "Top-5"
+
+    print(f"[resnap_hourly] cohort={args.cohort} target={target}  "
+          f"n={n_cohort}  frozen={len(frozen_ids)}")
 
     # ── All caught up → cheap no-op ───────────────────────────────
     if not frozen_ids:
         msg = f"All {n_cohort} channels caught up for {target}. ✓"
         print(f"[resnap_hourly] {msg}")
-        send_ntfy(title="🔄 Hourly resnap — all healthy",
+        send_ntfy(title=f"🔄 Resnap {clabel} — all healthy",
                   message=f"{target}: 0 frozen / {n_cohort}. {msg}",
                   priority="low", tags=["white_check_mark"])
         return 0
@@ -155,8 +176,11 @@ def main() -> int:
     print(f"[resnap_hourly] updated={updated} still_frozen={still_frozen} "
           f"errors={errors} recovered={recovered_views:,} in {elapsed:.1f}s")
 
-    # ── Rebuild caches only if something actually changed ─────────
-    if updated > 0:
+    # ── Rebuild caches only if something changed (top-5 only) ─────
+    # WC2026 has no dashboard_cache layer — its Trends page reads
+    # channel_snapshots live (@st.cache_data ttl=1800), so it self-
+    # refreshes within 30 min and needs no rebuild here.
+    if updated > 0 and args.cohort == "top5":
         try:
             from src import dashboard_cache as _dc
             t = time.time()
@@ -173,8 +197,8 @@ def main() -> int:
             f"still frozen {remaining}/{n_cohort}"
             + (f", {errors} errors" if errors else ""))
     send_ntfy(
-        title=("🔄 Hourly resnap — all healthy" if healthy
-               else f"🔄 Hourly resnap — {remaining} still frozen"),
+        title=(f"🔄 Resnap {clabel} — all healthy" if healthy
+               else f"🔄 Resnap {clabel} — {remaining} still frozen"),
         message=body,
         priority="low" if healthy else "default",
         tags=["white_check_mark"] if healthy else ["hourglass_flowing_sand"],
