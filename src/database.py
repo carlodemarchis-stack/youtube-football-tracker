@@ -489,6 +489,7 @@ class Database:
                 "youtube_video_id": v["youtube_video_id"],
                 "channel_id": channel_db_id,
                 "title": v.get("title", ""),
+                "description": v.get("description", "") or "",
                 "published_at": v.get("published_at"),
                 "view_count": v.get("view_count", 0),
                 "like_count": v.get("like_count", 0),

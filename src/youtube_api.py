@@ -640,6 +640,7 @@ class YouTubeClient:
         return {
             "youtube_video_id": item["id"],
             "title": snippet.get("title", ""),
+            "description": snippet.get("description", "") or "",
             "published_at": snippet.get("publishedAt"),
             "actual_start_time": actual_start,
             "view_count": int(stats.get("viewCount", 0)),
