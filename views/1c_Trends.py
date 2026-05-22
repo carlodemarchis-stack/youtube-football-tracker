@@ -95,26 +95,21 @@ render_page_subtitle(
     updated_raw=_cached_last_fetch(db, "daily_snapshot"),
 )
 
-# YouTube API latency notice — same amber callout as Daily Recap.
-# YouTube's public channel view-count aggregate has been refreshing
-# with a long delay lately (visible on YouTube's own channel pages
-# too), so the most recent day(s) of the Δ-views chart can read flat
-# until Google's counter catches up. We backfill once it does.
-st.markdown(
-    '<div style="background:#3a2e1233;border:1px solid #F5A62355;'
-    'border-left:3px solid #F5A623;border-radius:4px;'
-    'padding:10px 14px;margin:6px 0 14px 0;'
-    'font-size:14px;line-height:1.5;color:#FAFAFA">'
-    '⏱️ <b>Heads up — YouTube view counts are updating slowly right now.</b> '
-    'YouTube\'s public API has been delaying refreshes of channel '
-    'view totals (the same lag shows on YouTube\'s own channel pages — '
-    'lifetime views can sit frozen for many hours before they jump). '
-    'The most recent day or two of the Δ-views charts may read flat '
-    'until Google\'s counter catches up; we backfill the real numbers '
-    'as soon as it does. New-video counts are unaffected.'
-    '</div>',
-    unsafe_allow_html=True,
-)
+# YouTube API latency notice — shown ONLY while the top-5 cohort still
+# has frozen channels on its most-recent snapshot day; auto-hides once
+# the resnap jobs catch up. (This page's charts are top-5; WC2026 has
+# its own banner on the WC2026 Trends page.)
+from src import freshness as _fr
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _latency_frozen(_cohort: str) -> int:
+    return _fr.cohort_frozen_count(db, _cohort)[0]
+
+try:
+    if _latency_frozen("top5") > 0:
+        st.markdown(_fr.LATENCY_NOTICE_HTML, unsafe_allow_html=True)
+except Exception:
+    pass
 
 if not ch_ids:
     st.info("No channels in the current filter scope.")

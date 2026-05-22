@@ -54,28 +54,21 @@ if not all_channels:
 _daily_updated = _cached_last_fetch(db, "daily")
 render_page_subtitle("Daily activity and new videos", updated_raw=_daily_updated)
 
-# YouTube API latency notice — amber boxed callout. YouTube's public
-# channel view-count aggregate has been updating with a long delay
-# lately (the same lag is visible on YouTube's own channel pages, where
-# the lifetime view total can sit frozen for many hours). When that
-# happens our Δ-views can read low / flat for a day until Google's
-# counter catches up — we then backfill it. Flagged loudly so the
-# numbers aren't misread as a real collapse.
-st.markdown(
-    '<div style="background:#3a2e1233;border:1px solid #F5A62355;'
-    'border-left:3px solid #F5A623;border-radius:4px;'
-    'padding:10px 14px;margin:6px 0 14px 0;'
-    'font-size:14px;line-height:1.5;color:#FAFAFA">'
-    '⏱️ <b>Heads up — YouTube view counts are updating slowly right now.</b> '
-    'YouTube\'s public API has been delaying refreshes of channel '
-    'view totals (the same lag shows on YouTube\'s own channel pages — '
-    'lifetime views can sit frozen for many hours before they jump). '
-    'So today\'s view gains may read low or flat until Google\'s counter '
-    'catches up; we backfill the real numbers as soon as it does. Video '
-    'counts and new uploads are unaffected.'
-    '</div>',
-    unsafe_allow_html=True,
-)
+# YouTube API latency notice — shown ONLY while the top-5 cohort's most
+# recent snapshot day still has frozen channels (view counts YouTube
+# hasn't refreshed yet). Disappears once the resnap jobs top everyone
+# up. Cached 5 min so it doesn't query on every rerun.
+from src import freshness as _fr
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _latency_frozen(_cohort: str) -> int:
+    return _fr.cohort_frozen_count(db, _cohort)[0]
+
+try:
+    if _latency_frozen("top5") > 0:
+        st.markdown(_fr.LATENCY_NOTICE_HTML, unsafe_allow_html=True)
+except Exception:
+    pass
 
 ch_by_id = {c["id"]: c for c in all_channels}
 color_map = get_global_color_map()
