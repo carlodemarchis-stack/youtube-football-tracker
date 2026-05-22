@@ -157,7 +157,18 @@ def _data_version() -> str:
         cnt_vs = (db.client.table("video_snapshots")
                   .select("id", count="exact")
                   .gte("captured_date", since).limit(1).execute()).count or 0
-        return f"{latest}:{cnt_ch}:{cnt_vs}"
+        # In-place UPDATEs to channel_snapshots (resnap_channel_views,
+        # interpolate_frozen_runs) don't change row counts or the newest
+        # date, so (a)+(b) above can't see them. Every one of those
+        # scripts — plus daily_refresh — refreshes the trends_30d cache
+        # afterwards, so its computed_at moves on any channel-data
+        # mutation. Folding it in makes the loaders below bust within
+        # this token's 120s TTL instead of sitting on the 1-hour cache.
+        trends_ca = ((db.client.table("dashboard_cache")
+                      .select("computed_at")
+                      .eq("name", "trends_30d").eq("scope_key", "all")
+                      .limit(1).execute()).data or [{}])[0].get("computed_at", "") or ""
+        return f"{latest}:{cnt_ch}:{cnt_vs}:{trends_ca}"
     except Exception:
         return ""
 
