@@ -225,7 +225,10 @@ def main() -> int:
         return _run_check_only(db, top5, target_date)
 
     # YT key only required for paths that actually call the API.
-    yt_key = (os.environ.get("YOUTUBE_API_KEY")
+    # Prefer the INTERACTIVE key so resnaps don't eat the main
+    # pipeline's daily/hourly quota; fall back to the general keys.
+    yt_key = (os.environ.get("YOUTUBE_API_KEY_INTERACTIVE")
+              or os.environ.get("YOUTUBE_API_KEY")
               or os.environ.get("YOUTUBE_API_KEY_DAILY")
               or os.environ.get("YOUTUBE_API_KEY_HEAVY"))
     if not yt_key:

@@ -72,7 +72,11 @@ def main() -> int:
     sb_url = os.environ.get("SUPABASE_URL")
     sb_key = (os.environ.get("SUPABASE_SERVICE_KEY")
               or os.environ.get("SUPABASE_KEY"))
-    yt_key = (os.environ.get("YOUTUBE_API_KEY")
+    # Resnap runs on the INTERACTIVE key so its hourly top-ups never
+    # compete with the main pipeline's daily/hourly quota. Falls back
+    # to the general keys only if INTERACTIVE isn't configured.
+    yt_key = (os.environ.get("YOUTUBE_API_KEY_INTERACTIVE")
+              or os.environ.get("YOUTUBE_API_KEY")
               or os.environ.get("YOUTUBE_API_KEY_DAILY")
               or os.environ.get("YOUTUBE_API_KEY_HEAVY"))
     if not (sb_url and sb_key and yt_key):
