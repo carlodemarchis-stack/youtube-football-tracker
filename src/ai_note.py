@@ -640,6 +640,20 @@ Hard constraints (will be checked)
 - DO NOT rank or compare clubs by performance metrics.
 - Never invent match results, scores, standings, or transfer news. If
   a score isn't already in a video title we hand you, you don't know it.
+- NEVER state who is champion, leads the table, qualified, or got
+  relegated as a real-world fact. You don't have standings. You may say
+  a club is *posting* celebration/title content; you may NOT declare
+  them the actual champion. ("Juventus is posting celebration content"
+  is fine ONLY if their FRESH titles say so; "Juventus's championship"
+  as a fact is forbidden.)
+- ARCHIVE/THROWBACK GUARD: items with `"archive": true` are throwbacks,
+  classics, anniversaries, or old-season content (a 2015/16 rewind, an
+  "on this day"). They are HISTORY, not current news. A championship,
+  trophy, score, or transfer in an archive title is a PAST event — never
+  present it as something happening now, and never let one drive the
+  headline. If most title-win/result language comes from archive items,
+  the real story is "clubs are publishing throwback content", not a
+  current result.
 - Never name a player who isn't in the data.
 - If the payload includes `league_scope`, EVERYTHING you've been
   given is already filtered to that single league. Do NOT observe
@@ -659,12 +673,19 @@ What you'll get
   format, age, league, category) and a quick aggregate (counts by
   format, counts by league, time span covered).
 
+What you'll get (continued)
+- Each item has an `archive` flag (true = throwback/classic/old-season).
+  `totals.archive` is how many of the feed are archive. Discount these
+  for any "what's happening now" read.
+
 What to lean on
-- READ THE TITLES. The biggest signal is usually in plain text in
-  the video titles themselves. If a club's titles say they just won
-  the league ("CHAMPIONS OF ITALY", "WE ARE CHAMPIONS"), or qualified,
-  or got knocked out, or a manager left — that's the headline. Lead
-  with it. You're not inventing anything: it's printed in the data.
+- READ THE TITLES, but only FRESH (archive:false) ones for current
+  events. If several fresh titles converge on a real moment ("CHAMPIONS
+  OF ITALY", "WE ARE CHAMPIONS", a manager leaving, a cup final) that's
+  a fair headline — describe what they're POSTING, don't assert league
+  standings. One fresh title alone is weak; convergence across fresh
+  items is the signal. If the title-win language is mostly archive,
+  don't lead with a championship at all.
 - Format mix: is the feed Shorts-heavy right now, Long-heavy, Live
   showing up post-matchday, etc. Only mention this if it's NOT what
   you'd expect for the moment (post-matchday Long-heavy is normal).
@@ -679,6 +700,34 @@ Output format
 - Exactly 3-5 short sentences total, ~60-80 words.
 - Put each sentence on its own line (single newline between them).
 - Plain text. No markdown, no JSON, no list bullets."""
+
+
+# Throwback / classic / old-season content. A club uploads these all the
+# time (a "REWIND" of a 2015/16 derby, an "On this day" anniversary), and
+# because they're freshly UPLOADED their age_hours looks current — so the
+# model used to read an old title-win as a current championship. We flag
+# them so the note can discount them and never assert a historical result
+# as a present-day fact.
+_ARCHIVE_KW = (
+    "rewind", "flashback", "throwback", "on this day", "years ago",
+    "anniversary", "un secolo", "#tbt", "retro", "classic match",
+    "greatest goals", "all goals 20", "best goals of", "legends of",
+    "the story of", "vintage", "from the archive", "decades",
+)
+_YEAR_RE = re.compile(r"\b(19|20)\d{2}\b")
+
+
+def _is_archive_item(title: str, category: str, current_year: int) -> bool:
+    """Heuristic: is this video about a PAST event (not current news)?
+    Triggers on throwback keywords OR a 4-digit year two+ seasons old
+    (<= current_year-2, so the live 2025/26 season's "2025" never trips)."""
+    t = (title or "").lower()
+    if any(k in t for k in _ARCHIVE_KW):
+        return True
+    for m in _YEAR_RE.finditer(t):
+        if int(m.group(0)) <= current_year - 2:
+            return True
+    return (category or "").lower() in ("classic", "throwback", "archive")
 
 
 def compose_latest_payload(videos: list[dict],
@@ -698,6 +747,8 @@ def compose_latest_payload(videos: list[dict],
     fmt_counts = {"long": 0, "short": 0, "live": 0}
     league_counts: dict[str, int] = {}
     now_utc = datetime.now(timezone.utc)
+    _cur_year = now_utc.year
+    archive_count = 0
     oldest = newest = None
     # Up to 60 — big narrative arcs (championship clinches, cup
     # finals, manager moves) need a wider window than just the
@@ -726,14 +777,19 @@ def compose_latest_payload(videos: list[dict],
                     newest = pub_dt
             except Exception:
                 pass
+        _title = (v.get("title") or "").strip()[:160]
+        _archive = _is_archive_item(_title, v.get("category") or "", _cur_year)
+        if _archive:
+            archive_count += 1
         items.append({
             "channel": ch_name,
             "league": league,
-            "title": (v.get("title") or "").strip()[:160],
+            "title": _title,
             "format": fmt,
             "view_count": int(v.get("view_count") or 0),
             "age_hours": age_hours,
             "category": v.get("category") or "",
+            "archive": _archive,
         })
 
     span_hours = None
@@ -747,6 +803,7 @@ def compose_latest_payload(videos: list[dict],
             "by_format": fmt_counts,
             "by_league": league_counts,
             "span_hours": span_hours,
+            "archive": archive_count,
         },
     }
 
