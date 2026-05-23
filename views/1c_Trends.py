@@ -317,6 +317,13 @@ st.markdown(kpi_row([
      "per day"),
 ]), unsafe_allow_html=True)
 
+st.caption(
+    "🗄️ **Archive** = view growth coming from videos published **more than "
+    "30 days ago** (the back-catalogue still earning views) — as opposed to "
+    "fresh uploads from the last 30 days. A high archive share means a "
+    "channel's older videos, not its new ones, are driving its current views."
+)
+
 st.markdown("---")
 
 # ── Chart geometry + shared Sunday rule layer ─────────────────────
