@@ -936,6 +936,73 @@ if _show_per_league_summary:
         </tr></thead><tbody>{lg_rows}</tbody></table>
         """, height=len(lg_agg) * 42 + 60, scrolling=False)
 
+    # ── Δ Channel Views per day — by league ───────────────────────────
+    # Same series as the top-left "Daily trends" chart, split into one
+    # line per league. Z1 (all-leagues) only — a single-league scope
+    # would collapse to one line, and we need ≥2 snapshot days for deltas.
+    if lg_agg and not g_league and len(_all_dates) >= 2:
+        import altair as alt
+        from src.channels import LEAGUE_COLOR_CHART
+        _PLG_ORDER = ["Premier League", "La Liga", "Serie A",
+                      "Bundesliga", "Ligue 1"]
+        _plg_rows = []
+        for _i in range(1, len(_all_dates)):
+            _d, _dp = _all_dates[_i], _all_dates[_i - 1]
+            _cur = _snap_by_date.get(_d, {})
+            _prv = _snap_by_date.get(_dp, {})
+            _per = {lg: 0 for lg in _PLG_ORDER}
+            for _cid, _snap in _cur.items():
+                _ch = ch_by_id.get(_cid)
+                if not _ch or _ch.get("entity_type") in _SKIP_TYPES:
+                    continue
+                _lg = get_league_for_channel(_ch)
+                if _lg not in _per:
+                    continue
+                _p = _prv.get(_cid)
+                if not _p:
+                    continue
+                _per[_lg] += (int(_snap.get("total_views") or 0)
+                              - int(_p.get("total_views") or 0))
+            for lg in _PLG_ORDER:
+                _plg_rows.append({"Date": _d, "League": lg,
+                                  "Δ Channel Views": _per[lg]})
+        _plg_df = pd.DataFrame(_plg_rows)
+
+        _plg_legend = "  ".join(
+            f'<span style="display:inline-flex;align-items:center;gap:4px">'
+            f'<span style="display:inline-block;width:10px;height:10px;'
+            f'border-radius:2px;background:{LEAGUE_COLOR_CHART[lg]}"></span>'
+            f'<span style="font-size:0.8rem;color:{_T.MUTED_2}">{lg}</span>'
+            f'</span>'
+            for lg in _PLG_ORDER
+        )
+        st.markdown(
+            f'<div style="font-size:14px;color:rgba(250,250,250,0.6);'
+            f'line-height:1.6">👁️ Δ Channel Views per day — by league '
+            f'&nbsp;&nbsp; {_plg_legend}</div>',
+            unsafe_allow_html=True,
+        )
+        _plg_x = alt.Axis(labelAngle=-45, title=None, format="%b %d %a",
+                          tickCount={"interval": "day", "step": 1},
+                          labelOverlap=False)
+        _cplg = alt.Chart(_plg_df).mark_line(strokeWidth=2).encode(
+            x=alt.X("Date:T", axis=_plg_x),
+            y=alt.Y("Δ Channel Views:Q", title=None,
+                    axis=alt.Axis(format="~s", minExtent=60)),
+            color=alt.Color(
+                "League:N", sort=_PLG_ORDER,
+                scale=alt.Scale(
+                    domain=_PLG_ORDER,
+                    range=[LEAGUE_COLOR_CHART[lg] for lg in _PLG_ORDER]),
+                legend=None),
+            tooltip=[
+                alt.Tooltip("Date:T", title="Date", format="%a %b %d, %Y"),
+                "League",
+                alt.Tooltip("Δ Channel Views:Q", format=","),
+            ],
+        ).properties(height=280)
+        st.altair_chart(_cplg, width="stretch")
+
 # ── Gainer leaderboards side-by-side ─ skip when viewing one club ─
 if ONE_CLUB:
     # New videos published by this club on the picked day
