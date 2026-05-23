@@ -237,8 +237,8 @@ def _render_per_league_charts(sorted_leagues):
     fig_v.add_trace(go.Bar(name="Live",   x=lg_names, y=[s["live_views"]  for _, s in sorted_leagues], marker_color="#FFA15A"))
     fig_v.update_layout(title="Season Views by League (Long / Shorts / Live)", barmode="stack",
                         xaxis_title="", yaxis_title="",
-                        margin=dict(t=50, b=70, l=10, r=10),
-                        legend=dict(orientation="h", yanchor="top", y=-0.15,
+                        margin=dict(t=80, b=70, l=10, r=10),
+                        legend=dict(orientation="h", yanchor="bottom", y=1.02,
                                     xanchor="center", x=0.5),
                         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                         font=dict(color="#FAFAFA"))
@@ -249,8 +249,8 @@ def _render_per_league_charts(sorted_leagues):
     fig_n.add_trace(go.Bar(name="Live",   x=lg_names, y=[s["live_v"]   for _, s in sorted_leagues], marker_color="#FFA15A"))
     fig_n.update_layout(title="Season Videos by League (Long / Shorts / Live)", barmode="stack",
                         xaxis_title="", yaxis_title="",
-                        margin=dict(t=50, b=70, l=10, r=10),
-                        legend=dict(orientation="h", yanchor="top", y=-0.15,
+                        margin=dict(t=80, b=70, l=10, r=10),
+                        legend=dict(orientation="h", yanchor="bottom", y=1.02,
                                     xanchor="center", x=0.5),
                         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                         font=dict(color="#FAFAFA"))
@@ -272,8 +272,8 @@ def _render_per_league_charts(sorted_leagues):
                              marker_color="#FFA15A"))
     fig_vpv.update_layout(title="Season Views/Video by League (Long / Shorts / Live)", barmode="group",
                           xaxis_title="", yaxis_title="",
-                          margin=dict(t=50, b=70, l=10, r=10),
-                          legend=dict(orientation="h", yanchor="top", y=-0.15,
+                          margin=dict(t=80, b=70, l=10, r=10),
+                          legend=dict(orientation="h", yanchor="bottom", y=1.02,
                                       xanchor="center", x=0.5),
                           paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                           font=dict(color="#FAFAFA"))
@@ -1810,8 +1810,8 @@ if club is None:
         fig_views.add_trace(go.Bar(name="Live", x=chart_names, y=sorted_df["live_views"], marker_color="#FFA15A"))
     fig_views.update_layout(
         title="Season Views (Long vs Shorts)", barmode="stack",
-        xaxis_title="", yaxis_title="", margin=dict(t=40, b=70),
-        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+        xaxis_title="", yaxis_title="", margin=dict(t=80, b=70),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(color="#FAFAFA"),
     )
     st.plotly_chart(fig_views, width="stretch")
@@ -1826,8 +1826,8 @@ if club is None:
         fig_vids.add_trace(go.Bar(name="Live", x=chart_names_v, y=sorted_df_v["live_videos"], marker_color="#FFA15A"))
     fig_vids.update_layout(
         title="Season Videos (Long vs Shorts)", barmode="stack",
-        xaxis_title="", yaxis_title="", margin=dict(t=40, b=70),
-        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+        xaxis_title="", yaxis_title="", margin=dict(t=80, b=70),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(color="#FAFAFA"),
     )
     st.plotly_chart(fig_vids, width="stretch")
@@ -1842,8 +1842,8 @@ if club is None:
         fig_vpv_bar.add_trace(go.Bar(name="Live", x=chart_names_vpv, y=sorted_df_vpv["live_vpv"], marker_color="#FFA15A"))
     fig_vpv_bar.update_layout(
         title="Avg Views/Video (Long vs Shorts vs Live)", barmode="group",
-        xaxis_title="", yaxis_title="", margin=dict(t=40, b=70),
-        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+        xaxis_title="", yaxis_title="", margin=dict(t=80, b=70),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(color="#FAFAFA"),
     )
     st.plotly_chart(fig_vpv_bar, width="stretch")
@@ -2636,8 +2636,8 @@ else:
         if has_live:
             fig_mviews.add_trace(go.Bar(name="Live", x=months, y=_series("live", "views"), marker_color=LIVE_COLOR))
         fig_mviews.update_layout(title="Views per Month", barmode="stack",
-                                 xaxis_title="", yaxis_title="", margin=dict(t=40, b=70),
-                                 legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+                                 xaxis_title="", yaxis_title="", margin=dict(t=80, b=70),
+                                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
                                  paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                                  font=dict(color="#FAFAFA"))
         st.plotly_chart(fig_mviews, width="stretch")
@@ -2648,8 +2648,8 @@ else:
         if has_live:
             fig_mv.add_trace(go.Bar(name="Live", x=months, y=_series("live", "videos"), marker_color=LIVE_COLOR))
         fig_mv.update_layout(title="Videos per Month", barmode="stack",
-                             xaxis_title="", yaxis_title="", margin=dict(t=40, b=70),
-                             legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+                             xaxis_title="", yaxis_title="", margin=dict(t=80, b=70),
+                             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
                              paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                              font=dict(color="#FAFAFA"))
         st.plotly_chart(fig_mv, width="stretch")
@@ -2661,8 +2661,8 @@ else:
         if has_live:
             fig_mvpv.add_trace(go.Bar(name="Live", x=months, y=_series_vpv("live"), marker_color=LIVE_COLOR))
         fig_mvpv.update_layout(title="Avg Views/Video per Month", barmode="group",
-                               xaxis_title="", yaxis_title="", margin=dict(t=40, b=70),
-                               legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+                               xaxis_title="", yaxis_title="", margin=dict(t=80, b=70),
+                               legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
                                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                                font=dict(color="#FAFAFA"))
         st.plotly_chart(fig_mvpv, width="stretch")
@@ -2797,8 +2797,8 @@ else:
         yaxis=dict(title="Views per video", showgrid=True, gridcolor="rgba(255,255,255,0.08)"),
         yaxis2=dict(title="Cumulative % of views", overlaying="y", side="right",
                     range=[0, 105], ticksuffix="%", showgrid=False),
-        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
-        margin=dict(t=50, b=70),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+        margin=dict(t=80, b=70),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="#FAFAFA"),
         hovermode="x unified",
