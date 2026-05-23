@@ -308,9 +308,9 @@ _tracked_abs = int(_split.get("tracked_view_delta") or 0)
 from src.analytics import fmt_num, kpi_row
 st.markdown(kpi_row([
     ("Δ Channel views (30d)", fmt_num(total_dv), "across cohort channels"),
-    ("🗄️ Archive contribution",
+    ("🗄️ Older videos (>30d)",
      f"{_archive_pct:.1f}%" if _split else "—",
-     f"{fmt_num(_archive_abs)} from older videos"),
+     f"{fmt_num(_archive_abs)} of Δ views"),
     ("New videos (30d)", fmt_num(total_new),
      f"{fmt_num(total_long)} / {fmt_num(total_short)} / {fmt_num(total_live)} L/S/Lv"),
     ("Daily avg Δ views", fmt_num(int(total_dv / max(len(window_dates), 1))),
@@ -318,9 +318,9 @@ st.markdown(kpi_row([
 ]), unsafe_allow_html=True)
 
 st.caption(
-    "🗄️ **Archive** = view growth coming from videos published **more than "
-    "30 days ago** (the back-catalogue still earning views) — as opposed to "
-    "fresh uploads from the last 30 days. A high archive share means a "
+    "🗄️ **Older videos (>30d)** = view growth coming from videos published "
+    "**more than 30 days ago** (the back-catalogue still earning views) — as "
+    "opposed to fresh uploads from the last 30 days. A high share means a "
     "channel's older videos, not its new ones, are driving its current views."
 )
 
@@ -642,7 +642,7 @@ if not ONE_CLUB and not g_league:
       <th>League</th>
       <th style="text-align:right">Channels</th>
       <th style="text-align:right">Δ Views (30d)</th>
-      <th style="text-align:right" title="Share of Δ views from videos older than 30d post-publish">🗄️ Archive %</th>
+      <th style="text-align:right" title="Share of Δ views from videos older than 30d post-publish">🗄️ Older (>30d) %</th>
       <th style="text-align:right">Videos</th>
       <th style="text-align:right">Long / Shorts / Live</th>
     </tr></thead><tbody>{_lg_html}</tbody></table>
@@ -883,7 +883,7 @@ elif g_league and not ONE_CLUB:
     <table class="ctbl"><thead><tr>
       <th>Channel</th>
       <th style="text-align:right">Δ Views (30d)</th>
-      <th style="text-align:right" title="Share of Δ views from videos older than 30d post-publish">🗄️ Archive %</th>
+      <th style="text-align:right" title="Share of Δ views from videos older than 30d post-publish">🗄️ Older (>30d) %</th>
       <th style="text-align:right">Videos</th>
       <th style="text-align:right">Long / Shorts / Live</th>
     </tr></thead><tbody>{_ch_html}</tbody></table>
@@ -1014,7 +1014,7 @@ st.caption(
     f"(trailing {LOOKBACK_DAYS} CET days, today excluded as partial). "
     "Δ Channel views = day-over-day diff of each channel's lifetime "
     "total_views, summed across the cohort — captures growth on ALL "
-    "content including archive videos. The Top 25 videos column uses "
+    "content, including videos older than 30 days. The Top 25 videos column uses "
     "per-video deltas (one row's growth in the 30-day window) so the "
     "ranking surfaces the individual movers."
 )
