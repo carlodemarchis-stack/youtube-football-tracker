@@ -901,7 +901,7 @@ elif club is None:
         xaxis_title="", yaxis_title="",
         margin=dict(t=50, b=70, l=10, r=10),
         legend=dict(orientation="h", yanchor="top", y=-0.15,
-                    xanchor="center", x=0.5),
+                    xanchor="center", x=0.5, traceorder="normal"),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(color="#FAFAFA"),
     )
     readable_hover(fig_vids, x_date=False)
@@ -1240,7 +1240,7 @@ else:
                 margin=dict(t=40, b=70, l=10, r=10),
                 height=320,
                 legend=dict(orientation="h", yanchor="top", y=-0.15,
-                            xanchor="center", x=0.5),
+                            xanchor="center", x=0.5, traceorder="normal"),
                 paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                 font=dict(color="#FAFAFA"),
             )
