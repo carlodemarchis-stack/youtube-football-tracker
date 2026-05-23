@@ -3,6 +3,16 @@
 Deferred ideas surfaced during launch prep. Not blocking launch — revisit
 after.
 
+## Video description attributes (Phase 2) — PARKED on cost decision
+
+Phase 1 shipped (raw `description` captured + backfilled, 65k rows; see
+commit ef26f84). Phase 2 = derive `description_meta` (content_type,
+sponsor vs internal_promo, match metadata, language, etc.) via a tuned
+Haiku pass. **Fully designed & prototype-validated, NOT built** — parked
+pending go/no-go on a **~$50 one-time** AI spend (~$5/mo recurring).
+Full implementable spec + prompt + cost analysis:
+**`DESCRIPTION_META_PHASE2.md`**.
+
 ## AI notes
 
 - **Verify AI note numerical accuracy.** Add a sanity-check layer
