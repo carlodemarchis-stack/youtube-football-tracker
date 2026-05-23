@@ -1565,7 +1565,8 @@ def refresh_latest_vibe(db, log=print, channels: list[dict] | None = None) -> No
                 return
             # 60 (not 30) so big narrative arcs (title clinch, cup
             # final, manager sack) stay visible ~12-24h, not 1 hour.
-            recent = db.get_recent_videos(limit=60, channel_ids=ids)
+            recent = db.get_recent_videos(limit=60, channel_ids=ids,
+                                          with_description=True)
             log(f"[dashboard_cache] computing latest_vibe/{label} "
                 f"({len(ids)} channels, {len(recent)} videos)")
             vibe = _an2.generate_latest_vibe(recent, channels_by_id=chans_by_id,

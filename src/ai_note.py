@@ -58,7 +58,11 @@ Hard constraints (will be checked)
 
 What you'll get
 - A JSON blob of yesterday's per-channel and per-league summary.
-- The day's viral videos with titles + views.
+- The day's viral videos with titles + views. Some carry a `desc` (a
+  short description blurb) — use it to understand what the video
+  actually is before characterizing it (it disambiguates vague or
+  branded titles, confirms a throwback, names the real match). Trust
+  `desc` over a flashy title; never quote it verbatim, paraphrase.
 - viral_league_breakdown: how the top-10 most-watched split by league.
   If one league dominates the top of the day (e.g. 6+ of the 10 from
   the Premier League), call it out in one sentence. If the spread is
@@ -118,7 +122,8 @@ def compose_payload(db, target_date: date, league: str | None = None) -> dict:
     offset = 0
     while True:
         q = (db.client.table("videos")
-             .select("title,view_count,channel_id,format,duration_seconds,published_at")
+             .select("title,view_count,channel_id,format,duration_seconds,"
+                     "published_at,description")
              .gte("published_at", day_start_utc)
              .lt("published_at", day_end_utc)
              .in_("channel_id", ecosystem_ids)
@@ -212,13 +217,17 @@ def compose_payload(db, target_date: date, league: str | None = None) -> dict:
     for v in top_videos:
         ch = ch_by_id.get(v.get("channel_id")) or {}
         league = COUNTRY_TO_LEAGUE.get((ch.get("country") or "").upper())
-        viral.append({
+        _vrow = {
             "club": ch.get("name", "?"),
             "league": league,
             "title": (v.get("title") or "")[:200],
             "views": int(v.get("view_count") or 0),
             "format": v.get("format"),
-        })
+        }
+        _vsnip = _desc_snippet(v.get("description") or "")
+        if _vsnip:
+            _vrow["desc"] = _vsnip
+        viral.append(_vrow)
         if league:
             viral_league_counts[league] = viral_league_counts.get(league, 0) + 1
 
@@ -686,6 +695,12 @@ What to lean on
   standings. One fresh title alone is weak; convergence across fresh
   items is the signal. If the title-win language is mostly archive,
   don't lead with a championship at all.
+- USE `desc` (the short description blurb) when present — it's the most
+  reliable disambiguator. It tells you what a video ACTUALLY is when the
+  title is vague or branded: confirms a throwback, reveals the real
+  opponent/competition, or shows a "Champions ..." title is a series/
+  sponsor campaign rather than a title win. Trust `desc` over a flashy
+  title. Never quote it verbatim — paraphrase.
 - Format mix: is the feed Shorts-heavy right now, Long-heavy, Live
   showing up post-matchday, etc. Only mention this if it's NOT what
   you'd expect for the moment (post-matchday Long-heavy is normal).
@@ -715,6 +730,28 @@ _ARCHIVE_KW = (
     "the story of", "vintage", "from the archive", "decades",
 )
 _YEAR_RE = re.compile(r"\b(19|20)\d{2}\b")
+
+# Cut a description down to its editorial lead — the bit BEFORE the
+# repeated SUBSCRIBE/social footer — so notes get real context without
+# the boilerplate eating tokens. Cuts at the first blank line or a footer
+# marker (multilingual), collapses whitespace, caps length.
+_DESC_FOOTER_RE = re.compile(
+    r"(?is)(\n\s*\n|subscribe|►|▶|🔔|🛒|follow us|instagram\s*:|"
+    r"join (us|as|the)|download the|suscr[ií]bete|s[ií]guenos|abonne|"
+    r"abonnier|iscriviti|seguici|segueix|🎥|📸|📱)"
+)
+
+
+def _desc_snippet(text: str, n: int = 200) -> str:
+    """First editorial paragraph of a description, footer stripped, ≤ n chars."""
+    if not text:
+        return ""
+    t = text.strip()
+    m = _DESC_FOOTER_RE.search(t)
+    if m and m.start() > 0:
+        t = t[:m.start()]
+    t = " ".join(t.split())
+    return t[:n].strip()
 
 
 def _is_archive_item(title: str, category: str, current_year: int) -> bool:
@@ -781,7 +818,7 @@ def compose_latest_payload(videos: list[dict],
         _archive = _is_archive_item(_title, v.get("category") or "", _cur_year)
         if _archive:
             archive_count += 1
-        items.append({
+        item = {
             "channel": ch_name,
             "league": league,
             "title": _title,
@@ -790,7 +827,11 @@ def compose_latest_payload(videos: list[dict],
             "age_hours": age_hours,
             "category": v.get("category") or "",
             "archive": _archive,
-        })
+        }
+        _snip = _desc_snippet(v.get("description") or "")
+        if _snip:
+            item["desc"] = _snip
+        items.append(item)
 
     span_hours = None
     if oldest and newest:

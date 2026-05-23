@@ -791,7 +791,8 @@ class Database:
         return resp.data or []
 
     def get_recent_videos(self, limit: int = 20, channel_ids: list[str] | None = None,
-                          since_hours: int | None = None) -> list[dict]:
+                          since_hours: int | None = None,
+                          with_description: bool = False) -> list[dict]:
         """Return the most recently ingested videos (joined with channel name).
 
         For live videos, actual_start_time (when the stream aired) is more
@@ -811,6 +812,8 @@ class Database:
                   "actual_start_time,duration_seconds,"
                   "format,category,view_count,like_count,comment_count,"
                   "thumbnail_url,language,channels(name)")
+        if with_description:
+            SELECT += ",description"
         if channel_ids is not None and not channel_ids:
             return []
 
