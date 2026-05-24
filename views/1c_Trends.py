@@ -941,61 +941,53 @@ _top_videos = (
 if not _top_videos:
     @st.cache_data(ttl=1800, show_spinner=False)
     def _live_top_videos(cids_tuple: tuple[str, ...],
-                         since: str, until: str, limit: int = 25) -> list[dict]:
-        from collections import defaultdict
-        sums: dict[str, int] = defaultdict(int)
+                         start_iso: str, end_iso: str,
+                         limit: int = 25) -> list[dict]:
+        """Most-watched videos PUBLISHED in the window, ranked by
+        view_count (cache-miss fallback for the cached top_videos)."""
+        rows: list[dict] = []
         PAGE = 1000
         for cs in range(0, len(cids_tuple), 50):
             chunk = list(cids_tuple)[cs:cs + 50]
             offset = 0
             while True:
-                rs = (db.client.table("video_daily_deltas")
-                      .select("video_id,view_delta")
+                rs = (db.client.table("videos")
+                      .select("id,youtube_video_id,title,channel_id,"
+                              "thumbnail_url,duration_seconds,format,"
+                              "published_at,view_count,like_count,"
+                              "comment_count,category")
                       .in_("channel_id", chunk)
-                      .gte("captured_date", since)
-                      .lt("captured_date", until)
+                      .gte("published_at", start_iso)
+                      .lt("published_at", end_iso)
+                      .order("published_at")
                       .range(offset, offset + PAGE - 1).execute()).data or []
-                for r in rs:
-                    sums[r["video_id"]] += int(r.get("view_delta") or 0)
+                rows.extend(rs)
                 if len(rs) < PAGE:
                     break
                 offset += PAGE
-        if not sums:
-            return []
-        top_ids = sorted(sums, key=lambda v: -sums[v])[:limit]
+        rows.sort(key=lambda r: -(int(r.get("view_count") or 0)))
         out = []
-        for cs in range(0, len(top_ids), 100):
-            chunk = top_ids[cs:cs + 100]
-            rs = (db.client.table("videos")
-                  .select("id,youtube_video_id,title,channel_id,thumbnail_url,"
-                          "duration_seconds,format,published_at,view_count,"
-                          "like_count,comment_count,category")
-                  .in_("id", chunk).execute()).data or []
-            meta = {r["id"]: r for r in rs}
-            for vid in chunk:
-                m = meta.get(vid)
-                if not m:
-                    continue
-                out.append({
-                    "id": vid, "video_id": vid,
-                    "youtube_video_id": m.get("youtube_video_id"),
-                    "title": m.get("title") or "",
-                    "thumbnail_url": m.get("thumbnail_url") or "",
-                    "duration_seconds": int(m.get("duration_seconds") or 0),
-                    "format": m.get("format") or "",
-                    "published_at": m.get("published_at"),
-                    "view_count": int(m.get("view_count") or 0),
-                    "like_count": int(m.get("like_count") or 0),
-                    "comment_count": int(m.get("comment_count") or 0),
-                    "category": m.get("category") or "",
-                    "delta_in_window": int(sums[vid]),
-                    "channel_id": m.get("channel_id"),
-                })
-        out.sort(key=lambda r: -r["delta_in_window"])
-        return out[:limit]
-    _top_videos = _live_top_videos(_cids_tuple,
-                                    start_d.isoformat(),
-                                    end_d.isoformat())
+        for m in rows[:limit]:
+            out.append({
+                "id": m.get("id"), "video_id": m.get("id"),
+                "youtube_video_id": m.get("youtube_video_id"),
+                "title": m.get("title") or "",
+                "thumbnail_url": m.get("thumbnail_url") or "",
+                "duration_seconds": int(m.get("duration_seconds") or 0),
+                "format": m.get("format") or "",
+                "published_at": m.get("published_at"),
+                "view_count": int(m.get("view_count") or 0),
+                "like_count": int(m.get("like_count") or 0),
+                "comment_count": int(m.get("comment_count") or 0),
+                "category": m.get("category") or "",
+                "channel_id": m.get("channel_id"),
+            })
+        return out
+    _top_start_utc = (datetime.combine(start_d, datetime.min.time(), tzinfo=CET)
+                      .astimezone(timezone.utc).isoformat())
+    _top_end_utc = (datetime.combine(end_d, datetime.min.time(), tzinfo=CET)
+                    .astimezone(timezone.utc).isoformat())
+    _top_videos = _live_top_videos(_cids_tuple, _top_start_utc, _top_end_utc)
 
 if _top_videos:
     from src.season_top import render_top_season_videos_table
@@ -1006,9 +998,8 @@ if _top_videos:
     )
     render_top_season_videos_table(
         _top_videos, _ch_by_id,
-        header=f"🏆 Top 25 videos by Δ views — {_scope_label} (30d)",
-        order_by="extra",   # highlight the Δ column as the ranking key
-        extra_metric_col={"field": "delta_in_window", "label": "Δ Views (30d)"},
+        header=f"🏆 Top 25 most-watched videos published in the last 30 days — {_scope_label}",
+        order_by="views",
         max_height=1200,
     )
 
@@ -1017,7 +1008,7 @@ st.caption(
     f"(trailing {LOOKBACK_DAYS} CET days, today excluded as partial). "
     "Δ Channel views = day-over-day diff of each channel's lifetime "
     "total_views, summed across the cohort — captures growth on ALL "
-    "content, including videos older than 30 days. The Top 25 videos column uses "
-    "per-video deltas (one row's growth in the 30-day window) so the "
-    "ranking surfaces the individual movers."
+    "content, including videos older than 30 days. The Top 25 list ranks "
+    "videos PUBLISHED in the last 30 days by their view count (the best "
+    "fresh uploads of the window)."
 )

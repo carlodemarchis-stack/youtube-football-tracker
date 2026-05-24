@@ -292,33 +292,6 @@ def _scan_channel_view_deltas(db, channel_ids: list[str],
     return out
 
 
-def _scan_deltas(db, channel_ids: list[str],
-                 since: str, until: str) -> list[dict]:
-    """One paginated scan of video_daily_deltas with the columns we need."""
-    out: list[dict] = []
-    PAGE = 1000
-    cids = list(channel_ids or [])
-    if not cids:
-        return out
-    for cs in range(0, len(cids), 50):
-        chunk = cids[cs:cs + 50]
-        offset = 0
-        while True:
-            rs = (db.client.table("video_daily_deltas")
-                  .select("video_id,channel_id,captured_date,view_delta")
-                  .in_("channel_id", chunk)
-                  .gte("captured_date", since)
-                  .lt("captured_date", until)
-                  .order("captured_date")
-                  .range(offset, offset + PAGE - 1)
-                  .execute()).data or []
-            out.extend(rs)
-            if len(rs) < PAGE:
-                break
-            offset += PAGE
-    return out
-
-
 def _scan_pub_videos(db, channel_ids: list[str],
                      start_iso: str, end_iso: str) -> list[dict]:
     """One paginated scan of videos.published_at filtered to the cohort."""
@@ -332,7 +305,7 @@ def _scan_pub_videos(db, channel_ids: list[str],
         offset = 0
         while True:
             rs = (db.client.table("videos")
-                  .select("channel_id,published_at,format,duration_seconds,view_count")
+                  .select("id,channel_id,published_at,format,duration_seconds,view_count")
                   .in_("channel_id", chunk)
                   .gte("published_at", start_iso)
                   .lt("published_at", end_iso)
@@ -454,19 +427,22 @@ def _build_group_by_date(deltas: list[dict], pub_videos: list[dict],
     return out
 
 
-def _build_top_videos(deltas: list[dict], db, chans: list[dict],
+def _build_top_videos(pub_videos: list[dict], db, chans: list[dict],
                        dates: list[str], limit: int = 25) -> list[dict]:
-    """Top-N videos by Δ views accumulated across the window. Aggregates
-    the already-loaded delta scan, then one batch fetch for video metadata
-    + a join with the channels list. Returns plain dicts the page can
-    render directly."""
-    sums: dict[str, int] = {}
-    for r in deltas:
-        vid = r["video_id"]
-        sums[vid] = sums.get(vid, 0) + int(r.get("view_delta") or 0)
-    if not sums:
+    """Top-N most-watched videos PUBLISHED in the window, ranked by
+    view_count. For an in-window-published video, view_count ≈ the views
+    it earned during the window (it didn't exist before it), so this is
+    "the best fresh uploads of the last 30 days". Ranks from the lean
+    pub-video scan, then one batch fetch for full metadata + a join with
+    the channels list. Returns plain dicts the page can render directly."""
+    by_view: dict[str, int] = {}
+    for r in pub_videos:
+        vid = r.get("id")
+        if vid:
+            by_view[vid] = int(r.get("view_count") or 0)
+    if not by_view:
         return []
-    top_ids = sorted(sums.keys(), key=lambda v: -sums[v])[:limit]
+    top_ids = sorted(by_view.keys(), key=lambda v: -by_view[v])[:limit]
     # Fetch metadata in one or two batches.
     meta_by_id: dict[str, dict] = {}
     PAGE = 100
@@ -499,7 +475,6 @@ def _build_top_videos(deltas: list[dict], db, chans: list[dict],
             "like_count": int(m.get("like_count") or 0),
             "comment_count": int(m.get("comment_count") or 0),
             "category": m.get("category") or "",
-            "delta_in_window": int(sums[vid]),
             "channel_id": m.get("channel_id"),
             "channel_name": ch.get("name") or "?",
             "channel_color": ch.get("color") or "#888",
@@ -598,7 +573,6 @@ def compute_trends_30d_all(db, chans: list[dict],
     chan_deltas = _scan_channel_view_deltas(db, cohort_ids, dates)
     pubs = _scan_pub_videos(db, cohort_ids, start_iso, end_iso)
     cohort = _build_cohort_by_date(chan_deltas, pubs, dates)
-    video_deltas = _scan_deltas(db, cohort_ids, dates[0], today_cet.isoformat())
 
     # League key resolver — works for both clubs and League HQ channels.
     # Country-based mapping is used uniformly so quirky brand names
@@ -636,7 +610,7 @@ def compute_trends_30d_all(db, chans: list[dict],
         "dates": dates,
         "cohort": {"by_date": cohort, "split": cohort_split},
         "breakdown": {"group_label": "league", "groups": groups},
-        "top_videos": _build_top_videos(video_deltas, db, chans, dates, limit=25),
+        "top_videos": _build_top_videos(pubs, db, chans, dates, limit=25),
     }
 
 
@@ -658,7 +632,6 @@ def compute_trends_30d_league(db, league: str,
     # Channel-snapshot deltas drive the cohort + per-channel Δ-views series.
     # Per-video deltas (video_daily_deltas) only feed the Top-25 list.
     chan_deltas = _scan_channel_view_deltas(db, channel_ids, dates)
-    video_deltas = _scan_deltas(db, channel_ids, dates[0], today_cet.isoformat())
     pubs = _scan_pub_videos(db, channel_ids, start_iso, end_iso)
     cohort = _build_cohort_by_date(chan_deltas, pubs, dates)
 
@@ -697,7 +670,7 @@ def compute_trends_30d_league(db, league: str,
         "dates": dates,
         "cohort": {"by_date": cohort, "split": cohort_split},
         "breakdown": {"group_label": "channel", "groups": groups},
-        "top_videos": _build_top_videos(video_deltas, db, chans, dates, limit=25),
+        "top_videos": _build_top_videos(pubs, db, chans, dates, limit=25),
     }
 
 
@@ -709,7 +682,6 @@ def compute_trends_30d_club(db, channel_id: str,
     deltas so the ranking remains meaningful at single-channel scope."""
     today_cet, start_cet, start_iso, end_iso, dates = _trends_30d_window()
     chan_deltas = _scan_channel_view_deltas(db, [channel_id], dates)
-    video_deltas = _scan_deltas(db, [channel_id], dates[0], today_cet.isoformat())
     pubs = _scan_pub_videos(db, [channel_id], start_iso, end_iso)
     cohort = _build_cohort_by_date(chan_deltas, pubs, dates)
     if chans is None:
@@ -721,7 +693,7 @@ def compute_trends_30d_club(db, channel_id: str,
         "cohort": {"by_date": cohort,
                     "split": _split_archive_share(chan_deltas, pubs)},
         "breakdown": {"group_label": "channel", "groups": []},
-        "top_videos": _build_top_videos(video_deltas, db, chans, dates, limit=25),
+        "top_videos": _build_top_videos(pubs, db, chans, dates, limit=25),
     }
 
 
