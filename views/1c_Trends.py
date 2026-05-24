@@ -930,91 +930,137 @@ elif g_league and not ONE_CLUB:
     ).properties(height=_CHART_HEIGHT)
     st.altair_chart(_with_sundays(cz2), width="stretch")
 
-# ── 🚀 Trending now — going viral in their first 30 days ─────────────
-# Live (no cron). video_daily_deltas only exists for videos ≤30 days old,
-# so this is "viral within the first month" by construction. A video
-# qualifies if its best single day in the last 3 days cleared the viral
-# threshold — robust to single-day YouTube freezes; cools off on its own.
-VIRAL_THRESHOLD = 250_000
+# ── 🚀 Viral this month — biggest breakouts in their first 30 days ────
+# Live (no cron). video_daily_deltas only covers videos ≤30 days old, so
+# this is "viral within the first month" by construction. Ranking = the
+# "Blend": views gained in the 30-day window ÷ √subscribers (magnitude
+# balanced with audience reach), gated by a momentum spike so only
+# genuine breakouts qualify — not steady high-volume earners.
+import math as _math
+VIRAL_FLOOR = 100_000     # peak day must clear this (absolute notability)
+VIRAL_SPIKE = 3.0         # peak ≥ 3× the video's own median day (momentum)
 
 
 @st.cache_data(ttl=1800, show_spinner=False)
-def _load_trending(cids_tuple: tuple[str, ...], threshold: int,
-                   since_date: str) -> list[dict]:
+def _load_viral(cids_tuple: tuple[str, ...], since_date: str,
+                _subs: dict) -> list[dict]:
     if not cids_tuple:
         return []
-    peak: dict[str, int] = {}
+    import statistics
+    series: dict[str, list] = {}
+    vch: dict[str, str] = {}
     cids = list(cids_tuple)
     for cs in range(0, len(cids), 50):
         chunk = cids[cs:cs + 50]
-        rs = (db.client.table("video_daily_deltas")
-              .select("video_id,view_delta")
-              .in_("channel_id", chunk)
-              .gte("captured_date", since_date)
-              .gte("view_delta", threshold)
-              .execute().data) or []
-        for r in rs:
-            vid = r["video_id"]
-            d = int(r.get("view_delta") or 0)
-            if d > peak.get(vid, 0):
-                peak[vid] = d
-    if not peak:
+        off = 0
+        while True:
+            rs = (db.client.table("video_daily_deltas")
+                  .select("video_id,channel_id,captured_date,view_delta")
+                  .in_("channel_id", chunk)
+                  .gte("captured_date", since_date)
+                  .order("captured_date")
+                  .range(off, off + 999).execute().data) or []
+            for r in rs:
+                series.setdefault(r["video_id"], []).append(
+                    (r["captured_date"], int(r.get("view_delta") or 0)))
+                vch[r["video_id"]] = r["channel_id"]
+            if len(rs) < 1000:
+                break
+            off += 1000
+    if not series:
         return []
-    hot = list(peak.keys())
+    scored = []
+    for vid, s in series.items():
+        deltas = [d for _, d in s]
+        peak = max(deltas)
+        med = statistics.median(deltas) if deltas else 0
+        if peak < VIRAL_FLOOR or peak < VIRAL_SPIKE * max(med, 1):
+            continue
+        total = sum(deltas)
+        sub = max(int(_subs.get(vch[vid], 0)), 1)
+        scored.append((total / _math.sqrt(sub), vid, peak, total, sub, s))
+    scored.sort(reverse=True)
+    top = scored[:12]
+    ids = [t[1] for t in top]
     meta: dict[str, dict] = {}
-    for cs in range(0, len(hot), 100):
-        chunk = hot[cs:cs + 100]
+    for cs in range(0, len(ids), 100):
         rs = (db.client.table("videos")
-              .select("id,youtube_video_id,title,channel_id,thumbnail_url,"
-                      "duration_seconds,format,published_at,view_count,"
-                      "like_count,comment_count,category")
-              .in_("id", chunk).execute().data) or []
+              .select("id,youtube_video_id,title,channel_id,"
+                      "thumbnail_url,published_at")
+              .in_("id", ids[cs:cs + 100]).execute().data) or []
         for r in rs:
             meta[r["id"]] = r
     out = []
-    for vid in hot:
+    for score, vid, peak, total, sub, s in top:
         m = meta.get(vid)
         if not m:
             continue
         out.append({
-            "id": vid, "video_id": vid,
             "youtube_video_id": m.get("youtube_video_id"),
             "title": m.get("title") or "",
             "thumbnail_url": m.get("thumbnail_url") or "",
-            "duration_seconds": int(m.get("duration_seconds") or 0),
-            "format": m.get("format") or "",
             "published_at": m.get("published_at"),
-            "view_count": int(m.get("view_count") or 0),
-            "like_count": int(m.get("like_count") or 0),
-            "comment_count": int(m.get("comment_count") or 0),
-            "category": m.get("category") or "",
             "channel_id": m.get("channel_id"),
-            "viral_delta": int(peak[vid]),
+            "peak": peak, "total": total, "subs": sub,
+            "reach": total / sub,
+            "series": sorted(s),
         })
-    out.sort(key=lambda r: -r["viral_delta"])
-    return out[:15]
+    return out
 
 
-_trending = _load_trending(
-    _cids_tuple, VIRAL_THRESHOLD,
-    (datetime.now(CET).date() - timedelta(days=3)).isoformat(),
-)
-if _trending:
-    from src.season_top import render_top_season_videos_table as _rtt
+_subs_by_id = {c["id"]: int(c.get("subscriber_count") or 0) for c in all_channels}
+_name_by_id = {c["id"]: (c.get("name") or "?") for c in all_channels}
+_viral = _load_viral(_cids_tuple, start_d.isoformat(), _subs_by_id)
+if _viral:
     st.markdown("---")
-    _ch_by_id_tr = {c["id"]: c for c in all_channels}
-    _rtt(
-        _trending, _ch_by_id_tr,
-        header="🚀 Trending now — going viral in their first 30 days",
-        order_by="extra",
-        extra_metric_col={"field": "viral_delta", "label": "Peak Δ/day (3d)"},
-        max_height=620,
-    )
+    st.subheader("🚀 Viral this month — biggest breakouts in their first 30 days")
     st.caption(
-        f"Videos under 30 days old whose best single day in the last 3 days "
-        f"topped {VIRAL_THRESHOLD:,} views — sorted by that peak. Live "
-        f"(not cached nightly); cools off automatically as a video slows."
+        "Videos ≤30 days old, ranked by views gained ÷ √subscribers "
+        "(magnitude balanced with audience reach), momentum-gated so only "
+        "genuine spikes qualify. Expand a row for its 30-day daily-views "
+        "trajectory."
     )
+    for _i, _v in enumerate(_viral, 1):
+        _c1, _c2, _c3 = st.columns([0.5, 6, 3.2])
+        with _c1:
+            st.markdown(f"### {_i}")
+        with _c2:
+            _url = f"https://www.youtube.com/watch?v={_v['youtube_video_id']}"
+            _pub = (_v["published_at"] or "")[:10]
+            st.markdown(
+                f"**[{_v['title'][:90]}]({_url})**  \n"
+                f"<span style='color:{_T.MUTED_2};font-size:13px'>"
+                f"{_name_by_id.get(_v['channel_id'], '?')} · published {_pub}</span>",
+                unsafe_allow_html=True,
+            )
+        with _c3:
+            st.markdown(
+                f"<div style='text-align:right;font-size:13px;line-height:1.5'>"
+                f"<b style='color:{_T.POS};font-size:16px'>+{fmt_num(_v['total'])}</b> "
+                f"views (30d)<br>"
+                f"<span style='color:{_T.MUTED_2}'>peak +{fmt_num(_v['peak'])}/day · "
+                f"{_v['reach'] * 100:.0f}% of subs</span></div>",
+                unsafe_allow_html=True,
+            )
+        with st.expander("📈 30-day daily-views trajectory"):
+            _vdf = pd.DataFrame(
+                [{"Date": d, "Δ Views": x} for d, x in _v["series"]])
+            _vdf["Date"] = pd.to_datetime(_vdf["Date"])
+            _vc = alt.Chart(_vdf).mark_area(
+                line={"color": _T.ACCENT}, color=alt.Gradient(
+                    gradient="linear",
+                    stops=[alt.GradientStop(color=_T.BG, offset=0),
+                           alt.GradientStop(color=_T.ACCENT, offset=1)],
+                    x1=1, x2=1, y1=1, y2=0),
+                opacity=0.6,
+            ).encode(
+                x=alt.X("Date:T", axis=_X_AXIS),
+                y=alt.Y("Δ Views:Q", title=None,
+                        axis=alt.Axis(format="~s", minExtent=_Y_AXIS_GUTTER)),
+                tooltip=[alt.Tooltip("Date:T", title="Date", format="%a %b %d"),
+                         alt.Tooltip("Δ Views:Q", format=",")],
+            ).properties(height=220)
+            st.altair_chart(_with_sundays(_vc), width="stretch")
 
 # ── Top 25 videos in the window (all Z levels) ───────────────────
 # Read from the cached payload; falls back to a live aggregation if
