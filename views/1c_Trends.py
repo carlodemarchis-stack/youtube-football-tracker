@@ -930,6 +930,92 @@ elif g_league and not ONE_CLUB:
     ).properties(height=_CHART_HEIGHT)
     st.altair_chart(_with_sundays(cz2), width="stretch")
 
+# ── 🚀 Trending now — going viral in their first 30 days ─────────────
+# Live (no cron). video_daily_deltas only exists for videos ≤30 days old,
+# so this is "viral within the first month" by construction. A video
+# qualifies if its best single day in the last 3 days cleared the viral
+# threshold — robust to single-day YouTube freezes; cools off on its own.
+VIRAL_THRESHOLD = 250_000
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def _load_trending(cids_tuple: tuple[str, ...], threshold: int,
+                   since_date: str) -> list[dict]:
+    if not cids_tuple:
+        return []
+    peak: dict[str, int] = {}
+    cids = list(cids_tuple)
+    for cs in range(0, len(cids), 50):
+        chunk = cids[cs:cs + 50]
+        rs = (db.client.table("video_daily_deltas")
+              .select("video_id,view_delta")
+              .in_("channel_id", chunk)
+              .gte("captured_date", since_date)
+              .gte("view_delta", threshold)
+              .execute().data) or []
+        for r in rs:
+            vid = r["video_id"]
+            d = int(r.get("view_delta") or 0)
+            if d > peak.get(vid, 0):
+                peak[vid] = d
+    if not peak:
+        return []
+    hot = list(peak.keys())
+    meta: dict[str, dict] = {}
+    for cs in range(0, len(hot), 100):
+        chunk = hot[cs:cs + 100]
+        rs = (db.client.table("videos")
+              .select("id,youtube_video_id,title,channel_id,thumbnail_url,"
+                      "duration_seconds,format,published_at,view_count,"
+                      "like_count,comment_count,category")
+              .in_("id", chunk).execute().data) or []
+        for r in rs:
+            meta[r["id"]] = r
+    out = []
+    for vid in hot:
+        m = meta.get(vid)
+        if not m:
+            continue
+        out.append({
+            "id": vid, "video_id": vid,
+            "youtube_video_id": m.get("youtube_video_id"),
+            "title": m.get("title") or "",
+            "thumbnail_url": m.get("thumbnail_url") or "",
+            "duration_seconds": int(m.get("duration_seconds") or 0),
+            "format": m.get("format") or "",
+            "published_at": m.get("published_at"),
+            "view_count": int(m.get("view_count") or 0),
+            "like_count": int(m.get("like_count") or 0),
+            "comment_count": int(m.get("comment_count") or 0),
+            "category": m.get("category") or "",
+            "channel_id": m.get("channel_id"),
+            "viral_delta": int(peak[vid]),
+        })
+    out.sort(key=lambda r: -r["viral_delta"])
+    return out[:15]
+
+
+_trending = _load_trending(
+    _cids_tuple, VIRAL_THRESHOLD,
+    (datetime.now(CET).date() - timedelta(days=3)).isoformat(),
+)
+if _trending:
+    from src.season_top import render_top_season_videos_table as _rtt
+    st.markdown("---")
+    _ch_by_id_tr = {c["id"]: c for c in all_channels}
+    _rtt(
+        _trending, _ch_by_id_tr,
+        header="🚀 Trending now — going viral in their first 30 days",
+        order_by="extra",
+        extra_metric_col={"field": "viral_delta", "label": "Peak Δ/day (3d)"},
+        max_height=620,
+    )
+    st.caption(
+        f"Videos under 30 days old whose best single day in the last 3 days "
+        f"topped {VIRAL_THRESHOLD:,} views — sorted by that peak. Live "
+        f"(not cached nightly); cools off automatically as a video slows."
+    )
+
 # ── Top 25 videos in the window (all Z levels) ───────────────────
 # Read from the cached payload; falls back to a live aggregation if
 # the cache is cold or the payload doesn't carry top_videos yet (older
