@@ -552,6 +552,86 @@ def _split_archive_share(chan_deltas: list[dict],
     return [_finalise(per[gk]) for gk in (group_keys or [])]
 
 
+# Viral-breakout detector — see the 30-Day Trends "Viral this month" widget.
+VIRAL_FLOOR = 100_000     # peak day must clear this (absolute notability)
+VIRAL_SPIKE = 3.0         # peak ≥ 3× the video's own median day (momentum gate)
+
+
+def _build_viral(db, channel_ids: list[str], chans: list[dict],
+                 dates: list[str], limit: int) -> list[dict]:
+    """Top-N viral 'breakouts' over the window: videos (≤30 days old) ranked
+    by the Blend score = views gained ÷ √subscribers, momentum-gated (peak
+    day ≥ VIRAL_SPIKE× the video's own median day AND ≥ VIRAL_FLOOR) so only
+    genuine spikes qualify. Each item carries its daily series so the page
+    can draw an inline 30-day trajectory without re-querying."""
+    import math
+    import statistics
+    if not channel_ids:
+        return []
+    subs_by_id = {c["id"]: int(c.get("subscriber_count") or 0) for c in chans}
+    series: dict[str, list] = {}
+    vch: dict[str, str] = {}
+    PAGE = 1000
+    cids = list(channel_ids)
+    for cs in range(0, len(cids), 50):
+        chunk = cids[cs:cs + 50]
+        off = 0
+        while True:
+            rs = (db.client.table("video_daily_deltas")
+                  .select("video_id,channel_id,captured_date,view_delta")
+                  .in_("channel_id", chunk)
+                  .gte("captured_date", dates[0])
+                  .lte("captured_date", dates[-1])
+                  .order("captured_date")
+                  .range(off, off + PAGE - 1).execute().data) or []
+            for r in rs:
+                series.setdefault(r["video_id"], []).append(
+                    (r["captured_date"], int(r.get("view_delta") or 0)))
+                vch[r["video_id"]] = r["channel_id"]
+            if len(rs) < PAGE:
+                break
+            off += PAGE
+    if not series:
+        return []
+    scored = []
+    for vid, s in series.items():
+        deltas = [d for _, d in s]
+        peak = max(deltas)
+        med = statistics.median(deltas) if deltas else 0
+        if peak < VIRAL_FLOOR or peak < VIRAL_SPIKE * max(med, 1):
+            continue
+        total = sum(deltas)
+        sub = max(subs_by_id.get(vch[vid], 0), 1)
+        scored.append((total / math.sqrt(sub), vid, peak, total, sub, sorted(s)))
+    scored.sort(reverse=True)
+    top = scored[:limit]
+    ids = [t[1] for t in top]
+    meta: dict[str, dict] = {}
+    for cs in range(0, len(ids), 100):
+        rs = (db.client.table("videos")
+              .select("id,youtube_video_id,title,channel_id,"
+                      "thumbnail_url,published_at")
+              .in_("id", ids[cs:cs + 100]).execute().data) or []
+        for r in rs:
+            meta[r["id"]] = r
+    out = []
+    for score, vid, peak, total, sub, s in top:
+        m = meta.get(vid)
+        if not m:
+            continue
+        out.append({
+            "youtube_video_id": m.get("youtube_video_id"),
+            "title": m.get("title") or "",
+            "thumbnail_url": m.get("thumbnail_url") or "",
+            "published_at": m.get("published_at"),
+            "channel_id": m.get("channel_id"),
+            "peak": peak, "total": total, "subs": sub,
+            "reach": total / sub,
+            "series": s,
+        })
+    return out
+
+
 def compute_trends_30d_all(db, chans: list[dict],
                            leagues_to_channels: dict[str, list[str]]) -> dict:
     """Z1 payload — cohort across all 101 top-5 channels (clubs + League HQs)
@@ -611,6 +691,7 @@ def compute_trends_30d_all(db, chans: list[dict],
         "cohort": {"by_date": cohort, "split": cohort_split},
         "breakdown": {"group_label": "league", "groups": groups},
         "top_videos": _build_top_videos(pubs, db, chans, dates, limit=25),
+        "viral": _build_viral(db, cohort_ids, chans, dates, limit=5),
     }
 
 
@@ -671,6 +752,7 @@ def compute_trends_30d_league(db, league: str,
         "cohort": {"by_date": cohort, "split": cohort_split},
         "breakdown": {"group_label": "channel", "groups": groups},
         "top_videos": _build_top_videos(pubs, db, chans, dates, limit=25),
+        "viral": _build_viral(db, channel_ids, chans, dates, limit=5),
     }
 
 
@@ -694,6 +776,7 @@ def compute_trends_30d_club(db, channel_id: str,
                     "split": _split_archive_share(chan_deltas, pubs)},
         "breakdown": {"group_label": "channel", "groups": []},
         "top_videos": _build_top_videos(pubs, db, chans, dates, limit=25),
+        "viral": _build_viral(db, [channel_id], chans, dates, limit=3),
     }
 
 

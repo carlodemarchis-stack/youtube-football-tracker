@@ -931,11 +931,11 @@ elif g_league and not ONE_CLUB:
     st.altair_chart(_with_sundays(cz2), width="stretch")
 
 # ── 🚀 Viral this month — biggest breakouts in their first 30 days ────
-# Live (no cron). video_daily_deltas only covers videos ≤30 days old, so
-# this is "viral within the first month" by construction. Ranking = the
-# "Blend": views gained in the 30-day window ÷ √subscribers (magnitude
-# balanced with audience reach), gated by a momentum spike so only
-# genuine breakouts qualify — not steady high-volume earners.
+# Read from the write-time cache (computed in dashboard_cache._build_viral,
+# stored in the trends_30d payload, rebuilt by refresh_trends_30d like
+# every other element). The live loader below is the cache-miss fallback.
+# Ranking = the "Blend": views gained ÷ √subscribers, momentum-gated, so
+# only genuine breakouts qualify — not steady high-volume earners.
 import math as _math
 VIRAL_FLOOR = 100_000     # peak day must clear this (absolute notability)
 VIRAL_SPIKE = 3.0         # peak ≥ 3× the video's own median day (momentum)
@@ -943,7 +943,7 @@ VIRAL_SPIKE = 3.0         # peak ≥ 3× the video's own median day (momentum)
 
 @st.cache_data(ttl=1800, show_spinner=False)
 def _load_viral(cids_tuple: tuple[str, ...], since_date: str,
-                _subs: dict) -> list[dict]:
+                until_date: str, _subs: dict, limit: int) -> list[dict]:
     if not cids_tuple:
         return []
     import statistics
@@ -958,6 +958,7 @@ def _load_viral(cids_tuple: tuple[str, ...], since_date: str,
                   .select("video_id,channel_id,captured_date,view_delta")
                   .in_("channel_id", chunk)
                   .gte("captured_date", since_date)
+                  .lt("captured_date", until_date)
                   .order("captured_date")
                   .range(off, off + 999).execute().data) or []
             for r in rs:
@@ -980,7 +981,7 @@ def _load_viral(cids_tuple: tuple[str, ...], since_date: str,
         sub = max(int(_subs.get(vch[vid], 0)), 1)
         scored.append((total / _math.sqrt(sub), vid, peak, total, sub, s))
     scored.sort(reverse=True)
-    top = scored[:12]
+    top = scored[:limit]
     ids = [t[1] for t in top]
     meta: dict[str, dict] = {}
     for cs in range(0, len(ids), 100):
@@ -1008,9 +1009,17 @@ def _load_viral(cids_tuple: tuple[str, ...], since_date: str,
     return out
 
 
-_subs_by_id = {c["id"]: int(c.get("subscriber_count") or 0) for c in all_channels}
 _name_by_id = {c["id"]: (c.get("name") or "?") for c in all_channels}
-_viral = _load_viral(_cids_tuple, start_d.isoformat(), _subs_by_id)
+# Cache-first: the trends_30d payload carries `viral` (5 for Z1/Z2, 3 for
+# Z3). Fall back to the live loader if the cache is cold or pre-dates the
+# viral field.
+_viral_limit = 3 if ONE_CLUB else 5
+_viral = list((_cached_payload or {}).get("viral") or []) if USE_CACHE else []
+if not _viral:
+    _subs_by_id = {c["id"]: int(c.get("subscriber_count") or 0)
+                   for c in all_channels}
+    _viral = _load_viral(_cids_tuple, start_d.isoformat(), end_d.isoformat(),
+                         _subs_by_id, _viral_limit)
 if _viral:
     st.markdown("---")
     st.subheader("🚀 Viral this month — biggest breakouts in their first 30 days")
