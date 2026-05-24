@@ -165,6 +165,7 @@ admin_pages = [
     st.Page("views/7_Refresh_Data.py",       title="Data",                url_path="data"),
     st.Page("views/8_Channel_Management.py", title="Channel Management",  url_path="channel-mgmt"),
     st.Page("views/9_User_Management.py",    title="User Management",     url_path="user-mgmt"),
+    st.Page("views/9b_Email_Users.py",       title="Email Users",         url_path="email-users"),
     st.Page("views/11_Snapshot_Debug.py",    title="Snapshot Debug",      url_path="snapshot-debug"),
     st.Page("views/19_Quota_Monitor.py",     title="Quota Monitor",       url_path="quota-monitor"),
 ]
