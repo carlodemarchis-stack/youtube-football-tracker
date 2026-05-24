@@ -39,11 +39,25 @@ if not brevo.enabled():
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_KEY", "")
 db = Database(SUPABASE_URL, SUPABASE_KEY)
-_users = [u for u in (db.get_all_users() or []) if (u.get("email") or "").strip()]
-_n_users = len(_users)
+_all_with_email = [u for u in (db.get_all_users() or [])
+                   if (u.get("email") or "").strip()]
 _me = (get_current_user() or {}).get("email") or ""
 
-st.markdown(f"**{_n_users}** users with an email address in the app.")
+# Audience filter — sync only the chosen subset into the Brevo list.
+_n_onb = sum(1 for u in _all_with_email if bool(u.get("onboarded")))
+_audience = st.radio(
+    "Audience to sync",
+    [f"Onboarded only ({_n_onb})",
+     f"All users with email ({len(_all_with_email)})"],
+    horizontal=True,
+)
+if _audience.startswith("Onboarded"):
+    _users = [u for u in _all_with_email if bool(u.get("onboarded"))]
+else:
+    _users = _all_with_email
+_n_users = len(_users)
+
+st.markdown(f"**{_n_users}** users selected to sync.")
 
 # ── 1. Target list + sync ─────────────────────────────────────────────
 st.subheader("1 · Audience list")
