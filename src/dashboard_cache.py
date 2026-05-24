@@ -332,7 +332,7 @@ def _scan_pub_videos(db, channel_ids: list[str],
         offset = 0
         while True:
             rs = (db.client.table("videos")
-                  .select("channel_id,published_at,format,duration_seconds")
+                  .select("channel_id,published_at,format,duration_seconds,view_count")
                   .in_("channel_id", chunk)
                   .gte("published_at", start_iso)
                   .lt("published_at", end_iso)
@@ -511,44 +511,48 @@ def _build_top_videos(deltas: list[dict], db, chans: list[dict],
 
 
 def _split_archive_share(chan_deltas: list[dict],
-                          video_deltas: list[dict],
+                          pub_videos: list[dict],
                           row_to_group: callable | None = None,
                           group_keys: list[str] | None = None
                           ) -> dict | list[dict]:
-    """Compute the channel-wide vs tracked-pool split for the period.
+    """Split the period's channel-wide view GROWTH into fresh vs older-than-30d.
 
-    Channel-wide (chan_deltas) − tracked-pool (video_deltas) = views earned
-    by videos OLDER than their 30-day post-publish tracking window
-    ("archive share"). Used both for the cohort KPI and per-group rows.
+    fresh  = Σ view_count of videos PUBLISHED inside the 30-day window. A
+             video published in-window didn't exist before it, so its whole
+             view_count was earned in-window — i.e. its window growth.
+    older  = channel-wide Δ total_views − fresh, clamped ≥ 0
+           = view growth from videos published MORE than 30 days ago
+             ("archive share").
+
+    Approximate: YouTube's channel-level statistics.viewCount (the
+    aggregate behind chan_deltas) and per-video view_count are different
+    counters that drift, so `older` carries some of that drift. The
+    clamp ≥ 0 swallows the negative-drift / view-purge case.
 
     If row_to_group + group_keys are provided, returns a list of per-group
-    splits (one dict per group, in group_keys order). Otherwise returns a
-    single cohort-wide split dict.
+    splits (one dict per group, in group_keys order). Otherwise a single
+    cohort-wide split dict.
 
     Schema:
         {
-          "channel_view_delta": int,      # channel_snapshots Δ
-          "tracked_view_delta": int,      # video_daily_deltas Δ (≤30d)
-          "archive_view_delta": int,      # channel - tracked, clamped ≥ 0
-          "archive_share_pct": float,     # 0..100, one decimal
+          "channel_view_delta": int,   # channel_snapshots Δ over window
+          "fresh_view_total":   int,   # Σ view_count of in-window-published videos
+          "archive_view_delta": int,   # channel - fresh, clamped ≥ 0
+          "archive_share_pct":  float, # 0..100, one decimal
         }
     """
     def _emp() -> dict:
-        return {"channel_view_delta": 0, "tracked_view_delta": 0,
+        return {"channel_view_delta": 0, "fresh_view_total": 0,
                 "archive_view_delta": 0, "archive_share_pct": 0.0}
 
     def _finalise(d: dict) -> dict:
         cw = max(d["channel_view_delta"], 0)
-        tr = max(d["tracked_view_delta"], 0)
-        # Clamp archive ≥ 0 to swallow counter-recalibration noise. If
-        # the channel Δ is smaller than the per-video Δ (would happen
-        # only if YouTube purged channel views during the window),
-        # archive share goes to 0 rather than negative.
-        archive = max(cw - tr, 0)
+        fr = max(d["fresh_view_total"], 0)
+        archive = max(cw - fr, 0)
         pct = (archive / cw * 100.0) if cw > 0 else 0.0
         return {
             "channel_view_delta": cw,
-            "tracked_view_delta": tr,
+            "fresh_view_total": fr,
             "archive_view_delta": archive,
             "archive_share_pct": round(pct, 1),
         }
@@ -557,8 +561,8 @@ def _split_archive_share(chan_deltas: list[dict],
         agg = _emp()
         for r in chan_deltas:
             agg["channel_view_delta"] += int(r.get("view_delta") or 0)
-        for r in video_deltas:
-            agg["tracked_view_delta"] += int(r.get("view_delta") or 0)
+        for r in pub_videos:
+            agg["fresh_view_total"] += int(r.get("view_count") or 0)
         return _finalise(agg)
 
     per: dict[str, dict] = {gk: _emp() for gk in (group_keys or [])}
@@ -566,10 +570,10 @@ def _split_archive_share(chan_deltas: list[dict],
         g = row_to_group(r)
         if g in per:
             per[g]["channel_view_delta"] += int(r.get("view_delta") or 0)
-    for r in video_deltas:
+    for r in pub_videos:
         g = row_to_group(r)
         if g in per:
-            per[g]["tracked_view_delta"] += int(r.get("view_delta") or 0)
+            per[g]["fresh_view_total"] += int(r.get("view_count") or 0)
     return [_finalise(per[gk]) for gk in (group_keys or [])]
 
 
@@ -613,10 +617,10 @@ def compute_trends_30d_all(db, chans: list[dict],
         row_to_group=lambda r: ch_to_league.get(r.get("channel_id")),
         group_keys=LEAGUES,
     )
-    # Channel-wide vs tracked-pool split — cohort + per-league
-    cohort_split = _split_archive_share(chan_deltas, video_deltas)
+    # Fresh (in-window-published) vs older-than-30d split — cohort + per-league
+    cohort_split = _split_archive_share(chan_deltas, pubs)
     league_splits = _split_archive_share(
-        chan_deltas, video_deltas,
+        chan_deltas, pubs,
         row_to_group=lambda r: ch_to_league.get(r.get("channel_id")),
         group_keys=LEAGUES,
     )
@@ -674,9 +678,9 @@ def compute_trends_30d_league(db, league: str,
     name_of = {c["id"]: (c.get("name") or "?") for c in z2_chans}
     color_of = {c["id"]: (c.get("color") or "#888") for c in z2_chans}
     # Cohort split + per-channel splits.
-    cohort_split = _split_archive_share(chan_deltas, video_deltas)
+    cohort_split = _split_archive_share(chan_deltas, pubs)
     channel_splits = _split_archive_share(
-        chan_deltas, video_deltas,
+        chan_deltas, pubs,
         row_to_group=lambda r: r.get("channel_id"),
         group_keys=cid_order,
     )
@@ -715,7 +719,7 @@ def compute_trends_30d_club(db, channel_id: str,
         "window_start": dates[0], "window_end": dates[-1],
         "dates": dates,
         "cohort": {"by_date": cohort,
-                    "split": _split_archive_share(chan_deltas, video_deltas)},
+                    "split": _split_archive_share(chan_deltas, pubs)},
         "breakdown": {"group_label": "channel", "groups": []},
         "top_videos": _build_top_videos(video_deltas, db, chans, dates, limit=25),
     }

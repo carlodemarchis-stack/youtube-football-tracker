@@ -303,14 +303,14 @@ total_live = sum(b["live"] for b in fmt_by_date.values())
 _split = ((_cached_payload or {}).get("cohort") or {}).get("split") or {}
 _archive_pct = float(_split.get("archive_share_pct") or 0.0)
 _archive_abs = int(_split.get("archive_view_delta") or 0)
-_tracked_abs = int(_split.get("tracked_view_delta") or 0)
+_fresh_abs = int(_split.get("fresh_view_total") or 0)
 
 from src.analytics import fmt_num, kpi_row
 st.markdown(kpi_row([
     ("Δ Channel views (30d)", fmt_num(total_dv), "across cohort channels"),
     ("🗄️ Older videos (>30d)",
-     f"{_archive_pct:.1f}%" if _split else "—",
-     f"{fmt_num(_archive_abs)} of Δ views"),
+     f"≈{_archive_pct:.1f}%" if _split else "—",
+     f"≈{fmt_num(_archive_abs)} of {fmt_num(total_dv)} Δ views"),
     ("New videos (30d)", fmt_num(total_new),
      f"{fmt_num(total_long)} / {fmt_num(total_short)} / {fmt_num(total_live)} L/S/Lv"),
     ("Daily avg Δ views", fmt_num(int(total_dv / max(len(window_dates), 1))),
@@ -318,10 +318,13 @@ st.markdown(kpi_row([
 ]), unsafe_allow_html=True)
 
 st.caption(
-    "🗄️ **Older videos (>30d)** = view growth coming from videos published "
-    "**more than 30 days ago** (the back-catalogue still earning views) — as "
-    "opposed to fresh uploads from the last 30 days. A high share means a "
-    "channel's older videos, not its new ones, are driving its current views."
+    "🗄️ **Older videos (>30d)** = the share of the last 30 days' view "
+    "**growth** that came from videos **published more than 30 days ago** — "
+    "i.e. total channel view growth in the window minus the views earned by "
+    "videos published *within* the last 30 days. A high share means a "
+    "channel's older videos, not its new ones, are driving its current views. "
+    "*Approximate — YouTube's channel-wide counter and per-video counts don't "
+    "reconcile perfectly.*"
 )
 
 st.markdown("---")
@@ -642,7 +645,7 @@ if not ONE_CLUB and not g_league:
       <th>League</th>
       <th style="text-align:right">Channels</th>
       <th style="text-align:right">Δ Views (30d)</th>
-      <th style="text-align:right" title="Share of Δ views from videos older than 30d post-publish">🗄️ Older (>30d) %</th>
+      <th style="text-align:right" title="≈ Share of the last 30 days' view growth from videos published more than 30 days ago (channel-wide growth − views of videos published in the window). Estimate.">🗄️ Older (>30d) %</th>
       <th style="text-align:right">Videos</th>
       <th style="text-align:right">Long / Shorts / Live</th>
     </tr></thead><tbody>{_lg_html}</tbody></table>
@@ -883,7 +886,7 @@ elif g_league and not ONE_CLUB:
     <table class="ctbl"><thead><tr>
       <th>Channel</th>
       <th style="text-align:right">Δ Views (30d)</th>
-      <th style="text-align:right" title="Share of Δ views from videos older than 30d post-publish">🗄️ Older (>30d) %</th>
+      <th style="text-align:right" title="≈ Share of the last 30 days' view growth from videos published more than 30 days ago (channel-wide growth − views of videos published in the window). Estimate.">🗄️ Older (>30d) %</th>
       <th style="text-align:right">Videos</th>
       <th style="text-align:right">Long / Shorts / Live</th>
     </tr></thead><tbody>{_ch_html}</tbody></table>

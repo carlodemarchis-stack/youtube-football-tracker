@@ -1068,7 +1068,7 @@ def compose_trends_30d_payload(trends_payload: dict,
         "avg_new_per_day": round(total_new / days, 1),
         "archive_share_pct": float(split.get("archive_share_pct") or 0.0),
         "archive_view_delta": int(split.get("archive_view_delta") or 0),
-        "tracked_view_delta": int(split.get("tracked_view_delta") or 0),
+        "fresh_view_total": int(split.get("fresh_view_total") or 0),
     }
 
     by_week = _weekly_buckets(cohort_by_date, dates)
