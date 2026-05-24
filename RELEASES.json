@@ -1,0 +1,61 @@
+{
+  "major": 1,
+  "releases": [
+    {
+      "version": "1.7",
+      "date": "2026-05-24",
+      "notes": [
+        "🚀 New \"Viral this month\" section on 30-Day Trends — highlights breakout videos, each with an expandable 30-day daily-views trajectory chart."
+      ]
+    },
+    {
+      "version": "1.6",
+      "date": "2026-05-24",
+      "notes": [
+        "30-Day Trends: the Top-25 list now shows the most-watched videos *published* in the last 30 days, so the title matches the content."
+      ]
+    },
+    {
+      "version": "1.5",
+      "date": "2026-05-24",
+      "notes": [
+        "30-Day Trends: \"Archive\" renamed to \"Older videos (>30d)\" with a plain-English explanation of what it measures."
+      ]
+    },
+    {
+      "version": "1.4",
+      "date": "2026-05-24",
+      "notes": [
+        "Season charts: legends moved above the bars (no longer overlap club names) and ordered Long / Shorts / Live everywhere."
+      ]
+    },
+    {
+      "version": "1.3",
+      "date": "2026-05-23",
+      "notes": [
+        "Daily Recap: added a per-league \"Δ Channel Views per day\" chart below the league summary."
+      ]
+    },
+    {
+      "version": "1.2",
+      "date": "2026-05-23",
+      "notes": [
+        "Smarter AI notes: the \"latest videos\" note now reads video descriptions for richer context and no longer mis-reports league standings from throwback clips."
+      ]
+    },
+    {
+      "version": "1.1",
+      "date": "2026-05-23",
+      "notes": [
+        "YouTube view-count latency banner now appears only when counts are actually lagging — and was added to the WC2026 Trends page."
+      ]
+    },
+    {
+      "version": "1.0",
+      "date": "2026-05-22",
+      "notes": [
+        "Initial release — Daily Recap, 30-Day Trends, Season, All-Time Top, Latest Videos, FIFA World Cup 2026, and per-club pages."
+      ]
+    }
+  ]
+}

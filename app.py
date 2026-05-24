@@ -169,6 +169,12 @@ admin_pages = [
     st.Page("views/19_Quota_Monitor.py",     title="Quota Monitor",       url_path="quota-monitor"),
 ]
 
+# Tier 0 — public "About" group, pinned to the very bottom of the sidebar.
+about_pages = [
+    st.Page("views/99_Release_Notes.py", title="Release Notes",
+            url_path="release-notes"),
+]
+
 nav = {"": public_pages}
 if is_logged_in():
     # Home stays at the top with no group label; everything else lives
@@ -186,8 +192,24 @@ elif is_logged_in():
 if is_admin():
     nav["Admin"] = admin_pages
 
+# "About" (Release Notes) sits last so it lands at the bottom of the
+# sidebar — public, available signed-out too.
+nav["About"] = about_pages
+
 pg = st.navigation(nav)
 show_auth_sidebar()
+
+# App-wide version badge at the sidebar bottom (every page). Links to the
+# Release Notes page. Reads the current version from RELEASES.json.
+try:
+    from src.releases import current_version as _current_version
+    st.sidebar.markdown(
+        f"<div style='margin-top:14px;color:#6b7280;font-size:12px'>"
+        f"YouTube Football Tracker · <b>v{_current_version()}</b></div>",
+        unsafe_allow_html=True,
+    )
+except Exception:
+    pass
 
 # Global onboarding gate: any logged-in user who hasn't completed the
 # one-time profile form sees it before any page renders — including the

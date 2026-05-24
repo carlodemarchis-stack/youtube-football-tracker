@@ -670,3 +670,9 @@ st.markdown(
     '</div>',
     unsafe_allow_html=True,
 )
+
+# ── Footer: release-notes link + current version ──────────────────────
+from src.releases import current_version as _cv
+st.markdown("<div style='margin-top:28px'></div>", unsafe_allow_html=True)
+st.page_link("views/99_Release_Notes.py",
+             label=f"📋 Release notes · v{_cv()}")
