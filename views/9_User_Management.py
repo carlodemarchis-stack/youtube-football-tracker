@@ -138,7 +138,10 @@ def _row(u: dict):
         )
         st.markdown(
             f"{badge} **{full_name}**{status}<br>"
-            f"<span style='color:#888;font-size:12px'>{email}</span>",
+            f"<a href='https://mail.google.com/mail/?view=cm&fs=1&to={email}' "
+            f"target='_blank' rel='noopener' "
+            f"style='color:#58A6FF;font-size:12px;text-decoration:none' "
+            f"title='Compose email in Gmail'>{email}</a>",
             unsafe_allow_html=True,
         )
 
