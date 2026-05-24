@@ -136,12 +136,16 @@ def _row(u: dict):
             " <span style='background:#F5A62333;color:#F5A623;padding:1px 6px;"
             "border-radius:3px;font-size:10px;margin-left:6px'>pending</span>"
         )
+        # Display the @ as an HTML entity so Streamlit's markdown auto-linkifier
+        # doesn't recognise the text as an email and wrap it in its own
+        # mailto: (which would nest inside — and override — our Gmail link).
+        _email_disp = email.replace("@", "&#64;")
         st.markdown(
             f"{badge} **{full_name}**{status}<br>"
             f"<a href='https://mail.google.com/mail/?view=cm&fs=1&to={email}' "
             f"target='_blank' rel='noopener' "
             f"style='color:#58A6FF;font-size:12px;text-decoration:none' "
-            f"title='Compose email in Gmail'>{email}</a>",
+            f"title='Compose email in Gmail'>{_email_disp}</a>",
             unsafe_allow_html=True,
         )
 
