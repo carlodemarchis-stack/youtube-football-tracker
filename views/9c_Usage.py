@@ -9,6 +9,7 @@ from collections import defaultdict
 from datetime import datetime, timezone, timedelta, date
 
 import streamlit as st
+import pandas as pd
 from dotenv import load_dotenv
 
 from src.database import Database
@@ -98,6 +99,15 @@ c1.metric("Active users (30d)", mau)
 c2.metric("WAU (7d)", wau)
 c3.metric("DAU (today)", dau)
 c4.metric("Page views (30d)", f"{total_views:,}")
+
+# Active-users-per-day trend (last 30 days, zero-filled)
+_days = [today - timedelta(days=i) for i in range(WINDOW_DAYS - 1, -1, -1)]
+_trend = pd.DataFrame([
+    {"Date": d.isoformat(), "Active users": len(day_active.get(d, set()))}
+    for d in _days
+])
+st.caption("Active users per day")
+st.bar_chart(_trend, x="Date", y="Active users", height=200)
 
 # Tier counts
 tiers = defaultdict(int)
