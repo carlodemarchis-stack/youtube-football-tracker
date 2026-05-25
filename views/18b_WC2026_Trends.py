@@ -506,3 +506,38 @@ st.caption(
     "federation channels are summed into their country's row, matching "
     "the All Channels table."
 )
+
+# ── Top videos published in the last 30 days (video layer) ─────────
+# Cohort-wide → read the precomputed wc2026_trends cache. A narrowed
+# confederation/team filter → recompute live for the scoped channels
+# (the cache only holds the cohort-wide top-25).
+st.markdown("---")
+from src import dashboard_cache as _dc
+from src.cached_db import read_dashboard_cache as _dc_read
+from src.season_top import render_top_season_videos_table
+
+_wc_ids = list(ch_by_id.keys())
+_top_videos: list[dict] = []
+if not (_wc_confed or _wc_team):
+    _tv_row = _dc_read(db, "wc2026_trends", _dc.scope_all())
+    _tv_pl = (_tv_row or {}).get("payload") if _tv_row else None
+    if _tv_pl and _tv_pl.get("top_videos") is not None:
+        _top_videos = list(_tv_pl.get("top_videos") or [])
+if not _top_videos and _wc_ids:
+    _tc, _sc, _si, _ei, _dts = _dc._trends_30d_window()
+    _pubs = _dc._scan_pub_videos(db, _wc_ids, _si, _ei)
+    _top_videos = _dc._build_top_videos(_pubs, db, wc, _dts, limit=25)
+
+if _top_videos:
+    render_top_season_videos_table(
+        _top_videos, ch_by_id,
+        header="🏆 Top 25 most-watched videos published in the last 30 days",
+        order_by="views", max_height=900,
+    )
+    st.caption(
+        "Most-watched WC2026 videos PUBLISHED in the trailing 30 days, "
+        "ranked by current view count. A recently-published video's view "
+        "count ≈ the views it earned inside the window."
+    )
+else:
+    st.info("No WC2026 videos published in the last 30 days yet.")
