@@ -44,20 +44,26 @@ _all_with_email = [u for u in (db.get_all_users() or [])
 _me = (get_current_user() or {}).get("email") or ""
 
 # Audience filter — sync only the chosen subset into the Brevo list.
+_n_consent = sum(1 for u in _all_with_email if bool(u.get("email_consent")))
 _n_onb = sum(1 for u in _all_with_email if bool(u.get("onboarded")))
 _audience = st.radio(
     "Audience to sync",
-    [f"Onboarded only ({_n_onb})",
+    [f"Consented only ({_n_consent})",
+     f"Onboarded only ({_n_onb})",
      f"All users with email ({len(_all_with_email)})"],
     horizontal=True,
 )
-if _audience.startswith("Onboarded"):
+if _audience.startswith("Consented"):
+    _users = [u for u in _all_with_email if bool(u.get("email_consent"))]
+elif _audience.startswith("Onboarded"):
     _users = [u for u in _all_with_email if bool(u.get("onboarded"))]
 else:
     _users = _all_with_email
 _n_users = len(_users)
 
 st.markdown(f"**{_n_users}** users selected to sync.")
+st.caption("“Consented only” = users who opted in to emails at onboarding "
+           "— the compliant default for product/marketing sends.")
 
 # ── 1. Target list + sync ─────────────────────────────────────────────
 st.subheader("1 · Audience list")

@@ -124,6 +124,7 @@ def _row(u: dict):
     company = (u.get("company") or "").strip()
     linkedin = (u.get("linkedin_url") or "").strip()
     onboarded = bool(u.get("onboarded"))
+    email_consent = bool(u.get("email_consent"))
 
     col_info, col_meta, col_role, col_edit = st.columns([3, 3, 2, 1])
 
@@ -207,6 +208,8 @@ def _row(u: dict):
             new_linkedin = st.text_input("LinkedIn URL", value=linkedin, key=f"eli_{email}")
             new_onboarded = st.checkbox("Onboarded", value=onboarded, key=f"eo_{email}",
                                          help="Uncheck to make this user see the welcome card again on next login.")
+            new_consent = st.checkbox("Email consent", value=email_consent, key=f"ecn_{email}",
+                                      help="Opted in to product-update emails. Drives the 'Consented only' audience on the Email Users page.")
 
             bc1, bc2, _ = st.columns([1, 1, 4])
             with bc1:
@@ -218,6 +221,7 @@ def _row(u: dict):
                             "company": new_company.strip(),
                             "linkedin_url": new_linkedin.strip(),
                             "onboarded": new_onboarded,
+                            "email_consent": new_consent,
                             "display_name": f"{new_first} {new_last}".strip() or u.get("display_name"),
                         }).eq("email", email).execute()
                         st.session_state.pop(f"_editing_{email}", None)
