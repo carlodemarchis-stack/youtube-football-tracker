@@ -156,6 +156,7 @@ def _load_viral(cids_tuple: tuple[str, ...], since_date: str,
         return []
     scored = []
     for vid, s in series.items():
+        s = _dc._gapfill_series(s)   # spread catch-up days across the gaps
         deltas = [d for _, d in s]
         peak = max(deltas)
         med = statistics.median(deltas) if deltas else 0
@@ -186,9 +187,9 @@ def _load_viral(cids_tuple: tuple[str, ...], since_date: str,
             "thumbnail_url": m.get("thumbnail_url") or "",
             "published_at": m.get("published_at"),
             "channel_id": m.get("channel_id"),
-            "peak": peak, "total": total, "subs": sub,
+            "peak": int(round(peak)), "total": int(round(total)), "subs": sub,
             "reach": total / sub,
-            "series": sorted(s),
+            "series": [[d, int(round(x))] for d, x in s],
         })
     return out
 

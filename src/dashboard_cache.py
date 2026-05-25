@@ -557,6 +557,35 @@ VIRAL_FLOOR = 100_000     # peak day must clear this (absolute notability)
 VIRAL_SPIKE = 3.0         # peak ≥ 3× the video's own median day (momentum gate)
 
 
+def _gapfill_series(series: list) -> list:
+    """Spread gap-spanning deltas evenly across missing days.
+
+    `series` = [(date_iso, delta), …]. A video_daily_deltas row only exists
+    when we snapshotted the video, and its delta = gain since the PREVIOUS
+    snapshot — so a multi-day gap dumps several days' growth onto one
+    "catch-up" day (e.g. +2.7M on a single day that really spans 3). We
+    redistribute each delta evenly across the gap it spans (prev_date+1 …
+    cur_date), preserving the total, so the curve shows real daily pace
+    instead of fake single-day spikes. The first entry is kept as-is (no
+    in-series predecessor to gap against)."""
+    from datetime import date as _date, timedelta as _td
+    if not series:
+        return series
+    out: list = []
+    prev = None
+    for ds, delta in sorted(series):
+        cur = _date.fromisoformat(ds)
+        if prev is not None and (cur - prev).days > 1:
+            gap = (cur - prev).days
+            per = delta / gap
+            for k in range(1, gap + 1):
+                out.append(((prev + _td(days=k)).isoformat(), per))
+        else:
+            out.append((ds, float(delta)))
+        prev = cur
+    return out
+
+
 def _build_viral(db, channel_ids: list[str], chans: list[dict],
                  dates: list[str], limit: int) -> list[dict]:
     """Top-N viral 'breakouts' over the window: videos (≤30 days old) ranked
@@ -595,6 +624,7 @@ def _build_viral(db, channel_ids: list[str], chans: list[dict],
         return []
     scored = []
     for vid, s in series.items():
+        s = _gapfill_series(s)   # spread catch-up days across the gaps
         deltas = [d for _, d in s]
         peak = max(deltas)
         med = statistics.median(deltas) if deltas else 0
@@ -602,7 +632,7 @@ def _build_viral(db, channel_ids: list[str], chans: list[dict],
             continue
         total = sum(deltas)
         sub = max(subs_by_id.get(vch[vid], 0), 1)
-        scored.append((total / math.sqrt(sub), vid, peak, total, sub, sorted(s)))
+        scored.append((total / math.sqrt(sub), vid, peak, total, sub, s))
     scored.sort(reverse=True)
     top = scored[:limit]
     ids = [t[1] for t in top]
@@ -625,9 +655,9 @@ def _build_viral(db, channel_ids: list[str], chans: list[dict],
             "thumbnail_url": m.get("thumbnail_url") or "",
             "published_at": m.get("published_at"),
             "channel_id": m.get("channel_id"),
-            "peak": peak, "total": total, "subs": sub,
+            "peak": int(round(peak)), "total": int(round(total)), "subs": sub,
             "reach": total / sub,
-            "series": s,
+            "series": [[d, int(round(x))] for d, x in s],
         })
     return out
 
