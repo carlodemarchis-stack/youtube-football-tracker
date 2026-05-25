@@ -216,19 +216,28 @@ if not _viral:
     st.stop()
 
 for _i, _v in enumerate(_viral, 1):
-    _c1, _c2, _c3 = st.columns([0.5, 6, 3.2])
-    with _c1:
+    _url = f"https://www.youtube.com/watch?v={_v['youtube_video_id']}"
+    _pub = (_v["published_at"] or "")[:10]
+    _c0, _cT, _cM, _cR = st.columns([0.4, 1.7, 5, 3])
+    with _c0:
         st.markdown(f"### {_i}")
-    with _c2:
-        _url = f"https://www.youtube.com/watch?v={_v['youtube_video_id']}"
-        _pub = (_v["published_at"] or "")[:10]
+    with _cT:
+        _thumb = _v.get("thumbnail_url") or ""
+        if _thumb:
+            st.markdown(
+                f"<a href='{_url}' target='_blank' rel='noopener' "
+                f"title='Open on YouTube'>"
+                f"<img src='{_thumb}' style='width:100%;border-radius:6px'></a>",
+                unsafe_allow_html=True,
+            )
+    with _cM:
         st.markdown(
             f"**[{_v['title'][:90]}]({_url})**  \n"
             f"<span style='color:{_T.MUTED_2};font-size:13px'>"
             f"{_name_by_id.get(_v['channel_id'], '?')} · published {_pub}</span>",
             unsafe_allow_html=True,
         )
-    with _c3:
+    with _cR:
         st.markdown(
             f"<div style='text-align:right;font-size:13px;line-height:1.5'>"
             f"<b style='color:{_T.POS};font-size:16px'>+{fmt_num(_v['total'])}</b> "
@@ -237,21 +246,23 @@ for _i, _v in enumerate(_viral, 1):
             f"{_v['reach'] * 100:.0f}% of subs</span></div>",
             unsafe_allow_html=True,
         )
-    with st.expander("📈 30-day daily-views trajectory"):
-        _vdf = pd.DataFrame([{"Date": d, "Δ Views": x} for d, x in _v["series"]])
-        _vdf["Date"] = pd.to_datetime(_vdf["Date"])
-        _vc = alt.Chart(_vdf).mark_area(
-            line={"color": _T.ACCENT}, color=alt.Gradient(
-                gradient="linear",
-                stops=[alt.GradientStop(color=_T.BG, offset=0),
-                       alt.GradientStop(color=_T.ACCENT, offset=1)],
-                x1=1, x2=1, y1=1, y2=0),
-            opacity=0.6,
-        ).encode(
-            x=alt.X("Date:T", axis=_X_AXIS),
-            y=alt.Y("Δ Views:Q", title=None,
-                    axis=alt.Axis(format="~s", minExtent=_Y_AXIS_GUTTER)),
-            tooltip=[alt.Tooltip("Date:T", title="Date", format="%a %b %d"),
-                     alt.Tooltip("Δ Views:Q", format=",")],
-        ).properties(height=_CHART_HEIGHT)
-        st.altair_chart(_with_sundays(_vc), width="stretch")
+    # Trajectory chart always visible (no expander).
+    _vdf = pd.DataFrame([{"Date": d, "Δ Views": x} for d, x in _v["series"]])
+    _vdf["Date"] = pd.to_datetime(_vdf["Date"])
+    _vc = alt.Chart(_vdf).mark_area(
+        line={"color": _T.ACCENT}, color=alt.Gradient(
+            gradient="linear",
+            stops=[alt.GradientStop(color=_T.BG, offset=0),
+                   alt.GradientStop(color=_T.ACCENT, offset=1)],
+            x1=1, x2=1, y1=1, y2=0),
+        opacity=0.6,
+    ).encode(
+        x=alt.X("Date:T", axis=_X_AXIS),
+        y=alt.Y("Δ Views:Q", title=None,
+                axis=alt.Axis(format="~s", minExtent=_Y_AXIS_GUTTER)),
+        tooltip=[alt.Tooltip("Date:T", title="Date", format="%a %b %d"),
+                 alt.Tooltip("Δ Views:Q", format=",")],
+    ).properties(height=_CHART_HEIGHT)
+    st.altair_chart(_with_sundays(_vc), width="stretch")
+    st.markdown("<hr style='border:none;border-top:1px solid #2a2c34;"
+                "margin:6px 0 20px 0'>", unsafe_allow_html=True)
