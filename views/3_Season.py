@@ -49,7 +49,8 @@ _HEATMAP_SCALE = [
 
 
 def _render_publishing_heatmap_grid(grid_counts, grid_avg_views,
-                                    title: str, scope_label: str):
+                                    title: str, scope_label: str,
+                                    link_html: str | None = None):
     """Render a 7×24 publishing-rhythm heatmap from precomputed grids.
 
     grid_counts / grid_avg_views: 7-row × 24-col 2D iterables (rows in
@@ -72,7 +73,16 @@ def _render_publishing_heatmap_grid(grid_counts, grid_avg_views,
     else:
         _peak = ""
 
-    st.subheader(title)
+    if link_html:
+        _hm_c1, _hm_c2 = st.columns([3, 1])
+        with _hm_c1:
+            st.subheader(title)
+        with _hm_c2:
+            st.markdown(
+                f"<div style='text-align:right;padding-top:16px'>{link_html}</div>",
+                unsafe_allow_html=True)
+    else:
+        st.subheader(title)
     st.caption(f"Day-of-week × hour (CET) for the season{scope_label}. "
                f"Brighter / redder = more videos. Hover for count and "
                f"average views per slot. {_peak}")
@@ -1175,17 +1185,13 @@ if league is None and _scope == "Overall":
             _hm_avg = [[(_hm_sums[r][c] // _hm_counts[r][c])
                         if _hm_counts[r][c] else 0
                         for c in range(24)] for r in range(7)]
-            st.markdown(
-                "<div style='text-align:right;margin-bottom:-30px'>"
-                "<a href='?view=all-leagues-heat' target='_self' "
-                "style='color:#58A6FF;text-decoration:none;font-size:13px'>"
-                "📊 Compare leagues →</a></div>",
-                unsafe_allow_html=True,
-            )
             _render_publishing_heatmap_grid(
                 _hm_counts, _hm_avg,
                 "📅 Publishing heatmap — All Leagues",
-                " (all Top-5 league channels combined)")
+                " (all Top-5 league channels combined)",
+                link_html="<a href='?view=all-leagues-heat' target='_self' "
+                          "style='color:#58A6FF;text-decoration:none;"
+                          "font-size:13px'>📊 Compare leagues →</a>")
     except Exception as _e:
         st.caption(f"(publishing heatmap unavailable: {_e})")
 
@@ -2181,17 +2187,14 @@ if club is None:
                             if _hm_counts[r][c] else 0
                             for c in range(24)] for r in range(7)]
                 import urllib.parse as _up_hm_lg
-                st.markdown(
-                    "<div style='text-align:right;margin-bottom:-30px'>"
-                    f"<a href='?view=league-heat&league={_up_hm_lg.quote(league)}' "
-                    "target='_self' style='color:#58A6FF;text-decoration:none;"
-                    "font-size:13px'>📊 Compare all channels →</a></div>",
-                    unsafe_allow_html=True,
-                )
                 _render_publishing_heatmap_grid(
                     _hm_counts, _hm_avg,
                     f"📅 Publishing heatmap — {league}",
-                    f" ({league} channels combined)")
+                    f" ({league} channels combined)",
+                    link_html="<a href='?view=league-heat&league="
+                              f"{_up_hm_lg.quote(league)}' target='_self' "
+                              "style='color:#58A6FF;text-decoration:none;"
+                              "font-size:13px'>📊 Compare all channels →</a>")
         except Exception as _e:
             st.caption(f"(publishing heatmap unavailable: {_e})")
 
