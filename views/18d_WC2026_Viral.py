@@ -105,17 +105,11 @@ def _with_sundays(chart):
 
 
 # ── Viral list (cache-first for the full cohort; live for sub-scopes) ──
-VIRAL_FLOOR = 100_000
-VIRAL_SPIKE = 3.0
-
-
 @st.cache_data(ttl=1800, show_spinner=False)
 def _load_viral(cids_tuple: tuple[str, ...], since_date: str,
                 until_date: str, _subs: dict, limit: int) -> list[dict]:
     if not cids_tuple:
         return []
-    import math
-    import statistics
     series: dict[str, list] = {}
     vch: dict[str, str] = {}
     cids = list(cids_tuple)
@@ -139,17 +133,32 @@ def _load_viral(cids_tuple: tuple[str, ...], since_date: str,
             off += 1000
     if not series:
         return []
+    raw = {vid: sorted(s) for vid, s in series.items()}
+    # First pass to pick candidates, then fetch publish dates only for those
+    # and drop each one's catch-up first delta before the final scoring.
+    cand = []
+    for vid, s0 in raw.items():
+        sc = _dc._score_viral_series(s0, int(_subs.get(vch[vid], 0)))
+        if sc:
+            cand.append((sc[0], vid))
+    cand.sort(reverse=True)
+    cand_ids = [vid for _, vid in cand[:max(limit * 5, 50)]]
+    pub: dict[str, str] = {}
+    for cs in range(0, len(cand_ids), 200):
+        rs = (db.client.table("videos").select("id,published_at")
+              .in_("id", cand_ids[cs:cs + 200]).execute().data) or []
+        for r in rs:
+            pub[r["id"]] = r.get("published_at")
     scored = []
-    for vid, s in series.items():
-        s = _dc._gapfill_series(s)   # spread catch-up days across the gaps
-        deltas = [d for _, d in s]
-        peak = max(deltas)
-        med = statistics.median(deltas) if deltas else 0
-        if peak < VIRAL_FLOOR or peak < VIRAL_SPIKE * max(med, 1):
+    for vid in cand_ids:
+        sc = _dc._score_viral_series(
+            _dc._drop_catchup_first(raw[vid], pub.get(vid)),
+            int(_subs.get(vch[vid], 0)))
+        if not sc:
             continue
-        total = sum(deltas)
+        blend, peak, total, s = sc
         sub = max(int(_subs.get(vch[vid], 0)), 1)
-        scored.append((total / math.sqrt(sub), vid, peak, total, sub, s))
+        scored.append((blend, vid, peak, total, sub, s))
     scored.sort(reverse=True)
     top = scored[:limit]
     ids = [t[1] for t in top]
