@@ -125,7 +125,8 @@ league, club = get_global_filter()
 # in a list, then stops before the normal Season page renders.
 if st.query_params.get("view") == "league-grid" and league and not club:
     from src.league_grid import render_league_grid
-    render_league_grid(db, league, all_channels)
+    render_league_grid(db, league, all_channels,
+                       get_global_color_map(), get_global_color_map_dual())
     st.stop()
 
 now = datetime.now(timezone.utc)

@@ -15,8 +15,11 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from datetime import date as _date, datetime as _dt, timezone as _tz
+
 from src.database import _fetch_all
 from src.channels import COUNTRY_TO_LEAGUE, get_season_since
+from src.dot import channel_badge
 
 
 @st.cache_data(ttl=900, show_spinner=False)
@@ -70,7 +73,9 @@ def _chart(dates: list, vals: list[int], avg: float) -> go.Figure:
     return fig
 
 
-def render_league_grid(db, league: str, channels: list[dict]) -> None:
+def render_league_grid(db, league: str, channels: list[dict],
+                       color_map: dict | None = None,
+                       dual_map: dict | None = None) -> None:
     st.title(f"📊 {league} — videos per day, all channels")
     st.markdown(
         f"<a href='?league={_up.quote(league)}' target='_self' "
@@ -94,6 +99,11 @@ def render_league_grid(db, league: str, channels: list[dict]) -> None:
     totals = {c["id"]: sum((per.get(c["id"]) or {}).values()) for c in league_ch}
     ordered = sorted(league_ch, key=lambda c: -totals.get(c["id"], 0))
 
+    # Calendar span (season start → today) so "0-video days" counts real
+    # silent days, not just the gaps between uploads.
+    season_start = _date.fromisoformat(since[:10])
+    cal_days = max((_dt.now(_tz.utc).date() - season_start).days + 1, 1)
+
     st.caption(
         f"{len(ordered)} channels · videos published per day since "
         f"{since[:10]} · weekends in orange. Ordered by total season videos."
@@ -102,7 +112,19 @@ def render_league_grid(db, league: str, channels: list[dict]) -> None:
     for c in ordered:
         cid = c["id"]
         cnt = per.get(cid) or {}
-        st.markdown(f"**{name_of[cid]}** · {totals.get(cid, 0):,} videos")
+        total = totals.get(cid, 0)
+        zero_days = max(cal_days - len(cnt), 0)
+        avg_day = total / cal_days
+        zero_pct = zero_days / cal_days * 100
+        badge = channel_badge(c, color_map, dual_map, 16)
+        st.markdown(
+            f"<div style='font-size:16px;margin-top:2px'>{badge} "
+            f"<b style='vertical-align:middle'>{name_of[cid]}</b>"
+            f"<span style='color:#9aa0aa;font-size:13px;vertical-align:middle'>"
+            f" — season videos {total:,} · avg {avg_day:.1f}/day · "
+            f"{zero_days} days with no videos ({zero_pct:.0f}%)</span></div>",
+            unsafe_allow_html=True,
+        )
         if not cnt:
             st.caption("No videos this season.")
             continue
