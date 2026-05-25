@@ -2,6 +2,16 @@
   "major": 1,
   "releases": [
     {
+      "version": "1.9",
+      "date": "2026-05-25",
+      "notes": [
+        "🏆 New FIFA World Cup 2026 Daily Recap — at-a-glance KPIs, Δ-views by confederation, and the newest uploads across all WC2026 channels.",
+        "🚀 New FIFA World Cup 2026 Viral Videos page — the biggest WC2026 breakouts of the last 30 days, each with its daily-views trajectory.",
+        "📊 WC2026 Trends now lists the Top-25 most-watched videos published in the last 30 days — and every World Cup video's daily growth is now tracked through the whole tournament.",
+        "🎯 More accurate Viral lists everywhere — videos first tracked after they were published no longer show a fake first-day spike, so only genuine breakouts rank."
+      ]
+    },
+    {
       "version": "1.8",
       "date": "2026-05-24",
       "notes": [
