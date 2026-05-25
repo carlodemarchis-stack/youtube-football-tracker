@@ -288,6 +288,45 @@ def main() -> int:
             except Exception as e:
                 log(f"  video_daily_deltas step skipped: {e}")
 
+            # ── Gap-closer ───────────────────────────────────────────
+            # Some days get_video_details comes back short (transient API
+            # shortfalls), leaving holes in a video's daily series. Re-fetch
+            # just the videos the main pass missed, with extra retries and on
+            # the spare INTERACTIVE key (quota headroom), so every ≤30-day
+            # video gets a snapshot today.
+            try:
+                snapped = {r["youtube_video_id"] for r in snap_rows}
+                missing = [yid for yid in yt_ids if yid not in snapped]
+                if missing:
+                    log(f"  gap-closer: {len(missing)} videos missed by main "
+                        f"pass — retrying on INTERACTIVE key...")
+                    _ic_key = (os.environ.get("YOUTUBE_API_KEY_INTERACTIVE", "")
+                               or yt_key)
+                    yt_gc = YouTubeClient(_ic_key)
+                    extra: list[dict] = []
+                    for b in range(0, len(missing), 50):
+                        for v in yt_gc.get_video_details(missing[b:b + 50],
+                                                         retries=2):
+                            yid = (v.get("youtube_video_id") or "").strip()
+                            dbid = id_to_dbid.get(yid)
+                            if not dbid:
+                                continue
+                            extra.append({
+                                "video_id": dbid, "youtube_video_id": yid,
+                                "channel_id": id_to_cid.get(yid) or "",
+                                "view_count": v.get("view_count", 0),
+                                "like_count": v.get("like_count", 0),
+                                "comment_count": v.get("comment_count", 0),
+                            })
+                    if extra:
+                        db.snapshot_videos_batch(extra, captured_date=capture_date)
+                        db.compute_video_daily_deltas(capture_date)
+                        snap_rows.extend(extra)
+                    log(f"  gap-closer recovered {len(extra)}/{len(missing)} "
+                        f"(still unavailable: {len(missing) - len(extra)})")
+            except Exception as e:
+                log(f"  gap-closer skipped: {e}")
+
             # ALSO update the videos table so Streamlit sees fresh view counts
             # (upsert view/like/comment on existing rows; keeps title/thumbnail too)
             try:
