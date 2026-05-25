@@ -413,22 +413,4 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
 
-# ── Level-2 tab row (prototype) — Top 5 Leagues group ─────────
-# Sidebar stays the source of truth; this renders the current group's
-# pages as a horizontal page_link "tab bar" under the global filter, a
-# step toward collapsing the long sidebar to groups. Uses real nav
-# (page_link) so only the clicked page runs — NOT st.tabs, which would
-# execute every page body. Scoped to the Top 5 group for now.
-_VIEWER_TABS = {
-    "daily-recap": "Daily", "latest-videos": "Latest", "viral": "Viral",
-    "trends-30d": "Trends", "season": "Season", "season-top": "Season Top",
-    "all-channels": "All-time", "all-time-top": "Top", "no1-videos": "No. 1",
-}
-if getattr(pg, "url_path", "") in _VIEWER_TABS:
-    _tab_cols = st.columns(len(viewer_pages))
-    for _i, _vp in enumerate(viewer_pages):
-        with _tab_cols[_i]:
-            st.page_link(_vp, label=_VIEWER_TABS.get(
-                getattr(_vp, "url_path", ""), _vp.title))
-
 pg.run()
