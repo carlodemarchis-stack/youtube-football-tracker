@@ -29,6 +29,13 @@ from src.database import Database
 from src.auth import get_current_user
 
 
+# Admin/tooling pages — never counted in usage analytics.
+_EXCLUDE_PAGES = {
+    "data", "channel-mgmt", "user-mgmt", "email-users", "usage",
+    "snapshot-debug", "quota-monitor",
+}
+
+
 @st.cache_resource(show_spinner=False)
 def _db() -> Database:
     return Database(
@@ -38,10 +45,13 @@ def _db() -> Database:
 
 
 def log_page_view(page: str) -> None:
-    """Record a page view for the signed-in user — once per page change."""
+    """Record a page view — once per page change. Signed-in users are logged
+    by email; anonymous visitors (public Home etc.) as "(anonymous)". Admin
+    tooling pages are not counted."""
+    if page in _EXCLUDE_PAGES:
+        return
     user = get_current_user()
-    if not user or not user.get("email"):
-        return  # only track identified users
+    email = (user.get("email") if user else None) or "(anonymous)"
     if st.session_state.get("_usage_last_page") == page:
         return  # same page, just a Streamlit rerun — skip
     st.session_state["_usage_last_page"] = page
@@ -51,7 +61,7 @@ def log_page_view(page: str) -> None:
         st.session_state["_usage_sid"] = sid
     try:
         _db().client.table("usage_events").insert({
-            "email": user["email"],
+            "email": email,
             "page": page,
             "session_id": sid,
         }).execute()
