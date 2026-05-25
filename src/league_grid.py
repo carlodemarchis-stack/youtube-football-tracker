@@ -18,8 +18,8 @@ import streamlit as st
 from datetime import date as _date, datetime as _dt, timezone as _tz
 
 from src.database import _fetch_all
-from src.channels import COUNTRY_TO_LEAGUE, get_season_since
-from src.dot import channel_badge
+from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_COLOR_CHART, get_season_since
+from src.dot import channel_badge, dual_dot
 
 
 @st.cache_data(ttl=900, show_spinner=False)
@@ -133,5 +133,90 @@ def render_league_grid(db, league: str, channels: list[dict],
         avg = sum(vals) / len(vals) if vals else 0
         st.plotly_chart(_chart(dates, vals, avg), width="stretch",
                         key=f"vpd_grid_{cid}")
+        st.markdown("<hr style='border:none;border-top:1px solid #2a2c34;"
+                    "margin:4px 0 14px 0'>", unsafe_allow_html=True)
+
+
+def render_all_leagues_grid(db, channels: list[dict],
+                            color_map: dict | None = None,
+                            dual_map: dict | None = None) -> None:
+    """Z1 analog of render_league_grid: one "Videos per day" chart per
+    LEAGUE (aggregated across that league's channels), ordered by total
+    season videos. Reached from the Season Z1 page via
+    ?view=all-leagues-grid. Row badge = the League HQ's country flag."""
+    st.title("📊 All leagues — videos per day")
+    st.markdown(
+        "<a href='?' target='_self' "
+        "style='color:#58A6FF;text-decoration:none'>← Back to Season</a>",
+        unsafe_allow_html=True,
+    )
+
+    top5 = [c for c in channels
+            if c.get("entity_type") in ("Club", "League")
+            and COUNTRY_TO_LEAGUE.get((c.get("country") or "").strip())
+            and c.get("id")]
+    if not top5:
+        st.info("No league channels found.")
+        return
+    ch_to_league = {
+        c["id"]: COUNTRY_TO_LEAGUE[(c.get("country") or "").strip()]
+        for c in top5
+    }
+    # One League HQ per league → its country flag is the row badge.
+    hq_of: dict[str, dict] = {}
+    for c in top5:
+        if c.get("entity_type") == "League":
+            hq_of.setdefault(ch_to_league[c["id"]], c)
+
+    leagues = sorted(set(ch_to_league.values()))
+    since_of = {lg: get_season_since(league=lg) for lg in leagues}
+    per = _load(db, tuple(sorted(c["id"] for c in top5)),
+                min(since_of.values()))
+    # Aggregate per (league, day).
+    league_day: dict[str, Counter] = {lg: Counter() for lg in leagues}
+    for cid, cnt in per.items():
+        lg = ch_to_league.get(cid)
+        if not lg:
+            continue
+        for d, n in cnt.items():
+            league_day[lg][d] += n
+    totals = {lg: sum(c.values()) for lg, c in league_day.items()}
+    ordered = sorted(leagues, key=lambda lg: -totals.get(lg, 0))
+
+    st.caption(
+        f"{len(ordered)} leagues · videos published per day across each "
+        "league's channels · weekends in orange. Ordered by total season "
+        "videos."
+    )
+
+    today = _dt.now(_tz.utc).date()
+    for lg in ordered:
+        cnt = league_day[lg]
+        total = totals.get(lg, 0)
+        season_start = _date.fromisoformat(since_of[lg][:10])
+        cal_days = max((today - season_start).days + 1, 1)
+        zero_days = max(cal_days - len(cnt), 0)
+        avg_day = total / cal_days
+        zero_pct = zero_days / cal_days * 100
+        hq = hq_of.get(lg)
+        badge = (channel_badge(hq, color_map, dual_map, 16) if hq
+                 else dual_dot(LEAGUE_COLOR_CHART.get(lg, "#636EFA"),
+                               "#FFFFFF", 16))
+        st.markdown(
+            f"<div style='font-size:16px;margin-top:2px'>{badge} "
+            f"<b style='vertical-align:middle'>{lg}</b>"
+            f"<span style='color:#9aa0aa;font-size:13px;vertical-align:middle'>"
+            f" — season videos {total:,} · avg {avg_day:.1f}/day · "
+            f"{zero_days} days with no videos ({zero_pct:.0f}%)</span></div>",
+            unsafe_allow_html=True,
+        )
+        if not cnt:
+            st.caption("No videos this season.")
+            continue
+        dates = sorted(cnt.keys())
+        vals = [cnt[d] for d in dates]
+        avg = sum(vals) / len(vals) if vals else 0
+        st.plotly_chart(_chart(dates, vals, avg), width="stretch",
+                        key=f"vpd_grid_lg_{lg}")
         st.markdown("<hr style='border:none;border-top:1px solid #2a2c34;"
                     "margin:4px 0 14px 0'>", unsafe_allow_html=True)

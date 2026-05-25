@@ -128,6 +128,11 @@ if st.query_params.get("view") == "league-grid" and league and not club:
     render_league_grid(db, league, all_channels,
                        get_global_color_map(), get_global_color_map_dual())
     st.stop()
+if st.query_params.get("view") == "all-leagues-grid" and not league and not club:
+    from src.league_grid import render_all_leagues_grid
+    render_all_leagues_grid(db, all_channels,
+                            get_global_color_map(), get_global_color_map_dual())
+    st.stop()
 
 now = datetime.now(timezone.utc)
 SEASON_SINCE = get_season_since(channel=club, league=league)
@@ -1107,7 +1112,17 @@ if league is None and _scope == "Overall":
                 for d in _dates
             ]
             _avg = sum(_vals) / len(_vals) if _vals else 0
-            st.subheader("📈 Videos per day — All Leagues")
+            _vpd_th_z1, _vpd_tl_z1 = st.columns([3, 1])
+            with _vpd_th_z1:
+                st.subheader("📈 Videos per day — All Leagues")
+            with _vpd_tl_z1:
+                st.markdown(
+                    "<div style='text-align:right;padding-top:16px'>"
+                    "<a href='?view=all-leagues-grid' target='_self' "
+                    "style='color:#58A6FF;text-decoration:none;"
+                    "font-size:13px'>📊 Compare leagues →</a></div>",
+                    unsafe_allow_html=True,
+                )
             st.caption(
                 f"{sum(_vals):,} videos across {len(_dates)} days "
                 f"(avg {_avg:.0f}/day). Weekends in orange — useful "
