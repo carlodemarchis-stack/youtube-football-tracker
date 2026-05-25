@@ -47,3 +47,12 @@ Full implementable spec + prompt + cost analysis:
   cover the WC2026 cohort.** Today the toolkit is top-5 only. Same
   shape (62 channels instead of 101). Surface via `--cohort wc2026`
   flag.
+
+- **In-row video chart on the club "Videos published" table (and similar
+  iframe tables).** Add a small per-row tag/button that lazy-loads a
+  views chart on click. Blocker: the table renders via components.html
+  (iframe), which can't call back to Streamlit — so a click inside it
+  can't trigger a chart. Plan = re-render rows natively (st.columns) +
+  a 📈 button → st.dialog modal, fetching that one video's
+  video_daily_deltas on click (cheap, truly lazy). Decide daily-Δ vs
+  cumulative-views for the chart. Pattern proven on the Viral page.
