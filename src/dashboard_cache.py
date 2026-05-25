@@ -2145,6 +2145,92 @@ def refresh_wc2026(db, log=print, channels: list[dict] | None = None) -> None:
     log(f"  ✓ wc2026 cache rebuilt — {len(rows)} channels")
 
 
+# Confederation chart colours for the WC2026 trends breakdown — the WC
+# analog of LEAGUE_COLOR_CHART. Keys match competitions.wc2026.confederation.
+_WC_CONFED_COLOR = {
+    "UEFA": "#2a6df4", "CONMEBOL": "#f4b32a", "CONCACAF": "#2ec27e",
+    "CAF": "#e0533d", "AFC": "#9b59b6", "OFC": "#1ab6c4", "FIFA": "#326295",
+}
+_WC_CONFED_ORDER = ["UEFA", "CONMEBOL", "CONCACAF", "CAF", "AFC", "OFC", "FIFA"]
+
+
+def compute_wc2026_trends(db, chans: list[dict]) -> dict:
+    """Build the WC2026 video-layer trends payload — same shape as the
+    top-5 trends_30d Z1 payload, but scoped to the WC2026 cohort and
+    grouped by confederation instead of league. Reuses the cohort-agnostic
+    builders. Returned dict is what refresh_wc2026_trends persists; pages
+    can also call this directly as a cold-cache live fallback."""
+    wc = [c for c in chans if (c.get("competitions") or {}).get("wc2026")]
+    cohort_ids = [c["id"] for c in wc if c.get("id")]
+    today_cet, start_cet, start_iso, end_iso, dates = _trends_30d_window()
+    if not cohort_ids:
+        return {
+            "as_of": today_cet.isoformat(),
+            "window_start": dates[0], "window_end": dates[-1], "dates": dates,
+            "cohort": {"by_date": _build_cohort_by_date([], [], dates),
+                       "split": _split_archive_share([], [])},
+            "breakdown": {"group_label": "confederation", "groups": []},
+            "top_videos": [], "viral": [],
+        }
+
+    chan_deltas = _scan_channel_view_deltas(db, cohort_ids, dates)
+    pubs = _scan_pub_videos(db, cohort_ids, start_iso, end_iso)
+    cohort = _build_cohort_by_date(chan_deltas, pubs, dates)
+
+    # channel_id → confederation (from competitions.wc2026). Alts + governing
+    # bodies carry their own confederation tag, so this groups everything.
+    conf_of: dict[str, str] = {}
+    for c in wc:
+        cf = ((c.get("competitions") or {}).get("wc2026") or {}).get("confederation")
+        if c.get("id") and cf:
+            conf_of[c["id"]] = cf
+    present = set(conf_of.values())
+    confeds = [k for k in _WC_CONFED_ORDER if k in present] + \
+              sorted(present - set(_WC_CONFED_ORDER))
+
+    per_conf = _build_group_by_date(
+        chan_deltas, pubs, dates,
+        row_to_group=lambda r: conf_of.get(r.get("channel_id")),
+        group_keys=confeds,
+    )
+    cohort_split = _split_archive_share(chan_deltas, pubs)
+    conf_splits = _split_archive_share(
+        chan_deltas, pubs,
+        row_to_group=lambda r: conf_of.get(r.get("channel_id")),
+        group_keys=confeds,
+    )
+    groups = [
+        {"key": cf, "name": cf,
+         "color": _WC_CONFED_COLOR.get(cf, "#888"), "sort": i,
+         "by_date": per_conf[cf], "split": conf_splits[i]}
+        for i, cf in enumerate(confeds)
+    ]
+    return {
+        "as_of": today_cet.isoformat(),
+        "window_start": dates[0], "window_end": dates[-1],
+        "dates": dates,
+        "cohort": {"by_date": cohort, "split": cohort_split},
+        "breakdown": {"group_label": "confederation", "groups": groups},
+        "top_videos": _build_top_videos(pubs, db, wc, dates, limit=25),
+        "viral": _build_viral(db, cohort_ids, wc, dates, limit=10),
+    }
+
+
+def refresh_wc2026_trends(db, log=print,
+                          channels: list[dict] | None = None) -> None:
+    """Compute + persist the WC2026 video-layer trends payload. Feeds the
+    WC2026 Trends video layer, Viral, and Daily Recap pages so they read
+    one cached row instead of aggregating live.
+
+    Cache key: ('wc2026_trends', 'all').
+    """
+    chans = channels if channels is not None else db.get_all_channels()
+    payload = compute_wc2026_trends(db, chans)
+    write(db, "wc2026_trends", scope_all(), payload)
+    log(f"  ✓ wc2026_trends cache rebuilt — {len(payload['viral'])} viral, "
+        f"{len(payload['top_videos'])} top videos")
+
+
 def refresh_last_upload(db, entity_type: str, log=print,
                         channels: list[dict] | None = None) -> None:
     """Pre-compute {channel_id: 'YYYY-MM-DD'} of each channel's most

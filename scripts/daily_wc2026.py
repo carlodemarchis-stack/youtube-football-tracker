@@ -43,7 +43,7 @@ from __future__ import annotations
 import os
 import sys
 import time
-from datetime import datetime, timezone, timedelta, date
+from datetime import datetime, timezone, date
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -64,12 +64,14 @@ from src.database import Database, _fetch_all
 from src.youtube_api import YouTubeClient
 from src.channels import get_season_since
 
-# Per-video snapshots use a rolling window (mirrors daily_refresh.py):
-# only videos published in the last SNAPSHOT_WINDOW_DAYS get a daily
-# snapshot — deliberately NOT the other isolated crons' "all videos
-# forever" pattern, whose row cost compounds with no consumer to
-# justify it.
-SNAPSHOT_WINDOW_DAYS = 30
+# Per-video snapshots: full-lifetime for the WC2026 cohort. Every video
+# published on/after WC_TRACK_START gets a daily snapshot for its whole
+# life (no rolling age cutoff) so we keep each tournament video's full
+# trajectory — group-stage clips don't drop off before the final. The
+# row cost is tiny (snapshots are 1 quota unit / 50 videos) and now has
+# consumers: the WC2026 Viral + Trends video surfaces. WC_TRACK_START is
+# the first day of full daily_wc2026 coverage, so there's no gap.
+WC_TRACK_START = "2026-05-14"
 
 
 def log(msg: str) -> None:
@@ -180,14 +182,13 @@ def main() -> int:
             failed.append((name, str(e)[:200]))
             log(f"[{i}/{len(wc)}] {name} — ERROR: {e}")
 
-    # ── 4. Snapshot recent-window WC2026 video stats (rolling 30d) ──
-    # Scoped to the WC2026 channel set + a published_at window. NOT
+    # ── 4. Snapshot WC2026 video stats (full-lifetime since WC_TRACK_START) ──
+    # Scoped to the WC2026 channel set + a published_at floor. NOT
     # db.get_season_video_rows() — that's global and would pull every
     # channel's videos into this isolated cron.
-    window_cutoff = (datetime.now(timezone.utc)
-                     - timedelta(days=SNAPSHOT_WINDOW_DAYS)).date().isoformat()
+    window_cutoff = WC_TRACK_START
     log(f"Snapshotting WC2026 videos published since {window_cutoff} "
-        f"({SNAPSHOT_WINDOW_DAYS}d window)...")
+        f"(full-lifetime)...")
     try:
         wc_cids = [c["id"] for c in wc if c.get("id")]
         vid_rows: list[dict] = []
@@ -269,11 +270,15 @@ def main() -> int:
     # Same logic as scripts/refresh_wc2026_cache.py — keep the page's
     # read-side cache in sync with the freshly-snapshotted numbers.
     try:
-        from src.dashboard_cache import refresh_wc2026
+        from src.dashboard_cache import refresh_wc2026, refresh_wc2026_trends
         # Re-pull channels so the cache payload reflects the just-written
         # stats (we mutated channels in step 2). Pass them explicitly so
         # refresh_wc2026 doesn't do a redundant DB read.
-        refresh_wc2026(db, log=log, channels=db.get_all_channels())
+        _fresh_chans = db.get_all_channels()
+        refresh_wc2026(db, log=log, channels=_fresh_chans)
+        # Video-layer trends (Δ-views, top videos, viral) — depends on the
+        # video_daily_deltas just computed above.
+        refresh_wc2026_trends(db, log=log, channels=_fresh_chans)
     except Exception as e:
         log(f"dashboard_cache refresh failed (non-fatal): {e}")
 
