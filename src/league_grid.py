@@ -16,10 +16,14 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from datetime import date as _date, datetime as _dt, timezone as _tz
+from zoneinfo import ZoneInfo
 
 from src.database import _fetch_all
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_COLOR_CHART, get_season_since
 from src.dot import channel_badge, dual_dot
+from src.heatmap import heatmap_figure, peak_label
+
+_CET = ZoneInfo("Europe/Rome")
 
 
 @st.cache_data(ttl=900, show_spinner=False)
@@ -220,3 +224,154 @@ def render_all_leagues_grid(db, channels: list[dict],
                         key=f"vpd_grid_lg_{lg}")
         st.markdown("<hr style='border:none;border-top:1px solid #2a2c34;"
                     "margin:4px 0 14px 0'>", unsafe_allow_html=True)
+
+
+# ── Publishing-heatmap grids (Z2 per channel, Z1 per league) ──────────
+@st.cache_data(ttl=900, show_spinner=False)
+def _load_heat(_db, ids_tuple: tuple[str, ...], since: str) -> dict:
+    """{channel_id: {"counts": 7x24, "sums": 7x24}} — publishing counts and
+    summed views per CET (day-of-week × hour) slot, since season start."""
+    if not ids_tuple:
+        return {}
+    rows = _fetch_all(
+        _db.client.table("videos")
+        .select("channel_id,published_at,view_count")
+        .gte("published_at", since)
+        .in_("channel_id", list(ids_tuple))
+    )
+    per: dict[str, dict] = {}
+    for r in rows:
+        cid = r.get("channel_id")
+        pa = r.get("published_at") or ""
+        if not cid or not pa:
+            continue
+        try:
+            dt = pd.to_datetime(pa, utc=True).tz_convert(_CET)
+        except Exception:
+            continue
+        dow, hr = dt.weekday(), dt.hour
+        g = per.setdefault(cid, {"counts": [[0] * 24 for _ in range(7)],
+                                 "sums": [[0] * 24 for _ in range(7)]})
+        g["counts"][dow][hr] += 1
+        g["sums"][dow][hr] += int(r.get("view_count") or 0)
+    return per
+
+
+def _avg_grid(counts, sums):
+    return [[(sums[r][c] // counts[r][c]) if counts[r][c] else 0
+             for c in range(24)] for r in range(7)]
+
+
+def _grid_total(counts) -> int:
+    return sum(counts[r][c] for r in range(7) for c in range(24))
+
+
+def _heat_row(badge: str, name: str, counts, sums, key: str) -> None:
+    total = _grid_total(counts)
+    st.markdown(
+        f"<div style='font-size:16px;margin-top:2px'>{badge} "
+        f"<b style='vertical-align:middle'>{name}</b>"
+        f"<span style='color:#9aa0aa;font-size:13px;vertical-align:middle'>"
+        f" — season videos {total:,} · {peak_label(counts)}</span></div>",
+        unsafe_allow_html=True,
+    )
+    if not total:
+        st.caption("No videos this season.")
+        return
+    st.plotly_chart(heatmap_figure(counts, _avg_grid(counts, sums)),
+                    width="stretch", key=key)
+    st.markdown("<hr style='border:none;border-top:1px solid #2a2c34;"
+                "margin:4px 0 14px 0'>", unsafe_allow_html=True)
+
+
+def render_league_heatmaps(db, league: str, channels: list[dict],
+                           color_map: dict | None = None,
+                           dual_map: dict | None = None) -> None:
+    """Z2 analog of render_league_grid for the publishing heatmap: one
+    heatmap per channel in the league, ordered by total season videos."""
+    st.title(f"📅 {league} — publishing heatmap, all channels")
+    st.markdown(
+        f"<a href='?league={_up.quote(league)}' target='_self' "
+        f"style='color:#58A6FF;text-decoration:none'>← Back to Season</a>",
+        unsafe_allow_html=True,
+    )
+    league_ch = [c for c in channels
+                 if c.get("entity_type") in ("Club", "League")
+                 and COUNTRY_TO_LEAGUE.get((c.get("country") or "").strip()) == league
+                 and c.get("id")]
+    if not league_ch:
+        st.info(f"No channels found for {league}.")
+        return
+    since = get_season_since(league=league)
+    per = _load_heat(db, tuple(sorted(c["id"] for c in league_ch)), since)
+    name_of = {c["id"]: (c.get("name") or "?") for c in league_ch}
+    totals = {c["id"]: _grid_total((per.get(c["id"]) or {}).get(
+        "counts", [[0] * 24 for _ in range(7)])) for c in league_ch}
+    ordered = sorted(league_ch, key=lambda c: -totals.get(c["id"], 0))
+    st.caption(
+        f"{len(ordered)} channels · day-of-week × hour (CET) since "
+        f"{since[:10]} · brighter = more videos. Ordered by total season "
+        "videos."
+    )
+    _empty = {"counts": [[0] * 24 for _ in range(7)],
+              "sums": [[0] * 24 for _ in range(7)]}
+    for c in ordered:
+        g = per.get(c["id"]) or _empty
+        _heat_row(channel_badge(c, color_map, dual_map, 16),
+                  name_of[c["id"]], g["counts"], g["sums"],
+                  key=f"heat_grid_{c['id']}")
+
+
+def render_all_leagues_heatmaps(db, channels: list[dict],
+                                color_map: dict | None = None,
+                                dual_map: dict | None = None) -> None:
+    """Z1 analog: one publishing heatmap per league (channels combined),
+    ordered by total season videos. Row badge = League HQ country flag."""
+    st.title("📅 All leagues — publishing heatmap")
+    st.markdown(
+        "<a href='?' target='_self' "
+        "style='color:#58A6FF;text-decoration:none'>← Back to Season</a>",
+        unsafe_allow_html=True,
+    )
+    top5 = [c for c in channels
+            if c.get("entity_type") in ("Club", "League")
+            and COUNTRY_TO_LEAGUE.get((c.get("country") or "").strip())
+            and c.get("id")]
+    if not top5:
+        st.info("No league channels found.")
+        return
+    ch_to_league = {c["id"]: COUNTRY_TO_LEAGUE[(c.get("country") or "").strip()]
+                    for c in top5}
+    hq_of: dict[str, dict] = {}
+    for c in top5:
+        if c.get("entity_type") == "League":
+            hq_of.setdefault(ch_to_league[c["id"]], c)
+    leagues = sorted(set(ch_to_league.values()))
+    since_of = {lg: get_season_since(league=lg) for lg in leagues}
+    per = _load_heat(db, tuple(sorted(c["id"] for c in top5)),
+                     min(since_of.values()))
+    # Aggregate per-channel grids into per-league grids.
+    agg = {lg: {"counts": [[0] * 24 for _ in range(7)],
+                "sums": [[0] * 24 for _ in range(7)]} for lg in leagues}
+    for cid, g in per.items():
+        lg = ch_to_league.get(cid)
+        if not lg:
+            continue
+        for r in range(7):
+            for c in range(24):
+                agg[lg]["counts"][r][c] += g["counts"][r][c]
+                agg[lg]["sums"][r][c] += g["sums"][r][c]
+    totals = {lg: _grid_total(agg[lg]["counts"]) for lg in leagues}
+    ordered = sorted(leagues, key=lambda lg: -totals.get(lg, 0))
+    st.caption(
+        f"{len(ordered)} leagues · day-of-week × hour (CET) across each "
+        "league's channels · brighter = more videos. Ordered by total "
+        "season videos."
+    )
+    for lg in ordered:
+        hq = hq_of.get(lg)
+        badge = (channel_badge(hq, color_map, dual_map, 16) if hq
+                 else dual_dot(LEAGUE_COLOR_CHART.get(lg, "#636EFA"),
+                               "#FFFFFF", 16))
+        _heat_row(badge, lg, agg[lg]["counts"], agg[lg]["sums"],
+                  key=f"heat_grid_lg_{lg}")

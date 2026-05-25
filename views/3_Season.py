@@ -133,6 +133,16 @@ if st.query_params.get("view") == "all-leagues-grid" and not league and not club
     render_all_leagues_grid(db, all_channels,
                             get_global_color_map(), get_global_color_map_dual())
     st.stop()
+if st.query_params.get("view") == "league-heat" and league and not club:
+    from src.league_grid import render_league_heatmaps
+    render_league_heatmaps(db, league, all_channels,
+                           get_global_color_map(), get_global_color_map_dual())
+    st.stop()
+if st.query_params.get("view") == "all-leagues-heat" and not league and not club:
+    from src.league_grid import render_all_leagues_heatmaps
+    render_all_leagues_heatmaps(db, all_channels,
+                               get_global_color_map(), get_global_color_map_dual())
+    st.stop()
 
 now = datetime.now(timezone.utc)
 SEASON_SINCE = get_season_since(channel=club, league=league)
@@ -1165,6 +1175,13 @@ if league is None and _scope == "Overall":
             _hm_avg = [[(_hm_sums[r][c] // _hm_counts[r][c])
                         if _hm_counts[r][c] else 0
                         for c in range(24)] for r in range(7)]
+            st.markdown(
+                "<div style='text-align:right;margin-bottom:-30px'>"
+                "<a href='?view=all-leagues-heat' target='_self' "
+                "style='color:#58A6FF;text-decoration:none;font-size:13px'>"
+                "📊 Compare leagues →</a></div>",
+                unsafe_allow_html=True,
+            )
             _render_publishing_heatmap_grid(
                 _hm_counts, _hm_avg,
                 "📅 Publishing heatmap — All Leagues",
@@ -2163,6 +2180,14 @@ if club is None:
                 _hm_avg = [[(_hm_sums[r][c] // _hm_counts[r][c])
                             if _hm_counts[r][c] else 0
                             for c in range(24)] for r in range(7)]
+                import urllib.parse as _up_hm_lg
+                st.markdown(
+                    "<div style='text-align:right;margin-bottom:-30px'>"
+                    f"<a href='?view=league-heat&league={_up_hm_lg.quote(league)}' "
+                    "target='_self' style='color:#58A6FF;text-decoration:none;"
+                    "font-size:13px'>📊 Compare all channels →</a></div>",
+                    unsafe_allow_html=True,
+                )
                 _render_publishing_heatmap_grid(
                     _hm_counts, _hm_avg,
                     f"📅 Publishing heatmap — {league}",
