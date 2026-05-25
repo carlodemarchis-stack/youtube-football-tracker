@@ -341,7 +341,10 @@ _no_filter_url_paths = {
     # filter wrongly reappears on Home at the root. Keep both.
     "", "home", "players", "federations", "other-clubs",
     "women", "no1-videos", "wc2026", "wc2026-trends",
-    "wc2026-latest", "quota-monitor", "release-notes", "usage",
+    "wc2026-latest", "release-notes",
+    # Admin pages — the league/club filter has no meaning here.
+    "data", "channel-mgmt", "user-mgmt", "email-users", "usage",
+    "snapshot-debug", "quota-monitor",
 }
 _show_filter = getattr(pg, "url_path", "") not in _no_filter_url_paths
 
