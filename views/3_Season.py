@@ -119,6 +119,15 @@ if not all_channels:
     st.stop()
 
 league, club = get_global_filter()
+
+# Hidden league-grid view (no menu entry) — reached from the Z2 link via
+# ?view=league-grid. Renders every league channel's "Videos per day" chart
+# in a list, then stops before the normal Season page renders.
+if st.query_params.get("view") == "league-grid" and league and not club:
+    from src.league_grid import render_league_grid
+    render_league_grid(db, league, all_channels)
+    st.stop()
+
 now = datetime.now(timezone.utc)
 SEASON_SINCE = get_season_since(channel=club, league=league)
 _daily_updated = _cached_last_fetch(db, "daily")
@@ -2081,7 +2090,19 @@ if club is None:
                     "#FFA15A" if d.weekday() >= 5 else "#636EFA"
                     for d in _dates_lg
                 ]
-                st.subheader(f"📈 Videos per day — {league}")
+                _vpd_th, _vpd_tl = st.columns([3, 1])
+                with _vpd_th:
+                    st.subheader(f"📈 Videos per day — {league}")
+                with _vpd_tl:
+                    import urllib.parse as _up_lg
+                    _grid_href = f"?view=league-grid&league={_up_lg.quote(league)}"
+                    st.markdown(
+                        f"<div style='text-align:right;padding-top:16px'>"
+                        f"<a href='{_grid_href}' target='_self' "
+                        f"style='color:#58A6FF;text-decoration:none;"
+                        f"font-size:13px'>📊 Compare all channels →</a></div>",
+                        unsafe_allow_html=True,
+                    )
                 st.caption(
                     f"{sum(_vals_lg):,} videos across {len(_dates_lg)} "
                     f"days (avg {_avg_lg:.1f}/day). Weekends in orange."
