@@ -364,6 +364,11 @@ def _show_onboarding_card(user: dict):
             "LinkedIn URL (optional)",
             placeholder="https://linkedin.com/in/your-handle",
         )
+        email_consent = st.checkbox(
+            "Email me about YouTube Football Tracker — occasional product "
+            "updates and new features. Optional, unsubscribe anytime.",
+            value=False,
+        )
         submitted = st.form_submit_button("Save and continue", type="primary")
 
     if submitted:
@@ -376,6 +381,7 @@ def _show_onboarding_card(user: dict):
                 email,
                 first_name=first_name, last_name=last_name,
                 company=company, linkedin_url=linkedin_url,
+                email_consent=email_consent,
             )
             # Notify the admin (ntfy push) — this is the canonical
             # "someone signed up" moment. Best-effort: send_ntfy
@@ -390,6 +396,8 @@ def _show_onboarding_card(user: dict):
                 ]
                 if linkedin_url.strip():
                     _body_lines.append(f"🔗 {linkedin_url.strip()}")
+                _body_lines.append(
+                    f"✉️ email opt-in: {'yes' if email_consent else 'no'}")
                 # Running user count — onboarded rows only, so the
                 # number reads as 'real signed-up users', not 'auth
                 # rows from one-time guest visits'.
