@@ -691,7 +691,7 @@ def compute_trends_30d_all(db, chans: list[dict],
         "cohort": {"by_date": cohort, "split": cohort_split},
         "breakdown": {"group_label": "league", "groups": groups},
         "top_videos": _build_top_videos(pubs, db, chans, dates, limit=25),
-        "viral": _build_viral(db, cohort_ids, chans, dates, limit=5),
+        "viral": _build_viral(db, cohort_ids, chans, dates, limit=10),
     }
 
 
@@ -752,7 +752,7 @@ def compute_trends_30d_league(db, league: str,
         "cohort": {"by_date": cohort, "split": cohort_split},
         "breakdown": {"group_label": "channel", "groups": groups},
         "top_videos": _build_top_videos(pubs, db, chans, dates, limit=25),
-        "viral": _build_viral(db, channel_ids, chans, dates, limit=5),
+        "viral": _build_viral(db, channel_ids, chans, dates, limit=10),
     }
 
 
@@ -776,7 +776,7 @@ def compute_trends_30d_club(db, channel_id: str,
                     "split": _split_archive_share(chan_deltas, pubs)},
         "breakdown": {"group_label": "channel", "groups": []},
         "top_videos": _build_top_videos(pubs, db, chans, dates, limit=25),
-        "viral": _build_viral(db, [channel_id], chans, dates, limit=3),
+        "viral": _build_viral(db, [channel_id], chans, dates, limit=5),
     }
 
 

@@ -2,6 +2,13 @@
   "major": 1,
   "releases": [
     {
+      "version": "1.8",
+      "date": "2026-05-24",
+      "notes": [
+        "🚀 New Viral Videos page (after Latest Videos) — the biggest breakout videos of the last 30 days, each with an expandable daily-views trajectory."
+      ]
+    },
+    {
       "version": "1.7",
       "date": "2026-05-24",
       "notes": [
