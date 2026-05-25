@@ -2,6 +2,14 @@
   "major": 1,
   "releases": [
     {
+      "version": "1.10",
+      "date": "2026-05-25",
+      "notes": [
+        "📊 New \"Compare\" views on Season — from the Videos-per-day chart, open a side-by-side list of every channel's (or every league's) daily publishing chart, ranked by total season videos.",
+        "📅 Same for the Publishing heatmap — compare each channel's (or league's) day-of-week × hour posting rhythm side by side, with peak slot and totals per row."
+      ]
+    },
+    {
       "version": "1.9",
       "date": "2026-05-25",
       "notes": [
