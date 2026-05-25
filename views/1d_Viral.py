@@ -21,7 +21,9 @@ from src.database import Database
 from src.auth import require_login
 from src.filters import (
     get_global_channels, get_global_filter, render_page_subtitle,
+    get_global_color_map, get_global_color_map_dual,
 )
+from src.dot import channel_badge
 from src.channels import COUNTRY_TO_LEAGUE
 from src.analytics import fmt_num
 from src import theme as _T
@@ -208,7 +210,7 @@ if not _viral:
 st.caption(
     "Videos ≤30 days old, ranked by views gained ÷ √subscribers (magnitude "
     "balanced with audience reach), momentum-gated so only genuine spikes "
-    "qualify. Expand a row for its 30-day daily-views trajectory."
+    "qualify. Each row's chart is its 30-day daily-views trajectory."
 )
 
 if not _viral:
@@ -216,10 +218,14 @@ if not _viral:
             "last 30 days.")
     st.stop()
 
+_ch_by_id = {c["id"]: c for c in all_channels}
+_cmap = get_global_color_map()
+_dmap = get_global_color_map_dual()
+
 for _i, _v in enumerate(_viral, 1):
     _url = f"https://www.youtube.com/watch?v={_v['youtube_video_id']}"
     _pub = (_v["published_at"] or "")[:10]
-    _c0, _cT, _cM, _cR = st.columns([0.4, 1.7, 5, 3])
+    _c0, _cT, _cM, _cR = st.columns([0.35, 1.3, 6, 2.6])
     with _c0:
         st.markdown(f"### {_i}")
     with _cT:
@@ -232,10 +238,20 @@ for _i, _v in enumerate(_viral, 1):
                 unsafe_allow_html=True,
             )
     with _cM:
+        _ch = _ch_by_id.get(_v["channel_id"]) or {}
+        _badge = channel_badge(_ch, _cmap, _dmap, 16)
+        _cn = _ch.get("name") or _name_by_id.get(_v["channel_id"], "?")
+        _ttl = _v["title"][:90].replace("<", "&lt;").replace(">", "&gt;")
         st.markdown(
-            f"**[{_v['title'][:90]}]({_url})**  \n"
-            f"<span style='color:{_T.MUTED_2};font-size:13px'>"
-            f"{_name_by_id.get(_v['channel_id'], '?')} · published {_pub}</span>",
+            f"<div style='line-height:1.5'>"
+            f"<div style='font-size:13px'>{_badge}"
+            f"<span style='vertical-align:middle;margin-left:6px;"
+            f"color:#c9cdd6'>{_cn}</span></div>"
+            f"<a href='{_url}' target='_blank' rel='noopener' "
+            f"style='color:#58A6FF;font-weight:600;font-size:15px;"
+            f"text-decoration:none'>{_ttl}</a>"
+            f"<div style='color:{_T.MUTED_2};font-size:12px;margin-top:2px'>"
+            f"published {_pub}</div></div>",
             unsafe_allow_html=True,
         )
     with _cR:
