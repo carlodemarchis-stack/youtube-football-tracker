@@ -586,15 +586,51 @@ def _gapfill_series(series: list) -> list:
     return out
 
 
+def _drop_catchup_first(series_sorted: list, published_at) -> list:
+    """Drop a video's first measured delta when measurement began MORE than
+    one day after publish — that first point is a "catch-up" that collapses
+    all the views the video earned before we started tracking it onto a
+    single day, a fake spike. A series tracked from launch (first measure
+    ≤1 day after publish) is left intact, so genuine day-one surges survive.
+    `series_sorted` = [(date_iso, delta), …] sorted ascending."""
+    if not series_sorted or not published_at:
+        return series_sorted
+    from datetime import date as _date
+    try:
+        pub_d = _date.fromisoformat(str(published_at)[:10])
+        first_d = _date.fromisoformat(str(series_sorted[0][0])[:10])
+    except Exception:
+        return series_sorted
+    return series_sorted[1:] if (first_d - pub_d).days > 1 else series_sorted
+
+
+def _score_viral_series(raw_series: list, sub: int):
+    """Gap-fill + score one video's daily-delta series for the viral blend.
+    Returns (blend, peak, total, gapfilled_series) or None if it fails the
+    momentum gate / absolute floor. Shared by the cache builder and the
+    pages' live fallbacks so the rules never diverge."""
+    import math
+    import statistics
+    s = _gapfill_series(raw_series)
+    deltas = [d for _, d in s]
+    if not deltas:
+        return None
+    peak = max(deltas)
+    med = statistics.median(deltas) if deltas else 0
+    if peak < VIRAL_FLOOR or peak < VIRAL_SPIKE * max(med, 1):
+        return None
+    total = sum(deltas)
+    return (total / math.sqrt(max(sub, 1)), peak, total, s)
+
+
 def _build_viral(db, channel_ids: list[str], chans: list[dict],
                  dates: list[str], limit: int) -> list[dict]:
     """Top-N viral 'breakouts' over the window: videos (≤30 days old) ranked
     by the Blend score = views gained ÷ √subscribers, momentum-gated (peak
     day ≥ VIRAL_SPIKE× the video's own median day AND ≥ VIRAL_FLOOR) so only
-    genuine spikes qualify. Each item carries its daily series so the page
-    can draw an inline 30-day trajectory without re-querying."""
-    import math
-    import statistics
+    genuine spikes qualify. The first measured delta of a video we joined
+    mid-life is dropped (catch-up artifact). Each item carries its daily
+    series so the page can draw an inline 30-day trajectory."""
     if not channel_ids:
         return []
     subs_by_id = {c["id"]: int(c.get("subscriber_count") or 0) for c in chans}
@@ -622,17 +658,33 @@ def _build_viral(db, channel_ids: list[str], chans: list[dict],
             off += PAGE
     if not series:
         return []
+    raw = {vid: sorted(s) for vid, s in series.items()}
+    # First pass (uncorrected) just to pick candidates cheaply, so we only
+    # fetch publish dates for the handful that could make the cut.
+    cand = []
+    for vid, s0 in raw.items():
+        sc = _score_viral_series(s0, subs_by_id.get(vch[vid], 0))
+        if sc:
+            cand.append((sc[0], vid))
+    cand.sort(reverse=True)
+    cand_ids = [vid for _, vid in cand[:max(limit * 5, 50)]]
+    pub: dict[str, str] = {}
+    for cs in range(0, len(cand_ids), 200):
+        rs = (db.client.table("videos").select("id,published_at")
+              .in_("id", cand_ids[cs:cs + 200]).execute().data) or []
+        for r in rs:
+            pub[r["id"]] = r.get("published_at")
+    # Second pass: drop each candidate's catch-up first delta, re-score.
     scored = []
-    for vid, s in series.items():
-        s = _gapfill_series(s)   # spread catch-up days across the gaps
-        deltas = [d for _, d in s]
-        peak = max(deltas)
-        med = statistics.median(deltas) if deltas else 0
-        if peak < VIRAL_FLOOR or peak < VIRAL_SPIKE * max(med, 1):
+    for vid in cand_ids:
+        sc = _score_viral_series(
+            _drop_catchup_first(raw[vid], pub.get(vid)),
+            subs_by_id.get(vch[vid], 0))
+        if not sc:
             continue
-        total = sum(deltas)
+        blend, peak, total, s = sc
         sub = max(subs_by_id.get(vch[vid], 0), 1)
-        scored.append((total / math.sqrt(sub), vid, peak, total, sub, s))
+        scored.append((blend, vid, peak, total, sub, s))
     scored.sort(reverse=True)
     top = scored[:limit]
     ids = [t[1] for t in top]
