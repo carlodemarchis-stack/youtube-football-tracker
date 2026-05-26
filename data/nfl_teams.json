@@ -1,0 +1,290 @@
+[
+  {
+    "team": "Baltimore Ravens",
+    "conference": "AFC",
+    "division": "North",
+    "url": "https://www.youtube.com/@baltimoreravens",
+    "channel_id": "UCbpj2JAUMb8G_oQQFPeGrhg",
+    "handle": "baltimoreravens",
+    "title": "Baltimore Ravens"
+  },
+  {
+    "team": "Cincinnati Bengals",
+    "conference": "AFC",
+    "division": "North",
+    "url": "https://www.youtube.com/@bengals",
+    "channel_id": "UCnQUpSnJ39KsjZKbT0CprHQ",
+    "handle": "bengals",
+    "title": "Cincinnati Bengals"
+  },
+  {
+    "team": "Cleveland Browns",
+    "conference": "AFC",
+    "division": "North",
+    "url": "https://www.youtube.com/@browns",
+    "channel_id": "UCQQQO7Kdo0cu9iEb19qOoYA",
+    "handle": "browns",
+    "title": "Cleveland Browns"
+  },
+  {
+    "team": "Pittsburgh Steelers",
+    "conference": "AFC",
+    "division": "North",
+    "url": "https://www.youtube.com/@steelers",
+    "channel_id": "UChaRXjMDs4ppKfnTPE6Z89w",
+    "handle": "steelers",
+    "title": "Pittsburgh Steelers"
+  },
+  {
+    "team": "Buffalo Bills",
+    "conference": "AFC",
+    "division": "East",
+    "url": "https://www.youtube.com/@buffalobills",
+    "channel_id": "UCcEvCxUe2Sm5W6MliEUv0vg",
+    "handle": "buffalobills",
+    "title": "Buffalo Bills"
+  },
+  {
+    "team": "Miami Dolphins",
+    "conference": "AFC",
+    "division": "East",
+    "url": "https://www.youtube.com/@miamidolphins",
+    "channel_id": "UCHUSfEzpSRkUUsRkk_aJwDw",
+    "handle": "miamidolphins",
+    "title": "Miami Dolphins"
+  },
+  {
+    "team": "New England Patriots",
+    "conference": "AFC",
+    "division": "East",
+    "url": "https://www.youtube.com/@patriots",
+    "channel_id": "UCMm_V8YjmnZRhToXIqDYDuw",
+    "handle": "patriots",
+    "title": "New England Patriots"
+  },
+  {
+    "team": "New York Jets",
+    "conference": "AFC",
+    "division": "East",
+    "url": "https://www.youtube.com/@nyjets",
+    "channel_id": "UCROj9vBjc4ZW3AL4cd_BjHg",
+    "handle": "nyjets",
+    "title": "New York Jets"
+  },
+  {
+    "team": "Houston Texans",
+    "conference": "AFC",
+    "division": "South",
+    "url": "https://www.youtube.com/@houstontexans",
+    "channel_id": "UCa_FcpOBe8G6VAR18RYS-aA",
+    "handle": "houstontexans",
+    "title": "Houston Texans"
+  },
+  {
+    "team": "Indianapolis Colts",
+    "conference": "AFC",
+    "division": "South",
+    "url": "https://www.youtube.com/@colts",
+    "channel_id": "UCyYn26HPC4HIedifGnNbjBw",
+    "handle": "colts",
+    "title": "Indianapolis Colts"
+  },
+  {
+    "team": "Jacksonville Jaguars",
+    "conference": "AFC",
+    "division": "South",
+    "url": "https://www.youtube.com/@jaguars",
+    "channel_id": "UCsGacW6z0GedR-Wv45SBRZg",
+    "handle": "jaguars",
+    "title": "Jacksonville Jaguars"
+  },
+  {
+    "team": "Tennessee Titans",
+    "conference": "AFC",
+    "division": "South",
+    "url": "https://www.youtube.com/@titans",
+    "channel_id": "UCHBsqVkFraWvtNd1w0Qx4_g",
+    "handle": "titans",
+    "title": "Tennessee Titans"
+  },
+  {
+    "team": "Denver Broncos",
+    "conference": "AFC",
+    "division": "West",
+    "url": "https://www.youtube.com/@broncos",
+    "channel_id": "UCDGdBexlDZA8T7hnweWWyow",
+    "handle": "broncos",
+    "title": "Denver Broncos"
+  },
+  {
+    "team": "Kansas City Chiefs",
+    "conference": "AFC",
+    "division": "West",
+    "url": "https://www.youtube.com/@kansascitychiefs",
+    "channel_id": "UC-hXefb6XBFSubWz6Ezf_lA",
+    "handle": "kansascitychiefs",
+    "title": "Kansas City Chiefs"
+  },
+  {
+    "team": "Las Vegas Raiders",
+    "conference": "AFC",
+    "division": "West",
+    "url": "https://www.youtube.com/@raiders",
+    "channel_id": "UC1es5fp8FEK1L0EgHjCvmtQ",
+    "handle": "raiders",
+    "title": "Raiders"
+  },
+  {
+    "team": "Los Angeles Chargers",
+    "conference": "AFC",
+    "division": "West",
+    "url": "https://www.youtube.com/@chargers",
+    "channel_id": "UCUyz_gEY_N-KBU4zjt2s-uQ",
+    "handle": "chargers",
+    "title": "Los Angeles Chargers"
+  },
+  {
+    "team": "Chicago Bears",
+    "conference": "NFC",
+    "division": "North",
+    "url": "https://www.youtube.com/@chicagobears",
+    "channel_id": "UCP0Cdc6moLMyDJiO0s-yhbQ",
+    "handle": "chicagobears",
+    "title": "Chicago Bears"
+  },
+  {
+    "team": "Detroit Lions",
+    "conference": "NFC",
+    "division": "North",
+    "url": "https://www.youtube.com/@detroitlionsnfl",
+    "channel_id": "UCv5J06V-ESk5_1uriG65f3w",
+    "handle": "detroitlionsnfl",
+    "title": "Detroit Lions"
+  },
+  {
+    "team": "Green Bay Packers",
+    "conference": "NFC",
+    "division": "North",
+    "url": "https://www.youtube.com/@packers",
+    "channel_id": "UCJtI-l6La0zniodFtSHYrBg",
+    "handle": "packers",
+    "title": "Green Bay Packers"
+  },
+  {
+    "team": "Minnesota Vikings",
+    "conference": "NFC",
+    "division": "North",
+    "url": "https://www.youtube.com/@vikings",
+    "channel_id": "UCcsw_KrB_wg5lQ5nXWR_LFA",
+    "handle": "vikings",
+    "title": "Minnesota Vikings"
+  },
+  {
+    "team": "Dallas Cowboys",
+    "conference": "NFC",
+    "division": "East",
+    "url": "https://www.youtube.com/@dallascowboys",
+    "channel_id": "UCC0BPKJxAyxjQoRTYbpW0FQ",
+    "handle": "dallascowboys",
+    "title": "Dallas Cowboys"
+  },
+  {
+    "team": "New York Giants",
+    "conference": "NFC",
+    "division": "East",
+    "url": "https://www.youtube.com/@nygiants",
+    "channel_id": "UCk2FqoG8dN5EAz5WU3A0D7A",
+    "handle": "nygiants",
+    "title": "New York Giants"
+  },
+  {
+    "team": "Philadelphia Eagles",
+    "conference": "NFC",
+    "division": "East",
+    "url": "https://www.youtube.com/@eagles",
+    "channel_id": "UCaogx6OHpsGg0zuGRKsjbtQ",
+    "handle": "eagles",
+    "title": "Philadelphia Eagles"
+  },
+  {
+    "team": "Washington Commanders",
+    "conference": "NFC",
+    "division": "East",
+    "url": "https://www.youtube.com/@commanders",
+    "channel_id": "UC2a0ENbCZqIO5C1fWXGXZXA",
+    "handle": "commanders",
+    "title": "Washington Commanders"
+  },
+  {
+    "team": "Atlanta Falcons",
+    "conference": "NFC",
+    "division": "South",
+    "url": "https://www.youtube.com/@atlantafalcons",
+    "channel_id": "UCzjCfV3LHyarKbdb-2ScGZg",
+    "handle": "atlantafalcons",
+    "title": "Atlanta Falcons"
+  },
+  {
+    "team": "Carolina Panthers",
+    "conference": "NFC",
+    "division": "South",
+    "url": "https://www.youtube.com/@carolinapanthers",
+    "channel_id": "UC6vl4XAyO5mZLczhFC8MgpA",
+    "handle": "carolinapanthers",
+    "title": "Carolina Panthers"
+  },
+  {
+    "team": "New Orleans Saints",
+    "conference": "NFC",
+    "division": "South",
+    "url": "https://www.youtube.com/@neworleanssaints",
+    "channel_id": "UCwuddf1JrodMlc5fYpVlrQA",
+    "handle": "neworleanssaints",
+    "title": "New Orleans Saints"
+  },
+  {
+    "team": "Tampa Bay Buccaneers",
+    "conference": "NFC",
+    "division": "South",
+    "url": "https://www.youtube.com/@buccaneers",
+    "channel_id": "UC0Wwu7r1ybaaR09ANhudTzA",
+    "handle": "buccaneers",
+    "title": "Tampa Bay Buccaneers"
+  },
+  {
+    "team": "Arizona Cardinals",
+    "conference": "NFC",
+    "division": "West",
+    "url": "https://www.youtube.com/@azcardinals",
+    "channel_id": "UCzNfiKcvNjLHljohEkO83Rg",
+    "handle": "azcardinals",
+    "title": "Arizona Cardinals"
+  },
+  {
+    "team": "Los Angeles Rams",
+    "conference": "NFC",
+    "division": "West",
+    "url": "https://www.youtube.com/@larams",
+    "channel_id": "UCyJ6yZdVUkBvt2vl4R03jcA",
+    "handle": "larams",
+    "title": "Los Angeles Rams"
+  },
+  {
+    "team": "San Francisco 49ers",
+    "conference": "NFC",
+    "division": "West",
+    "url": "https://www.youtube.com/@49ers",
+    "channel_id": "UCeIOarQkwmGhimim9cDUTng",
+    "handle": "49ers",
+    "title": "San Francisco 49ers"
+  },
+  {
+    "team": "Seattle Seahawks",
+    "conference": "NFC",
+    "division": "West",
+    "url": "https://www.youtube.com/@seahawks",
+    "channel_id": "UCzkFCRiMcOBeef8xcaqipmw",
+    "handle": "seahawks",
+    "title": "Seattle Seahawks"
+  }
+]
