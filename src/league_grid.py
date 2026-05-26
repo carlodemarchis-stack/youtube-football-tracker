@@ -52,12 +52,23 @@ def _load(_db, ids_tuple: tuple[str, ...], since: str) -> dict:
     return {cid: dict(c) for cid, c in per.items()}
 
 
+def _percentile(vals: list, p: int = 99) -> int | None:
+    """Outlier-resistant cap for the shared y-axis. Without this, one
+    spike from a single channel (Spurs at 38) compresses every other
+    row into a flat smear at the bottom."""
+    if not vals:
+        return None
+    s = sorted(vals)
+    return s[min(int(len(s) * p / 100), len(s) - 1)]
+
+
 def _chart(dates: list, vals: list[int], avg: float,
            y_max: int | None = None) -> go.Figure:
     """The per-channel videos-per-day bar (weekends orange + avg line) —
     same style as the Season page's Z3 club chart, compact for stacking.
-    When y_max is set, the y-axis is pinned to [0, y_max*1.05] so multiple
-    rows compare apples-to-apples; otherwise plotly auto-scales each."""
+    When y_max is set, the y-axis is pinned to [0, y_max*1.15] so multiple
+    rows compare apples-to-apples; bars whose true value exceeds y_max get
+    a small "↑ N" marker at the cap so the spike is still legible."""
     colors = ["#FFA15A" if d.weekday() >= 5 else "#636EFA" for d in dates]
     fig = go.Figure()
     fig.add_trace(go.Bar(
@@ -71,7 +82,21 @@ def _chart(dates: list, vals: list[int], avg: float,
                   annotation_font_color="rgba(255,255,255,0.55)")
     yaxis = dict(title="", showgrid=True, gridcolor="rgba(255,255,255,0.08)")
     if y_max is not None and y_max > 0:
-        yaxis["range"] = [0, y_max * 1.05]
+        yaxis["range"] = [0, y_max * 1.15]   # headroom for overflow labels
+        over_x = [d for d, v in zip(dates, vals) if v > y_max]
+        over_v = [v for v in vals if v > y_max]
+        if over_x:
+            fig.add_trace(go.Scatter(
+                x=over_x, y=[y_max] * len(over_x),
+                mode="markers+text",
+                text=[f"↑ {v}" for v in over_v],
+                textposition="top center",
+                textfont=dict(color="#FFA15A", size=11),
+                marker=dict(symbol="triangle-up", size=8, color="#FFA15A"),
+                hovertemplate="<b>%{x|%a %b %d, %Y}</b><br>"
+                              "true value above cap<extra></extra>",
+                showlegend=False,
+            ))
     fig.update_layout(
         height=240,
         xaxis=dict(title="", showgrid=False),
@@ -122,12 +147,17 @@ def render_league_grid(db, league: str, channels: list[dict],
     _mode = st.segmented_control(
         "Y-axis", ["Auto-scale", "Same scale"],
         default="Auto-scale", key="lg_z2_y",
-        help="Same scale uses the busiest channel's max as the ceiling, "
-             "so heights are comparable across rows.")
+        help="Same scale caps the y-axis at the 99th percentile of all "
+             "daily values, so a single spike from one channel doesn't "
+             "compress every other row. Outlier days above the cap get a "
+             "↑ N marker showing their true value.")
     _y_max = None
     if _mode == "Same scale":
         _all_vals = [v for cnt in per.values() for v in cnt.values()]
-        _y_max = max(_all_vals) if _all_vals else None
+        _y_max = _percentile(_all_vals, 99)
+        if _y_max:
+            st.caption(f"Same scale · y-axis capped at {_y_max} (p99). "
+                       "Bars above the cap show ↑ N with the true count.")
 
     for c in ordered:
         cid = c["id"]
@@ -136,12 +166,14 @@ def render_league_grid(db, league: str, channels: list[dict],
         zero_days = max(cal_days - len(cnt), 0)
         avg_day = total / cal_days
         zero_pct = zero_days / cal_days * 100
+        max_day = max(cnt.values()) if cnt else 0
         badge = channel_badge(c, color_map, dual_map, 16)
         st.markdown(
             f"<div style='font-size:16px;margin-top:2px'>{badge} "
             f"<b style='vertical-align:middle'>{name_of[cid]}</b>"
             f"<span style='color:#9aa0aa;font-size:13px;vertical-align:middle'>"
             f" — season videos {total:,} · avg {avg_day:.1f}/day · "
+            f"max {max_day}/day · "
             f"{zero_days} days with no videos ({zero_pct:.0f}%)</span></div>",
             unsafe_allow_html=True,
         )
@@ -212,12 +244,17 @@ def render_all_leagues_grid(db, channels: list[dict],
     _mode = st.segmented_control(
         "Y-axis", ["Auto-scale", "Same scale"],
         default="Auto-scale", key="lg_z1_y",
-        help="Same scale uses the busiest league's max as the ceiling, "
-             "so heights are comparable across rows.")
+        help="Same scale caps the y-axis at the 99th percentile of all "
+             "daily values, so a single spike from one league doesn't "
+             "compress every other row. Outlier days above the cap get a "
+             "↑ N marker showing their true value.")
     _y_max = None
     if _mode == "Same scale":
         _all_vals = [v for cnt in league_day.values() for v in cnt.values()]
-        _y_max = max(_all_vals) if _all_vals else None
+        _y_max = _percentile(_all_vals, 99)
+        if _y_max:
+            st.caption(f"Same scale · y-axis capped at {_y_max} (p99). "
+                       "Bars above the cap show ↑ N with the true count.")
 
     today = _dt.now(_tz.utc).date()
     for lg in ordered:
@@ -228,6 +265,7 @@ def render_all_leagues_grid(db, channels: list[dict],
         zero_days = max(cal_days - len(cnt), 0)
         avg_day = total / cal_days
         zero_pct = zero_days / cal_days * 100
+        max_day = max(cnt.values()) if cnt else 0
         hq = hq_of.get(lg)
         badge = (channel_badge(hq, color_map, dual_map, 16) if hq
                  else dual_dot(LEAGUE_COLOR_CHART.get(lg, "#636EFA"),
@@ -237,6 +275,7 @@ def render_all_leagues_grid(db, channels: list[dict],
             f"<b style='vertical-align:middle'>{lg}</b>"
             f"<span style='color:#9aa0aa;font-size:13px;vertical-align:middle'>"
             f" — season videos {total:,} · avg {avg_day:.1f}/day · "
+            f"max {max_day}/day · "
             f"{zero_days} days with no videos ({zero_pct:.0f}%)</span></div>",
             unsafe_allow_html=True,
         )
