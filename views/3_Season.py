@@ -1367,15 +1367,15 @@ if league is None and _scope == "Overall":
                      header="🌟 Season's one-hit wonders — top 10 across the leagues",
                      subtitle=("Videos carrying their channel's whole season: "
                                "≥10× the channel's median video, ≥15% of its "
-                               "season views, ≥500k absolute. Distinct from "
-                               "Viral (rolling 30-day cohort score) — these "
-                               "are historic and channel-self-relative. "
+                               "season views, ≥500k absolute. "
                                "Lift = views ÷ channel median."),
                      order_by="extra",
-                     extra_metric_col={
-                         "field": "lift", "label": "Lift ×",
-                         "format": lambda x: f"{int(x):,}×",
-                     })
+                     extra_metric_col=[
+                         {"field": "lift", "label": "Lift ×",
+                          "format": lambda x: f"{int(x):,}×"},
+                         {"field": "share_pct", "label": "% of season",
+                          "format": lambda x: f"{int(x)}%"},
+                     ])
         except Exception as _e:
             st.caption(f"(one-hit wonders unavailable: {_e})")
 
@@ -2405,13 +2405,14 @@ if club is None:
                      subtitle=(f"Videos carrying their club's whole season "
                                f"in {league}: ≥10× the channel's median "
                                "video, ≥15% of season views, ≥500k absolute. "
-                               "Distinct from Viral (rolling 30-day score). "
                                "Lift = views ÷ channel median."),
                      order_by="extra",
-                     extra_metric_col={
-                         "field": "lift", "label": "Lift ×",
-                         "format": lambda x: f"{int(x):,}×",
-                     })
+                     extra_metric_col=[
+                         {"field": "lift", "label": "Lift ×",
+                          "format": lambda x: f"{int(x):,}×"},
+                         {"field": "share_pct", "label": "% of season",
+                          "format": lambda x: f"{int(x)}%"},
+                     ])
         except Exception as _e:
             st.caption(f"(one-hit wonders unavailable: {_e})")
 
