@@ -31,16 +31,18 @@ if not users:
 # ── Summary KPIs ────────────────────────────────────────────
 _total = len(users)
 _onboarded = sum(1 for u in users if u.get("onboarded"))
+_consented = sum(1 for u in users if u.get("email_consent"))
 _admins = sum(1 for u in users if (u.get("role") or "").lower() == "admin")
 _premium = sum(1 for u in users if (u.get("role") or "").lower() == "premium")
 _viewers = _total - _admins - _premium
 
-k1, k2, k3, k4, k5 = st.columns(5)
+k1, k2, k3, k4, k5, k6 = st.columns(6)
 k1.metric("Total users", _total)
 k2.metric("Onboarded", f"{_onboarded}/{_total}")
-k3.metric("🛡️ Admins", _admins)
-k4.metric("⭐ Premium", _premium)
-k5.metric("👤 Viewers", _viewers)
+k3.metric("📬 Consented", f"{_consented}/{_total}")
+k4.metric("🛡️ Admins", _admins)
+k5.metric("⭐ Premium", _premium)
+k6.metric("👤 Viewers", _viewers)
 
 # ── Export CSV ──────────────────────────────────────────────
 _csv_buf = io.StringIO()
@@ -64,11 +66,13 @@ st.download_button(
 
 # ── Filters ─────────────────────────────────────────────────
 search = st.text_input("Search (name, email, company)", placeholder="dazn, carlo, @acme.com…").strip().lower()
-c1, c2 = st.columns([1, 1])
+c1, c2, c3 = st.columns([1, 1, 1])
 with c1:
     role_filter = st.multiselect("Role", ["admin", "premium", "viewer"], default=[])
 with c2:
     onboarded_filter = st.selectbox("Onboarding", ["All", "Onboarded only", "Pending only"])
+with c3:
+    consent_filter = st.selectbox("Email consent", ["All", "Consented only", "Not consented"])
 
 def _matches(u: dict) -> bool:
     if role_filter and (u.get("role") or "viewer").lower() not in role_filter:
@@ -76,6 +80,10 @@ def _matches(u: dict) -> bool:
     if onboarded_filter == "Onboarded only" and not u.get("onboarded"):
         return False
     if onboarded_filter == "Pending only" and u.get("onboarded"):
+        return False
+    if consent_filter == "Consented only" and not u.get("email_consent"):
+        return False
+    if consent_filter == "Not consented" and u.get("email_consent"):
         return False
     if search:
         hay = " ".join([
@@ -137,6 +145,13 @@ def _row(u: dict):
             " <span style='background:#F5A62333;color:#F5A623;padding:1px 6px;"
             "border-radius:3px;font-size:10px;margin-left:6px'>pending</span>"
         )
+        consent_chip = (
+            " <span style='background:#58A6FF33;color:#58A6FF;padding:1px 6px;"
+            "border-radius:3px;font-size:10px;margin-left:4px' "
+            "title='Consented to receive emails'>📬 consent</span>"
+            if email_consent else ""
+        )
+        status = status + consent_chip
         # Display the @ as an HTML entity so Streamlit's markdown auto-linkifier
         # doesn't recognise the text as an email and wrap it in its own
         # mailto: (which would nest inside — and override — our Gmail link).
