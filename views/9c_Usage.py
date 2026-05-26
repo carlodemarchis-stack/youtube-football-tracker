@@ -13,12 +13,21 @@ import pandas as pd
 from dotenv import load_dotenv
 
 from src.database import Database
-from src.auth import require_admin
+from src.auth import require_admin, get_current_user
 
 load_dotenv()
 require_admin()
 
 st.title("📊 Usage Analytics")
+
+# Admin's own traffic dominates dev sessions; default the toggle to
+# "exclude" so the numbers reflect real users. Reads the current admin
+# email dynamically — any admin viewing the page can toggle their own.
+_me = (get_current_user() or {}).get("email") or ""
+_exclude_self = False
+if _me:
+    _exclude_self = st.checkbox(
+        f"Exclude my traffic ({_me})", value=True, key="usage_exclude_self")
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_KEY", "")
@@ -45,6 +54,10 @@ except Exception as e:
     st.warning(f"usage_events not available yet ({e}). Run the table "
                "creation SQL in Supabase — see src/usage.py.")
     st.stop()
+
+if _exclude_self and _me:
+    events = [e for e in events
+              if (e.get("email") or "").lower() != _me.lower()]
 
 if not events:
     st.info("No usage recorded yet. Events start logging once the "
