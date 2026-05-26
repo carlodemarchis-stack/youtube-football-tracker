@@ -2421,20 +2421,11 @@ else:
         return f"{x:.2f}%" if x else "-"
 
     # ── Club colors (fallback to defaults; never black on dark bg) ───
-    def _safe(c, fallback):
-        if not c:
-            return fallback
-        u = c.upper().strip()
-        # Treat pure/near black as invisible on dark bg → fallback
-        if u in ("#000000", "#000", "#111111", "#0A0A0A"):
-            return fallback
-        return c
-    _c1 = _safe(club.get("color"), "#636EFA")
-    _c2 = _safe(club.get("color2"), "#FFFFFF")
-    if _c2.upper() == _c1.upper():
-        _c2 = "#FFFFFF" if _c1.upper() != "#FFFFFF" else "#AAAAAA"
-    LONG_COLOR = _c1
-    SHORT_COLOR = _c2
+    # Long / Shorts / Live use the standard format colours at every
+    # scope — matches Z1 + Z2 so the per-club donuts and monthly bars
+    # don't drift to the channel's brand palette.
+    LONG_COLOR = "#636EFA"
+    SHORT_COLOR = "#00CC96"
     LIVE_COLOR = "#FFA15A"
 
     # ── Banner: three donut charts ──────────────────────────────
