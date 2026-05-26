@@ -1351,6 +1351,31 @@ if league is None and _scope == "Overall":
     except Exception as _e:
         st.caption(f"(zero-day chart unavailable: {_e})")
 
+    # ── Season one-hit wonders (Z1) ─────────────────────────────────
+    if league is None:
+        try:
+            from src import onehit as _oh
+            from src.season_top import render_top_season_videos_table as _rtv
+            _z1_top5 = [c for c in all_channels
+                        if c.get("entity_type") in ("Club", "League")
+                        and c.get("id")]
+            _z1_ids = [c["id"] for c in _z1_top5]
+            _z1_hits = _oh.top_n(db, _z1_ids, SEASON_SINCE, n=10)
+            _z1_ch_by_id = {c["id"]: c for c in _z1_top5}
+            if _z1_hits:
+                _rtv(_z1_hits, _z1_ch_by_id,
+                     header="🌟 Season's one-hit wonders — top 10 across the leagues",
+                     order_by="extra",
+                     extra_metric_col={"field": "lift", "label": "Lift ×"})
+                st.caption(
+                    "Videos carrying their channel's whole season: "
+                    "≥10× the channel's median video, ≥15% of its season "
+                    "views, ≥500k absolute. Distinct from Viral (rolling "
+                    "30-day cohort score) — these are historic and "
+                    "channel-self-relative. Lift = views ÷ channel median.")
+        except Exception as _e:
+            st.caption(f"(one-hit wonders unavailable: {_e})")
+
     # ── All channels table — precomputed columns (zero video queries) ───
     st.subheader("📡 All Channels — Season")
     # Re-emphasize the season-scope disclaimer right before the channels
@@ -2358,6 +2383,32 @@ if club is None:
         except Exception as _e:
             st.caption(f"(zero-day chart unavailable: {_e})")
 
+    # ── Season one-hit wonders (Z2) ─────────────────────────────────
+    if league:
+        try:
+            from src import onehit as _oh
+            from src.season_top import render_top_season_videos_table as _rtv
+            from src.channels import COUNTRY_TO_LEAGUE as _CTL
+            _z2_chs = [c for c in all_channels
+                       if c.get("entity_type") in ("Club", "League")
+                       and _CTL.get((c.get("country") or "").strip()) == league
+                       and c.get("id")]
+            _z2_ids = [c["id"] for c in _z2_chs]
+            _z2_hits = _oh.top_n(db, _z2_ids, SEASON_SINCE, n=10)
+            _z2_ch_by_id = {c["id"]: c for c in _z2_chs}
+            if _z2_hits:
+                _rtv(_z2_hits, _z2_ch_by_id,
+                     header=f"🌟 Season's one-hit wonders — {league}",
+                     order_by="extra",
+                     extra_metric_col={"field": "lift", "label": "Lift ×"})
+                st.caption(
+                    f"Videos carrying their club's whole season in {league}: "
+                    "≥10× the channel's median video, ≥15% of season views, "
+                    "≥500k absolute. Distinct from Viral (rolling 30-day "
+                    "score). Lift = views ÷ channel median.")
+        except Exception as _e:
+            st.caption(f"(one-hit wonders unavailable: {_e})")
+
     # Top Season Videos lists moved to the Season Top Videos page.
 
 else:
@@ -2519,6 +2570,29 @@ else:
         ("💬 Total Comments",  fmt_num(total_comments),      _rank_subtitle_z3("comments")),
         ("⚡ Engagement Rate", f"{_eng_rate:.2f}%",           _rank_subtitle_z3("eng")),
     ]), unsafe_allow_html=True)
+
+    # ── Season one-hit wonder (Z3) ────────────────────────────
+    # A single video that earned ≥10× the channel's median, accounts
+    # for ≥15% of its season views, and crosses 500k absolute. Distinct
+    # from the Viral page (rolling 30 days, cohort-wide momentum) —
+    # this is historic and channel-self-relative. Hidden when the club
+    # has none, which is itself information.
+    try:
+        from src import onehit as _oh
+        from src.season_top import render_top_season_videos_table as _rtv
+        _oh_hits = _oh.top_n(db, [club["id"]], SEASON_SINCE, n=1)
+        if _oh_hits:
+            _rtv(_oh_hits, {club["id"]: club},
+                 header="🌟 Season's one-hit wonder",
+                 order_by="extra",
+                 extra_metric_col={"field": "lift", "label": "Lift ×"})
+            st.caption(
+                f"Single video carrying this channel's season "
+                f"({_oh_hits[0]['lift']:,}× the channel's median video, "
+                f"{_oh_hits[0]['share'] * 100:.0f}% of season views). "
+                "Lift = video views ÷ channel's median season video.")
+    except Exception as _e:
+        st.caption(f"(one-hit wonder unavailable: {_e})")
 
     # Pie charts row
     def _make_pie_club(values, labels, colors, hover_suffix, title):
