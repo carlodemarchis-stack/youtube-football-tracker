@@ -5,10 +5,7 @@
       "version": "1.11",
       "date": "2026-05-26",
       "notes": [
-        "🌟 New \"Season's one-hit wonders\" on the Season page — visible at every zoom: top-10 across the leagues, top-10 per league, and a single highlight per club (when it has one). Surfaces the videos that carry their channel's whole season — distinct from Viral (rolling 30-day cohort score): this is historic and channel-self-relative.",
-        "📬 User Management now shows email-consent status — new KPI count, a Consented / Not consented filter, and a small consent chip on each user row.",
-        "🎨 Per-club donuts on Season now use the standard Long / Shorts / Live colours everywhere (no more channel-brand palette overriding the format colours).",
-        "🧭 Sidebar polish — group labels (Top 5 Leagues, FIFA World Cup 2026, …) coloured distinctly from page links so the menu hierarchy reads at a glance; the version badge at the bottom now links to Release Notes."
+        "🌟 New \"Season's one-hit wonders\" on the Season page — visible at every zoom: top-10 across the leagues, top-10 per league, and a single highlight per club (when it has one). Surfaces the videos that carry their channel's whole season — distinct from Viral (rolling 30-day cohort score): this is historic and channel-self-relative."
       ]
     },
     {

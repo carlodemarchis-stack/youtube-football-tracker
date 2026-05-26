@@ -71,3 +71,12 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 Commit directly to `main` — never create feature branches or PRs. `main`
 auto-deploys via Railway, so: commit only when asked, and **push only on
 explicit request** (a push = a production deploy).
+
+## Release notes
+
+`RELEASES.json` is **user-facing only**. Never add an entry that doesn't
+deliver clear value to an end user. Internal polish (colour fixes,
+selector changes, refactors, admin-only conveniences, navigation tweaks
+that don't change what users can do) does NOT belong in release notes.
+When in doubt, ask before adding — and prefer a single sharp note to a
+list that dilutes the headline.
