@@ -125,15 +125,42 @@ def main() -> int:
     # been observed to drop columns from the merged proposed row, which is
     # what trips the NOT NULL check).
     update_buffer: dict[str, dict] = {}
+    # Track IDs we requested from YouTube but didn't get back (deleted /
+    # private / region-blocked / API hiccup) so we can flag a partial run.
+    missing_yt_ids: list[str] = []
+    # Stamp `last_updated` on every freshened row so the date histogram on
+    # the videos table truthfully reflects when stats were refreshed (the
+    # previous payload omitted this column, so weekly runs were invisible
+    # in last_updated even though view_count was being updated).
+    _now_iso = datetime.now(timezone.utc).isoformat()
+    expected = len(yt_ids)
 
     for b in range(0, len(yt_ids), 50):
         batch = yt_ids[b:b + 50]
-        try:
-            details = yt.get_video_details(batch)
-        except Exception as e:
-            errors += 1
-            log(f"  batch {b}-{b + 50} fetch failed: {e}")
+        # One retry on transient fetch failure — the previous behaviour
+        # silently dropped 50 IDs on any network blip until the next run.
+        details = None
+        for attempt in (1, 2):
+            try:
+                details = yt.get_video_details(batch)
+                break
+            except Exception as e:
+                if attempt < 2:
+                    log(f"  batch {b}-{b + 50} fetch failed (attempt 1): "
+                        f"{e}; retrying in 1s")
+                    time.sleep(1)
+                else:
+                    errors += 1
+                    log(f"  batch {b}-{b + 50} fetch failed after retry: {e}")
+        if details is None:
+            missing_yt_ids.extend(batch)
             continue
+        # Flag IDs the API didn't return for this batch (silent skips —
+        # deleted videos, region blocks, occasional API drops).
+        returned = {(v.get("youtube_video_id") or "").strip() for v in details}
+        for q in batch:
+            if q not in returned:
+                missing_yt_ids.append(q)
         for v in details:
             yt_id = (v.get("youtube_video_id") or "").strip()
             if not yt_id:
@@ -158,9 +185,20 @@ def main() -> int:
                 "view_count": v.get("view_count", 0),
                 "like_count": v.get("like_count", 0),
                 "comment_count": v.get("comment_count", 0),
+                "last_updated": _now_iso,
             }
         if (b // 50) % 20 == 0:
             log(f"  fetched stats for {min(b + 50, len(yt_ids))}/{len(yt_ids)}")
+
+    # Coverage gate: previously the script silently reported "success"
+    # when only a fraction of in-scope videos came back. Now we compute
+    # the % actually populated and feed that into the run status below.
+    received = len(update_buffer)
+    coverage = (received / expected) if expected else 1.0
+    log(f"  coverage: received {received}/{expected} videos "
+        f"({coverage * 100:.1f}%); silently missing {len(missing_yt_ids)}")
+    if missing_yt_ids:
+        log(f"  first 5 missing yt_ids: {missing_yt_ids[:5]}")
 
     # Flush to Supabase in 500-row chunks
     update_rows = list(update_buffer.values())
@@ -200,14 +238,24 @@ def main() -> int:
 
     # ── Done ─────────────────────────────────────────────────────
     elapsed = time.time() - start
-    log(f"Done in {elapsed:.1f}s — channels={ch_ok} videos={videos_updated} top100={stats_ok} errors={errors}")
+    # A run is "partial" if either there are explicit errors OR coverage
+    # of the in-scope video set dropped below 95%. The previous version
+    # only flagged errors, so a silent loss of 36% of videos (May 24)
+    # was logged as a clean success.
+    coverage_ok = coverage >= 0.95
+    partial = (errors > 0) or (not coverage_ok)
+    log(f"Done in {elapsed:.1f}s — channels={ch_ok} videos={videos_updated} "
+        f"top100={stats_ok} errors={errors} coverage={coverage * 100:.1f}% "
+        f"{'(PARTIAL)' if partial else ''}")
 
     try:
-        status = "weekly_refresh" if errors == 0 else "weekly_refresh_partial"
+        status = "weekly_refresh_partial" if partial else "weekly_refresh"
         db.log_fetch(
             ch_ok, 0, status,
-            f"{ch_ok} channels, {videos_updated} videos refreshed, "
-            f"{stats_ok} top100 recomputed, {errors} errors, {elapsed:.1f}s",
+            f"{ch_ok} channels, {videos_updated} videos refreshed "
+            f"({coverage * 100:.1f}% of {expected} in-scope), "
+            f"{stats_ok} top100 recomputed, {errors} errors, "
+            f"{len(missing_yt_ids)} silently_missing, {elapsed:.1f}s",
         )
     except Exception as e:
         log(f"log_fetch failed (non-fatal): {e}")
@@ -215,10 +263,14 @@ def main() -> int:
     try:
         from src.notify import send_run_alert
         send_run_alert("weekly_refresh",
-                       ok=(errors == 0),
-                       summary=(f"{ch_ok} channels, {videos_updated} videos, "
+                       ok=not partial,
+                       summary=(f"{ch_ok} channels, {videos_updated} videos "
+                                f"({coverage * 100:.0f}% cov), "
                                 f"{stats_ok} top100 in {elapsed:.0f}s"),
-                       error=(f"{errors} errors" if errors else ""))
+                       error=("partial: "
+                              f"{errors} errors, "
+                              f"{len(missing_yt_ids)} silently_missing"
+                              if partial else ""))
     except Exception as _e:
         log(f"ntfy alert failed (non-fatal): {_e}")
 
