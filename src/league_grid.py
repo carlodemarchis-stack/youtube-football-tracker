@@ -29,9 +29,25 @@ _CET = ZoneInfo("Europe/Rome")
 @st.cache_data(ttl=900, show_spinner=False)
 def _load(_db, ids_tuple: tuple[str, ...], since: str) -> dict:
     """{channel_id: {date: count}} of videos published since season start,
-    for the league's channels. One paginated scan, bucketed in Python."""
+    for the league's channels. Reads the precomputed
+    `season_videos_per_day` cache when present (written by
+    src.season_compute) and filters to `ids_tuple`; falls back to a live
+    paginated scan when cold."""
     if not ids_tuple:
         return {}
+    # Cache-first: filter the global per-channel dict to the requested ids.
+    try:
+        from src import dashboard_cache as _dc
+        from datetime import date as _date
+        row = _dc.read(_db, "season_videos_per_day", _dc.scope_all())
+        cached = ((row or {}).get("payload") or {}).get("per_channel") or {}
+        if cached:
+            ids_set = set(ids_tuple)
+            return {cid: {_date.fromisoformat(d): int(n)
+                          for d, n in dts.items()}
+                    for cid, dts in cached.items() if cid in ids_set}
+    except Exception:
+        pass
     rows = _fetch_all(
         _db.client.table("videos")
         .select("channel_id,published_at")
@@ -295,9 +311,20 @@ def render_all_leagues_grid(db, channels: list[dict],
 @st.cache_data(ttl=900, show_spinner=False)
 def _load_heat(_db, ids_tuple: tuple[str, ...], since: str) -> dict:
     """{channel_id: {"counts": 7x24, "sums": 7x24}} — publishing counts and
-    summed views per CET (day-of-week × hour) slot, since season start."""
+    summed views per CET (day-of-week × hour) slot, since season start.
+    Reads the precomputed `season_heatmap` cache when present (written by
+    src.season_compute); falls back to a live paginated scan when cold."""
     if not ids_tuple:
         return {}
+    try:
+        from src import dashboard_cache as _dc
+        row = _dc.read(_db, "season_heatmap", _dc.scope_all())
+        cached = ((row or {}).get("payload") or {}).get("per_channel") or {}
+        if cached:
+            ids_set = set(ids_tuple)
+            return {cid: g for cid, g in cached.items() if cid in ids_set}
+    except Exception:
+        pass
     rows = _fetch_all(
         _db.client.table("videos")
         .select("channel_id,published_at,view_count")

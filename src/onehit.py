@@ -90,6 +90,17 @@ def compute(rows: list[dict]) -> list[dict]:
 
 
 def top_n(db, channel_ids: list[str], since: str, n: int) -> list[dict]:
-    """Convenience: load + compute + take top N. Cohort or league scope."""
+    """Top N one-hit wonders, filtered to `channel_ids`. Reads the
+    precomputed `season_one_hits` cache when present (written by
+    src.season_compute); falls back to a live scan + compute when cold."""
+    try:
+        from src import dashboard_cache as _dc
+        row = _dc.read(db, "season_one_hits", _dc.scope_all())
+        hits = ((row or {}).get("payload") or {}).get("hits") or []
+        if hits:
+            ids_set = set(channel_ids)
+            return [h for h in hits if h.get("channel_id") in ids_set][:n]
+    except Exception:
+        pass
     rows = _load(db, tuple(sorted(channel_ids)), since)
     return compute(rows)[:n]

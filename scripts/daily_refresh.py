@@ -377,6 +377,16 @@ def main() -> int:
     except Exception as e:
         log(f"dashboard_cache rebuild failed (non-fatal): {e}")
 
+    # Season-level pre-compute (one-hit wonders, videos/day grids,
+    # publishing-heatmap grids). One paginated scan, three single-row
+    # caches — see src/season_compute.py. Heavy on first render without
+    # this; cheap to refresh nightly.
+    try:
+        from src.season_compute import refresh as _refresh_season
+        _refresh_season(db, log=log)
+    except Exception as e:
+        log(f"season_compute refresh failed (non-fatal): {e}")
+
     elapsed = time.time() - start
     log(f"Done in {elapsed:.1f}s — channels_ok={ok} failed={len(failed)} new_videos={new_videos_total} video_snapshots={video_snapshots_written}")
 
