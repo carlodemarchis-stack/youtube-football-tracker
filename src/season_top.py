@@ -78,6 +78,7 @@ def render_top_season_videos_table(
     channels_by_id: dict,
     *,
     header: str,
+    subtitle: str | None = None,
     order_by: str = "views",
     max_height: int | None = None,
     extra_metric_col: dict | None = None,
@@ -98,6 +99,8 @@ def render_top_season_videos_table(
     if not vids:
         return 0
     st.subheader(header)
+    if subtitle:
+        st.caption(subtitle)
 
     def _fmt_of_local(v):
         f = (v.get("format") or "").lower()
@@ -132,8 +135,25 @@ def render_top_season_videos_table(
     # 30-Day Trends page wants Δ views per video on top of the standard
     # cumulative views/likes/comments. Set order_by="extra" to make
     # the inserted column the highlighted (ranking) column.
-    _xc_field = (extra_metric_col or {}).get("field")
-    _xc_label = (extra_metric_col or {}).get("label") or "Δ Views"
+    # Normalise extra_metric_col to a list of dicts (back-compat: a
+    # single dict still works). The first entry is the "ranking" column
+    # — it gets the accent highlight when order_by="extra". Subsequent
+    # entries render as plain right-aligned metric cells.
+    _xcs_in = (extra_metric_col if isinstance(extra_metric_col, list)
+               else ([extra_metric_col] if extra_metric_col else []))
+    _xcs: list[dict] = []
+    for _i, _c in enumerate(_xcs_in):
+        if not _c or not _c.get("field"):
+            continue
+        _xcs.append({
+            "field": _c["field"],
+            "label": _c.get("label") or ("Δ Views" if _i == 0 else _c["field"]),
+            # Optional custom formatter for the extra cell — default keeps
+            # the historic "+N" + fmt_num (K-abbreviated) behaviour the
+            # 30-Day Trends page relies on. Pass format=lambda x: ...
+            # to override.
+            "format": _c.get("format"),
+        })
 
     rows = ""
     for i, v in enumerate(vids, 1):
@@ -161,11 +181,13 @@ def render_top_season_videos_table(
             f'{_cat_span}'
         )
         _extra_cell = ""
-        if _xc_field:
-            _xv = int(v.get(_xc_field) or 0)
-            _xstr = ("+" if _xv > 0 else "") + fmt_num(_xv)
-            _extra_cell = (f'<td class="{_ordc["extra"]}" '
-                           f'style="padding:6px 12px;text-align:right">{_xstr}</td>')
+        for _xi, _xc in enumerate(_xcs):
+            _xv = int(v.get(_xc["field"]) or 0)
+            _xstr = (_xc["format"](_xv) if _xc.get("format")
+                     else (("+" if _xv > 0 else "") + fmt_num(_xv)))
+            _klass = _ordc["extra"] if _xi == 0 else ""
+            _extra_cell += (f'<td class="{_klass}" '
+                            f'style="padding:6px 12px;text-align:right">{_xstr}</td>')
         rows += f"""<tr onclick="window.open('{yt_url}','_blank','noopener')" style="cursor:pointer">
             <td style="padding:6px 12px;text-align:right;color:{_T.MUTED};vertical-align:top">{i}</td>
             <td style="padding:6px 12px;vertical-align:top"><img src="{thumb}" style="width:110px;height:62px;object-fit:cover;border-radius:4px;display:block"></td>
@@ -190,7 +212,7 @@ def render_top_season_videos_table(
         '<col style="width:44px">'
         '<col style="width:134px">'
         "<col>"
-        + ('<col style="width:120px">' if _xc_field else "")
+        + ('<col style="width:120px">' * len(_xcs))
         + '<col style="width:96px">'
         '<col style="width:96px">'
         '<col style="width:110px">'
@@ -208,7 +230,11 @@ def render_top_season_videos_table(
         '<th style="text-align:right">#</th>'
         "<th></th>"
         "<th>Video</th>"
-        + (_hd(_xc_label, "extra") if _xc_field else "")
+        + "".join(
+            _hd(_xc["label"], "extra") if _xi == 0
+            else f'<th style="text-align:right">{_xc["label"]}</th>'
+            for _xi, _xc in enumerate(_xcs)
+        )
         + _hd("Views", "views")
         + _hd("Likes", "likes")
         + _hd("Comments", "comments")

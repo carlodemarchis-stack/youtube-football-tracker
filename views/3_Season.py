@@ -1365,14 +1365,17 @@ if league is None and _scope == "Overall":
             if _z1_hits:
                 _rtv(_z1_hits, _z1_ch_by_id,
                      header="🌟 Season's one-hit wonders — top 10 across the leagues",
+                     subtitle=("Videos carrying their channel's whole season: "
+                               "≥10× the channel's median video, ≥15% of its "
+                               "season views, ≥500k absolute. Distinct from "
+                               "Viral (rolling 30-day cohort score) — these "
+                               "are historic and channel-self-relative. "
+                               "Lift = views ÷ channel median."),
                      order_by="extra",
-                     extra_metric_col={"field": "lift", "label": "Lift ×"})
-                st.caption(
-                    "Videos carrying their channel's whole season: "
-                    "≥10× the channel's median video, ≥15% of its season "
-                    "views, ≥500k absolute. Distinct from Viral (rolling "
-                    "30-day cohort score) — these are historic and "
-                    "channel-self-relative. Lift = views ÷ channel median.")
+                     extra_metric_col={
+                         "field": "lift", "label": "Lift ×",
+                         "format": lambda x: f"{int(x):,}×",
+                     })
         except Exception as _e:
             st.caption(f"(one-hit wonders unavailable: {_e})")
 
@@ -2399,13 +2402,16 @@ if club is None:
             if _z2_hits:
                 _rtv(_z2_hits, _z2_ch_by_id,
                      header=f"🌟 Season's one-hit wonders — {league}",
+                     subtitle=(f"Videos carrying their club's whole season "
+                               f"in {league}: ≥10× the channel's median "
+                               "video, ≥15% of season views, ≥500k absolute. "
+                               "Distinct from Viral (rolling 30-day score). "
+                               "Lift = views ÷ channel median."),
                      order_by="extra",
-                     extra_metric_col={"field": "lift", "label": "Lift ×"})
-                st.caption(
-                    f"Videos carrying their club's whole season in {league}: "
-                    "≥10× the channel's median video, ≥15% of season views, "
-                    "≥500k absolute. Distinct from Viral (rolling 30-day "
-                    "score). Lift = views ÷ channel median.")
+                     extra_metric_col={
+                         "field": "lift", "label": "Lift ×",
+                         "format": lambda x: f"{int(x):,}×",
+                     })
         except Exception as _e:
             st.caption(f"(one-hit wonders unavailable: {_e})")
 
@@ -2584,13 +2590,17 @@ else:
         if _oh_hits:
             _rtv(_oh_hits, {club["id"]: club},
                  header="🌟 Season's one-hit wonder",
+                 subtitle=(f"Single video carrying this channel's season "
+                           f"({_oh_hits[0]['lift']:,}× the channel's median "
+                           f"video, {_oh_hits[0]['share'] * 100:.0f}% of "
+                           f"season views). Lift = views ÷ channel median."),
                  order_by="extra",
-                 extra_metric_col={"field": "lift", "label": "Lift ×"})
-            st.caption(
-                f"Single video carrying this channel's season "
-                f"({_oh_hits[0]['lift']:,}× the channel's median video, "
-                f"{_oh_hits[0]['share'] * 100:.0f}% of season views). "
-                "Lift = video views ÷ channel's median season video.")
+                 extra_metric_col=[
+                     {"field": "lift", "label": "Lift ×",
+                      "format": lambda x: f"{int(x):,}×"},
+                     {"field": "share_pct", "label": "% of season",
+                      "format": lambda x: f"{int(x)}%"},
+                 ])
     except Exception as _e:
         st.caption(f"(one-hit wonder unavailable: {_e})")
 

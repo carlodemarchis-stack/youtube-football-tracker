@@ -81,6 +81,9 @@ def compute(rows: list[dict]) -> list[dict]:
             v2 = dict(v)
             v2["lift"] = int(round(lift))
             v2["share"] = share
+            # Integer percentage for the table column (the renderer
+            # int()-casts extra-col values, so 0..1 share would round to 0).
+            v2["share_pct"] = int(round(share * 100))
             out.append(v2)
     out.sort(key=lambda v: -v.get("lift", 0))
     return out
