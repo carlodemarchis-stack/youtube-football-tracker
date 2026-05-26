@@ -5,7 +5,7 @@
       "version": "1.11",
       "date": "2026-05-26",
       "notes": [
-        "🌟 New \"Season's one-hit wonders\" on the Season page — visible at every zoom: top-10 across the leagues, top-10 per league, and a single highlight per club (when it has one). Surfaces the videos that carry their channel's whole season — distinct from Viral (rolling 30-day cohort score): this is historic and channel-self-relative."
+        "🌟 New \"Season's one-hit wonders\" on the Season page — surfaces the single video carrying a channel's whole season. Each row shows two key numbers: Lift × — how many times more views the video earned vs the channel's typical (median) season video (e.g. 2,074× means it pulled 2,074 times the views of a normal upload); and % of season — the share of the channel's whole season views this one video accounts for (e.g. 40% means one video is 40% of the channel's entire season). Visible at every zoom: top-10 across the leagues, top-10 per league, and a single highlight on each club page."
       ]
     },
     {
