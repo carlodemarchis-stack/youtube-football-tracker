@@ -209,8 +209,11 @@ show_auth_sidebar()
 try:
     from src.releases import current_version as _current_version
     st.sidebar.markdown(
-        f"<div style='margin-top:14px;color:#6b7280;font-size:12px'>"
-        f"YouTube Football Tracker · <b>v{_current_version()}</b></div>",
+        f"<div style='margin-top:14px;font-size:12px'>"
+        f"<a href='/release-notes' target='_self' "
+        f"style='color:#6b7280;text-decoration:none' "
+        f"title='See what changed'>"
+        f"YouTube Football Tracker · <b>v{_current_version()}</b></a></div>",
         unsafe_allow_html=True,
     )
 except Exception:
