@@ -52,9 +52,12 @@ def _load(_db, ids_tuple: tuple[str, ...], since: str) -> dict:
     return {cid: dict(c) for cid, c in per.items()}
 
 
-def _chart(dates: list, vals: list[int], avg: float) -> go.Figure:
+def _chart(dates: list, vals: list[int], avg: float,
+           y_max: int | None = None) -> go.Figure:
     """The per-channel videos-per-day bar (weekends orange + avg line) —
-    same style as the Season page's Z3 club chart, compact for stacking."""
+    same style as the Season page's Z3 club chart, compact for stacking.
+    When y_max is set, the y-axis is pinned to [0, y_max*1.05] so multiple
+    rows compare apples-to-apples; otherwise plotly auto-scales each."""
     colors = ["#FFA15A" if d.weekday() >= 5 else "#636EFA" for d in dates]
     fig = go.Figure()
     fig.add_trace(go.Bar(
@@ -66,10 +69,13 @@ def _chart(dates: list, vals: list[int], avg: float) -> go.Figure:
                   annotation_text=f"avg {avg:.1f}",
                   annotation_position="top right",
                   annotation_font_color="rgba(255,255,255,0.55)")
+    yaxis = dict(title="", showgrid=True, gridcolor="rgba(255,255,255,0.08)")
+    if y_max is not None and y_max > 0:
+        yaxis["range"] = [0, y_max * 1.05]
     fig.update_layout(
         height=240,
         xaxis=dict(title="", showgrid=False),
-        yaxis=dict(title="", showgrid=True, gridcolor="rgba(255,255,255,0.08)"),
+        yaxis=yaxis,
         margin=dict(t=10, b=30, l=50, r=20),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="#FAFAFA"), showlegend=False, bargap=0.15,
@@ -113,6 +119,16 @@ def render_league_grid(db, league: str, channels: list[dict],
         f"{since[:10]} · weekends in orange. Ordered by total season videos."
     )
 
+    _mode = st.segmented_control(
+        "Y-axis", ["Auto-scale", "Same scale"],
+        default="Auto-scale", key="lg_z2_y",
+        help="Same scale uses the busiest channel's max as the ceiling, "
+             "so heights are comparable across rows.")
+    _y_max = None
+    if _mode == "Same scale":
+        _all_vals = [v for cnt in per.values() for v in cnt.values()]
+        _y_max = max(_all_vals) if _all_vals else None
+
     for c in ordered:
         cid = c["id"]
         cnt = per.get(cid) or {}
@@ -135,8 +151,8 @@ def render_league_grid(db, league: str, channels: list[dict],
         dates = sorted(cnt.keys())
         vals = [cnt[d] for d in dates]
         avg = sum(vals) / len(vals) if vals else 0
-        st.plotly_chart(_chart(dates, vals, avg), width="stretch",
-                        key=f"vpd_grid_{cid}")
+        st.plotly_chart(_chart(dates, vals, avg, y_max=_y_max),
+                        width="stretch", key=f"vpd_grid_{cid}")
         st.markdown("<hr style='border:none;border-top:1px solid #2a2c34;"
                     "margin:4px 0 14px 0'>", unsafe_allow_html=True)
 
@@ -193,6 +209,16 @@ def render_all_leagues_grid(db, channels: list[dict],
         "videos."
     )
 
+    _mode = st.segmented_control(
+        "Y-axis", ["Auto-scale", "Same scale"],
+        default="Auto-scale", key="lg_z1_y",
+        help="Same scale uses the busiest league's max as the ceiling, "
+             "so heights are comparable across rows.")
+    _y_max = None
+    if _mode == "Same scale":
+        _all_vals = [v for cnt in league_day.values() for v in cnt.values()]
+        _y_max = max(_all_vals) if _all_vals else None
+
     today = _dt.now(_tz.utc).date()
     for lg in ordered:
         cnt = league_day[lg]
@@ -220,8 +246,8 @@ def render_all_leagues_grid(db, channels: list[dict],
         dates = sorted(cnt.keys())
         vals = [cnt[d] for d in dates]
         avg = sum(vals) / len(vals) if vals else 0
-        st.plotly_chart(_chart(dates, vals, avg), width="stretch",
-                        key=f"vpd_grid_lg_{lg}")
+        st.plotly_chart(_chart(dates, vals, avg, y_max=_y_max),
+                        width="stretch", key=f"vpd_grid_lg_{lg}")
         st.markdown("<hr style='border:none;border-top:1px solid #2a2c34;"
                     "margin:4px 0 14px 0'>", unsafe_allow_html=True)
 
