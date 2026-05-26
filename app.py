@@ -275,6 +275,13 @@ st.markdown("""
       [data-testid="stSidebarUserContent"] {
         padding-top: 0 !important;
       }
+      /* Level-1 group labels in the sidebar nav (e.g. "Top 5 Leagues",
+         "Admin", "About") rendered as non-clickable section headers.
+         Color them distinctly from the level-2 page links beneath. */
+      [data-testid="stSidebarNav"] li:not(:has(a)) span,
+      [data-testid="stSidebarNav"] span[role="heading"] {
+        color: #FFA15A !important;
+      }
       /* Desktop-first notice: this is a data-dense dashboard (wide
          non-squashing tables, fixed-height component iframes) — making
          it truly mobile-good is a ~19-page rework against its own
