@@ -276,11 +276,25 @@ st.markdown("""
         padding-top: 0 !important;
       }
       /* Level-1 group labels in the sidebar nav (e.g. "Top 5 Leagues",
-         "Admin", "About") rendered as non-clickable section headers.
-         Color them distinctly from the level-2 page links beneath. */
-      [data-testid="stSidebarNav"] li:not(:has(a)) span,
-      [data-testid="stSidebarNav"] span[role="heading"] {
+         "Admin", "About"). Streamlit changes the wrapper element + its
+         data-testid across minor versions, so cover all plausible
+         variants and any non-anchor text in the nav list. */
+      [data-testid="stSidebarNav"] [data-testid="stNavSectionHeader"],
+      [data-testid="stSidebarNav"] [data-testid="stSidebarNavSeparator"],
+      [data-testid="stSidebarNav"] [data-testid="stSidebarNavSectionHeader"],
+      [data-testid="stSidebarNav"] [data-testid*="SectionHeader"],
+      [data-testid="stSidebarNav"] [data-testid*="Separator"],
+      [data-testid="stSidebarNav"] [data-testid*="SectionTitle"],
+      [data-testid="stSidebarNav"] [role="heading"],
+      [data-testid="stSidebarNav"] li:not(:has(a)),
+      [data-testid="stSidebarNav"] li:not(:has(a)) > *,
+      [data-testid="stSidebarNav"] > div > span,
+      [data-testid="stSidebarNav"] > ul > span,
+      [data-testid="stSidebarNav"] header,
+      [data-testid="stSidebarNav"] h2,
+      [data-testid="stSidebarNav"] h3 {
         color: #FFA15A !important;
+        font-weight: 700 !important;
       }
       /* Desktop-first notice: this is a data-dense dashboard (wide
          non-squashing tables, fixed-height component iframes) — making
