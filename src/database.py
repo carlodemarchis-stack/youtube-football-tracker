@@ -359,7 +359,15 @@ class Database:
         return all_rows
 
     def get_all_video_rows(self) -> list[dict]:
-        """Every video in the DB (minimal cols). Paginated."""
+        """Every video in the DB (minimal cols). Paginated.
+
+        The .order("id") clause is load-bearing: PostgREST gives no
+        guarantee of stable row order between paginated requests, so
+        without it some rows show up in two consecutive pages while
+        others never appear — which is exactly what made weekly_refresh
+        leak ~45k videos per run (the 2026-05-24 run only updated
+        49,774 of ~80k in-scope videos with no errors logged because
+        the pagination silently dropped them)."""
         all_rows: list[dict] = []
         page_size = 1000
         offset = 0
@@ -367,6 +375,7 @@ class Database:
             resp = (
                 self.client.table("videos")
                 .select("id,youtube_video_id")
+                .order("id")
                 .range(offset, offset + page_size - 1)
                 .execute()
             )
