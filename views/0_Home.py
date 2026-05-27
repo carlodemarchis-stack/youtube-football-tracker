@@ -224,26 +224,6 @@ try:
 except Exception:
     pass
 
-# Logged-out visitors only: an elegant, low-pressure nudge to sign in.
-# Honest about the mechanism (free, Google / email code, no password)
-# so it reads as an invitation, not a paywall. Hidden once signed in.
-if not is_logged_in():
-    st.markdown(
-        f"""<div style="background:{_T.SURFACE};border-left:3px solid {_T.ACCENT};
-        padding:14px 18px;margin:16px 0 4px 0;border-radius:6px;
-        line-height:1.6;color:{_T.TEXT};font-size:15px">
-        🔓 <b>Most of this lives behind a quick — and free — sign-in.</b>
-        The daily recaps, season cadence, all-time leaderboards, every
-        club's single best video and the road-to-WC2026 tracker are all
-        one step away. Sign in with Google or a one-time email code
-        <span style="color:{_T.MUTED}">(no password, no spam, nothing to
-        install)</span> — the <b>Sign&nbsp;in</b> panel is in the
-        left&nbsp;sidebar&nbsp;👈 &nbsp;It takes seconds, and whatever
-        you're looking at follows you from page to page.
-        </div>""",
-        unsafe_allow_html=True,
-    )
-
 # Canonical link blue (_T.LINK = #58A6FF) so name links read like
 # links, not as muted body text. Underline only on hover.
 _link = f"color:{_T.LINK};text-decoration:none"
