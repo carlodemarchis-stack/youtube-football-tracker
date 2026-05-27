@@ -64,6 +64,18 @@ if not events:
             "usage_events table exists and users browse the app.")
     st.stop()
 
+# Split signed-in users from anonymous home visitors. Anonymous events
+# only ever hit the public Home page (see src.usage.log_page_view), so
+# they have no per-user analytics worth tracking — we report them as a
+# headline-count section at the bottom. Everything else on this page
+# treats `events` as signed-in traffic only.
+_anon_events = [e for e in events if (e.get("email") or "") == "(anonymous)"]
+events = [e for e in events if (e.get("email") or "") != "(anonymous)"]
+st.caption(
+    f"Signed-in user activity below · {len(_anon_events):,} anonymous "
+    "home visits shown separately at the bottom."
+)
+
 today = datetime.now(timezone.utc).date()
 
 
@@ -197,4 +209,24 @@ pp = sorted(page_pop.items(), key=lambda kv: -kv[1])
 st.dataframe(
     [{"Page": p, "Views": n} for p, n in pp],
     width="stretch", hide_index=True,
+)
+
+# ── Anonymous traffic ────────────────────────────────────────────────
+# Anonymous visits only ever land on Home (src.usage.log_page_view
+# skips admin pages and tags signed-out hits as "(anonymous)"), so the
+# only useful signal here is "how many hit Home this period". One
+# session → one event, deliberately.
+st.markdown("---")
+st.subheader("👤 Anonymous home visits")
+_an_today = sum(1 for e in _anon_events if _d(e["created_at"]) == today)
+_an_7d = sum(1 for e in _anon_events
+             if (today - _d(e["created_at"])).days < 7)
+_an_30d = len(_anon_events)
+a1, a2, a3 = st.columns(3)
+a1.metric("Today", _an_today)
+a2.metric("Last 7 days", _an_7d)
+a3.metric("Last 30 days", _an_30d)
+st.caption(
+    "Logged once per anonymous session when someone lands on Home — "
+    "no per-user breakdown is meaningful (they're all '(anonymous)')."
 )
