@@ -113,6 +113,46 @@ c2.metric("WAU (7d)", wau)
 c3.metric("DAU (today)", dau)
 c4.metric("Page views (30d)", f"{total_views:,}")
 
+# ── Today ────────────────────────────────────────────────────────────
+# Mini-recap of the current day's traffic — sits just under the 30-day
+# KPI row so the admin can see "what's happening RIGHT NOW" without
+# having to read the trend chart's last bar.
+_today_events = [e for e in events if _d(e["created_at"]) == today]
+st.markdown("#### 📅 Today")
+if not _today_events:
+    st.caption("No traffic yet today.")
+else:
+    _t_views = len(_today_events)
+    _t_users = len({e.get("email") for e in _today_events})
+    _t_pages: dict[str, int] = defaultdict(int)
+    for e in _today_events:
+        _t_pages[e.get("page") or "?"] += 1
+    _top_page, _top_page_n = max(_t_pages.items(), key=lambda kv: kv[1])
+    t1, t2, t3 = st.columns(3)
+    t1.metric("Page views today", _t_views)
+    t2.metric("Active users today", _t_users)
+    t3.metric("Top page today", _top_page, f"{_top_page_n} views")
+
+    # Per-user mini table for today (who visited what).
+    _today_per: dict[str, dict] = defaultdict(
+        lambda: {"views": 0, "pages": defaultdict(int)})
+    for e in _today_events:
+        em = e.get("email") or "?"
+        _today_per[em]["views"] += 1
+        _today_per[em]["pages"][e.get("page") or "?"] += 1
+    _today_rows = []
+    for em, u in sorted(_today_per.items(), key=lambda kv: -kv[1]["views"]):
+        _t_top = max(u["pages"].items(), key=lambda kv: kv[1])[0] if u["pages"] else "—"
+        _today_rows.append({
+            "User": em,
+            "Views today": u["views"],
+            "Pages visited": len(u["pages"]),
+            "Top page today": _t_top,
+        })
+    st.dataframe(_today_rows, width="stretch", hide_index=True)
+
+st.markdown("---")
+
 # Active-users-per-day trend (last 30 days, zero-filled)
 _days = [today - timedelta(days=i) for i in range(WINDOW_DAYS - 1, -1, -1)]
 _trend = pd.DataFrame([
