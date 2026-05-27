@@ -264,7 +264,42 @@ st.markdown(
     A window into how football clubs use YouTube — built for <b>club social teams</b> looking
     to benchmark and learn from peers, and for <b>curious fans</b> who want to see what their
     team (and everyone else) is actually doing.
-    <br><br>
+    </div>""",
+    unsafe_allow_html=True,
+)
+
+# ── Strong sign-in CTA — between the "what is this" paragraph and the
+# "how it came about" paragraph, where the reader has just understood
+# the purpose and is most primed to act. Hidden once signed in.
+if not is_logged_in():
+    st.markdown(
+        f"""<div style="background:linear-gradient(135deg,#1a2230,#1a1c24);
+        border:1px solid {_T.ACCENT}55;border-radius:8px;
+        padding:16px 20px;margin:14px 0 6px 0">
+        <div style="font-size:17px;font-weight:700;color:{_T.TEXT}">
+        🔓 Unlock the full tracker — free
+        </div>
+        </div>""",
+        unsafe_allow_html=True,
+    )
+    _cta_c1, _cta_c2 = st.columns([2, 3])
+    with _cta_c1:
+        if st.button("🔓 Sign in free with Google",
+                     type="primary", width="stretch",
+                     key="hero_cta_signin"):
+            st.login("google")
+    with _cta_c2:
+        st.markdown(
+            f"<div style='color:{_T.MUTED_2};font-size:13px;"
+            f"padding-top:8px'>…or use a one-time email code from "
+            f"the <b>Sign in</b> panel in the left sidebar.</div>",
+            unsafe_allow_html=True,
+        )
+    st.markdown("<div style='margin-bottom:8px'></div>",
+                unsafe_allow_html=True)
+
+st.markdown(
+    f"""<div style="line-height:1.6;margin-top:12px">
     The idea came from working with
     <a href="https://linkedin.com/in/paolamarinone" target="_blank" style="{_link}">Paola Marinone</a>
     and <a href="https://linkedin.com/in/benguatamer" target="_blank" style="{_link}">Bengu Atamer</a>
@@ -290,50 +325,6 @@ st.markdown(
     '</div>',
     unsafe_allow_html=True,
 )
-
-# ── Strong sign-in CTA ──────────────────────────────────────────────
-# Pairs concrete value props with a real Google OAuth button, placed
-# right after the reader has consumed the intro — the moment they're
-# most primed to act. Reinforces (rather than replaces) the elegant
-# "see the sidebar" nudge near the top: that one is for the already-
-# convinced, this one is for the curious-but-undecided. Hidden once
-# signed in.
-if not is_logged_in():
-    st.markdown(
-        f"""<div style="background:linear-gradient(135deg,#1a2230,#1a1c24);
-        border:1px solid {_T.ACCENT}55;border-radius:8px;
-        padding:18px 22px;margin:14px 0 8px 0;line-height:1.6">
-        <div style="font-size:18px;font-weight:700;color:{_T.TEXT};
-        margin-bottom:6px">🔓 Unlock the full tracker — free, ~10 seconds</div>
-        <div style="color:{_T.MUTED_2};font-size:14px;margin-bottom:8px">
-        Sign in to get:
-        </div>
-        <ul style="color:{_T.TEXT};font-size:14px;margin:0 0 4px 0;
-        padding-left:22px">
-          <li>📊 <b>Daily Recap</b> with AI commentary on yesterday's biggest moves</li>
-          <li>🚀 <b>Viral videos</b> + <b>One-hit wonders</b> — videos that carry a club's whole season</li>
-          <li>🏆 <b>Season + all-time leaderboards</b> across 100+ clubs · per-club deep-dives</li>
-          <li>🌍 <b>FIFA World Cup 2026</b> — 62 official channels, every video tracked</li>
-        </ul>
-        </div>""",
-        unsafe_allow_html=True,
-    )
-    _cta_c1, _cta_c2 = st.columns([2, 3])
-    with _cta_c1:
-        if st.button("🔓 Sign in free with Google",
-                     type="primary", width="stretch",
-                     key="hero_cta_signin"):
-            st.login("google")
-    with _cta_c2:
-        st.markdown(
-            f"<div style='color:{_T.MUTED_2};font-size:13px;"
-            f"padding-top:8px'>…or use a one-time email code from "
-            f"the <b>Sign in</b> panel in the left sidebar. No password, "
-            f"no spam, no install.</div>",
-            unsafe_allow_html=True,
-        )
-    st.markdown("<div style='margin-bottom:14px'></div>",
-                unsafe_allow_html=True)
 
 # ── Daily AI note (yesterday's commentary, computed by daily_refresh) ──
 try:
