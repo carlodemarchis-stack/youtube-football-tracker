@@ -94,6 +94,13 @@ class Database:
             row["shorts_count"] = channel_data["shorts_count"]
         if "live_count" in channel_data:
             row["live_count"] = channel_data["live_count"]
+        # Pass through cohort-identity fields when callers provide them.
+        # Without this, new rows fall back to the schema default
+        # entity_type='Club' and leak into top-5 surfaces (bit us once
+        # on the NFL v0 import — see scripts/import_nfl.py).
+        for opt in ("entity_type", "country", "competitions"):
+            if opt in channel_data and channel_data[opt] is not None:
+                row[opt] = channel_data[opt]
         resp = (
             self.client.table("channels")
             .upsert(row, on_conflict="youtube_channel_id")
