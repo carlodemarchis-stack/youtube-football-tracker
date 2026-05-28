@@ -429,6 +429,7 @@ try:
                              font-family:"Source Sans Pro",sans-serif; }}
                   .home-g th {{ padding:6px 12px; border-bottom:2px solid {_T.BORDER_STRONG}; text-align:left; }}
                   .home-g td {{ border-bottom:1px solid {_T.BORDER}; }}
+                  .home-g tbody tr:last-child td {{ border-bottom:0; }}
                   .home-g a.ch {{ color:inherit; text-decoration:none; cursor:pointer; }}
                   .home-g a.ch:hover {{ text-decoration:underline; }}
                 </style>
@@ -437,7 +438,7 @@ try:
                   <th style="text-align:right">Total Views</th>
                   <th style="text-align:right">Δ last 7 days</th>
                 </tr></thead><tbody>{rows}</tbody></table>
-                """, height=len(top5_views) * 37 + 80, scrolling=False)
+                """, height=len(top5_views) * 31 + 40, scrolling=False)
 
             with _gcol2:
                 st.subheader("🎬 Most videos published (last 7 days)")
@@ -460,6 +461,7 @@ try:
                                  font-family:"Source Sans Pro",sans-serif; }}
                       .home-p th {{ padding:6px 12px; border-bottom:2px solid {_T.BORDER_STRONG}; text-align:left; }}
                       .home-p td {{ border-bottom:1px solid {_T.BORDER}; }}
+                      .home-p tbody tr:last-child td {{ border-bottom:0; }}
                       .home-p a.ch {{ color:inherit; text-decoration:none; cursor:pointer; }}
                       .home-p a.ch:hover {{ text-decoration:underline; }}
                     </style>
@@ -468,7 +470,7 @@ try:
                       <th style="text-align:center">Long / Shorts / Live</th>
                       <th style="text-align:right">Videos</th>
                     </tr></thead><tbody>{rows2}</tbody></table>
-                    """, height=len(top5_pubs) * 37 + 80, scrolling=False)
+                    """, height=len(top5_pubs) * 31 + 40, scrolling=False)
                 else:
                     st.caption("No videos published in the last 7 days.")
 except Exception:
