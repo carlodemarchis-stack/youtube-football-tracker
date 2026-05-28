@@ -355,24 +355,39 @@ def process_channel(ch, is_full, top_n, progress, chan_idx, chan_total, stop_fla
 
     progress.progress(chan_idx / chan_total, text=f"{prefix}: fetching popular video IDs...")
     pop = yt.get_popular_video_ids(channel_id)
-    long_ids = pop["long"]
+    long_ids  = pop["long"]
     short_ids = pop["shorts"]
+    live_ids  = pop.get("live", [])
 
     if st.session_state.get(stop_flag_key):
         return 0, True
 
-    # Fetch details for both sets
+    # Fetch details for all three sets. Live takes precedence over long
+    # — a past live broadcast can appear in both UULP and UUPV, and we
+    # want it counted as "live" for the format split (mirrors the
+    # season-refresh path further down in this file).
     all_videos = []
-    all_ids = long_ids + short_ids
-    long_id_set = set(long_ids)
+    all_ids = long_ids + short_ids + live_ids
+    long_id_set  = set(long_ids)
+    short_id_set = set(short_ids)
+    live_id_set  = set(live_ids)
     total = len(all_ids)
-    progress.progress(chan_idx / chan_total, text=f"{prefix}: fetching details for {len(long_ids)} long + {len(short_ids)} shorts...")
+    progress.progress(
+        chan_idx / chan_total,
+        text=(f"{prefix}: fetching details for "
+              f"{len(long_ids)} long + {len(short_ids)} shorts + "
+              f"{len(live_ids)} live..."),
+    )
 
     def _split_top(videos, n):
-        """Keep top N long + top N shorts, each sorted by views."""
-        longs = sorted([v for v in videos if v.get("format") == "long"], key=lambda v: v["view_count"], reverse=True)[:n]
-        shorts = sorted([v for v in videos if v.get("format") == "short"], key=lambda v: v["view_count"], reverse=True)[:n]
-        return longs + shorts
+        """Keep top N long + top N shorts + top N live, each by views."""
+        longs  = sorted([v for v in videos if v.get("format") == "long"],
+                        key=lambda v: v["view_count"], reverse=True)[:n]
+        shorts = sorted([v for v in videos if v.get("format") == "short"],
+                        key=lambda v: v["view_count"], reverse=True)[:n]
+        lives  = sorted([v for v in videos if v.get("format") == "live"],
+                        key=lambda v: v["view_count"], reverse=True)[:n]
+        return longs + shorts + lives
 
     for batch_start in range(0, total, 50):
         if st.session_state.get(stop_flag_key):
@@ -382,9 +397,16 @@ def process_channel(ch, is_full, top_n, progress, chan_idx, chan_total, stop_fla
 
         batch = all_ids[batch_start : batch_start + 50]
         batch_videos = yt.get_video_details(batch)
-        # Tag each video with its format
+        # Tag each video with its format. Live takes precedence over
+        # long (a video can appear in both UULP and UUPV).
         for v in batch_videos:
-            v["format"] = "long" if v["youtube_video_id"] in long_id_set else "short"
+            vid = v["youtube_video_id"]
+            if vid in live_id_set:
+                v["format"] = "live"
+            elif vid in short_id_set:
+                v["format"] = "short"
+            else:
+                v["format"] = "long"
         all_videos.extend(batch_videos)
 
         done = min(batch_start + 50, total)

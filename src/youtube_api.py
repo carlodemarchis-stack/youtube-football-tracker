@@ -296,6 +296,7 @@ class YouTubeClient:
     PREFIX_LIVE = "UULV"         # Past live streams (counted as long-form)
     PREFIX_POP_LONG = "UULP"     # Popular long-form (capped ~200)
     PREFIX_POP_SHORTS = "UUPS"   # Popular shorts (capped ~200)
+    PREFIX_POP_LIVE = "UUPV"     # Popular live streams (capped ~200)
 
     @staticmethod
     def _playlist_id(channel_id: str, prefix: str) -> str:
@@ -513,11 +514,16 @@ class YouTubeClient:
         return video_ids
 
     def get_popular_video_ids(self, channel_id: str) -> dict[str, list[str]]:
-        """Fetch popular video IDs using UULP (long) + UUPS (shorts) playlists.
-        Returns {"long": [...], "shorts": [...]}. Each list up to ~200 IDs.
-        Costs 1 unit/call instead of 100 for search().list()."""
-        result = {"long": [], "shorts": []}
-        for key, prefix in [("long", self.PREFIX_POP_LONG), ("shorts", self.PREFIX_POP_SHORTS)]:
+        """Fetch popular video IDs using UULP (long) + UUPS (shorts) +
+        UUPV (live) playlists. Returns {"long": [...], "shorts": [...],
+        "live": [...]}. Each list up to ~200 IDs. Costs 1 unit/call
+        instead of 100 for search().list()."""
+        result = {"long": [], "shorts": [], "live": []}
+        for key, prefix in [
+            ("long",   self.PREFIX_POP_LONG),
+            ("shorts", self.PREFIX_POP_SHORTS),
+            ("live",   self.PREFIX_POP_LIVE),
+        ]:
             pl_id = self._playlist_id(channel_id, prefix)
             next_page = None
             while True:
