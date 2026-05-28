@@ -99,6 +99,7 @@ inject_og_tags()
 # Tier 0 — public (visible to everyone, including not signed in)
 public_pages = [
     st.Page("views/0_Home.py", title="Home", url_path="home", default=True),
+    st.Page("views/0a_Tutorial.py", title="📖 Tutorial", url_path="tutorial"),
 ]
 
 # Hidden v0 NFL surface — see docs/NFL_V0.md. Registered as a real page
