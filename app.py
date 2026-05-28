@@ -358,6 +358,44 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# ── Sidebar nav: open only the first + last groups on a fresh tab ─
+# Streamlit doesn't expose per-group expand/collapse state to Python,
+# so we inject one-time JS that runs in the user's browser and sets
+# the <details open> attribute on the nav groups rendered by
+# st.navigation. Gated on parent.sessionStorage so it fires once per
+# browser-tab session — after that the user's own clicks decide what
+# stays open. New tab / browser close / sign-out-then-in = new
+# sessionStorage = the defaults reapply.
+from src import components_compat as _cc_nav
+_cc_nav.html(
+    """
+    <script>
+    (function(){
+      try {
+        const KEY = 'ytft_nav_initial_v1';
+        if (parent.sessionStorage.getItem(KEY)) return;
+        let tries = 0;
+        const apply = () => {
+          const dets = parent.document.querySelectorAll(
+            '[data-testid="stSidebarNav"] details');
+          if (dets.length < 2) {
+            if (++tries < 40) setTimeout(apply, 250);
+            return;
+          }
+          const last = dets.length - 1;
+          dets.forEach((d, i) => {
+            d.open = (i === 0 || i === last);
+          });
+          parent.sessionStorage.setItem(KEY, '1');
+        };
+        apply();
+      } catch (e) { /* silent — sandbox or selector miss */ }
+    })();
+    </script>
+    """,
+    height=0,
+)
+
 if not is_admin():
     st.markdown("""
         <style>
