@@ -65,7 +65,7 @@ all_channels = [
     c for c in all_channels
     if c.get("entity_type") not in ("Player", "Federation",
                                     "GoverningBody",
-                                    "OtherClub", "WomenClub")
+                                    "OtherClub", "WomenClub", "NFL")
 ]
 
 g_league, g_club = get_global_filter()

@@ -49,7 +49,7 @@ all_channels = get_global_channels() or _cached_channels(db)
 all_channels = [c for c in all_channels
                 if c.get("entity_type") not in ("Player", "Federation",
                                                  "GoverningBody",
-                                                 "OtherClub", "WomenClub")]
+                                                 "OtherClub", "WomenClub", "NFL")]
 
 color_map = get_global_color_map()
 dual = get_global_color_map_dual()
@@ -297,7 +297,7 @@ else:
         # or per-team values) would otherwise create phantom league
         # rows like "WW" or "AS" in the timeline.
         _SKIP_TYPES = ("Player", "Federation", "GoverningBody",
-                       "OtherClub", "WomenClub")
+                       "OtherClub", "WomenClub", "NFL")
         _z1_videos = [v for v in timeline_unscheduled
                       if (ch_by_id.get(v.get("channel_id")) or {})
                          .get("entity_type") not in _SKIP_TYPES]

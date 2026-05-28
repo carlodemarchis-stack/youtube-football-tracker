@@ -101,6 +101,14 @@ public_pages = [
     st.Page("views/0_Home.py", title="Home", url_path="home", default=True),
 ]
 
+# Hidden v0 NFL surface — see docs/NFL_V0.md. Registered as a real page
+# (so /nfl resolves) but the sidebar link is CSS-hidden below; the page
+# itself calls require_login() so signed-out drive-bys land on auth.
+# Drop it into a proper "🏈 NFL" nav-group dict when v1 ships.
+nfl_hidden_pages = [
+    st.Page("views/20_NFL.py", title="NFL", url_path="nfl"),
+]
+
 # Tier 1 — viewer (any signed-in user) — "Top 5 Leagues" group
 # Season title carries the current label dynamically (`current_season_label_safe()`
 # returns e.g. "25/26" today, "26/27" once the 1 Jul 2026 boundary
@@ -196,6 +204,13 @@ elif is_logged_in():
     nav["Invite-only"] = premium_pages_locked
 if is_admin():
     nav["Admin"] = admin_pages
+
+# Hidden NFL v0 — append to nav[""] (the ungrouped/Home slot, no
+# section header) so st.navigation routes /nfl while the link itself
+# is CSS-hidden below. Using nav[""] avoids inventing a dummy section
+# header just to hide it.
+if is_logged_in():
+    nav[""] = nav.get("", public_pages) + nfl_hidden_pages
 
 # "About" (Release Notes) sits last so it lands at the bottom of the
 # sidebar — public, available signed-out too.
@@ -299,6 +314,16 @@ st.markdown("""
         color: #FFA15A !important;
         font-weight: 700 !important;
       }
+      /* Hidden NFL v0 — the page is registered (so /nfl routes) but
+         the sidebar link is suppressed; we also blank out the
+         deliberately-ugly "_hidden_" section header that holds it.
+         Two selectors: one matches the anchor by URL, the other
+         matches any section header whose text happens to start with
+         an underscore (defensive against Streamlit renaming things). */
+      [data-testid="stSidebarNav"] a[href$="/nfl"],
+      [data-testid="stSidebarNav"] a[href*="/nfl?"] {
+        display: none !important;
+      }
       /* Desktop-first notice: this is a data-dense dashboard (wide
          non-squashing tables, fixed-height component iframes) — making
          it truly mobile-good is a ~19-page rework against its own
@@ -368,6 +393,7 @@ _no_filter_url_paths = {
     "", "home", "players", "federations", "other-clubs",
     "women", "no1-videos", "wc2026", "wc2026-trends",
     "wc2026-latest", "wc2026-viral", "wc2026-recap", "release-notes",
+    "nfl",  # hidden NFL v0 (see docs/NFL_V0.md)
     # Admin pages — the league/club filter has no meaning here.
     "data", "channel-mgmt", "user-mgmt", "email-users", "usage",
     "snapshot-debug", "quota-monitor",

@@ -1696,7 +1696,7 @@ def refresh_latest_vibe(db, log=print, channels: list[dict] | None = None) -> No
         chans = channels if channels is not None else db.get_all_channels()
         chans = [c for c in chans
                  if c.get("entity_type") not in ("Player", "Federation", "GoverningBody",
-                                 "OtherClub", "WomenClub")]
+                                 "OtherClub", "WomenClub", "NFL")]
         chans_by_id = {c["id"]: c for c in chans}
 
         def _one(scope_key: str, ids: list[str], label: str,
@@ -1750,7 +1750,7 @@ def refresh_season_vibe(db, log=print, channels: list[dict] | None = None) -> No
         chans = channels if channels is not None else db.get_all_channels()
         chans = [c for c in chans
                  if c.get("entity_type") not in ("Player", "Federation",
-                                 "GoverningBody", "OtherClub", "WomenClub")]
+                                 "GoverningBody", "OtherClub", "WomenClub", "NFL")]
         season_start = _gss()
 
         def _one(scope_key: str, subset: list[dict], label: str,
@@ -1836,7 +1836,7 @@ def refresh_season_top_vibe(db, log=print, channels: list[dict] | None = None) -
             COUNTRY_TO_LEAGUE.get((c.get("country") or "").upper())
             for c in chans
             if c.get("entity_type") not in
-               ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub")
+               ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")
             and COUNTRY_TO_LEAGUE.get((c.get("country") or "").upper())
         })
         for lg in leagues:
@@ -1901,7 +1901,7 @@ def refresh_publishing_pulse(db, log=print, channels: list[dict] | None = None) 
     chans = channels if channels is not None else db.get_all_channels()
     scope_chans = [c for c in chans
                    if c.get("entity_type") not in
-                      ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub")]
+                      ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")]
     if not scope_chans:
         log("[dashboard_cache] publishing_pulse skipped — no channels in scope")
         return
@@ -2014,10 +2014,10 @@ def refresh_season_top(db, log=print, channels: list[dict] | None = None) -> Non
     chans = channels if channels is not None else db.get_all_channels()
     isolated_ids = [c["id"] for c in chans
                     if c.get("entity_type") in
-                       ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub")]
+                       ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")]
     included = [c for c in chans
                 if c.get("entity_type") not in
-                   ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub")]
+                   ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")]
     if not included:
         log("[dashboard_cache] season_top skipped — no channels in scope")
         return
@@ -2069,7 +2069,7 @@ def _refresh_no1_per_channel(
     chans = channels if channels is not None else db.get_all_channels()
     core = [c for c in chans
             if c.get("entity_type") not in
-               ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub")
+               ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")
             and c.get("id")]
     core_ids = {c["id"] for c in core}
     if not core_ids:
