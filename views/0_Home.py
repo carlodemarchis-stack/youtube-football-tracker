@@ -163,90 +163,98 @@ st.markdown(
 )
 
 # ── Leagues covered ─────────────────────────────────────────────
-try:
-    _chs = st.session_state.get("_global_channels") or []
-    if not _chs:
-        SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-        SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
-        if SUPABASE_URL and SUPABASE_KEY:
-            _chs = _cached_channels(Database(SUPABASE_URL, SUPABASE_KEY))
-    _league_counts: dict[str, int] = {}
-    _league_has_channel: dict[str, bool] = {}
-    for _c in _chs:
-        if _c.get("entity_type") in ("Player", "Federation", "GoverningBody",
-                                      "OtherClub", "WomenClub", "NFL"):
-            continue  # tangential entities live on their own pages
-        _lg = COUNTRY_TO_LEAGUE.get((_c.get("country") or "").upper(), _c.get("country") or "—")
-        if _c.get("entity_type") == "League":
-            _league_has_channel[_lg] = True
-            continue
-        _league_counts[_lg] = _league_counts.get(_lg, 0) + 1
-    if _league_counts:
-        _parts = [
-            f"{LEAGUE_FLAG.get(lg, '')} **{lg}** ({n}{'+1' if _league_has_channel.get(lg) else ''})"
-            for lg, n in sorted(_league_counts.items(), key=lambda x: -x[1])
-        ]
-        st.caption(f"Covering {len(_league_counts)} leagues "
-                    "(Clubs and League Channels): " + " · ".join(_parts))
+# Marketing-style coverage block — only relevant when you're not yet
+# signed in. The logged-in home opens straight into the KPI row +
+# timeline further down.
+if not is_logged_in():
+    try:
+        _chs = st.session_state.get("_global_channels") or []
+        if not _chs:
+            SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+            SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
+            if SUPABASE_URL and SUPABASE_KEY:
+                _chs = _cached_channels(Database(SUPABASE_URL, SUPABASE_KEY))
+        _league_counts: dict[str, int] = {}
+        _league_has_channel: dict[str, bool] = {}
+        for _c in _chs:
+            if _c.get("entity_type") in ("Player", "Federation", "GoverningBody",
+                                          "OtherClub", "WomenClub", "NFL"):
+                continue  # tangential entities live on their own pages
+            _lg = COUNTRY_TO_LEAGUE.get((_c.get("country") or "").upper(), _c.get("country") or "—")
+            if _c.get("entity_type") == "League":
+                _league_has_channel[_lg] = True
+                continue
+            _league_counts[_lg] = _league_counts.get(_lg, 0) + 1
+        if _league_counts:
+            _parts = [
+                f"{LEAGUE_FLAG.get(lg, '')} **{lg}** ({n}{'+1' if _league_has_channel.get(lg) else ''})"
+                for lg, n in sorted(_league_counts.items(), key=lambda x: -x[1])
+            ]
+            st.caption(f"Covering {len(_league_counts)} leagues "
+                        "(Clubs and League Channels): " + " · ".join(_parts))
 
-    # WC2026 coverage — its own prominent line (dedicated sidebar group,
-    # tournament ~1 month out). Counts every channel tagged
-    # competitions.wc2026 (teams + FIFA + confederations + alt channels).
-    _wc2026 = [c for c in _chs if (c.get("competitions") or {}).get("wc2026")]
-    if _wc2026:
-        from src.analytics import fmt_num as _fmt_wc
-        _wc_subs = sum(int(c.get("subscriber_count") or 0) for c in _wc2026)
-        st.caption(
-            f"🏆 **FIFA World Cup 2026** — tracking **{len(_wc2026)} official "
-            f"channels** ({_fmt_wc(_wc_subs)} subs): the 48 qualified national "
-            "teams plus FIFA and the 6 confederations. See the dedicated page."
-        )
+        # WC2026 coverage — its own prominent line (dedicated sidebar group,
+        # tournament ~1 month out). Counts every channel tagged
+        # competitions.wc2026 (teams + FIFA + confederations + alt channels).
+        _wc2026 = [c for c in _chs if (c.get("competitions") or {}).get("wc2026")]
+        if _wc2026:
+            from src.analytics import fmt_num as _fmt_wc
+            _wc_subs = sum(int(c.get("subscriber_count") or 0) for c in _wc2026)
+            st.caption(
+                f"🏆 **FIFA World Cup 2026** — tracking **{len(_wc2026)} official "
+                f"channels** ({_fmt_wc(_wc_subs)} subs): the 48 qualified national "
+                "teams plus FIFA and the 6 confederations. See the dedicated page."
+            )
 
-    # Also-tracking line: Players + Other Clubs + Women (isolated).
-    # Federations parked until after WC2026 — intentionally omitted here.
-    _players = [c for c in _chs if c.get("entity_type") == "Player"]
-    _others = [c for c in _chs if c.get("entity_type") == "OtherClub"]
-    _women = [c for c in _chs if c.get("entity_type") == "WomenClub"]
-    if _players or _others or _women:
-        from src.analytics import fmt_num as _fmt
-        _bits = []
-        if _players:
-            _ps = sum(int(c.get("subscriber_count") or 0) for c in _players)
-            _bits.append(f"⚽ **{len(_players)} players** ({_fmt(_ps)} subs)")
-        if _others:
-            _os = sum(int(c.get("subscriber_count") or 0) for c in _others)
-            _bits.append(f"🌍 **{len(_others)} other clubs** ({_fmt(_os)} subs)")
-        if _women:
-            _ws = sum(int(c.get("subscriber_count") or 0) for c in _women)
-            _bits.append(f"👩 **{len(_women)} women's clubs** ({_fmt(_ws)} subs)")
-        st.caption("Also tracking: " + "  ·  ".join(_bits)
-                   + " — see the dedicated pages.")
-except Exception:
-    pass
+        # Also-tracking line: Players + Other Clubs + Women (isolated).
+        # Federations parked until after WC2026 — intentionally omitted here.
+        _players = [c for c in _chs if c.get("entity_type") == "Player"]
+        _others = [c for c in _chs if c.get("entity_type") == "OtherClub"]
+        _women = [c for c in _chs if c.get("entity_type") == "WomenClub"]
+        if _players or _others or _women:
+            from src.analytics import fmt_num as _fmt
+            _bits = []
+            if _players:
+                _ps = sum(int(c.get("subscriber_count") or 0) for c in _players)
+                _bits.append(f"⚽ **{len(_players)} players** ({_fmt(_ps)} subs)")
+            if _others:
+                _os = sum(int(c.get("subscriber_count") or 0) for c in _others)
+                _bits.append(f"🌍 **{len(_others)} other clubs** ({_fmt(_os)} subs)")
+            if _women:
+                _ws = sum(int(c.get("subscriber_count") or 0) for c in _women)
+                _bits.append(f"👩 **{len(_women)} women's clubs** ({_fmt(_ws)} subs)")
+            st.caption("Also tracking: " + "  ·  ".join(_bits)
+                       + " — see the dedicated pages.")
+    except Exception:
+        pass
 
 # Canonical link blue (_T.LINK = #58A6FF) so name links read like
 # links, not as muted body text. Underline only on hover.
 _link = f"color:{_T.LINK};text-decoration:none"
 
-st.markdown(
-    f"""<div style="line-height:1.6">
-    Hi, I'm <a href="https://linkedin.com/in/carlodemarchis" target="_blank" style="{_link}"><b>Carlo De Marchis</b></a>
-    — <a href="https://www.linkedin.com/newsletters/a-guy-with-a-scarf-6998145822441775104/" target="_blank" style="{_link}"><i>A Guy With A Scarf</i></a>
-    — and this is a project born from my passion for data, stats and
-    visualisation in sports and media. It'll keep changing based on what
-    I learn and what you tell me.
-    </div>""",
-    unsafe_allow_html=True,
-)
+# "Hi, I'm Carlo" + "A window into how football clubs use YouTube"
+# are part of the marketing-style intro — hidden once signed in so
+# the home reads as a dashboard, not a pitch.
+if not is_logged_in():
+    st.markdown(
+        f"""<div style="line-height:1.6">
+        Hi, I'm <a href="https://linkedin.com/in/carlodemarchis" target="_blank" style="{_link}"><b>Carlo De Marchis</b></a>
+        — <a href="https://www.linkedin.com/newsletters/a-guy-with-a-scarf-6998145822441775104/" target="_blank" style="{_link}"><i>A Guy With A Scarf</i></a>
+        — and this is a project born from my passion for data, stats and
+        visualisation in sports and media. It'll keep changing based on what
+        I learn and what you tell me.
+        </div>""",
+        unsafe_allow_html=True,
+    )
 
-st.markdown(
-    f"""<div style="line-height:1.6;margin-top:12px">
-    A window into how football clubs use YouTube — built for <b>club social teams</b> looking
-    to benchmark and learn from peers, and for <b>curious fans</b> who want to see what their
-    team (and everyone else) is actually doing.
-    </div>""",
-    unsafe_allow_html=True,
-)
+    st.markdown(
+        f"""<div style="line-height:1.6;margin-top:12px">
+        A window into how football clubs use YouTube — built for <b>club social teams</b> looking
+        to benchmark and learn from peers, and for <b>curious fans</b> who want to see what their
+        team (and everyone else) is actually doing.
+        </div>""",
+        unsafe_allow_html=True,
+    )
 
 # ── Strong sign-in CTA — between the "what is this" paragraph and the
 # "how it came about" paragraph, where the reader has just understood

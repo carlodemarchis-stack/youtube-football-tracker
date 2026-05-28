@@ -99,7 +99,6 @@ inject_og_tags()
 # Tier 0 — public (visible to everyone, including not signed in)
 public_pages = [
     st.Page("views/0_Home.py", title="Home", url_path="home", default=True),
-    st.Page("views/0a_Tutorial.py", title="📖 Tutorial", url_path="tutorial"),
 ]
 
 # Hidden v0 NFL surface — see docs/NFL_V0.md. Registered as a real page
@@ -184,7 +183,12 @@ admin_pages = [
 ]
 
 # Tier 0 — public "About" group, pinned to the very bottom of the sidebar.
+# Tutorial sits here (not under public_pages at the top) so it lives
+# alongside Release Notes as a reference / documentation entry,
+# discoverable but not competing for attention with the dashboard.
 about_pages = [
+    st.Page("views/0a_Tutorial.py", title="📖 Tutorial",
+            url_path="tutorial"),
     st.Page("views/99_Release_Notes.py", title="Release Notes",
             url_path="release-notes"),
 ]
