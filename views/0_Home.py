@@ -496,7 +496,6 @@ if is_logged_in():
             t_views  = sum(int(c.get("total_views")      or 0) for c in _top5)
             t_videos = sum(int(c.get("video_count")      or 0) for c in _top5)
             avg_vpv  = (t_views // t_videos) if t_videos else 0
-            st.markdown("---")
             st.subheader("📊 Top-5 leagues at a glance")
             st.markdown(_kpi_row([
                 ("📡 Channels",      str(n_ch), "clubs + league channels"),
