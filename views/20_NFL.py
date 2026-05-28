@@ -81,22 +81,72 @@ nfl = nfl_all if _pick == "All channels" else [
     c for c in nfl_all if c.get("name") == _pick
 ]
 _scope_label = "33 channels" if _pick == "All channels" else _pick
+IS_Z1 = (_pick == "All channels")
+
+# Precompute ranks across all 33 channels — only used in Z2.
+_N = len(nfl_all)
+_rank_subs   = {c["youtube_channel_id"]: i + 1 for i, c in enumerate(
+    sorted(nfl_all, key=lambda c: -(int(c.get("subscriber_count") or 0))))}
+_rank_views  = {c["youtube_channel_id"]: i + 1 for i, c in enumerate(
+    sorted(nfl_all, key=lambda c: -(int(c.get("total_views")      or 0))))}
+_rank_videos = {c["youtube_channel_id"]: i + 1 for i, c in enumerate(
+    sorted(nfl_all, key=lambda c: -(int(c.get("video_count")      or 0))))}
 
 
 # ── KPIs ──────────────────────────────────────────────────────────
-total_subs   = sum(int(c.get("subscriber_count") or 0) for c in nfl)
-total_views  = sum(int(c.get("total_views")      or 0) for c in nfl)
-total_videos = sum(int(c.get("video_count")      or 0) for c in nfl)
-avg_vps      = (total_views // total_subs)   if total_subs   else 0
-avg_vpv      = (total_views // total_videos) if total_videos else 0
-
-st.markdown(kpi_row([
-    ("👥 Total Subscribers", fmt_num(total_subs)),
-    ("👁️ Total Views",       fmt_num(total_views)),
-    ("🎯 Views / Sub",       fmt_num(avg_vps)),
-    ("🎬 Total Videos",      fmt_num(total_videos)),
-    ("🎯 Avg Views / Video", fmt_num(avg_vpv)),
-]), unsafe_allow_html=True)
+if IS_Z1:
+    total_subs   = sum(int(c.get("subscriber_count") or 0) for c in nfl)
+    total_views  = sum(int(c.get("total_views")      or 0) for c in nfl)
+    total_videos = sum(int(c.get("video_count")      or 0) for c in nfl)
+    avg_vps      = (total_views // total_subs)   if total_subs   else 0
+    avg_vpv      = (total_views // total_videos) if total_videos else 0
+    st.markdown(kpi_row([
+        ("👥 Total Subscribers", fmt_num(total_subs)),
+        ("👁️ Total Views",       fmt_num(total_views)),
+        ("🎯 Views / Sub",       fmt_num(avg_vps)),
+        ("🎬 Total Videos",      fmt_num(total_videos)),
+        ("🎯 Avg Views / Video", fmt_num(avg_vpv)),
+    ]), unsafe_allow_html=True)
+else:
+    # Z2 — channel detail. KPI tiles carry NFL rank chips ("3 / 33").
+    _c = nfl[0]
+    _yt = _c.get("youtube_channel_id", "")
+    _subs   = int(_c.get("subscriber_count") or 0)
+    _views  = int(_c.get("total_views")      or 0)
+    _videos = int(_c.get("video_count")      or 0)
+    _vpv    = (_views // _videos) if _videos else 0
+    _vps    = (_views // _subs)   if _subs   else 0
+    _launched = (_c.get("launched_at") or "")[:4] or "—"
+    _handle = (_c.get("handle") or "").lstrip("@")
+    _yt_url = (f"https://www.youtube.com/@{_handle}" if _handle
+               else f"https://www.youtube.com/channel/{_yt}")
+    _conf = _nfl(_c).get("conference") or "—"
+    _div  = _nfl(_c).get("division")   or "—"
+    _chip_color = {"AFC": "#CC0000", "NFC": "#013369",
+                   "—":   "#D50A0A"}.get(_conf, _T.ACCENT)
+    _conf_label = "NFL HQ" if _conf == "—" else f"{_conf} · {_div}"
+    st.markdown(
+        f"<div style='display:flex;align-items:center;gap:10px;"
+        f"margin:4px 0 12px 0'>"
+        f"<span style='background:{_chip_color};color:#fff;"
+        f"padding:2px 10px;border-radius:12px;font-size:12px;"
+        f"font-weight:600'>{_conf_label}</span>"
+        f"<a href='{_yt_url}' target='_blank' rel='noopener' "
+        f"style='color:{_T.ACCENT};text-decoration:none;font-size:14px'>"
+        f"Open on YouTube ↗</a></div>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(kpi_row([
+        ("👥 Subscribers", fmt_num(_subs),
+            f"#{_rank_subs.get(_yt, '?')} / {_N} in NFL"),
+        ("👁️ Total Views", fmt_num(_views),
+            f"#{_rank_views.get(_yt, '?')} / {_N} in NFL"),
+        ("🎬 Videos", fmt_num(_videos),
+            f"#{_rank_videos.get(_yt, '?')} / {_N} in NFL"),
+        ("🎯 Views / Video", fmt_num(_vpv), ""),
+        ("📅 Launched", _launched,
+            f"Views/Sub: {fmt_num(_vps)}"),
+    ]), unsafe_allow_html=True)
 
 
 # ── 🥧 Three format pies — Views / Videos / Views-per-Video ───────
@@ -195,15 +245,15 @@ def _subs_bar(subset, title: str | None = None):
     st.plotly_chart(fig, width="stretch")
 
 
-_subs_rows = [c for c in nfl if int(c.get("subscriber_count") or 0) > 0]
-if _subs_rows:
-    st.subheader(f"📊 Subscribers by channel — {_scope_label}")
-    st.caption("All channels in scope, ranked by subscriber count. "
-               "Bar colour = conference (AFC red · NFC blue · NFL HQ shield). "
-               "Top row: ≥ 1M subs · bottom row: < 1M (the long tail).")
-    # NFL HQ dwarfs every franchise (≈16M vs ≤1.5M), so split on 1M
-    # like the Top-5 page does for the mega-channel vs long-tail mix.
-    if _pick == "All channels":
+if IS_Z1:
+    _subs_rows = [c for c in nfl if int(c.get("subscriber_count") or 0) > 0]
+    if _subs_rows:
+        st.subheader(f"📊 Subscribers by channel — {_scope_label}")
+        st.caption("All channels in scope, ranked by subscriber count. "
+                   "Bar colour = conference (AFC red · NFC blue · NFL HQ shield). "
+                   "Top row: ≥ 1M subs · bottom row: < 1M (the long tail).")
+        # NFL HQ dwarfs every franchise (≈16M vs ≤1.5M), so split on 1M
+        # like the Top-5 page does for the mega-channel vs long-tail mix.
         big   = [c for c in _subs_rows if int(c.get("subscriber_count") or 0) >= 1_000_000]
         small = [c for c in _subs_rows if int(c.get("subscriber_count") or 0) <  1_000_000]
         if big:
@@ -212,23 +262,51 @@ if _subs_rows:
             _subs_bar(small, "< 1M subscribers")
         if not big and not small:
             _subs_bar(_subs_rows)
-    else:
-        _subs_bar(_subs_rows)
+else:
+    # Z2 — rank-highlight bar: this channel coloured, others greyed.
+    _picked_yt = nfl[0].get("youtube_channel_id")
+    ordered_all = sorted(
+        [c for c in nfl_all if int(c.get("subscriber_count") or 0) > 0],
+        key=lambda r: -(int(r.get("subscriber_count") or 0)),
+    )
+    st.subheader(f"📊 Subs rank in NFL — {_pick} highlighted")
+    st.caption("Where this channel sits among the 33 NFL channels by "
+               "subscriber count. Bar coloured = this channel.")
+    names = [c.get("name") or "?" for c in ordered_all]
+    subs_v = [int(c.get("subscriber_count") or 0) for c in ordered_all]
+    cols   = [(_conf_color(c) if c.get("youtube_channel_id") == _picked_yt
+               else "#3a3d46") for c in ordered_all]
+    fig = go.Figure(go.Bar(
+        x=names, y=subs_v, marker_color=cols,
+        hovertemplate="<b>%{x}</b><br>Subs: %{y:,}<extra></extra>",
+    ))
+    fig.update_layout(
+        height=360,
+        xaxis=dict(title="", tickangle=-45, automargin=True,
+                   tickfont=dict(size=10)),
+        yaxis=dict(title="", showgrid=True,
+                   gridcolor="rgba(255,255,255,0.08)"),
+        margin=dict(t=10, b=120, l=10, r=10),
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color=_T.TEXT), showlegend=False,
+    )
+    st.plotly_chart(fig, width="stretch")
 
 
-# ── 📅 Channels launched per year ─────────────────────────────────
+# ── 📅 Channels launched per year (Z1 only — 1 dot is meaningless) ─
 _yr_rows = []
-for c in nfl:
-    la = c.get("launched_at") or ""
-    if len(la) < 4:
-        continue
-    try:
-        _yr_rows.append({
-            "year": int(la[:4]),
-            "conf": _nfl(c).get("conference") or "—",
-        })
-    except Exception:
-        continue
+if IS_Z1:
+    for c in nfl:
+        la = c.get("launched_at") or ""
+        if len(la) < 4:
+            continue
+        try:
+            _yr_rows.append({
+                "year": int(la[:4]),
+                "conf": _nfl(c).get("conference") or "—",
+            })
+        except Exception:
+            continue
 
 if _yr_rows:
     st.subheader(f"📅 Channels launched per year — {_scope_label}")
@@ -390,21 +468,22 @@ def _sort_js(table_id: str, default_col: int = 3) -> str:
     )
 
 
-st.subheader("📡 All Channels")
-ordered = sorted(nfl, key=lambda c: -(int(c.get("subscriber_count") or 0)))
-rows_html = [_row_html(c) for c in ordered]
-iframe_h = min(2400, 31 * len(ordered) + 44)
-_components.html(
-    _TABLE_CSS
-    + "<div class='nfl-wrap'><table class='nfl-tbl' id='nfl-tbl-main'>"
-    f"<thead><tr style='border-bottom:2px solid {_T.BORDER_STRONG}'>"
-    + _th_html + "</tr></thead>"
-    f"<tbody>{''.join(rows_html)}</tbody></table></div>"
-    + _sort_js("nfl-tbl-main", default_col=3),
-    height=iframe_h, scrolling=True,
-)
-st.caption(
-    "Click any column header to sort. Click a team name to open the "
-    "channel on YouTube. Conference + Division are shown per row "
-    "(no aggregation in v0)."
-)
+if IS_Z1:
+    st.subheader("📡 All Channels")
+    ordered = sorted(nfl, key=lambda c: -(int(c.get("subscriber_count") or 0)))
+    rows_html = [_row_html(c) for c in ordered]
+    iframe_h = min(2400, 31 * len(ordered) + 44)
+    _components.html(
+        _TABLE_CSS
+        + "<div class='nfl-wrap'><table class='nfl-tbl' id='nfl-tbl-main'>"
+        f"<thead><tr style='border-bottom:2px solid {_T.BORDER_STRONG}'>"
+        + _th_html + "</tr></thead>"
+        f"<tbody>{''.join(rows_html)}</tbody></table></div>"
+        + _sort_js("nfl-tbl-main", default_col=3),
+        height=iframe_h, scrolling=True,
+    )
+    st.caption(
+        "Click any column header to sort. Click a team name to open the "
+        "channel on YouTube. Conference + Division are shown per row "
+        "(no aggregation in v0)."
+    )
