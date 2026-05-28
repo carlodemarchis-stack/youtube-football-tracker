@@ -358,22 +358,29 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ── Sidebar nav: open only the first + last groups on a fresh tab ─
+# ── Sidebar nav: open only the first + last groups on first sight ─
 # Streamlit doesn't expose per-group expand/collapse state to Python,
-# so we inject one-time JS that runs in the user's browser and sets
-# the <details open> attribute on the nav groups rendered by
-# st.navigation. Gated on parent.sessionStorage so it fires once per
-# browser-tab session — after that the user's own clicks decide what
-# stays open. New tab / browser close / sign-out-then-in = new
-# sessionStorage = the defaults reapply.
+# so we inject JS that runs in the user's browser and sets the
+# <details open> attribute on the nav groups rendered by
+# st.navigation.
+#
+# We don't gate on a plain boolean flag (was 'ytft_nav_initial_v1')
+# because that prevented re-application after sign-in / sign-out
+# when the nav structure changes shape but the flag stays set. We
+# now stash a SIGNATURE of the current nav (its group labels) and
+# only re-apply when the signature differs from last seen. So:
+#   - First load: signature empty → applies, records sig.
+#   - Same-shape reload: signature matches → no-op (user clicks
+#     win).
+#   - Sign-in / sign-out / any nav restructure: signature differs
+#     → defaults reapply for the new shape.
 from src import components_compat as _cc_nav
 _cc_nav.html(
     """
     <script>
     (function(){
       try {
-        const KEY = 'ytft_nav_initial_v1';
-        if (parent.sessionStorage.getItem(KEY)) return;
+        const KEY = 'ytft_nav_sig_v1';
         let tries = 0;
         const apply = () => {
           const dets = parent.document.querySelectorAll(
@@ -382,11 +389,17 @@ _cc_nav.html(
             if (++tries < 40) setTimeout(apply, 250);
             return;
           }
+          // Fingerprint = ordered list of group labels.
+          const sig = Array.from(dets).map(d => {
+            const s = d.querySelector('summary');
+            return (s ? s.textContent.trim() : '');
+          }).join('|');
+          if (parent.sessionStorage.getItem(KEY) === sig) return;
           const last = dets.length - 1;
           dets.forEach((d, i) => {
             d.open = (i === 0 || i === last);
           });
-          parent.sessionStorage.setItem(KEY, '1');
+          parent.sessionStorage.setItem(KEY, sig);
         };
         apply();
       } catch (e) { /* silent — sandbox or selector miss */ }
