@@ -23,7 +23,6 @@ import os
 from datetime import datetime, timezone
 
 import streamlit as st
-import pandas as pd
 import plotly.graph_objects as go
 from dotenv import load_dotenv
 
@@ -33,7 +32,6 @@ from src.cached_db import get_all_channels as _cached_channels
 from src.analytics import fmt_num, kpi_row
 from src.auth import require_login
 from src.charts import chart_title
-from src.dot import dual_dot
 from src import theme as _T
 
 load_dotenv()
@@ -71,12 +69,14 @@ def _is_hq(c) -> bool:
     return (_nfl(c).get("conference") or "—") == "—"
 
 
-# ── Single channel filter ─────────────────────────────────────────
+# ── Channel filter (sidebar — "global filter" slot) ───────────────
 _options = ["All channels"] + (
     [c["name"] for c in nfl_all if _is_hq(c)]
     + sorted(c["name"] for c in nfl_all if not _is_hq(c))
 )
-_pick = st.selectbox("Channel", _options, index=0, key="nfl_channel_pick")
+with st.sidebar:
+    st.markdown("### 🏈 NFL filter")
+    _pick = st.selectbox("Channel", _options, index=0, key="nfl_channel_pick")
 nfl = nfl_all if _pick == "All channels" else [
     c for c in nfl_all if c.get("name") == _pick
 ]
@@ -149,199 +149,44 @@ else:
     ]), unsafe_allow_html=True)
 
 
-# ── 🥧 Three format pies — Views / Videos / Views-per-Video ───────
-_t_long_v  = sum(int(c.get("lifetime_long_views")  or 0) for c in nfl)
-_t_short_v = sum(int(c.get("lifetime_short_views") or 0) for c in nfl)
-_t_live_v  = sum(int(c.get("lifetime_live_views")  or 0) for c in nfl)
-_t_long_n  = sum(int(c.get("long_form_count")      or 0) for c in nfl)
-_t_short_n = sum(int(c.get("shorts_count")         or 0) for c in nfl)
-_t_live_n  = sum(int(c.get("live_count")           or 0) for c in nfl)
-_t_long_vpv  = _t_long_v  // max(_t_long_n,  1)
-_t_short_vpv = _t_short_v // max(_t_short_n, 1)
-_t_live_vpv  = _t_live_v  // max(_t_live_n,  1)
-_has_live = (_t_live_v + _t_live_n) > 0
-_has_any_format = (_t_long_v + _t_short_v + _t_live_v
-                   + _t_long_n + _t_short_n + _t_live_n) > 0
+# ── 🥧 Videos by Format ───────────────────────────────────────────
+# Only this pie is meaningful in v0 — the channels API gives us
+# long_form_count / shorts_count / live_count directly. Lifetime
+# views-by-format pies depend on the per-video snapshot pipeline,
+# which NFL v0 doesn't run, so they'd render as all zeros.
+_t_long_n  = sum(int(c.get("long_form_count") or 0) for c in nfl)
+_t_short_n = sum(int(c.get("shorts_count")    or 0) for c in nfl)
+_t_live_n  = sum(int(c.get("live_count")      or 0) for c in nfl)
+_has_live = _t_live_n > 0
 _pie_labels = ["Long", "Shorts", "Live"] if _has_live else ["Long", "Shorts"]
 _pie_colors = ["#636EFA", "#00CC96", "#FFA15A"] if _has_live else ["#636EFA", "#00CC96"]
+_pie_values = ([_t_long_n, _t_short_n, _t_live_n] if _has_live
+               else [_t_long_n, _t_short_n])
 
-
-def _zv(l, s, v):
-    return [l, s, v] if _has_live else [l, s]
-
-
-def _make_pie(values, hover_suffix, title):
-    chart_title(title)
-    fig = go.Figure(go.Pie(
-        labels=_pie_labels, values=values,
+if sum(_pie_values) > 0:
+    chart_title("Videos by Format")
+    fig_pie = go.Figure(go.Pie(
+        labels=_pie_labels, values=_pie_values,
         marker=dict(colors=_pie_colors), hole=0.45,
         textinfo="percent+label", textposition="inside",
-        hovertemplate="%{label}: %{value:,.0f} " + hover_suffix + "<extra></extra>",
+        hovertemplate="%{label}: %{value:,.0f} videos<extra></extra>",
     ))
-    fig.update_layout(
-        showlegend=False, height=260,
+    fig_pie.update_layout(
+        showlegend=False, height=300,
         margin=dict(t=10, b=10, l=10, r=10),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color=_T.TEXT),
     )
-    return fig
-
-
-if _has_any_format:
-    _pcols = st.columns(3)
-    with _pcols[0]:
-        st.plotly_chart(_make_pie(_zv(_t_long_v, _t_short_v, _t_live_v),
-                                  "views", "Lifetime Views by Format"),
-                        width="stretch")
+    # Constrain width so the donut doesn't sprawl across the page —
+    # ~1/3 width feels right (matches the look of three side-by-side
+    # donuts in the Top-5 page without the empty companion donuts).
+    _pcols = st.columns([1, 1, 1])
     with _pcols[1]:
-        st.plotly_chart(_make_pie(_zv(_t_long_n, _t_short_n, _t_live_n),
-                                  "videos", "Videos by Format"),
-                        width="stretch")
-    with _pcols[2]:
-        st.plotly_chart(_make_pie(_zv(_t_long_vpv, _t_short_vpv, _t_live_vpv),
-                                  "views/video", "Avg Views/Video by Format"),
-                        width="stretch")
-
-
-# ── 📊 Subscribers by channel ─────────────────────────────────────
-# Per-row colour by conference (AFC red / NFC blue / NFL HQ shield).
-# Same data-not-theme exception used in views/18_WC2026.py.
-_CONF_COLOR = {"AFC": "#CC0000", "NFC": "#013369", "—": "#D50A0A"}
-
-
-def _conf_color(c):
-    return _CONF_COLOR.get(_nfl(c).get("conference") or "—", _T.ACCENT)
-
-
-def _subs_bar(subset, title: str | None = None):
-    if not subset:
-        return
-    subset = sorted(subset, key=lambda r: -(int(r.get("subscriber_count") or 0)))
-    names = [c.get("name") or "?" for c in subset]
-    subs  = [int(c.get("subscriber_count") or 0) for c in subset]
-    cols  = [_conf_color(c) for c in subset]
-    confs = [(_nfl(c).get("conference") or "—") for c in subset]
-    divs  = [(_nfl(c).get("division") or "—") for c in subset]
-    handles = [(c.get("handle") or "") for c in subset]
-    customdata = list(zip(confs, divs, handles))
-    if title:
-        st.markdown(f"**{title}**")
-    fig = go.Figure(go.Bar(
-        x=names, y=subs, marker_color=cols, customdata=customdata,
-        hovertemplate=("<b>%{x}</b><br>"
-                       "%{customdata[0]} · %{customdata[1]} · @%{customdata[2]}<br>"
-                       "Subs: %{y:,}<extra></extra>"),
-    ))
-    fig.update_layout(
-        height=360,
-        xaxis=dict(title="", tickangle=-45, automargin=True,
-                   tickfont=dict(size=10)),
-        yaxis=dict(title="", showgrid=True,
-                   gridcolor="rgba(255,255,255,0.08)"),
-        margin=dict(t=10, b=120, l=10, r=10),
-        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(color=_T.TEXT), showlegend=False,
-    )
-    st.plotly_chart(fig, width="stretch")
-
-
-if IS_Z1:
-    _subs_rows = [c for c in nfl if int(c.get("subscriber_count") or 0) > 0]
-    if _subs_rows:
-        st.subheader(f"📊 Subscribers by channel — {_scope_label}")
-        st.caption("All channels in scope, ranked by subscriber count. "
-                   "Bar colour = conference (AFC red · NFC blue · NFL HQ shield). "
-                   "Top row: ≥ 1M subs · bottom row: < 1M (the long tail).")
-        # NFL HQ dwarfs every franchise (≈16M vs ≤1.5M), so split on 1M
-        # like the Top-5 page does for the mega-channel vs long-tail mix.
-        big   = [c for c in _subs_rows if int(c.get("subscriber_count") or 0) >= 1_000_000]
-        small = [c for c in _subs_rows if int(c.get("subscriber_count") or 0) <  1_000_000]
-        if big:
-            _subs_bar(big, "≥ 1M subscribers")
-        if small:
-            _subs_bar(small, "< 1M subscribers")
-        if not big and not small:
-            _subs_bar(_subs_rows)
-else:
-    # Z2 — rank-highlight bar: this channel coloured, others greyed.
-    _picked_yt = nfl[0].get("youtube_channel_id")
-    ordered_all = sorted(
-        [c for c in nfl_all if int(c.get("subscriber_count") or 0) > 0],
-        key=lambda r: -(int(r.get("subscriber_count") or 0)),
-    )
-    st.subheader(f"📊 Subs rank in NFL — {_pick} highlighted")
-    st.caption("Where this channel sits among the 33 NFL channels by "
-               "subscriber count. Bar coloured = this channel.")
-    names = [c.get("name") or "?" for c in ordered_all]
-    subs_v = [int(c.get("subscriber_count") or 0) for c in ordered_all]
-    cols   = [(_conf_color(c) if c.get("youtube_channel_id") == _picked_yt
-               else "#3a3d46") for c in ordered_all]
-    fig = go.Figure(go.Bar(
-        x=names, y=subs_v, marker_color=cols,
-        hovertemplate="<b>%{x}</b><br>Subs: %{y:,}<extra></extra>",
-    ))
-    fig.update_layout(
-        height=360,
-        xaxis=dict(title="", tickangle=-45, automargin=True,
-                   tickfont=dict(size=10)),
-        yaxis=dict(title="", showgrid=True,
-                   gridcolor="rgba(255,255,255,0.08)"),
-        margin=dict(t=10, b=120, l=10, r=10),
-        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(color=_T.TEXT), showlegend=False,
-    )
-    st.plotly_chart(fig, width="stretch")
-
-
-# ── 📅 Channels launched per year (Z1 only — 1 dot is meaningless) ─
-_yr_rows = []
-if IS_Z1:
-    for c in nfl:
-        la = c.get("launched_at") or ""
-        if len(la) < 4:
-            continue
-        try:
-            _yr_rows.append({
-                "year": int(la[:4]),
-                "conf": _nfl(c).get("conference") or "—",
-            })
-        except Exception:
-            continue
-
-if _yr_rows:
-    st.subheader(f"📅 Channels launched per year — {_scope_label}")
-    st.caption("YouTube channel creation year. Stacked by conference.")
-    df = pd.DataFrame(_yr_rows)
-    yr_min, yr_max = int(df["year"].min()), int(df["year"].max())
-    years = list(range(yr_min, yr_max + 1))
-    fig = go.Figure()
-    # Stable stack order so colours line up across reloads.
-    for conf in ("—", "AFC", "NFC"):
-        sub = df[df["conf"] == conf]
-        if sub.empty:
-            continue
-        counts = sub.groupby("year").size().reindex(years, fill_value=0)
-        label = "NFL HQ" if conf == "—" else conf
-        fig.add_trace(go.Bar(
-            name=label,
-            x=list(counts.index), y=list(counts.values),
-            marker_color=_CONF_COLOR.get(conf, _T.ACCENT),
-            hovertemplate=f"<b>{label}</b><br>%{{x}}: %{{y}}<extra></extra>",
-        ))
-    fig.update_layout(
-        barmode="stack",
-        xaxis=dict(title="", dtick=1, tickangle=-30),
-        yaxis=dict(title="Channels launched"),
-        margin=dict(t=30, b=60),
-        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(color=_T.TEXT),
-        legend=dict(orientation="h", yanchor="top", y=-0.18,
-                    xanchor="center", x=0.5),
-    )
-    st.plotly_chart(fig, width="stretch")
+        st.plotly_chart(fig_pie, width="stretch")
 
 
 # ── 📡 All Channels table (sortable HTML) ─────────────────────────
+# Order: KPI → pie → table → all other charts.
 def td(val_sort, content, *, align="right"):
     v = "" if val_sort is None else str(val_sort)
     return f"<td style='text-align:{align}' data-val=\"{v}\">{content}</td>"
@@ -366,18 +211,6 @@ _TABLE_CSS = (
 )
 
 
-_CONF_DUAL = {
-    "AFC": ("#CC0000", "#FFFFFF"),
-    "NFC": ("#013369", "#FFFFFF"),
-    "—":   ("#013369", "#D50A0A"),
-}
-
-
-def _conf_marker(name: str) -> str:
-    c1, c2 = _CONF_DUAL.get(name, (_T.ACCENT, _T.WHITE))
-    return dual_dot(c1, c2, 14, inline=True)
-
-
 def _row_html(c) -> str:
     n = _nfl(c)
     yt_id = c.get("youtube_channel_id") or ""
@@ -396,11 +229,9 @@ def _row_html(c) -> str:
     vpv    = (views / videos) if videos else 0
     team_cell = (
         f"<td style='text-align:left' data-val=\"{team.lower()}\">"
-        f"<div style='display:flex;align-items:center;gap:8px'>"
-        f"{_conf_marker(conf)}"
         f"<a href='{yt_url}' target='_blank' rel='noopener' "
         f"style='color:{_T.TEXT};text-decoration:none'>{team}</a>"
-        f"</div></td>"
+        f"</td>"
     )
     return (
         "<tr>"
@@ -482,8 +313,101 @@ if IS_Z1:
         + _sort_js("nfl-tbl-main", default_col=3),
         height=iframe_h, scrolling=True,
     )
-    st.caption(
-        "Click any column header to sort. Click a team name to open the "
-        "channel on YouTube. Conference + Division are shown per row "
-        "(no aggregation in v0)."
+    st.caption("Click any column header to sort. Click a team name to "
+               "open the channel on YouTube.")
+
+
+# ── 📊 Subscribers by channel (neutral colour — no aggregation) ───
+if IS_Z1:
+    _subs_rows = sorted(
+        [c for c in nfl if int(c.get("subscriber_count") or 0) > 0],
+        key=lambda r: -(int(r.get("subscriber_count") or 0)),
     )
+else:
+    _subs_rows = sorted(
+        [c for c in nfl_all if int(c.get("subscriber_count") or 0) > 0],
+        key=lambda r: -(int(r.get("subscriber_count") or 0)),
+    )
+
+
+def _subs_bar(subset, title: str | None = None,
+               highlight_yt: str | None = None):
+    if not subset:
+        return
+    names = [c.get("name") or "?" for c in subset]
+    subs  = [int(c.get("subscriber_count") or 0) for c in subset]
+    if highlight_yt:
+        cols = [(_T.ACCENT if c.get("youtube_channel_id") == highlight_yt
+                 else "#3a3d46") for c in subset]
+    else:
+        cols = _T.ACCENT
+    if title:
+        st.markdown(f"**{title}**")
+    fig = go.Figure(go.Bar(
+        x=names, y=subs, marker_color=cols,
+        hovertemplate="<b>%{x}</b><br>Subs: %{y:,}<extra></extra>",
+    ))
+    fig.update_layout(
+        height=360,
+        xaxis=dict(title="", tickangle=-45, automargin=True,
+                   tickfont=dict(size=10)),
+        yaxis=dict(title="", showgrid=True,
+                   gridcolor="rgba(255,255,255,0.08)"),
+        margin=dict(t=10, b=120, l=10, r=10),
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color=_T.TEXT), showlegend=False,
+    )
+    st.plotly_chart(fig, width="stretch")
+
+
+if _subs_rows:
+    if IS_Z1:
+        st.subheader(f"📊 Subscribers by channel — {_scope_label}")
+        st.caption("All channels in scope, ranked by subscriber count. "
+                   "Top row: ≥ 1M subs · bottom row: < 1M (the long tail).")
+        big   = [c for c in _subs_rows if int(c.get("subscriber_count") or 0) >= 1_000_000]
+        small = [c for c in _subs_rows if int(c.get("subscriber_count") or 0) <  1_000_000]
+        if big:
+            _subs_bar(big, "≥ 1M subscribers")
+        if small:
+            _subs_bar(small, "< 1M subscribers")
+        if not big and not small:
+            _subs_bar(_subs_rows)
+    else:
+        st.subheader(f"📊 Subs rank in NFL — {_pick} highlighted")
+        st.caption("Where this channel sits among the 33 NFL channels.")
+        _subs_bar(_subs_rows,
+                  highlight_yt=nfl[0].get("youtube_channel_id"))
+
+
+# ── 📅 Channels launched per year (Z1 only — single-colour bars) ──
+if IS_Z1:
+    _yr_counts: dict[int, int] = {}
+    for c in nfl:
+        la = c.get("launched_at") or ""
+        if len(la) < 4:
+            continue
+        try:
+            y = int(la[:4])
+        except Exception:
+            continue
+        _yr_counts[y] = _yr_counts.get(y, 0) + 1
+
+    if _yr_counts:
+        st.subheader(f"📅 Channels launched per year — {_scope_label}")
+        st.caption("YouTube channel creation year across the 33 channels.")
+        yr_min, yr_max = min(_yr_counts), max(_yr_counts)
+        years = list(range(yr_min, yr_max + 1))
+        values = [_yr_counts.get(y, 0) for y in years]
+        fig_yr = go.Figure(go.Bar(
+            x=years, y=values, marker_color=_T.ACCENT,
+            hovertemplate="<b>%{x}</b><br>%{y} channel(s)<extra></extra>",
+        ))
+        fig_yr.update_layout(
+            xaxis=dict(title="", dtick=1, tickangle=-30),
+            yaxis=dict(title="Channels launched"),
+            margin=dict(t=30, b=60),
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color=_T.TEXT), showlegend=False,
+        )
+        st.plotly_chart(fig_yr, width="stretch")
