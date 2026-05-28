@@ -278,16 +278,20 @@ if not is_logged_in():
     st.markdown("<div style='margin-bottom:8px'></div>",
                 unsafe_allow_html=True)
 
-st.markdown(
-    f"""<div style="line-height:1.6;margin-top:12px">
-    The idea came from working with
-    <a href="https://linkedin.com/in/paolamarinone" target="_blank" style="{_link}">Paola Marinone</a>
-    and <a href="https://linkedin.com/in/benguatamer" target="_blank" style="{_link}">Bengu Atamer</a>
-    at <a href="https://www.buzzmyvideos.com/" target="_blank" style="{_link}"><b>BuzzMyVideos</b></a> — they pulled me deep into the mechanics of YouTube and the creators
-    who live on it. This tracker applies that same lens to football.
-    </div>""",
-    unsafe_allow_html=True,
-)
+# Personal-origin paragraph is part of the "what is this" pitch —
+# hide it once you're signed in, where the home is purpose-built and
+# the explanatory content lives on /tutorial.
+if not is_logged_in():
+    st.markdown(
+        f"""<div style="line-height:1.6;margin-top:12px">
+        The idea came from working with
+        <a href="https://linkedin.com/in/paolamarinone" target="_blank" style="{_link}">Paola Marinone</a>
+        and <a href="https://linkedin.com/in/benguatamer" target="_blank" style="{_link}">Bengu Atamer</a>
+        at <a href="https://www.buzzmyvideos.com/" target="_blank" style="{_link}"><b>BuzzMyVideos</b></a> — they pulled me deep into the mechanics of YouTube and the creators
+        who live on it. This tracker applies that same lens to football.
+        </div>""",
+        unsafe_allow_html=True,
+    )
 
 # ── Pre-beta banner — sits right above the daily AI note so it
 # reads as part of the same "what's going on" block at the top of
@@ -461,6 +465,127 @@ try:
                     st.caption("No videos published in the last 7 days.")
 except Exception:
     pass  # Snapshot data may not exist yet; degrade silently
+
+# ── Logged-in extras: Top-5 KPI strip + 30d subs growth + tutorial ──
+# The intent: once you're signed in the home is purpose-built — a fast
+# top-5 dashboard rather than a marketing landing. The longer-form
+# walk-through (filter help, page descriptions, About, fine print)
+# lives on /tutorial.
+if is_logged_in():
+    try:
+        from src.analytics import kpi_row as _kpi_row
+        _chs2 = st.session_state.get("_global_channels") or []
+        _top5 = [c for c in _chs2
+                 if c.get("entity_type") in ("Club", "League")
+                 and COUNTRY_TO_LEAGUE.get((c.get("country") or "").upper())
+                     in {"Serie A", "Premier League", "La Liga",
+                         "Bundesliga", "Ligue 1"}]
+        if _top5:
+            n_ch = len(_top5)
+            t_subs   = sum(int(c.get("subscriber_count") or 0) for c in _top5)
+            t_views  = sum(int(c.get("total_views")      or 0) for c in _top5)
+            t_videos = sum(int(c.get("video_count")      or 0) for c in _top5)
+            avg_vpv  = (t_views // t_videos) if t_videos else 0
+            st.markdown("---")
+            st.subheader("📊 Top-5 leagues at a glance")
+            st.markdown(_kpi_row([
+                ("📡 Channels",      str(n_ch), "clubs + league channels"),
+                ("👥 Subscribers",   fmt_num(t_subs), ""),
+                ("👁️ Total Views",   fmt_num(t_views), ""),
+                ("🎬 Videos",        fmt_num(t_videos), ""),
+                ("🎯 Views / Video", fmt_num(avg_vpv), ""),
+            ]), unsafe_allow_html=True)
+    except Exception:
+        pass
+
+    # ── 30d subs growth — stacked by league ─────────────────
+    # Live query over channel_snapshots; ~3000 rows max so the
+    # latency is fine for v0. Future: precompute into dashboard_cache.
+    try:
+        import plotly.graph_objects as _go
+        from datetime import date as _date, timedelta as _td
+        from src.channels import LEAGUE_COLOR_CHART as _LCC
+
+        _since30 = (_date.today() - _td(days=30)).isoformat()
+        SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+        SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
+        if SUPABASE_URL and SUPABASE_KEY and _top5:
+            _db_g = Database(SUPABASE_URL, SUPABASE_KEY)
+            _snaps = _db_g.get_all_snapshots(since_date=_since30)
+            _ch_to_lg = {
+                c["id"]: COUNTRY_TO_LEAGUE.get(
+                    (c.get("country") or "").upper()) for c in _top5}
+            # Per-(date, league) total subs from snapshots.
+            from collections import defaultdict as _dd
+            _by_dl: dict = _dd(lambda: _dd(int))   # date -> league -> subs
+            for s in _snaps:
+                lg = _ch_to_lg.get(s.get("channel_id"))
+                if lg is None:
+                    continue
+                d = (s.get("captured_date") or "")[:10]
+                if not d:
+                    continue
+                _by_dl[d][lg] += int(s.get("subscriber_count") or 0)
+            _dates = sorted(_by_dl.keys())
+            if len(_dates) >= 2:
+                # Daily Δ per league = today's total - yesterday's total.
+                TOP5_ORDER = ["Premier League", "La Liga", "Bundesliga",
+                              "Serie A", "Ligue 1"]
+                fig30 = _go.Figure()
+                for lg in TOP5_ORDER:
+                    deltas = []
+                    for i, d in enumerate(_dates):
+                        if i == 0:
+                            deltas.append(0)
+                        else:
+                            prev = _by_dl[_dates[i - 1]].get(lg, 0)
+                            cur  = _by_dl[d].get(lg, 0)
+                            # 0 when either side missing — avoids huge fake
+                            # gains the first day a new club's snapshot lands.
+                            if prev <= 0 or cur <= 0:
+                                deltas.append(0)
+                            else:
+                                deltas.append(cur - prev)
+                    if any(deltas):
+                        fig30.add_trace(_go.Bar(
+                            name=lg, x=_dates[1:], y=deltas[1:],
+                            marker_color=_LCC.get(lg, "#888"),
+                            hovertemplate=(f"<b>{lg}</b><br>%{{x}}: "
+                                            "+%{y:,} subs<extra></extra>"),
+                        ))
+                if fig30.data:
+                    fig30.update_layout(
+                        barmode="stack", height=300,
+                        title="", margin=dict(t=10, b=40, l=10, r=10),
+                        paper_bgcolor="rgba(0,0,0,0)",
+                        plot_bgcolor="rgba(0,0,0,0)",
+                        font=dict(color=_T.TEXT),
+                        xaxis=dict(title="", tickangle=-30),
+                        yaxis=dict(title="Net new subscribers",
+                                    showgrid=True,
+                                    gridcolor="rgba(255,255,255,0.08)"),
+                        legend=dict(orientation="h", yanchor="top",
+                                    y=-0.18, xanchor="center", x=0.5),
+                    )
+                    st.subheader("📈 Subscribers gained — last 30 days")
+                    st.caption("Daily net new subscribers, stacked by "
+                               "league. Days with no usable snapshot show "
+                               "as zero rather than a spike.")
+                    st.plotly_chart(fig30, width="stretch")
+    except Exception:
+        pass
+
+    # Tutorial link + footer for the logged-in path.
+    st.markdown("---")
+    st.page_link("views/0a_Tutorial.py",
+                 label="📖 New here? Read the tutorial")
+    from src.releases import current_version as _cv_li
+    st.markdown("<div style='margin-top:18px'></div>",
+                unsafe_allow_html=True)
+    st.page_link("views/99_Release_Notes.py",
+                 label=f"📋 Release notes · v{_cv_li()}")
+    st.stop()  # Skip the long-form explanatory content below.
+
 from src.channels import current_season_label_safe as _csl_home
 st.markdown(
     ("""
@@ -606,6 +731,15 @@ st.info(
     """,
     icon="⭐",
 )
+
+st.markdown("---")
+
+# Tutorial link — same content lives on /tutorial too (it's where
+# logged-in users land for the long-form walkthrough). Surfacing
+# the link here gives logged-out readers a deep-link they can
+# bookmark or share.
+st.page_link("views/0a_Tutorial.py",
+             label="📖 Read the full tutorial")
 
 st.markdown("---")
 
