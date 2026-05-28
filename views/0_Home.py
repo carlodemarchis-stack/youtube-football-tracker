@@ -498,80 +498,71 @@ if is_logged_in():
     except Exception:
         pass
 
-    # ── 30d subs growth — stacked by league ─────────────────
-    # Live query over channel_snapshots; ~3000 rows max so the
-    # latency is fine for v0. Future: precompute into dashboard_cache.
+    # ── 24h published timeline — one row per league (Z1) ─────
+    # Same component as the Latest page's Z1 strip — reused here so
+    # the logged-in home reads as a quick "what hit YouTube today"
+    # glance across Top-5. Skips Players / Federations / NFL etc.
     try:
-        import plotly.graph_objects as _go
-        from datetime import date as _date, timedelta as _td
-        from src.channels import LEAGUE_COLOR_CHART as _LCC
-
-        _since30 = (_date.today() - _td(days=30)).isoformat()
+        from src.timeline import render_48h_dots
+        from src.filters import get_league_for_channel
+        from src.channels import LEAGUE_FLAG, LEAGUE_COLOR
         SUPABASE_URL = os.getenv("SUPABASE_URL", "")
         SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
         if SUPABASE_URL and SUPABASE_KEY and _top5:
-            _db_g = Database(SUPABASE_URL, SUPABASE_KEY)
-            _snaps = _db_g.get_all_snapshots(since_date=_since30)
-            _ch_to_lg = {
-                c["id"]: COUNTRY_TO_LEAGUE.get(
-                    (c.get("country") or "").upper()) for c in _top5}
-            # Per-(date, league) total subs from snapshots.
-            from collections import defaultdict as _dd
-            _by_dl: dict = _dd(lambda: _dd(int))   # date -> league -> subs
-            for s in _snaps:
-                lg = _ch_to_lg.get(s.get("channel_id"))
-                if lg is None:
+            _db_tl = Database(SUPABASE_URL, SUPABASE_KEY)
+            _top5_ids = tuple(c["id"] for c in _top5)
+            _tl_raw = _cached_recent(_db_tl, limit=12000,
+                                     channel_ids=_top5_ids,
+                                     since_hours=25)
+            _ch_by_id_tl = {c["id"]: c for c in _top5}
+            _SKIP = ("Player", "Federation", "GoverningBody",
+                     "OtherClub", "WomenClub", "NFL")
+            _tl_videos = []
+            for v in (_tl_raw or []):
+                _ch = _ch_by_id_tl.get(v.get("channel_id")) or {}
+                if _ch.get("entity_type") in _SKIP:
                     continue
-                d = (s.get("captured_date") or "")[:10]
-                if not d:
+                # Drop unaired scheduled streams the same way Latest does
+                # — keep live-now even if marked scheduled.
+                _ls = (v.get("live_status") or "").lower()
+                _ast = v.get("actual_start_time") or ""
+                _is_live_now_v = (_ls == "live") and bool(_ast)
+                _is_scheduled_v = (_ls == "upcoming") or (
+                    _ls != "live" and bool(v.get("scheduled_start_time"))
+                    and not _ast)
+                if _is_scheduled_v and not _is_live_now_v:
                     continue
-                _by_dl[d][lg] += int(s.get("subscriber_count") or 0)
-            _dates = sorted(_by_dl.keys())
-            if len(_dates) >= 2:
-                # Daily Δ per league = today's total - yesterday's total.
-                TOP5_ORDER = ["Premier League", "La Liga", "Bundesliga",
-                              "Serie A", "Ligue 1"]
-                fig30 = _go.Figure()
-                for lg in TOP5_ORDER:
-                    deltas = []
-                    for i, d in enumerate(_dates):
-                        if i == 0:
-                            deltas.append(0)
-                        else:
-                            prev = _by_dl[_dates[i - 1]].get(lg, 0)
-                            cur  = _by_dl[d].get(lg, 0)
-                            # 0 when either side missing — avoids huge fake
-                            # gains the first day a new club's snapshot lands.
-                            if prev <= 0 or cur <= 0:
-                                deltas.append(0)
-                            else:
-                                deltas.append(cur - prev)
-                    if any(deltas):
-                        fig30.add_trace(_go.Bar(
-                            name=lg, x=_dates[1:], y=deltas[1:],
-                            marker_color=_LCC.get(lg, "#888"),
-                            hovertemplate=(f"<b>{lg}</b><br>%{{x}}: "
-                                            "+%{y:,} subs<extra></extra>"),
-                        ))
-                if fig30.data:
-                    fig30.update_layout(
-                        barmode="stack", height=300,
-                        title="", margin=dict(t=10, b=40, l=10, r=10),
-                        paper_bgcolor="rgba(0,0,0,0)",
-                        plot_bgcolor="rgba(0,0,0,0)",
-                        font=dict(color=_T.TEXT),
-                        xaxis=dict(title="", tickangle=-30),
-                        yaxis=dict(title="Net new subscribers",
-                                    showgrid=True,
-                                    gridcolor="rgba(255,255,255,0.08)"),
-                        legend=dict(orientation="h", yanchor="top",
-                                    y=-0.18, xanchor="center", x=0.5),
-                    )
-                    st.subheader("📈 Subscribers gained — last 30 days")
-                    st.caption("Daily net new subscribers, stacked by "
-                               "league. Days with no usable snapshot show "
-                               "as zero rather than a spike.")
-                    st.plotly_chart(fig30, width="stretch")
+                _tl_videos.append(v)
+
+            def _league_of(v):
+                ch = _ch_by_id_tl.get(v.get("channel_id")) or {}
+                return get_league_for_channel(ch) or "Other"
+
+            def _lg_label(v):
+                return _league_of(v)
+
+            def _lg_color(v):
+                return LEAGUE_COLOR.get(_league_of(v), "#636EFA")
+
+            def _lg_badge(v):
+                lg = _league_of(v)
+                flag = LEAGUE_FLAG.get(lg, "")
+                if not flag:
+                    return ""
+                return (f'<span style="display:inline-flex;'
+                        f'align-items:center;justify-content:center;'
+                        f'width:14px;height:14px;font-size:12px;'
+                        f'line-height:1">{flag}</span>')
+
+            render_48h_dots(
+                _tl_videos,
+                hours=24,
+                channel_resolver=_lg_label,
+                color_resolver=_lg_color,
+                badge_resolver=_lg_badge,
+                group_resolver=_league_of,
+                row_label="league",
+            )
     except Exception:
         pass
 
