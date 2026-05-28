@@ -50,8 +50,8 @@ if not SUPABASE_URL or not SUPABASE_KEY:
     st.stop()
 
 db = Database(SUPABASE_URL, SUPABASE_KEY)
-nfl = [c for c in _cached_channels(db) if c.get("entity_type") == "NFL"]
-if not nfl:
+nfl_all = [c for c in _cached_channels(db) if c.get("entity_type") == "NFL"]
+if not nfl_all:
     st.info("No NFL channels in the DB yet — run "
             "`python3 scripts/import_nfl.py` to seed the roster.")
     st.stop()
@@ -62,10 +62,19 @@ def _nfl(c):
 
 
 def _is_hq(c) -> bool:
-    """The @NFL HQ row — has no conference/division (set to "—" at
-    import time). Treated as its own bucket so it doesn't skew the
-    AFC/NFC summary."""
     return (_nfl(c).get("conference") or "—") == "—"
+
+
+# ── Channel filter (single dropdown) ──────────────────────────────
+# HQ first (matches the canonical sort), then franchises by name.
+_options = ["All channels"] + (
+    [c["name"] for c in nfl_all if _is_hq(c)]
+    + sorted(c["name"] for c in nfl_all if not _is_hq(c))
+)
+_pick = st.selectbox("Channel", _options, index=0, key="nfl_channel_pick")
+nfl = nfl_all if _pick == "All channels" else [
+    c for c in nfl_all if c.get("name") == _pick
+]
 
 
 # ── KPIs ──────────────────────────────────────────────────────────
@@ -155,80 +164,6 @@ _CONF_DUAL = {
 def _conf_marker(name: str) -> str:
     c1, c2 = _CONF_DUAL.get(name, (_T.ACCENT, _T.WHITE))
     return dual_dot(c1, c2, 14, inline=True)
-
-
-# ── 🏟 By conference summary table ────────────────────────────────
-_CF_COLS = [
-    ("Conference",    "str", "left"),
-    ("Channels",      "num", "right"),
-    ("Subscribers",   "num", "right"),
-    ("Total views",   "num", "right"),
-    ("Views / Sub",   "num", "right"),
-    ("Videos",        "num", "right"),
-    ("Long",          "num", "right"),
-    ("Shorts",        "num", "right"),
-    ("Live",          "num", "right"),
-    ("Views / Video", "num", "right"),
-]
-_cf_th = "".join(
-    f"<th data-col='{i}' data-type='{tp}' "
-    f"style='text-align:{al};cursor:pointer'>{lbl}</th>"
-    for i, (lbl, tp, al) in enumerate(_CF_COLS)
-)
-
-_cf: dict[str, dict] = {}
-for _c in nfl:
-    _k = (_nfl(_c).get("conference") or "—")
-    # Show HQ as "NFL HQ" in the summary so it reads naturally.
-    _label = "NFL HQ" if _k == "—" else _k
-    _s = _cf.setdefault(_label, {
-        "key": _k, "ch": 0, "subs": 0, "v": 0, "vid": 0,
-        "lo": 0, "sh": 0, "li": 0,
-    })
-    _s["ch"]   += 1
-    _s["subs"] += int(_c.get("subscriber_count") or 0)
-    _s["v"]    += int(_c.get("total_views")      or 0)
-    _s["vid"]  += int(_c.get("video_count")      or 0)
-    _s["lo"]   += int(_c.get("long_form_count")  or 0)
-    _s["sh"]   += int(_c.get("shorts_count")     or 0)
-    _s["li"]   += int(_c.get("live_count")       or 0)
-
-st.subheader("🏟 By conference")
-_cf_rows = []
-for _name, _s in sorted(_cf.items(), key=lambda kv: -kv[1]["subs"]):
-    _vps = (_s["v"] // _s["subs"]) if _s["subs"] else 0
-    _vpv = (_s["v"] // _s["vid"])  if _s["vid"]  else 0
-    _cf_rows.append(
-        "<tr>"
-        + td(_name,
-              f"<div style='display:flex;align-items:center;gap:8px'>"
-              f"{_conf_marker(_s['key'])}<span>{_name}</span></div>",
-              align="left")
-        + td(_s["ch"],   fmt_num(_s["ch"]))
-        + td(_s["subs"], fmt_num(_s["subs"]))
-        + td(_s["v"],    fmt_num(_s["v"]))
-        + td(_vps,       fmt_num(_vps))
-        + td(_s["vid"],  fmt_num(_s["vid"]))
-        + td(_s["lo"],   fmt_num(_s["lo"]))
-        + td(_s["sh"],   fmt_num(_s["sh"]))
-        + td(_s["li"],   fmt_num(_s["li"]))
-        + td(_vpv,       fmt_num(_vpv))
-        + "</tr>"
-    )
-_cf_h = min(700, 36 * len(_cf_rows) + 52)
-_components.html(
-    _TABLE_CSS
-    + "<div class='nfl-wrap'><table class='nfl-tbl' id='nfl-tbl-conf'>"
-    f"<thead><tr style='border-bottom:2px solid {_T.BORDER_STRONG}'>"
-    + _cf_th + "</tr></thead>"
-    f"<tbody>{''.join(_cf_rows)}</tbody></table></div>"
-    + _sort_js("nfl-tbl-conf", default_col=2),
-    height=_cf_h, scrolling=True,
-)
-st.caption(
-    "Aggregated from the NFL channel stats we collect "
-    "(subscribers / views / videos / format split). Click a header to sort."
-)
 
 
 # ── 📋 All channels detail table ──────────────────────────────────
