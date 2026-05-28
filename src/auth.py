@@ -365,8 +365,9 @@ def _show_onboarding_card(user: dict):
             placeholder="https://linkedin.com/in/your-handle",
         )
         email_consent = st.checkbox(
-            "Email me about YouTube Football Tracker — occasional product "
-            "updates and new features. Optional, unsubscribe anytime.",
+            "Help me shape this tool. I'll email you when something "
+            "meaningful ships, and occasionally ask what you think. "
+            "~1–2 emails per month, no more.",
             value=False,
         )
         submitted = st.form_submit_button("Save and continue", type="primary")
