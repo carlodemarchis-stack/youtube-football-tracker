@@ -228,6 +228,12 @@ def _subs_per_year(subs: int, launched_iso: str | None) -> int:
 
 _daily_updated = _cached_last_fetch(db, "daily")
 render_page_subtitle("Channel stats and comparison", updated_raw=_daily_updated)
+st.caption(
+    "ℹ️ Lifetime views broken down by format (long / shorts / live) and "
+    "the resulting Views/Video averages are based on partial data — "
+    "they're approximations, not exact totals. Working on a way to "
+    "improve accuracy."
+)
 
 # ══════════════════════════════════════════════════════════════
 # ZOOM LEVEL 1: ALL LEAGUES
