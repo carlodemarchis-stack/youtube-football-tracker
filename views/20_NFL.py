@@ -69,19 +69,16 @@ def _is_hq(c) -> bool:
     return (_nfl(c).get("conference") or "—") == "—"
 
 
-# ── Channel filter (sidebar — "global filter" slot) ───────────────
-_options = ["All channels"] + (
-    [c["name"] for c in nfl_all if _is_hq(c)]
-    + sorted(c["name"] for c in nfl_all if not _is_hq(c))
-)
-with st.sidebar:
-    st.markdown("### 🏈 NFL filter")
-    _pick = st.selectbox("Channel", _options, index=0, key="nfl_channel_pick")
-nfl = nfl_all if _pick == "All channels" else [
+# ── Channel filter ────────────────────────────────────────────────
+# The dropdown is rendered above the page title by app.py (same slot
+# as the global / WC2026 filters). Here we just read the selection.
+from src.nfl_filter import get_nfl_filter
+_pick = get_nfl_filter()  # None for "All channels", else the team name
+nfl = nfl_all if _pick is None else [
     c for c in nfl_all if c.get("name") == _pick
 ]
-_scope_label = "33 channels" if _pick == "All channels" else _pick
-IS_Z1 = (_pick == "All channels")
+_scope_label = "33 channels" if _pick is None else _pick
+IS_Z1 = (_pick is None)
 
 # Precompute ranks across all 33 channels — only used in Z2.
 _N = len(nfl_all)

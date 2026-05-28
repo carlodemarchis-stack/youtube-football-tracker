@@ -429,6 +429,15 @@ if SUPABASE_URL and SUPABASE_KEY:
                      if (c.get("competitions") or {}).get("wc2026")]
             if _wcch:
                 render_wc2026_filter(_wcch)
+        elif getattr(pg, "url_path", "") == "nfl":
+            # NFL sub-app has its own single-channel filter — same
+            # above-the-title slot as the WC2026 filter so it reads as
+            # a "global filter" consistently across the app.
+            from src.nfl_filter import render_nfl_filter
+            _nflch = [c for c in all_channels
+                      if c.get("entity_type") == "NFL"]
+            if _nflch:
+                render_nfl_filter(_nflch)
 
 # Removed the horizontal divider that used to sit between the global
 # filter and the page title — the filter row already reads as its
