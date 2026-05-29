@@ -46,7 +46,7 @@ import os
 import sys
 import time
 import traceback
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -63,7 +63,7 @@ if os.path.exists(_env_path):
             _k, _v = _line.split("=", 1)
             os.environ.setdefault(_k, _v.strip('"\''))
 
-from src.database import Database
+from src.database import Database, _fetch_all
 from src.youtube_api import YouTubeClient
 from src.channels import get_season_since
 
@@ -225,8 +225,81 @@ def main() -> int:
             total_inserted += len(new_vids)
             log(f"  Inserted {len(new_vids)} videos for {ch.get('name','?')}")
 
+    # ── Stat refresh on every WC2026 video published in last 36h ──
+    # Daily cron snapshots view counts once a day; during the
+    # tournament that's too coarse for the just-uploaded match recap
+    # whose view-count is moving by the minute. Re-`videos.list`
+    # everything published in the last 36h to keep Trends / Viral /
+    # Top Videos current within the hour. Self-scaling: a quiet
+    # day = handful of videos = a few API units; match day = a few
+    # hundred videos = ~5-10 calls. Negligible vs the hourly
+    # discovery cost.
+    recent_refreshed = 0
+    try:
+        cutoff_iso = (datetime.now(timezone.utc)
+                      - timedelta(hours=36)).isoformat()
+        wc_cids = [c["id"] for c in wc if c.get("id")]
+        if wc_cids:
+            recent_rows = _fetch_all(
+                db.client.table("videos")
+                .select("id,youtube_video_id,channel_id")
+                .in_("channel_id", wc_cids)
+                .gte("published_at", cutoff_iso)
+                .order("id")
+            )
+            id_to_dbid: dict[str, str] = {}
+            id_to_cid:  dict[str, str] = {}
+            for r in recent_rows:
+                _ytid = (r.get("youtube_video_id") or "").strip()
+                if not _ytid:
+                    continue
+                id_to_dbid[_ytid] = r["id"]
+                id_to_cid[_ytid]  = r.get("channel_id") or ""
+            yt_ids = list(id_to_dbid.keys())
+            if yt_ids:
+                _now_iso = datetime.now(timezone.utc).isoformat()
+                update_buffer: dict[str, dict] = {}
+                for b in range(0, len(yt_ids), 50):
+                    batch = yt_ids[b:b + 50]
+                    try:
+                        details = yt.get_video_details(batch)
+                    except Exception as e:
+                        log(f"  recent-stat batch failed: {e}")
+                        continue
+                    for v in details:
+                        _yt = (v.get("youtube_video_id") or "").strip()
+                        if not _yt:
+                            continue
+                        dbid = id_to_dbid.get(_yt)
+                        cid_v = id_to_cid.get(_yt) or ""
+                        if not dbid or not cid_v:
+                            continue
+                        update_buffer[dbid] = {
+                            "id": dbid,
+                            "youtube_video_id": _yt,
+                            "channel_id": cid_v,
+                            "view_count":    v.get("view_count", 0),
+                            "like_count":    v.get("like_count", 0),
+                            "comment_count": v.get("comment_count", 0),
+                            "last_updated":  _now_iso,
+                        }
+                update_rows = list(update_buffer.values())
+                for b in range(0, len(update_rows), 500):
+                    try:
+                        db.client.table("videos").upsert(
+                            update_rows[b:b + 500], on_conflict="id"
+                        ).execute()
+                    except Exception as e:
+                        log(f"  recent-stat upsert failed: {e}")
+                recent_refreshed = len(update_rows)
+                log(f"  refreshed stats on {recent_refreshed} "
+                    f"recent (≤36h) videos")
+    except Exception as e:
+        log(f"recent-video stat refresh step failed: {e}")
+
     elapsed = time.time() - start
-    log(f"Done in {elapsed:.1f}s — {total_inserted} new videos inserted")
+    log(f"Done in {elapsed:.1f}s — {total_inserted} new videos inserted, "
+        f"{recent_refreshed} recent re-stat'd")
 
     # Keep the WC2026 page's read-side cache in sync so the "Last
     # upload" column reflects the new clips within the hour. DB-only
