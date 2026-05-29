@@ -266,6 +266,29 @@ def main() -> int:
     except Exception as e:
         log(f"video snapshot step failed: {e}")
 
+    # ── 4b. Per-channel aggregate recompute (no API cost) ──
+    # refresh_top100_stats + refresh_lifetime_format_views read from
+    # the videos table and write summary columns on the channel row
+    # (top100_views, top100_avg_age_days, lifetime_long_views, …).
+    # Without this they were stuck at the values the one-off popular
+    # backfill wrote on 2026-05-29 and would silently drift as new
+    # videos arrived. Pure Supabase — no quota impact.
+    log(f"Recomputing top100 + lifetime-format aggregates for {len(wc)} "
+        "WC2026 channels...")
+    _agg_ok = 0
+    for _ch in wc:
+        _cid = _ch.get("id")
+        if not _cid:
+            continue
+        try:
+            db.refresh_top100_stats(_cid)
+            db.refresh_lifetime_format_views(_cid)
+            _agg_ok += 1
+        except Exception as e:
+            log(f"  aggregate recompute failed for "
+                f"{_ch.get('name', '?')}: {e}")
+    log(f"  aggregates refreshed: {_agg_ok}/{len(wc)}")
+
     # ── 5. Refresh dashboard_cache.wc2026 ──
     # Same logic as scripts/refresh_wc2026_cache.py — keep the page's
     # read-side cache in sync with the freshly-snapshotted numbers.
