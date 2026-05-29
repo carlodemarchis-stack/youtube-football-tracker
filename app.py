@@ -146,6 +146,7 @@ wc2026_pages = [
     st.Page("views/18e_WC2026_Daily_Recap.py", title="Daily Recap",  url_path="wc2026-recap"),
     st.Page("views/18c_WC2026_Latest.py",     title="Latest Videos", url_path="wc2026-latest"),
     st.Page("views/18d_WC2026_Viral.py",      title="Viral Videos",  url_path="wc2026-viral"),
+    st.Page("views/18f_WC2026_Top_Videos.py", title="Top Videos",    url_path="wc2026-top"),
     st.Page("views/18b_WC2026_Trends.py",     title="Trends",        url_path="wc2026-trends"),
 ]
 
@@ -448,7 +449,8 @@ _no_filter_url_paths = {
     # filter wrongly reappears on Home at the root. Keep both.
     "", "home", "players", "federations", "other-clubs",
     "women", "no1-videos", "wc2026", "wc2026-trends",
-    "wc2026-latest", "wc2026-viral", "wc2026-recap", "release-notes",
+    "wc2026-latest", "wc2026-viral", "wc2026-recap", "wc2026-top",
+    "release-notes",
     "nfl",  # hidden NFL v0 (see docs/NFL_V0.md)
     # Admin pages — the league/club filter has no meaning here.
     "data", "channel-mgmt", "user-mgmt", "email-users", "usage",
@@ -473,7 +475,8 @@ if SUPABASE_URL and SUPABASE_KEY:
             st.session_state["_global_league"] = league
             st.session_state["_global_club"] = club
         elif getattr(pg, "url_path", "") in (
-            "wc2026", "wc2026-trends", "wc2026-latest", "wc2026-viral"
+            "wc2026", "wc2026-trends", "wc2026-latest", "wc2026-viral",
+            "wc2026-top",
         ):
             # WC2026 sub-app has its own Confederation→Team filter.
             # Rendered here (above the page title) so it sits in the
