@@ -476,7 +476,7 @@ if SUPABASE_URL and SUPABASE_KEY:
             st.session_state["_global_club"] = club
         elif getattr(pg, "url_path", "") in (
             "wc2026", "wc2026-trends", "wc2026-latest", "wc2026-viral",
-            "wc2026-top",
+            "wc2026-top", "wc2026-recap",
         ):
             # WC2026 sub-app has its own Confederation→Team filter.
             # Rendered here (above the page title) so it sits in the
