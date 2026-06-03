@@ -13,8 +13,7 @@ badge looks like.
 Rules
   - GoverningBody (FIFA, UEFA, CONMEBOL, CONCACAF, CAF, AFC, OFC):
     a concentric dual-dot in the body's brand colours. UEFA renders
-    primary blue + secondary red, matching its brand (was inverted
-    in some pre-existing dicts).
+    outer red + inner blue, matching its official mark.
   - Team channels (everything else in the WC2026 set): the team's
     flag emoji — including England's GB-ENG subdivision tag sequence,
     which is U+1F3F4 + U+E0067 U+E0062 U+E0065 U+E006E U+E0067 + U+E007F
@@ -32,7 +31,7 @@ from src import theme as _T
 # colour, inner (c2) is the accent.
 _CONF_DUAL: dict[str, tuple[str, str]] = {
     "FIFA":     ("#326295", "#FFFFFF"),   # FIFA blue + white
-    "UEFA":     ("#003F87", "#C8102E"),   # UEFA blue + red (was inverted before)
+    "UEFA":     ("#C8102E", "#003F87"),   # outer red + inner blue (matches UEFA brand)
     "CONMEBOL": ("#003F87", "#F4C300"),   # blue + yellow
     "CONCACAF": ("#F26522", "#1E73BE"),   # orange + blue
     "CAF":      ("#006B3F", "#FCD116"),   # green + yellow

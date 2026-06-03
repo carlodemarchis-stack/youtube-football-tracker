@@ -25,7 +25,11 @@ from src.cached_db import (
 from src.analytics import fmt_num, fmt_date, kpi_row
 from src.auth import require_login
 from src.dot import dual_dot, flag_span
-from src.wc2026_badge import _CONF_DUAL as _SHARED_CONF_DUAL, TEAM_FLAG as _SHARED_TEAM_FLAG
+from src.wc2026_badge import (
+    _CONF_DUAL as _SHARED_CONF_DUAL,
+    TEAM_FLAG as _SHARED_TEAM_FLAG,
+    wc2026_badge,
+)
 from src import theme as _T
 
 load_dotenv()
@@ -206,13 +210,12 @@ def _channel_row_html(c, *, show_alt_chip=True):
             shorts += int(a.get("shorts_count")     or 0)
             lives  += int(a.get("live_count")       or 0)
 
-    if is_gov:
-        c1 = c.get("color") or _T.ACCENT
-        c2 = c.get("color2") or _T.WHITE
-        marker = dual_dot(c1, c2, 14)
-    else:
-        flag = TEAM_FLAG.get(team, "")
-        marker = flag_span(flag, 14) if flag else ""
+    # Unified WC2026 row marker — governing-body dual-dot (FIFA / UEFA
+    # / …) or team flag (incl. England's GB-ENG sequence). Source of
+    # truth lives in src/wc2026_badge.py; the local branch used to
+    # read channel.color / color2 which are mostly empty for the
+    # cohort, so UEFA etc. fell through to plain accent dots.
+    marker = wc2026_badge(c, 14)
 
     # Display label: for alts (role=federation) use the actual channel
     # name so users can tell them apart from the primary row.
@@ -346,11 +349,8 @@ def _render_wc_table(rows_html: list[str], table_id: str) -> str:
 #    collect. Sits above the per-channel detail table (summary →
 #    detail) and respects the Confederation/Team filter via `wc`.
 #
-# Confederations are governing bodies → §7 marker is a dual-dot
-# (two brand colours). Same pairs as the Latest page's _CONF_DUAL;
-# brand colours are the §1 data-not-theme exception.
-# Confederation palette shared with every other WC2026 surface — keeps
-# UEFA blue+red consistent everywhere.
+# Confederation palette shared with every other WC2026 surface via
+# src/wc2026_badge.py — keeps UEFA (red+blue) and the rest consistent.
 _CONF_DUAL = _SHARED_CONF_DUAL
 
 

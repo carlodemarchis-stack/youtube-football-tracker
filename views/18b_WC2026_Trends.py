@@ -31,7 +31,9 @@ from src.analytics import fmt_num, fmt_date, kpi_row
 from src.charts import readable_hover
 from src.auth import require_login
 from src.dot import flag_span, dual_dot
-from src.wc2026_badge import TEAM_FLAG as _SHARED_TEAM_FLAG
+from src.wc2026_badge import (
+    TEAM_FLAG as _SHARED_TEAM_FLAG, wc2026_badge,
+)
 from src import theme as _T
 from src.wc_table import td as _td, render_sortable_table as _render_tbl
 
@@ -410,13 +412,16 @@ st.caption(
 )
 
 def _marker(team: str) -> str:
-    flag = TEAM_FLAG.get(team, "")
-    if flag:
-        return flag_span(flag, 14)
+    """Row marker for a team or governing body. Routes through the
+    shared wc2026_badge resolver so the dual-dot palette (UEFA red+blue
+    etc.) and flag set (England's GB-ENG sequence) stay consistent
+    with every other WC2026 surface."""
+    # Synthesize the minimal channel-shape wc2026_badge expects.
     if team_is_gov.get(team):
-        c1, c2 = team_color.get(team, (_T.ACCENT, _T.WHITE))
-        return dual_dot(c1, c2, 14)
-    return flag_span("", 14)
+        return wc2026_badge(
+            {"entity_type": "GoverningBody", "name": team}, 14)
+    return wc2026_badge(
+        {"competitions": {"wc2026": {"team": team}}}, 14)
 
 
 def _col(x: int) -> str:

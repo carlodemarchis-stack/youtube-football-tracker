@@ -234,22 +234,17 @@ _CONF_COLOR = {
     "CAF": "#006B3F", "CONCACAF": "#F26522", "OFC": "#0073CF",
     "FIFA": "#326295",
 }
-# Confederations are governing bodies → §7 marker is a dual-dot (two
-# brand colours). Pairs lifted from src.channels' governing-body brand
-# map, keyed by the confederation code the data uses. Brand colours
-# are the §1 data-not-theme exception.
-_CONF_DUAL = {
-    "UEFA": ("#C8102E", "#003F87"), "CONMEBOL": ("#003F87", "#F4C300"),
-    "CONCACAF": ("#F26522", "#1E73BE"), "CAF": ("#006B3F", "#FCD116"),
-    "AFC": ("#F0A91A", "#005A36"), "OFC": ("#0073CF", "#FFFFFF"),
-    "FIFA": ("#326295", "#FFFFFF"),
-}
-
-
-def _conf_badge(v) -> str:
-    k = _conf_of(v)
-    c1, c2 = _CONF_DUAL.get(k, (_CONF_COLOR.get(k, "#888"), "#888"))
-    return dual_dot(c1, c2, 14, inline=True)
+# Confederation + team markers come from src/wc2026_badge.py so the
+# timeline strip uses the same dual-dot + flag vocabulary as every
+# other WC2026 page (UEFA red+blue, England with its own flag, etc.).
+_team_color: dict[str, str] = {}
+for _c in wc:
+    _w = (_c.get("competitions") or {}).get("wc2026") or {}
+    _t = _w.get("team") or _c.get("country") or _c.get("name") or "—"
+    # Keep _team_color for chart colour lookups (used by the
+    # timeline group → row colour); the row marker itself uses the
+    # shared resolver below.
+    _team_color.setdefault(_t, _c.get("color") or "#636EFA")
 
 
 def _conf_of(v):
@@ -264,23 +259,22 @@ def _team_of(v):
     return w.get("team") or ch.get("country") or ch.get("name") or "—"
 
 
-_team_color: dict[str, str] = {}
-# Teams are clubs/federations → §7 marker is a dual-dot (the channel's
-# two brand colours). Same source as the WC2026 main table's per-row
-# marker (channel color / color2); brand colours are the §1
-# data-not-theme exception.
-_team_dual: dict[str, tuple[str, str]] = {}
-for _c in wc:
-    _w = (_c.get("competitions") or {}).get("wc2026") or {}
-    _t = _w.get("team") or _c.get("country") or _c.get("name") or "—"
-    _team_color.setdefault(_t, _c.get("color") or "#636EFA")
-    _team_dual.setdefault(_t, (_c.get("color") or "#636EFA",
-                               _c.get("color2") or "#FFFFFF"))
+def _conf_badge(v) -> str:
+    """Confederation row-marker for the Z1 timeline. Looks up any
+    channel under that confederation and renders its governing-body
+    dual-dot via the shared resolver."""
+    k = _conf_of(v)
+    # Synthesize a GoverningBody channel-dict so wc2026_badge picks
+    # the right branch — k IS the body name (FIFA / UEFA / …).
+    return wc2026_badge(
+        {"entity_type": "GoverningBody", "name": k}, 14)
 
 
 def _team_badge(v) -> str:
-    c1, c2 = _team_dual.get(_team_of(v), ("#636EFA", "#FFFFFF"))
-    return dual_dot(c1, c2, 14, inline=True)
+    """Team row-marker for the Z2 timeline — flag emoji via the
+    shared resolver."""
+    ch = ch_by_id.get(v.get("channel_id")) or {}
+    return wc2026_badge(ch, 14)
 
 try:
     if _wc_team:
