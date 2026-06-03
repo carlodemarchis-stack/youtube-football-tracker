@@ -193,6 +193,33 @@ def _load_new_videos(ch_ids: tuple[str, ...], d_iso: str):
 new_videos = _load_new_videos(_ch_ids, day_iso)
 
 
+# ── AI commentary note (Z1 + Z2 only) ─────────────────────────────
+# Written nightly by scripts/daily_wc2026.py using the WC2026
+# compose / generate functions in src/ai_note.py. Cache keys:
+#   Z1 cohort  : f"{day_iso}|wc2026"
+#   Z2 confed  : f"{day_iso}|wc2026|{confederation}"
+# Z3 (single team) intentionally has no AI note — matches the top-5
+# pattern (single-club Daily Recap doesn't get one either) and avoids
+# 48 Claude calls/night.
+if not IS_Z3:
+    _note_key = (f"{day_iso}|wc2026|{_confed}" if IS_Z2
+                 else f"{day_iso}|wc2026")
+    try:
+        _note_row = _cached_dc_read(db, "daily_note", _note_key)
+        _note_html = ((_note_row or {}).get("payload") or {}).get("html")
+    except Exception:
+        _note_html = None
+    if _note_html:
+        st.markdown(
+            f'<div style="background:{_T.SURFACE};'
+            f'border-left:3px solid {_T.ACCENT};'
+            'border-radius:6px;padding:14px 18px;'
+            'margin:8px 0 14px 0;font-size:14px;line-height:1.55;'
+            f'color:{_T.TEXT}">{_note_html}</div>',
+            unsafe_allow_html=True,
+        )
+
+
 # ── Headline KPIs ─────────────────────────────────────────────────
 def _sum_delta(field: str, end_iso: str, start_iso: str) -> int:
     return sum(_delta(c["id"], field, end_iso, start_iso) for c in wc)

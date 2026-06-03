@@ -315,6 +315,371 @@ def fetch_previous_notes(db, target_date: date, n: int = 3,
     return out
 
 
+# ══════════════════════════════════════════════════════════════════
+# WC2026 daily-note — separate scope, separate prompt, namespaced cache.
+# Mirrors compose_payload / fetch_previous_notes / generate_daily_note
+# but filters to channels with competitions.wc2026 set, rolls up by
+# confederation, and writes to dashboard_cache.daily_note with keys
+#   Z1 cohort   : f"{date}|wc2026"
+#   Z2 confed   : f"{date}|wc2026|{confederation}"
+# Z3 (single team) intentionally has no AI note — matches the top-5
+# pattern (single-club view doesn't get one either) and avoids 48×
+# Claude calls per night.
+# ══════════════════════════════════════════════════════════════════
+
+WC2026_SYSTEM_PROMPT = """\
+You are the in-house commentator for "YouTube Football Tracker", an
+analytics dashboard that watches the official YouTube channels of the
+48 national teams qualified for the FIFA World Cup 2026, plus FIFA
+itself and the 6 confederations (UEFA, CONMEBOL, CONCACAF, CAF, AFC,
+OFC).
+
+Your job: write a 2-paragraph opening note for today's WC2026 Daily
+Recap covering yesterday's activity across that cohort.
+
+Voice
+- Smart, dry, mildly witty. Sports-section feature writer who likes
+  data more than they admit. Never bombastic. Never fawning.
+- Treat every nation with respect. No punch-down on lower-resourced
+  federations. Their output IS the ecosystem.
+- One small aside per note is fine. No emojis except a single
+  optional one at the end.
+- Vary your openings. The previous_notes field shows the last few
+  days' notes — don't reuse their opening pattern or marquee phrasing.
+
+Hard constraints (will be checked)
+- Never invent match results, scores, standings, or qualification
+  outcomes. If a score isn't already in a video title we hand you,
+  you don't know it.
+- Never name a player who isn't in the data unless commenting on a
+  notable absence ("nothing from Argentina all day").
+- If the payload includes `confederation_scope`, EVERYTHING you've
+  been given is already filtered to that one confederation. Do NOT
+  observe that it "dominates" or "leads" — by construction it's the
+  only thing in scope. Frame observations as "within <confederation>":
+  which nations, which formats, which themes stand out INSIDE it.
+- Don't generalize from one channel to a confederation ("Brazil was
+  quiet" is fine; "CONMEBOL was quiet" needs the confed-level number).
+- If yesterday was a clearly quiet day across the cohort, say so
+  plainly. Don't manufacture drama.
+- "Looks like" is fine. "Was" requires the data to back it.
+
+What you'll get
+- A JSON blob of yesterday's per-channel and per-confederation summary.
+- The day's viral videos with titles + views. Some carry a `desc` (a
+  short description blurb) — use it to understand what the video
+  actually is before characterizing it. Trust `desc` over a flashy
+  title; never quote it verbatim, paraphrase.
+- viral_confederation_breakdown: how the top-10 most-watched split by
+  confederation. If one dominates the top, call it out in one sentence.
+  If the spread is even, don't force it.
+- 7-day baselines so "above/below average" is grounded.
+- previous_notes: the last 3 days' notes — read them, then write
+  something that doesn't sound like more of the same.
+
+Output format
+- Exactly 4-6 short sentences total, ~80 words.
+- Put each sentence on its own line (single newline between them).
+- Plain text. No markdown headers, no JSON, no list bullets. Don't pad."""
+
+
+def compose_payload_wc2026(db, target_date: date,
+                            confederation: str | None = None) -> dict:
+    """WC2026-scoped twin of compose_payload.
+
+    Restricted to channels with `competitions.wc2026` set. Rolls up by
+    confederation instead of by league. `confederation` (Z2) narrows
+    everything to one confed; None (Z1) = all 7 groups.
+    """
+    day_iso = target_date.isoformat()
+    day_start_utc = datetime.combine(target_date, datetime.min.time(),
+                                     tzinfo=CET) \
+        .astimezone(timezone.utc).isoformat()
+    day_end_utc = datetime.combine(target_date + timedelta(days=1),
+                                   datetime.min.time(), tzinfo=CET) \
+        .astimezone(timezone.utc).isoformat()
+
+    chans = db.get_all_channels()
+    ch_by_id = {c["id"]: c for c in chans}
+
+    def _wc(c):
+        return (c.get("competitions") or {}).get("wc2026") or {}
+
+    def _in_scope(c):
+        wc = _wc(c)
+        if not wc:
+            return False
+        if confederation:
+            return wc.get("confederation") == confederation
+        return True
+
+    ecosystem_ids = [c["id"] for c in chans if _in_scope(c)]
+    if not ecosystem_ids:
+        return {
+            **({"confederation_scope": confederation} if confederation else {}),
+            "as_of_date": day_iso,
+            "weekday": target_date.strftime("%A"),
+            "totals": {"new_videos": 0, "new_videos_long": 0,
+                       "new_videos_short": 0, "new_videos_live": 0},
+            "baselines_7d_avg": {"new_videos": 0},
+            "per_confederation": [],
+            "viral_videos": [],
+            "viral_confederation_breakdown": [],
+            "title_signals": {},
+            "quiet_teams": [],
+        }
+
+    # ── Pull yesterday's videos for scoped channels
+    videos: list[dict] = []
+    page = 1000
+    offset = 0
+    while True:
+        q = (db.client.table("videos")
+             .select("title,view_count,channel_id,format,duration_seconds,"
+                     "published_at,description")
+             .gte("published_at", day_start_utc)
+             .lt("published_at", day_end_utc)
+             .in_("channel_id", ecosystem_ids)
+             .order("published_at")
+             .range(offset, offset + page - 1))
+        rows = q.execute().data or []
+        videos.extend(rows)
+        if len(rows) < page:
+            break
+        offset += page
+
+    # ── Per-channel aggregates yesterday
+    per_channel: dict[str, dict] = {}
+    for v in videos:
+        cid = v["channel_id"]
+        b = per_channel.setdefault(cid, {"new": 0, "long": 0,
+                                          "short": 0, "live": 0})
+        b["new"] += 1
+        f = (v.get("format") or "").lower()
+        if f not in ("long", "short", "live"):
+            f = "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
+        b[f] += 1
+
+    # ── Per-confederation rollup
+    per_conf: dict[str, dict] = {}
+    for cid, b in per_channel.items():
+        ch = ch_by_id.get(cid) or {}
+        conf = _wc(ch).get("confederation") or "—"
+        agg = per_conf.setdefault(conf, {"new": 0, "long": 0, "short": 0,
+                                          "live": 0, "team_counts": {}})
+        agg["new"] += b["new"]
+        agg["long"] += b["long"]
+        agg["short"] += b["short"]
+        agg["live"] += b["live"]
+        _team = _wc(ch).get("team") or ch.get("name") or "?"
+        agg["team_counts"][_team] = agg["team_counts"].get(_team, 0) + b["new"]
+
+    per_conf_out = []
+    for conf, agg in sorted(per_conf.items(), key=lambda kv: -kv[1]["new"]):
+        most_active = (max(agg["team_counts"].items(), key=lambda kv: kv[1])
+                       if agg["team_counts"] else (None, 0))
+        per_conf_out.append({
+            "confederation": conf,
+            "new_videos": agg["new"],
+            "long": agg["long"],
+            "short": agg["short"],
+            "live": agg["live"],
+            "most_active_team": most_active[0],
+            "most_active_count": most_active[1],
+        })
+
+    # ── 7-day baseline
+    bl_start = (target_date - timedelta(days=7))
+    bl_start_utc = datetime.combine(bl_start, datetime.min.time(),
+                                    tzinfo=CET) \
+        .astimezone(timezone.utc).isoformat()
+    base_videos = 0
+    offset = 0
+    while True:
+        rows = (db.client.table("videos")
+                .select("youtube_video_id")
+                .gte("published_at", bl_start_utc)
+                .lt("published_at", day_start_utc)
+                .in_("channel_id", ecosystem_ids)
+                .order("published_at")
+                .range(offset, offset + page - 1)
+                .execute().data) or []
+        base_videos += len(rows)
+        if len(rows) < page:
+            break
+        offset += page
+    baseline_7d_videos = round(base_videos / 7)
+
+    # ── Top-10 viral videos yesterday
+    top_videos = sorted(videos, key=lambda v: v.get("view_count") or 0,
+                        reverse=True)[:10]
+    viral = []
+    viral_conf_counts: dict[str, int] = {}
+    for v in top_videos:
+        ch = ch_by_id.get(v.get("channel_id")) or {}
+        wc = _wc(ch)
+        team = wc.get("team") or ch.get("name") or "?"
+        conf = wc.get("confederation") or "—"
+        _vrow = {
+            "team": team,
+            "confederation": conf,
+            "title": (v.get("title") or "")[:200],
+            "views": int(v.get("view_count") or 0),
+            "format": v.get("format"),
+        }
+        _snip = _desc_snippet(v.get("description") or "")
+        if _snip:
+            _vrow["desc"] = _snip
+        viral.append(_vrow)
+        viral_conf_counts[conf] = viral_conf_counts.get(conf, 0) + 1
+    viral_conf_breakdown = sorted(
+        [{"confederation": c, "count": n}
+         for c, n in viral_conf_counts.items()],
+        key=lambda r: -r["count"],
+    )
+
+    # ── Cheap title-signal counts (WC2026-flavored themes)
+    def _count(rx):
+        rxc = re.compile(rx, re.IGNORECASE)
+        return sum(1 for v in videos if rxc.search(v.get("title") or ""))
+    title_signals = {
+        "highlights":      _count(r"\b(highlights|resumen|momentos)\b"),
+        "training":        _count(r"\b(training|entren|abschlusstraining)\b"),
+        "friendly":        _count(r"\b(friendly|amistoso|amigável)\b"),
+        "qualifier":       _count(r"\b(qualif|eliminat|qualifi)\b"),
+        "world_cup":       _count(r"\b(world cup|mundial|coupe du monde|copa do mundo)\b"),
+        "press_conf":      _count(r"\b(press conf|conferenza|rueda de prensa)\b"),
+        "squad_announce":  _count(r"\b(squad|convocato|convocato|line[- ]?up|alineac)\b"),
+        "post_match":      _count(r"\b(post[ -]?match|post[ -]?game|post[ -]?partido)\b"),
+    }
+
+    # ── Quiet teams: in-scope channels with 0 videos yesterday
+    quiet = []
+    for cid in ecosystem_ids:
+        if cid not in per_channel:
+            ch = ch_by_id.get(cid) or {}
+            quiet.append(_wc(ch).get("team") or ch.get("name") or "?")
+    quiet = sorted(quiet)[:20]
+
+    return {
+        **({"confederation_scope": confederation} if confederation else {}),
+        "as_of_date": day_iso,
+        "weekday": target_date.strftime("%A"),
+        "totals": {
+            "new_videos": sum(b["new"] for b in per_channel.values()),
+            "new_videos_long": sum(b["long"] for b in per_channel.values()),
+            "new_videos_short": sum(b["short"] for b in per_channel.values()),
+            "new_videos_live": sum(b["live"] for b in per_channel.values()),
+        },
+        "baselines_7d_avg": {"new_videos": baseline_7d_videos},
+        "per_confederation": per_conf_out,
+        "viral_videos": viral,
+        "viral_confederation_breakdown": viral_conf_breakdown,
+        "title_signals": title_signals,
+        "quiet_teams": quiet,
+    }
+
+
+def fetch_previous_notes_wc2026(db, target_date: date, n: int = 3,
+                                 confederation: str | None = None
+                                 ) -> list[dict]:
+    """Anti-repetition lookup for the WC2026 daily note. Key shape
+    matches what generate_wc2026_daily_note + the daily cron write:
+      Z1 cohort  : f"{date}|wc2026"
+      Z2 confed  : f"{date}|wc2026|{confederation}"
+    """
+    out = []
+    for back in range(1, n + 1):
+        d = (target_date - timedelta(days=back)).isoformat()
+        key = (f"{d}|wc2026|{confederation}" if confederation
+               else f"{d}|wc2026")
+        try:
+            row = (db.client.table("dashboard_cache")
+                   .select("payload")
+                   .eq("name", "daily_note")
+                   .eq("scope_key", key)
+                   .limit(1)
+                   .execute().data or [])
+        except Exception:
+            row = []
+        if row and row[0].get("payload"):
+            txt = (row[0]["payload"].get("text") or "").strip()
+            if txt:
+                out.append({"date": d, "text": txt})
+    out.reverse()
+    return out
+
+
+def generate_wc2026_daily_note(payload: dict,
+                                previous_notes: list[dict] | None = None,
+                                log=print) -> str | None:
+    """WC2026 twin of generate_daily_note — same call shape, different
+    system prompt, different empty-day fallback message."""
+    api_key = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
+    if not api_key:
+        log("[ai_note/wc2026] ANTHROPIC_API_KEY missing — skipping")
+        return None
+
+    total_new = payload.get("totals", {}).get("new_videos", 0)
+    if total_new < 5:
+        scope = payload.get("confederation_scope")
+        if scope:
+            return (f"Quiet day across {scope} — fewer than 5 videos posted "
+                    "by the federations in this confederation. Likely an "
+                    "international break or pre-camp pause.")
+        return ("Quiet day across the WC2026 cohort — fewer than 5 videos "
+                "posted across the 48 qualified nations + FIFA + the 6 "
+                "confederations. Likely an international break or "
+                "pre-tournament lull.")
+
+    try:
+        import anthropic
+    except ImportError:
+        log("[ai_note/wc2026] anthropic package not installed — skipping")
+        return None
+
+    full_input = {
+        "yesterday": payload,
+        "previous_notes": previous_notes or [],
+    }
+    user_message = json.dumps(full_input, indent=2, ensure_ascii=False)
+    client = anthropic.Anthropic(api_key=api_key)
+    for attempt in range(3):
+        try:
+            resp = client.messages.create(
+                model="claude-haiku-4-5",
+                max_tokens=300,
+                temperature=0.6,
+                system=WC2026_SYSTEM_PROMPT,
+                messages=[{"role": "user", "content": user_message}],
+            )
+            break
+        except anthropic.APIStatusError as e:
+            if getattr(e, "status_code", None) in (429, 529) and attempt < 2:
+                time.sleep(2 ** attempt)
+                continue
+            log(f"[ai_note/wc2026] Claude API error: {e}")
+            return None
+        except Exception as e:
+            log(f"[ai_note/wc2026] error: {e}")
+            return None
+    else:
+        return None
+
+    note = "".join(b.text for b in resp.content
+                   if hasattr(b, "text")).strip()
+    if not note:
+        return None
+
+    # Anti-BS: reject if the model invented a score not in source titles.
+    titles = [v.get("title", "") for v in payload.get("viral_videos", [])]
+    if _looks_like_invented_score(note, titles):
+        log("[ai_note/wc2026] rejected — note contains a score not in titles")
+        return None
+
+    return _one_sentence_per_line(note)
+
+
 # Common short forms a feature writer might use. Maps each variant to the
 # canonical channel name as stored in the channels table. When the model
 # writes "Barça", we still want the FC Barcelona dot rendered next to it.
