@@ -243,3 +243,17 @@ st.caption(
     "Logged once per anonymous session when someone lands on Home — "
     "no per-user breakdown is meaningful (they're all '(anonymous)')."
 )
+
+# Day-by-day bar chart of anonymous home visits. Same zero-filled
+# pattern + same st.bar_chart helper as the 'Active users per day'
+# trend further up the page, so the visual reads consistently.
+_anon_by_day: dict[date, int] = defaultdict(int)
+for e in _anon_events:
+    _anon_by_day[_d(e["created_at"])] += 1
+_anon_trend = pd.DataFrame([
+    {"Date": d.isoformat(),
+     "Anonymous visits": _anon_by_day.get(d, 0)}
+    for d in _days
+])
+st.caption("Anonymous home visits per day (last 30 days)")
+st.bar_chart(_anon_trend, x="Date", y="Anonymous visits", height=200)
