@@ -35,11 +35,12 @@ from __future__ import annotations
 import os
 from datetime import date as _date, timedelta as _td
 
+import altair as alt
 import pandas as pd
-import plotly.express as px
 import streamlit as st
 from dotenv import load_dotenv
 
+from src import components_compat as components
 from src import dashboard_cache as _dc
 from src import theme as _T
 from src.analytics import fmt_num, kpi_row
@@ -49,8 +50,39 @@ from src.cached_db import (
     read_dashboard_cache as _cached_dc_read,
 )
 from src.database import Database
+from src.dot import channel_badge
 from src.wc2026_filter import (
     get_wc2026_filter, scope_wc2026, scope_label as _wc_scope_label,
+)
+
+
+# Shared chart geometry — mirrors views/1_Daily_Recap.py so the WC2026
+# recap reads visually identical to the Top-5 recap.
+_CHART_HEIGHT  = 280
+_Y_AXIS_GUTTER = 60
+_X_AXIS = alt.Axis(
+    labelAngle=-45, title=None, format="%b %d %a",
+    tickCount={"interval": "day", "step": 1},
+    labelOverlap=False,
+)
+_FORMAT_COLORS = {"Long": _T.ACCENT, "Shorts": _T.POS, "Live": _T.WARN}
+
+
+# Standardised video-list left cell (matches CONVENTIONS §6-B from
+# views/1_Daily_Recap.py). Thumbnail + 3-row stack: channel / title /
+# context. Same CSS class names so the layout is pixel-identical.
+_VCELL_CSS = (
+    ".v-row{display:flex;align-items:flex-start;gap:10px}"
+    ".v-info{min-width:0;display:flex;flex-direction:column;"
+    "justify-content:space-between;height:62px;flex:1}"
+    ".v-channel{font-size:12px;display:flex;align-items:center;gap:6px;"
+    "white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"
+    f".v-title{{color:{_T.TEXT};text-decoration:none;font-size:13px;"
+    "line-height:1.25;font-weight:700;display:-webkit-box;"
+    "-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;"
+    "text-overflow:ellipsis}"
+    ".v-meta{font-size:12px;white-space:nowrap;overflow:hidden;"
+    "text-overflow:ellipsis}"
 )
 
 load_dotenv()
@@ -153,6 +185,55 @@ def _load_snaps(ch_ids: tuple[str, ...], start_iso: str, end_iso: str):
 
 _ch_ids = tuple(c["id"] for c in wc)
 snaps = _load_snaps(_ch_ids, window_start_iso, day_iso)
+
+# Channel lookup used by _video_left_cell + render loops below.
+ch_by_id = {c["id"]: c for c in wc_all}
+
+
+def _video_left_cell(v: dict, context_html: str = "") -> str:
+    """Thumbnail + 3-row stack: channel / title / context. Mirrors
+    views/1_Daily_Recap.py's helper byte-for-byte (uses the same
+    .v-row / .v-info / .v-channel / .v-title / .v-meta classes).
+    Pass color_map / dual = None for WC2026 — channel_badge then falls
+    back to the channel's own color/color2 columns."""
+    ch = ch_by_id.get(v.get("channel_id")) or {}
+    badge = channel_badge(ch, None, None, 14)
+    yt = f"https://www.youtube.com/watch?v={v.get('youtube_video_id', '')}"
+    thumb = v.get("thumbnail_url") or ""
+    title = (v.get("title") or "")\
+        .replace("<", "&lt;").replace(">", "&gt;")
+    meta = (f'<div class="v-meta">{context_html}</div>'
+            if context_html else "")
+    return (
+        '<td style="padding:6px 12px;vertical-align:top">'
+        '<div class="v-row">'
+        f'<a href="{yt}" target="_blank" rel="noopener">'
+        f'<img src="{thumb}" style="width:110px;height:62px;'
+        'object-fit:cover;border-radius:4px;display:block;'
+        'flex-shrink:0"></a>'
+        '<div class="v-info">'
+        f'<div class="v-channel">{badge} '
+        f'<span style="color:{_T.MUTED_2}">'
+        f'{(ch.get("name") or "?")}</span></div>'
+        f'<a href="{yt}" target="_blank" rel="noopener" class="v-title">'
+        f'{title}</a>'
+        f'{meta}'
+        '</div></div></td>'
+    )
+
+
+def _ch_name_link(ch: dict, name: str) -> str:
+    """Channel name → YouTube link. Mirrors the Top-5 helper."""
+    handle = (ch.get("handle") or "").lstrip("@").strip()
+    yt_id = (ch.get("youtube_channel_id") or "").strip()
+    if handle:
+        url = f"https://www.youtube.com/@{handle}"
+    elif yt_id:
+        url = f"https://www.youtube.com/channel/{yt_id}"
+    else:
+        return name
+    return (f'<a href="{url}" target="_blank" rel="noopener" '
+            f'style="color:inherit;text-decoration:none">{name}</a>')
 
 # Per-channel map of date → snapshot row
 chan_by_date: dict[str, dict[str, dict]] = {}
@@ -314,38 +395,95 @@ series = _series_for_scope()
 if series:
     df = pd.DataFrame(series)
     df["Date"] = pd.to_datetime(df["date"])
-    df["Δ Views"] = df["dv"].astype(int)
-    df["New videos"] = (df["new_long"] + df["new_short"]
-                        + df["new_live"]).astype(int)
+    df["Δ Channel Views"] = df["dv"].astype(int)
 
-    _t1, _t2 = st.columns(2)
-    _PLOT = dict(plot_bgcolor=_T.BG, paper_bgcolor=_T.BG,
-                 font=dict(color=_T.TEXT), height=300,
-                 margin=dict(t=20, l=0, r=0, b=20))
-    with _t1:
-        f1 = px.line(df, x="Date", y="Δ Views", markers=True)
-        f1.update_traces(line_color=_T.ACCENT, marker_color=_T.ACCENT)
-        f1.update_layout(**_PLOT,
-                         title="Δ Views per day")
-        f1.update_xaxes(gridcolor=_T.BORDER, tickformat="%b %d", title="")
-        f1.update_yaxes(gridcolor=_T.BORDER, title="", tickformat="~s")
-        st.plotly_chart(f1, width="stretch")
-    with _t2:
-        long_df = pd.melt(df, id_vars=["Date"],
-                          value_vars=["new_long", "new_short", "new_live"],
-                          var_name="Format", value_name="Videos")
-        long_df["Format"] = long_df["Format"].map({
-            "new_long": "Long", "new_short": "Shorts", "new_live": "Live",
-        })
-        f2 = px.bar(long_df, x="Date", y="Videos", color="Format",
-                    color_discrete_map={"Long": "#636EFA",
-                                         "Shorts": "#00CC96",
-                                         "Live": "#FFA15A"},
-                    barmode="stack")
-        f2.update_layout(**_PLOT, title="New videos per day (by format)")
-        f2.update_xaxes(gridcolor=_T.BORDER, tickformat="%b %d", title="")
-        f2.update_yaxes(gridcolor=_T.BORDER, title="")
-        st.plotly_chart(f2, width="stretch")
+    tc1, tc2 = st.columns(2)
+
+    # ── Left: Δ Channel Views per day (line) ──
+    with tc1:
+        st.caption("👁️ Δ Channel Views per day")
+        _ymax_v = int(df["Δ Channel Views"].max())
+        _ymin_v = int(df["Δ Channel Views"].min())
+        _pad_v = max((_ymax_v - _ymin_v) * 0.1, 1)
+        _c_views = (
+            alt.Chart(df)
+            .mark_line(color=_T.ACCENT, strokeWidth=2)
+            .encode(
+                x=alt.X("Date:T", axis=_X_AXIS),
+                y=alt.Y(
+                    "Δ Channel Views:Q",
+                    scale=alt.Scale(domain=[_ymin_v - _pad_v,
+                                             _ymax_v + _pad_v]),
+                    title=None,
+                    axis=alt.Axis(format="~s",
+                                   minExtent=_Y_AXIS_GUTTER),
+                ),
+                tooltip=[
+                    alt.Tooltip("Date:T", title="Date",
+                                 format="%a %b %d, %Y"),
+                    alt.Tooltip("Δ Channel Views:Q", format=","),
+                ],
+            )
+            .properties(height=_CHART_HEIGHT)
+        )
+        st.altair_chart(_c_views, width="stretch")
+
+    # ── Right: New videos per day, stacked by format (area) ──
+    with tc2:
+        _legend_html = "  ".join(
+            f'<span style="display:inline-flex;align-items:center;gap:4px">'
+            f'<span style="display:inline-block;width:10px;height:10px;'
+            f'border-radius:2px;background:{c}"></span>'
+            f'<span style="font-size:0.8rem;color:{_T.MUTED_2}">{lbl}</span>'
+            f'</span>'
+            for lbl, c in _FORMAT_COLORS.items()
+        )
+        st.markdown(
+            f'<div style="font-size:14px;color:rgba(250,250,250,0.6);'
+            f'line-height:1.6">🎬 New videos per day — by format '
+            f'&nbsp;&nbsp; {_legend_html}</div>',
+            unsafe_allow_html=True,
+        )
+        fmt_rows = []
+        for r in series:
+            for lbl, key in (("Long", "new_long"),
+                             ("Shorts", "new_short"),
+                             ("Live", "new_live")):
+                fmt_rows.append({
+                    "Date": r["date"], "Format": lbl,
+                    "New Videos": int(r.get(key) or 0),
+                })
+        if any(r["New Videos"] for r in fmt_rows):
+            fmt_df = pd.DataFrame(fmt_rows)
+            _c_fmt = (
+                alt.Chart(fmt_df)
+                .mark_area(opacity=0.85)
+                .encode(
+                    x=alt.X("Date:T", axis=_X_AXIS),
+                    y=alt.Y(
+                        "New Videos:Q", stack="zero", title=None,
+                        axis=alt.Axis(minExtent=_Y_AXIS_GUTTER),
+                    ),
+                    color=alt.Color(
+                        "Format:N", sort=["Long", "Shorts", "Live"],
+                        scale=alt.Scale(
+                            domain=list(_FORMAT_COLORS.keys()),
+                            range=list(_FORMAT_COLORS.values())),
+                        legend=None,
+                    ),
+                    order=alt.Order("Format:N", sort="ascending"),
+                    tooltip=[
+                        alt.Tooltip("Date:T", title="Date",
+                                     format="%a %b %d, %Y"),
+                        "Format",
+                        alt.Tooltip("New Videos:Q", format=","),
+                    ],
+                )
+                .properties(height=_CHART_HEIGHT)
+            )
+            st.altair_chart(_c_fmt, width="stretch")
+        else:
+            st.caption("No videos in this window.")
 else:
     st.caption("No trend data for this scope yet.")
 
@@ -383,17 +521,46 @@ if IS_Z1:
             "New videos":    nv,
         })
     if rows:
-        conf_df = (pd.DataFrame(rows)
-                   .sort_values("Δ Views (day)", ascending=False))
-        st.dataframe(conf_df, hide_index=True, width="stretch",
-                     column_config={
-                         "Subscribers":   st.column_config.NumberColumn(format="%d"),
-                         "Δ Subs (day)":  st.column_config.NumberColumn(format="%+d"),
-                         "Total views":   st.column_config.NumberColumn(format="%d"),
-                         "Δ Views (day)": st.column_config.NumberColumn(format="%+d"),
-                         "New videos":    st.column_config.NumberColumn(format="%d"),
-                         "Channels":      st.column_config.NumberColumn(format="%d"),
-                     })
+        rows.sort(key=lambda r: r["Δ Views (day)"], reverse=True)
+        conf_html = ""
+        for r in rows:
+            dv = r["Δ Views (day)"]
+            ds = r["Δ Subs (day)"]
+            dv_col = (_T.POS if dv > 0
+                      else (_T.NEG if dv < 0 else _T.MUTED))
+            ds_col = (_T.POS if ds > 0
+                      else (_T.NEG if ds < 0 else _T.MUTED))
+            conf_html += f"""<tr>
+                <td style="padding:8px 12px;font-weight:600">{r['Confederation']}</td>
+                <td style="padding:8px 12px;text-align:right">{r['Channels']}</td>
+                <td style="padding:8px 12px;text-align:right">{fmt_num(r['Subscribers'])}</td>
+                <td style="padding:8px 12px;text-align:right;color:{ds_col}">{'+' if ds >= 0 else ''}{fmt_num(ds)}</td>
+                <td style="padding:8px 12px;text-align:right">{fmt_num(r['Total views'])}</td>
+                <td style="padding:8px 12px;text-align:right;color:{dv_col}">{'+' if dv >= 0 else ''}{fmt_num(dv)}</td>
+                <td style="padding:8px 12px;text-align:right">{r['New videos']}</td>
+            </tr>"""
+        components.html(f"""
+        <style>
+          .conf {{ width:100%; border-collapse:collapse; font-size:14px;
+                   color:{_T.TEXT};
+                   font-family:"Source Sans Pro",sans-serif; }}
+          .conf th {{ padding:8px 12px;
+                      border-bottom:2px solid {_T.BORDER_STRONG};
+                      text-align:left; }}
+          .conf td {{ border-bottom:1px solid {_T.BORDER};
+                      vertical-align:middle; }}
+          .conf tr:hover td {{ background:{_T.SURFACE}; }}
+        </style>
+        <table class="conf"><thead><tr>
+          <th>Confederation</th>
+          <th style="text-align:right">Channels</th>
+          <th style="text-align:right">Subscribers</th>
+          <th style="text-align:right">Δ Subs</th>
+          <th style="text-align:right">Total views</th>
+          <th style="text-align:right">Δ Views</th>
+          <th style="text-align:right">New videos</th>
+        </tr></thead><tbody>{conf_html}</tbody></table>
+        """, height=len(rows) * 42 + 60, scrolling=False)
 
 
 # ── 📊 Gainer leaderboards (Z1 + Z2 only) ─────────────────────────
@@ -419,40 +586,69 @@ if not IS_Z3:
                 .get("total_views") or 0),
         })
 
+    def _gainer_html(metric_day: str, metric_7d: str, metric_total: str,
+                     header: str, icon: str) -> tuple[str, int]:
+        """Build a custom HTML gainer table mirroring views/1_Daily_Recap.py
+        — # · dot · channel · Total · Δ day · Δ 7d. Sortable JS attached."""
+        rows_s = sorted(leaderboard,
+                        key=lambda r: -r[metric_day])[:25]
+        if not rows_s:
+            return "", 0
+        rows_html = ""
+        for i, r in enumerate(rows_s, 1):
+            ch = _ch_by_id.get(r["channel_id"]) or {}
+            dot = channel_badge(ch, None, None, 14)
+            d_day = r[metric_day]
+            d_7d  = r[metric_7d]
+            col_day = (_T.POS if d_day > 0
+                       else (_T.NEG if d_day < 0 else _T.MUTED))
+            col_7d  = (_T.POS if d_7d > 0
+                       else (_T.NEG if d_7d < 0 else _T.MUTED))
+            sgn_day = "+" if d_day >= 0 else ""
+            sgn_7d  = "+" if d_7d  >= 0 else ""
+            rows_html += f"""<tr>
+                <td style="padding:5px 10px;color:{_T.MUTED}">{i}</td>
+                <td style="padding:5px 10px">{dot}</td>
+                <td style="padding:5px 10px">{_ch_name_link(ch, r['name'])}</td>
+                <td style="padding:5px 10px;text-align:right">{fmt_num(r[metric_total])}</td>
+                <td style="padding:5px 10px;text-align:right;color:{col_day}">{sgn_day}{fmt_num(d_day)}</td>
+                <td style="padding:5px 10px;text-align:right;color:{col_7d}">{sgn_7d}{fmt_num(d_7d)}</td>
+            </tr>"""
+        tbl_id = f"gt_{metric_day}"
+        return f"""
+        <style>
+          #{tbl_id} tr:hover td {{ background:{_T.SURFACE}; }}
+        </style>
+        <div style="color:{_T.TEXT};
+                    font-family:'Source Sans Pro',sans-serif">
+        <h4 style="margin:0 0 8px 0">{icon} {header}</h4>
+        <table id="{tbl_id}" style="width:100%;border-collapse:collapse;
+                                    font-size:13px">
+        <thead><tr style="border-bottom:2px solid {_T.BORDER_STRONG}">
+          <th style="padding:5px 10px;text-align:left">#</th>
+          <th></th>
+          <th style="padding:5px 10px;text-align:left">Channel</th>
+          <th style="padding:5px 10px;text-align:right">Total</th>
+          <th style="padding:5px 10px;text-align:right">Δ Day</th>
+          <th style="padding:5px 10px;text-align:right">Δ 7d</th>
+        </tr></thead>
+        <tbody>{rows_html}</tbody></table></div>""", len(rows_s)
+
     _gc1, _gc2 = st.columns(2)
     with _gc1:
-        st.subheader("👁️ Biggest view gains")
-        rows_v = sorted(leaderboard,
-                        key=lambda r: -r["d_views_day"])[:10]
-        df_v = pd.DataFrame([{
-            "#": i + 1,
-            "Channel": r["name"],
-            "Conf": r["confed"],
-            "Δ Views (day)": r["d_views_day"],
-            "Δ Views (7d)": r["d_views_7d"],
-        } for i, r in enumerate(rows_v)])
-        st.dataframe(df_v, hide_index=True, width="stretch",
-                     column_config={
-                         "Δ Views (day)": st.column_config.NumberColumn(format="%+d"),
-                         "Δ Views (7d)":  st.column_config.NumberColumn(format="%+d"),
-                     })
-
+        html_v, n_v = _gainer_html("d_views_day", "d_views_7d", "views",
+                                    "Biggest view gains", "👁️")
+        if html_v:
+            components.html(html_v, height=n_v * 32 + 70)
+        else:
+            st.caption("No view deltas available for this day.")
     with _gc2:
-        st.subheader("👥 Biggest subscriber gains")
-        rows_s = sorted(leaderboard,
-                        key=lambda r: -r["d_subs_day"])[:10]
-        df_s = pd.DataFrame([{
-            "#": i + 1,
-            "Channel": r["name"],
-            "Conf": r["confed"],
-            "Δ Subs (day)": r["d_subs_day"],
-            "Δ Subs (7d)": r["d_subs_7d"],
-        } for i, r in enumerate(rows_s)])
-        st.dataframe(df_s, hide_index=True, width="stretch",
-                     column_config={
-                         "Δ Subs (day)": st.column_config.NumberColumn(format="%+d"),
-                         "Δ Subs (7d)":  st.column_config.NumberColumn(format="%+d"),
-                     })
+        html_s, n_s = _gainer_html("d_subs_day", "d_subs_7d", "subs",
+                                    "Biggest subscriber gains", "👥")
+        if html_s:
+            components.html(html_s, height=n_s * 32 + 70)
+        else:
+            st.caption("No subscriber deltas available for this day.")
 
 
 # ── 🔥 Most watched on this day (by view_delta) ───────────────────
@@ -467,67 +663,70 @@ except Exception as e:
 if not top_movers:
     st.caption("No daily-Δ rows for this scope on the picked day.")
 else:
-    # Hydrate with title/thumbnail/published_at from the videos table.
     _vid_ids = [r["video_id"] for r in top_movers]
     meta: dict[str, dict] = {}
     for cs in range(0, len(_vid_ids), 100):
         rs = (db.client.table("videos")
               .select("id,youtube_video_id,title,thumbnail_url,"
-                      "channel_id,published_at")
+                      "channel_id,published_at,format,"
+                      "duration_seconds,category")
               .in_("id", _vid_ids[cs:cs + 100]).execute()).data or []
         for r in rs:
             meta[r["id"]] = r
-    _ch_lookup = {c["id"]: c for c in wc}
 
-    for _i, r in enumerate(top_movers[:20], 1):
-        m = meta.get(r["video_id"]) or {}
-        yt = m.get("youtube_video_id") or ""
-        url = f"https://www.youtube.com/watch?v={yt}" if yt else "#"
-        pub = (m.get("published_at") or "")[:10]
-        ch = _ch_lookup.get(m.get("channel_id")) or {}
-        cn = ch.get("name") or "?"
+    _tv_rows = ""
+    for i, r in enumerate(top_movers[:20], 1):
+        v = meta.get(r["video_id"])
+        if not v:
+            continue
         dv = int(r.get("view_delta") or 0)
         vc = int(r.get("view_count") or 0)
-        _c0, _cT, _cM, _cR = st.columns([0.35, 1.3, 6, 2.6])
-        with _c0:
-            st.markdown(f"### {_i}")
-        with _cT:
-            thumb = m.get("thumbnail_url") or ""
-            if thumb:
-                st.markdown(
-                    f"<a href='{url}' target='_blank' rel='noopener' "
-                    f"title='Open on YouTube'>"
-                    f"<img src='{thumb}' "
-                    f"style='width:100%;border-radius:6px'></a>",
-                    unsafe_allow_html=True,
-                )
-        with _cM:
-            ttl = (m.get("title") or "")[:120]\
-                .replace("<", "&lt;").replace(">", "&gt;")
-            st.markdown(
-                f"<div style='line-height:1.5;font-size:13px;color:#c9cdd6'>"
-                f"{cn}</div>"
-                f"<a href='{url}' target='_blank' rel='noopener' "
-                f"style='color:#58A6FF;font-weight:600;font-size:15px;"
-                f"text-decoration:none'>{ttl}</a>"
-                f"<div style='color:{_T.MUTED_2};font-size:12px;margin-top:2px'>"
-                f"published {pub}</div>",
-                unsafe_allow_html=True,
-            )
-        with _cR:
-            st.markdown(
-                f"<div style='text-align:right;font-size:13px;line-height:1.5'>"
-                f"<b style='color:{_T.POS};font-size:16px'>"
-                f"+{fmt_num(dv)}</b> views<br>"
-                f"<span style='color:{_T.MUTED_2}'>"
-                f"{fmt_num(vc)} total</span></div>",
-                unsafe_allow_html=True,
-            )
-        st.markdown(
-            "<hr style='border:none;border-top:1px solid #2a2c34;"
-            "margin:6px 0 12px 0'>",
-            unsafe_allow_html=True,
-        )
+        fmt = (v.get("format") or "").lower()
+        if fmt not in ("long", "short", "live"):
+            fmt = ("long" if (v.get("duration_seconds") or 0) >= 60
+                   else "short")
+        fmt_color = {"long": _T.ACCENT, "short": _T.POS,
+                     "live": _T.WARN}.get(fmt, _T.MUTED_2)
+        fmt_label = {"long": "Long", "short": "Shorts",
+                     "live": "Live"}.get(fmt, fmt.title())
+        pub = (v.get("published_at") or "")[:10]
+        _ctx = (f'<span style="color:{fmt_color}">{fmt_label}</span>'
+                f' · {pub}')
+        yt_url = (f"https://www.youtube.com/watch?v="
+                  f"{v.get('youtube_video_id', '')}")
+        _tv_rows += f"""<tr onclick="window.open('{yt_url}','_blank','noopener')"
+                          style="cursor:pointer">
+            <td style="padding:6px 12px;text-align:right;color:{_T.MUTED};
+                       vertical-align:top">{i}</td>
+            {_video_left_cell(v, _ctx)}
+            <td style="padding:6px 12px;text-align:right;color:{_T.POS};
+                       font-weight:600">+{fmt_num(dv)}</td>
+            <td style="padding:6px 12px;text-align:right">{fmt_num(vc)}</td>
+        </tr>"""
+
+    components.html(f"""
+    <style>
+      .tv {{ width:100%; border-collapse:collapse; font-size:14px;
+             color:{_T.TEXT};
+             font-family:"Source Sans Pro",sans-serif; }}
+      .tv th {{ padding:6px 12px;
+                border-bottom:2px solid {_T.BORDER_STRONG};
+                text-align:left; }}
+      .tv td {{ border-bottom:1px solid {_T.BORDER};
+                vertical-align:middle; }}
+      .tv tr:hover td {{ background:{_T.SURFACE}; }}
+      {_VCELL_CSS}
+    </style>
+    <table class="tv">
+      <thead><tr>
+        <th style="text-align:right">#</th>
+        <th>Video</th>
+        <th style="text-align:right">Δ Views</th>
+        <th style="text-align:right">Total Views</th>
+      </tr></thead>
+      <tbody>{_tv_rows}</tbody>
+    </table>
+    """, height=min(20, len(top_movers)) * 82 + 60, scrolling=True)
 
 
 # ── 🆕 New videos published on this day ───────────────────────────
@@ -535,34 +734,61 @@ st.subheader(f"🆕 New videos published on {_absd(day_iso)}")
 if not new_videos:
     st.caption("No new uploads from this scope on the picked day.")
 else:
-    cols = st.columns(4)
-    _ch_lookup2 = {c["id"]: c for c in wc}
-    for i, v in enumerate(new_videos[:24]):
-        yid = v.get("youtube_video_id") or ""
-        url = f"https://www.youtube.com/watch?v={yid}" if yid else "#"
-        thumb = v.get("thumbnail_url") or ""
-        title = (v.get("title") or "")[:70]\
-            .replace("<", "&lt;").replace(">", "&gt;")
-        ch = _ch_lookup2.get(v.get("channel_id")) or {}
-        cn = ch.get("name") or "?"
+    _nv_top = sorted(new_videos,
+                      key=lambda v: int(v.get("view_count") or 0),
+                      reverse=True)[:20]
+    _mw_rows = ""
+    for i, v in enumerate(_nv_top, 1):
         views = int(v.get("view_count") or 0)
-        pub = (v.get("published_at") or "")[:16].replace("T", " ")
-        with cols[i % 4]:
-            st.markdown(
-                f"<a href='{url}' target='_blank' rel='noopener' "
-                f"title='Open on YouTube'>"
-                f"<img src='{thumb}' "
-                f"style='width:100%;border-radius:6px'></a>"
-                f"<div style='font-size:12px;line-height:1.35;"
-                f"margin-top:4px'>"
-                f"<span style='color:#c9cdd6'>{cn}</span><br>"
-                f"<a href='{url}' target='_blank' rel='noopener' "
-                f"style='color:#58A6FF;text-decoration:none'>{title}</a>"
-                f"<div style='color:{_T.MUTED_2};margin-top:2px'>"
-                f"{fmt_num(views)} views · {pub}</div></div>",
-                unsafe_allow_html=True,
-            )
-    if len(new_videos) > 24:
-        st.caption(f"Showing top 24 of {len(new_videos)} new videos "
+        likes = int(v.get("like_count") or 0)
+        comments = int(v.get("comment_count") or 0)
+        fmt = (v.get("format") or "").lower()
+        if fmt not in ("long", "short", "live"):
+            fmt = ("long" if (v.get("duration_seconds") or 0) >= 60
+                   else "short")
+        fmt_color = {"long": _T.ACCENT, "short": _T.POS,
+                     "live": _T.WARN}.get(fmt, _T.MUTED_2)
+        fmt_label = {"long": "Long", "short": "Shorts",
+                     "live": "Live"}.get(fmt, fmt.title())
+        _ctx = f'<span style="color:{fmt_color}">{fmt_label}</span>'
+        yt_url = (f"https://www.youtube.com/watch?v="
+                  f"{v.get('youtube_video_id', '')}")
+        _mw_rows += f"""<tr onclick="window.open('{yt_url}','_blank','noopener')"
+                          style="cursor:pointer">
+            <td style="padding:6px 12px;text-align:right;color:{_T.MUTED};
+                       vertical-align:top">{i}</td>
+            {_video_left_cell(v, _ctx)}
+            <td style="padding:6px 12px;text-align:right;
+                       font-weight:600">{fmt_num(views)}</td>
+            <td style="padding:6px 12px;text-align:right">{fmt_num(likes)}</td>
+            <td style="padding:6px 12px;text-align:right">{fmt_num(comments)}</td>
+        </tr>"""
+
+    components.html(f"""
+    <style>
+      .mw {{ width:100%; border-collapse:collapse; font-size:14px;
+             color:{_T.TEXT};
+             font-family:"Source Sans Pro",sans-serif; }}
+      .mw th {{ padding:6px 12px;
+                border-bottom:2px solid {_T.BORDER_STRONG};
+                text-align:left; }}
+      .mw td {{ border-bottom:1px solid {_T.BORDER};
+                vertical-align:middle; }}
+      .mw tr:hover td {{ background:{_T.SURFACE}; }}
+      {_VCELL_CSS}
+    </style>
+    <table class="mw">
+      <thead><tr>
+        <th style="text-align:right">#</th>
+        <th>Video</th>
+        <th style="text-align:right">Views</th>
+        <th style="text-align:right">Likes</th>
+        <th style="text-align:right">Comments</th>
+      </tr></thead>
+      <tbody>{_mw_rows}</tbody>
+    </table>
+    """, height=len(_nv_top) * 82 + 60, scrolling=True)
+    if len(new_videos) > 20:
+        st.caption(f"Showing top 20 of {len(new_videos)} new videos "
                    "on this day. See the **Latest Videos** page for "
                    "the full feed.")
