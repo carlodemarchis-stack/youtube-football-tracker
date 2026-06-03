@@ -658,14 +658,17 @@ st.markdown(
     Its own sidebar group — a self-contained sub-app, separate from the
     Top-5 league views and unaffected by the global filter. It has its
     own **Confederation → Team** filter (top of these pages; the
-    selection persists as you move between them).
+    selection persists as you move between them). Six pages, same Z1
+    (cohort) / Z2 (one confederation) / Z3 (one team) zoom-aware
+    behaviour as the core Top-5 surface.
 
     **All Channels** — the official YouTube channels of all 48 qualified
     national teams, plus FIFA and the 6 confederations. When a country
     runs more than one official channel, the stats are summed into the
     country's row with a +N alt chip; every channel is also listed
-    individually. Sortable by subscribers, views, season output and
-    views/video.
+    individually. Row marker: country flag for teams, brand dual-dot
+    for FIFA and the 6 confederations. Sortable by subscribers, views,
+    season output and views/video.
 
     **Latest Videos** — the most recently published videos across every
     WC2026 channel: the same feed as the core Latest page (sortable
@@ -674,9 +677,30 @@ st.markdown(
     confederation — or by team / a full thumbnail strip as you filter
     down.
 
+    **Daily Recap** — full structural parity with the Top-5 Daily Recap:
+    date picker for any of the last 30 days, AI commentary note (cohort
+    + per-confederation variants written nightly), headline KPIs,
+    multi-metric daily trends (Δ views + new videos by format), a
+    per-confederation summary table at Z1, view + subscriber gainer
+    leaderboards, the most-watched videos of that day (by Δ views) and
+    the full new-videos-on-day list.
+
     **Trends** — view gains and videos published (long / shorts / live)
     day by day on the road to the tournament, plus a biggest-movers
     leaderboard, built from a daily snapshot of every WC2026 channel.
+
+    **Viral Videos** — videos that took off in the last 30 days,
+    scored by a publish-aware viral metric (peak Δ views per day and
+    reach as % of subs). Cohort-wide at Z1, narrows to one
+    confederation at Z2, one team at Z3. Trajectory chart per video.
+
+    **All-time Top** — the cohort's 100 most-viewed videos ever,
+    scope-aware: top 100 across all confederations at Z1, within one
+    confederation at Z2, for a single team at Z3. KPI strip (total
+    views, share of lifetime, avg, cutoff, age), format + scope mix
+    donuts, canonical video table (same renderer as the Top-5 page),
+    Views-by-Rank + Rank-vs-Year + Year-distribution charts, theme
+    pie, and a per-channel Top 100 stats table at Z1/Z2.
 
     ---
 
