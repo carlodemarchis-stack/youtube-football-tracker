@@ -140,10 +140,23 @@ else:
     for e in _today_events:
         _t_pages[e.get("page") or "?"] += 1
     _top_page, _top_page_n = max(_t_pages.items(), key=lambda kv: kv[1])
-    t1, t2, t3 = st.columns(3)
+
+    # New users today — user_profiles.created_at matches the local
+    # `today` (admin's machine date). Counts signups that finished the
+    # onboarding step (anonymous landings don't create a profile row).
+    _new_users_today = 0
+    try:
+        _new_users_today = sum(
+            1 for u in db.get_all_users()
+            if _d(u.get("created_at", "") or "") == today)
+    except Exception:
+        _new_users_today = 0
+
+    t1, t2, t3, t4 = st.columns(4)
     t1.metric("Page views today", _t_views)
     t2.metric("Active users today", _t_users)
-    t3.metric("Top page today", _top_page, f"{_top_page_n} views")
+    t3.metric("New users today", _new_users_today)
+    t4.metric("Top page today", _top_page, f"{_top_page_n} views")
 
     # Per-user mini table for today (who visited what).
     _today_per: dict[str, dict] = defaultdict(
