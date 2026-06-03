@@ -138,8 +138,8 @@ if not videos:
 _ch_by_id = {c["id"]: c for c in wc_all}
 for v in videos:
     ch = _ch_by_id.get(v.get("channel_id")) or {}
-    v["_team"] = _wc_meta(ch).get("team") or ch.get("name") or "?"
-    v["_confed"] = _wc_meta(ch).get("confederation") or "—"
+    v["team_grp"] = _wc_meta(ch).get("team") or ch.get("name") or "?"
+    v["confed_grp"] = _wc_meta(ch).get("confederation") or "—"
     v["channel_name"] = (v.get("channels") or {}).get("name") \
         or ch.get("name") or "?"
 
@@ -261,8 +261,8 @@ if not IS_Z3 and not filtered.empty:
                   else "short")
         _fmt_n[_f] = _fmt_n.get(_f, 0) + 1
         _vv = int(getattr(_row, "view_count", 0) or 0)
-        _cn = getattr(_row, "_confed", "—") or "—"
-        _tn = getattr(_row, "_team", "?") or "?"
+        _cn = getattr(_row, "confed_grp", "—") or "—"
+        _tn = getattr(_row, "team_grp", "?") or "?"
         _conf_n[_cn] = _conf_n.get(_cn, 0) + 1
         _conf_v[_cn] = _conf_v.get(_cn, 0) + _vv
         _team_n[_tn] = _team_n.get(_tn, 0) + 1
@@ -377,20 +377,20 @@ render_top_season_videos_table(
 # ── 👁️ Views by Rank ──────────────────────────────────────────────
 st.subheader("👁️ Views by Rank")
 chart_df = filtered[["view_count", "title", "channel_name",
-                     "_team", "_confed"]].copy()
+                     "team_grp", "confed_grp"]].copy()
 chart_df["rank"] = range(1, len(chart_df) + 1)
 
 # Z1 → colour by confederation. Z2 → colour by team. Z3 → single team
 # (palette fallback — accent).
 if IS_Z1:
-    _color_field, _color_map = "_confed", _CONF_COLOR
+    _color_field, _color_map = "confed_grp", _CONF_COLOR
 elif IS_Z2:
     _team_palette_v = px.colors.qualitative.Set3
-    _color_field = "_team"
+    _color_field = "team_grp"
     _color_map = {t: _team_palette_v[i % len(_team_palette_v)]
-                  for i, t in enumerate(chart_df["_team"].unique())}
+                  for i, t in enumerate(chart_df["team_grp"].unique())}
 else:
-    _color_field, _color_map = "_team", None
+    _color_field, _color_map = "team_grp", None
 
 fig = px.bar(
     chart_df, x="rank", y="view_count",
