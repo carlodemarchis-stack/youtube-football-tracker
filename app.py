@@ -142,12 +142,12 @@ other_pages = [
 # Tier 1.8 — FIFA World Cup 2026 sub-app. Own sidebar group so it
 # reads as a distinct product surface.
 wc2026_pages = [
-    st.Page("views/18_WC2026.py",             title="All Channels",  url_path="wc2026"),
-    st.Page("views/18e_WC2026_Daily_Recap.py", title="Daily Recap",  url_path="wc2026-recap"),
-    st.Page("views/18c_WC2026_Latest.py",     title="Latest Videos", url_path="wc2026-latest"),
-    st.Page("views/18d_WC2026_Viral.py",      title="Viral Videos",  url_path="wc2026-viral"),
-    st.Page("views/18f_WC2026_Top_Videos.py", title="Top Videos",    url_path="wc2026-top"),
-    st.Page("views/18b_WC2026_Trends.py",     title="Trends",        url_path="wc2026-trends"),
+    st.Page("views/18_WC2026.py",              title="All Channels",   url_path="wc2026"),
+    st.Page("views/18c_WC2026_Latest.py",      title="Latest Videos",  url_path="wc2026-latest"),
+    st.Page("views/18e_WC2026_Daily_Recap.py", title="Daily Recap",    url_path="wc2026-recap"),
+    st.Page("views/18b_WC2026_Trends.py",      title="Trends",         url_path="wc2026-trends"),
+    st.Page("views/18d_WC2026_Viral.py",       title="Viral Videos",   url_path="wc2026-viral"),
+    st.Page("views/18f_WC2026_Top_Videos.py",  title="All-time Top",   url_path="wc2026-top"),
 ]
 
 # Tier 1.5 — "The Lab": experimental / analytical pages, viewer-tier
