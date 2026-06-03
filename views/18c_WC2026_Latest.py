@@ -37,7 +37,8 @@ except ImportError:
     def video_table_height(n_rows: int, header_buffer: int = 50) -> int:
         return max(0, int(n_rows)) * 75 + header_buffer
 from src.filters import render_page_subtitle
-from src.dot import channel_badge, dual_dot
+from src.dot import channel_badge, dual_dot  # noqa: F401  (kept for fallback)
+from src.wc2026_badge import wc2026_badge
 from src.auth import require_login
 
 load_dotenv()
@@ -181,7 +182,7 @@ if live_now:
             {'<span class="ln-dur">' + _live_label + '</span>' if _live_label else ''}
           </div>
           <div class="ln-info">
-            {channel_badge(ch, color_map, dual, 12)}
+            {wc2026_badge(ch, 12)}
             <span class="ln-club">{ch_name}</span>
             {('<span class="ln-views">' + fmt_num(views) + ' views</span>') if views else ''}
           </div>
@@ -360,7 +361,7 @@ if mosaic_view:
             {'<span class="card-dur">' + dur_s + '</span>' if dur_s else ''}
           </div>
           <div class="card-info">
-            {channel_badge(ch, color_map, dual, 12)}
+            {wc2026_badge(ch, 12)}
             <span class="card-club">{ch_name}</span>
           </div>
           <div class="card-title" title="{title}">{title}</div>
@@ -439,7 +440,7 @@ for v in latest:
             age_label = ""
 
     row_click = f'onclick="window.open(\'{url}\',\'_blank\',\'noopener\')"' if url else ''
-    _badge = channel_badge(ch, color_map, dual, 14)
+    _badge = wc2026_badge(ch, 14)
     _cat_color = CATEGORY_COLORS.get(cat, "#888")
     _cat_only = (f'<span style="color:{_cat_color}">{cat}</span>'
                  if cat and cat != 'Other' else '')

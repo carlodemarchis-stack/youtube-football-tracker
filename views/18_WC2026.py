@@ -25,6 +25,7 @@ from src.cached_db import (
 from src.analytics import fmt_num, fmt_date, kpi_row
 from src.auth import require_login
 from src.dot import dual_dot, flag_span
+from src.wc2026_badge import _CONF_DUAL as _SHARED_CONF_DUAL, TEAM_FLAG as _SHARED_TEAM_FLAG
 from src import theme as _T
 
 load_dotenv()
@@ -92,36 +93,9 @@ def _wc(c):
     return c.get("competitions", {}).get("wc2026", {}) or {}
 
 
-# Team → flag emoji. Keyed by the `team` value in the WC2026 CSV.
-# England + Scotland use the ISO 3166-2 subdivision tag sequence
-# (rather than the UK flag) — they qualify separately.
-TEAM_FLAG = {
-    # CONCACAF
-    "Mexico": "🇲🇽", "United States": "🇺🇸", "Canada": "🇨🇦",
-    "Haiti": "🇭🇹", "Panama": "🇵🇦", "Curaçao": "🇨🇼",
-    # CONMEBOL
-    "Argentina": "🇦🇷", "Brazil": "🇧🇷", "Uruguay": "🇺🇾",
-    "Ecuador": "🇪🇨", "Colombia": "🇨🇴", "Paraguay": "🇵🇾",
-    # UEFA
-    "England": "\U0001F3F4\U000E0067\U000E0062\U000E0065\U000E006E\U000E0067\U000E007F",
-    "France": "🇫🇷", "Germany": "🇩🇪", "Spain": "🇪🇸",
-    "Portugal": "🇵🇹", "Netherlands": "🇳🇱", "Belgium": "🇧🇪",
-    "Croatia": "🇭🇷", "Switzerland": "🇨🇭", "Norway": "🇳🇴",
-    "Scotland": "\U0001F3F4\U000E0067\U000E0062\U000E0073\U000E0063\U000E0074\U000E007F",
-    "Austria": "🇦🇹", "Czechia": "🇨🇿",
-    "Bosnia and Herzegovina": "🇧🇦", "Sweden": "🇸🇪", "Türkiye": "🇹🇷",
-    # CAF
-    "Morocco": "🇲🇦", "Egypt": "🇪🇬", "Algeria": "🇩🇿",
-    "Ghana": "🇬🇭", "Ivory Coast": "🇨🇮", "Tunisia": "🇹🇳",
-    "Senegal": "🇸🇳", "South Africa": "🇿🇦",
-    "DR Congo": "🇨🇩", "Cape Verde": "🇨🇻",
-    # AFC
-    "Iran": "🇮🇷", "Iraq": "🇮🇶", "Saudi Arabia": "🇸🇦",
-    "Jordan": "🇯🇴", "Qatar": "🇶🇦", "Uzbekistan": "🇺🇿",
-    "Japan": "🇯🇵", "South Korea": "🇰🇷",
-    # OFC
-    "Australia": "🇦🇺", "New Zealand": "🇳🇿",
-}
+# TEAM_FLAG has moved to src/wc2026_badge.py so all WC2026 surfaces
+# share one map. Re-export the name locally for the row renderer below.
+TEAM_FLAG = _SHARED_TEAM_FLAG
 
 
 # ── Split channels by role ────────────────────────────────────────
@@ -375,12 +349,9 @@ def _render_wc_table(rows_html: list[str], table_id: str) -> str:
 # Confederations are governing bodies → §7 marker is a dual-dot
 # (two brand colours). Same pairs as the Latest page's _CONF_DUAL;
 # brand colours are the §1 data-not-theme exception.
-_CONF_DUAL = {
-    "UEFA": ("#C8102E", "#003F87"), "CONMEBOL": ("#003F87", "#F4C300"),
-    "CONCACAF": ("#F26522", "#1E73BE"), "CAF": ("#006B3F", "#FCD116"),
-    "AFC": ("#F0A91A", "#005A36"), "OFC": ("#0073CF", "#FFFFFF"),
-    "FIFA": ("#326295", "#FFFFFF"),
-}
+# Confederation palette shared with every other WC2026 surface — keeps
+# UEFA blue+red consistent everywhere.
+_CONF_DUAL = _SHARED_CONF_DUAL
 
 
 def _conf_marker(name: str) -> str:

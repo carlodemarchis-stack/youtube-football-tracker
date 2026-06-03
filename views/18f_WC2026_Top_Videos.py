@@ -52,6 +52,7 @@ from src.database import Database
 from src.dot import channel_badge  # noqa: F401  (used by renderer)
 from src.filters import render_page_subtitle
 from src.season_top import render_top_season_videos_table
+from src.wc2026_badge import _CONF_DUAL, CONF_COLOR, wc2026_badge
 from src.wc2026_filter import (
     get_wc2026_filter, scope_wc2026, scope_label as _wc_scope_label,
 )
@@ -70,21 +71,10 @@ if not SUPABASE_URL or not SUPABASE_KEY:
     st.stop()
 db = Database(SUPABASE_URL, SUPABASE_KEY)
 
-# Confederation brand colours — same dual-tone palette as
-# views/18_WC2026.py + Latest. Used for the dot markers in the
-# channel-stats table and the chart palettes below. Picking the first
-# colour from each pair (the dominant brand colour) keeps the
-# single-series chart legend readable.
-_CONF_DUAL = {
-    "UEFA":     ("#C8102E", "#003F87"),
-    "CONMEBOL": ("#003F87", "#F4C300"),
-    "CONCACAF": ("#F26522", "#1E73BE"),
-    "CAF":      ("#006B3F", "#FCD116"),
-    "AFC":      ("#F0A91A", "#005A36"),
-    "OFC":      ("#0073CF", "#FFFFFF"),
-    "FIFA":     ("#326295", "#FFFFFF"),
-}
-_CONF_COLOR = {k: v[0] for k, v in _CONF_DUAL.items()}
+# Confederation brand colours come from src/wc2026_badge.py so all
+# WC2026 surfaces share one palette. _CONF_DUAL has UEFA correctly
+# rendered as blue (primary) + red (secondary).
+_CONF_COLOR = CONF_COLOR
 
 
 def _wc_meta(c):
@@ -380,6 +370,7 @@ render_top_season_videos_table(
     header=f"🏆 Top {len(filtered_sorted)} All-Time Videos — {_vl_label}",
     order_by=_sort_order_by,
     max_height=1400,
+    badge_resolver=lambda ch: wc2026_badge(ch, 14),
 )
 
 
@@ -571,13 +562,10 @@ if not IS_Z3:
         rows.sort(key=lambda r: r["top100_v"], reverse=True)
         tbl_html = ""
         for i, r in enumerate(rows, 1):
-            c1, c2 = _CONF_DUAL.get(r["confed"],
-                                     (_T.ACCENT, _T.WHITE))
-            # Inline dual-dot — matches the dot rendered by
-            # render_top_season_videos_table.
-            _dot = (f'<span style="display:inline-block;width:14px;'
-                    f'height:14px;border-radius:50%;background:{c1};'
-                    f'border:3px solid {c2};vertical-align:middle"></span>')
+            ch = _ch_by_id.get(r["channel_id"]) or {}
+            # Unified WC2026 marker: confederation dual-dot for FIFA /
+            # UEFA / CONMEBOL / …, flag emoji for team channels.
+            _dot = wc2026_badge(ch, 14)
             tbl_html += f"""<tr>
                 <td style="padding:6px 10px;color:{_T.MUTED};text-align:right">{i}</td>
                 <td style="padding:6px 10px">{_dot}</td>

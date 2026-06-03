@@ -82,6 +82,7 @@ def render_top_season_videos_table(
     order_by: str = "views",
     max_height: int | None = None,
     extra_metric_col: dict | None = None,
+    badge_resolver=None,
 ) -> int:
     """Renderer-only path. Takes a pre-fetched video list so callers
     that also need the same data for KPIs aren't paying for the query
@@ -95,6 +96,12 @@ def render_top_season_videos_table(
     max_height: cap the iframe height in pixels and enable inner
     scrolling. Useful for long lists (100 rows) where letting the
     table take its natural height makes the page unmanageable.
+
+    badge_resolver: optional callable ``(channel) -> str`` that
+    replaces the default ``channel_badge(...)`` lookup. WC2026
+    surfaces use this to get the unified flag-or-confed-dot marker
+    instead of the global league/club colour-map fallback. Default
+    behaviour (None) is unchanged.
     """
     if not vids:
         return 0
@@ -159,7 +166,13 @@ def render_top_season_videos_table(
     for i, v in enumerate(vids, 1):
         ch = channels_by_id.get(v.get("channel_id")) or v.get("channels") or {}
         ch_name = ch.get("name", "?")
-        ch_badge = channel_badge(ch, color_map, dual_map, 14)
+        if badge_resolver is not None:
+            try:
+                ch_badge = badge_resolver(ch)
+            except Exception:
+                ch_badge = channel_badge(ch, color_map, dual_map, 14)
+        else:
+            ch_badge = channel_badge(ch, color_map, dual_map, 14)
         yt_url = f"https://www.youtube.com/watch?v={v['youtube_video_id']}"
         thumb = v.get("thumbnail_url") or ""
         _f = _fmt_of_local(v)

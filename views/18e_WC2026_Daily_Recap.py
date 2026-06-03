@@ -50,7 +50,8 @@ from src.cached_db import (
     read_dashboard_cache as _cached_dc_read,
 )
 from src.database import Database
-from src.dot import channel_badge
+from src.dot import channel_badge  # noqa: F401  (kept for fallback)
+from src.wc2026_badge import wc2026_badge
 from src.wc2026_filter import (
     get_wc2026_filter, scope_wc2026, scope_label as _wc_scope_label,
 )
@@ -197,7 +198,7 @@ def _video_left_cell(v: dict, context_html: str = "") -> str:
     Pass color_map / dual = None for WC2026 — channel_badge then falls
     back to the channel's own color/color2 columns."""
     ch = ch_by_id.get(v.get("channel_id")) or {}
-    badge = channel_badge(ch, None, None, 14)
+    badge = wc2026_badge(ch, 14)
     yt = f"https://www.youtube.com/watch?v={v.get('youtube_video_id', '')}"
     thumb = v.get("thumbnail_url") or ""
     title = (v.get("title") or "")\
@@ -597,7 +598,7 @@ if not IS_Z3:
         rows_html = ""
         for i, r in enumerate(rows_s, 1):
             ch = _ch_by_id.get(r["channel_id"]) or {}
-            dot = channel_badge(ch, None, None, 14)
+            dot = wc2026_badge(ch, 14)
             d_day = r[metric_day]
             d_7d  = r[metric_7d]
             col_day = (_T.POS if d_day > 0

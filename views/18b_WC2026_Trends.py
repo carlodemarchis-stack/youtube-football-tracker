@@ -31,6 +31,7 @@ from src.analytics import fmt_num, fmt_date, kpi_row
 from src.charts import readable_hover
 from src.auth import require_login
 from src.dot import flag_span, dual_dot
+from src.wc2026_badge import TEAM_FLAG as _SHARED_TEAM_FLAG
 from src import theme as _T
 from src.wc_table import td as _td, render_sortable_table as _render_tbl
 
@@ -123,36 +124,9 @@ def _team_of(c):
     return _wc(c).get("team") or c.get("country") or c.get("name") or "—"
 
 
-# Team → flag emoji, keyed by the WC2026 `team` value. Kept in sync with
-# views/18_WC2026.py (England / Scotland use the ISO 3166-2 subdivision
-# tag sequence rather than the UK flag — they qualify separately).
-TEAM_FLAG = {
-    # CONCACAF
-    "Mexico": "🇲🇽", "United States": "🇺🇸", "Canada": "🇨🇦",
-    "Haiti": "🇭🇹", "Panama": "🇵🇦", "Curaçao": "🇨🇼",
-    # CONMEBOL
-    "Argentina": "🇦🇷", "Brazil": "🇧🇷", "Uruguay": "🇺🇾",
-    "Ecuador": "🇪🇨", "Colombia": "🇨🇴", "Paraguay": "🇵🇾",
-    # UEFA
-    "England": "\U0001F3F4\U000E0067\U000E0062\U000E0065\U000E006E\U000E0067\U000E007F",
-    "France": "🇫🇷", "Germany": "🇩🇪", "Spain": "🇪🇸",
-    "Portugal": "🇵🇹", "Netherlands": "🇳🇱", "Belgium": "🇧🇪",
-    "Croatia": "🇭🇷", "Switzerland": "🇨🇭", "Norway": "🇳🇴",
-    "Scotland": "\U0001F3F4\U000E0067\U000E0062\U000E0073\U000E0063\U000E0074\U000E007F",
-    "Austria": "🇦🇹", "Czechia": "🇨🇿",
-    "Bosnia and Herzegovina": "🇧🇦", "Sweden": "🇸🇪", "Türkiye": "🇹🇷",
-    # CAF
-    "Morocco": "🇲🇦", "Egypt": "🇪🇬", "Algeria": "🇩🇿",
-    "Ghana": "🇬🇭", "Ivory Coast": "🇨🇮", "Tunisia": "🇹🇳",
-    "Senegal": "🇸🇳", "South Africa": "🇿🇦",
-    "DR Congo": "🇨🇩", "Cape Verde": "🇨🇻",
-    # AFC
-    "Iran": "🇮🇷", "Iraq": "🇮🇶", "Saudi Arabia": "🇸🇦",
-    "Jordan": "🇯🇴", "Qatar": "🇶🇦", "Uzbekistan": "🇺🇿",
-    "Japan": "🇯🇵", "South Korea": "🇰🇷",
-    # OFC
-    "Australia": "🇦🇺", "New Zealand": "🇳🇿",
-}
+# TEAM_FLAG lives in src/wc2026_badge.py now — re-export here so the
+# row renderer below keeps its existing name.
+TEAM_FLAG = _SHARED_TEAM_FLAG
 
 # id → channel record (snapshots key on the DB id)
 ch_by_id = {c["id"]: c for c in wc if c.get("id")}

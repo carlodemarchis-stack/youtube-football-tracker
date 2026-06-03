@@ -30,7 +30,8 @@ from src.cached_db import (
     read_dashboard_cache as _cached_dc_read,
 )
 from src import dashboard_cache as _dc
-from src.dot import channel_badge
+from src.dot import channel_badge  # noqa: F401  (kept for fallback)
+from src.wc2026_badge import wc2026_badge
 from src.analytics import fmt_num
 from src import theme as _T
 
@@ -225,7 +226,7 @@ for _i, _v in enumerate(_viral, 1):
             )
     with _cM:
         _ch = _ch_by_id.get(_v["channel_id"]) or {}
-        _badge = channel_badge(_ch, None, None, 16)
+        _badge = wc2026_badge(_ch, 16)
         _cn = _ch.get("name") or _name_by_id.get(_v["channel_id"], "?")
         _ttl = _v["title"][:90].replace("<", "&lt;").replace(">", "&gt;")
         st.markdown(
