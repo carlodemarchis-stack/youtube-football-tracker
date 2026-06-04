@@ -663,6 +663,59 @@ if not IS_Z3:
         </tr></thead>
         <tbody>{rows_html}</tbody></table></div>""", len(rows_s)
 
+    # Most-videos-published companion — mirrors the Top-5 Daily Recap
+    # right column. Counts new_videos by channel and splits long /
+    # shorts / live.
+    pub_counts: dict[str, dict] = {}
+    for v in new_videos:
+        ch = ch_by_id.get(v.get("channel_id")) or {}
+        if not ch:
+            continue
+        name = ch.get("name") or "?"
+        e = pub_counts.setdefault(name, {
+            "name": name, "_ch": ch,
+            "count": 0, "long": 0, "short": 0, "live": 0,
+        })
+        e["count"] += 1
+        f = (v.get("format") or "").lower()
+        if f not in ("long", "short", "live"):
+            f = ("long" if (v.get("duration_seconds") or 0) >= 60
+                 else "short")
+        e[f] += 1
+    pub_sorted = sorted(pub_counts.values(),
+                        key=lambda r: r["count"], reverse=True)[:25]
+
+    def _pub_html() -> tuple[str, int]:
+        if not pub_sorted:
+            return "", 0
+        rows = ""
+        for i, r in enumerate(pub_sorted, 1):
+            dot = wc2026_badge(r["_ch"], 14)
+            lsl = f'{r["long"]} / {r["short"]} / {r["live"]}'
+            rows += f"""<tr>
+                <td style="padding:5px 10px;color:{_T.MUTED}">{i}</td>
+                <td style="padding:5px 10px">{dot}</td>
+                <td style="padding:5px 10px">{_ch_name_link(r['_ch'], r['name'])}</td>
+                <td style="padding:5px 10px;text-align:center">{lsl}</td>
+                <td style="padding:5px 10px;text-align:right;
+                           font-weight:600">{r['count']}</td>
+            </tr>"""
+        return f"""
+        <style>.mvp tr:hover td {{ background:{_T.SURFACE}; }}</style>
+        <div style="color:{_T.TEXT};
+                    font-family:'Source Sans Pro',sans-serif">
+        <h4 style="margin:0 0 8px 0">🎬 Most videos published</h4>
+        <table class="mvp" style="width:100%;border-collapse:collapse;
+                                  font-size:13px">
+        <thead><tr style="border-bottom:2px solid {_T.BORDER_STRONG}">
+          <th style="padding:5px 10px;text-align:left">#</th>
+          <th></th>
+          <th style="padding:5px 10px;text-align:left">Channel</th>
+          <th style="padding:5px 10px;text-align:center">Long / Shorts / Live</th>
+          <th style="padding:5px 10px;text-align:right">Videos</th>
+        </tr></thead>
+        <tbody>{rows}</tbody></table></div>""", len(pub_sorted)
+
     _gc1, _gc2 = st.columns(2)
     with _gc1:
         html_v, n_v = _gainer_html("d_views_day", "d_views_7d", "views",
@@ -672,12 +725,11 @@ if not IS_Z3:
         else:
             st.caption("No view deltas available for this day.")
     with _gc2:
-        html_s, n_s = _gainer_html("d_subs_day", "d_subs_7d", "subs",
-                                    "Biggest subscriber gains", "👥")
-        if html_s:
-            components.html(html_s, height=n_s * 32 + 70)
+        html_p, n_p = _pub_html()
+        if html_p:
+            components.html(html_p, height=n_p * 32 + 70)
         else:
-            st.caption("No subscriber deltas available for this day.")
+            st.caption("No channels published videos on this day.")
 
 
 # ── 🔥 Most watched on this day (by view_delta) ───────────────────
