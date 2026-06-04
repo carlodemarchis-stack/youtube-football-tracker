@@ -447,7 +447,9 @@ st.caption(
     f"{_absd(last_d)} channel totals minus its earliest tracked "
     f"snapshot (window starts {_absd(first_d)} but newer additions "
     f"are anchored at their import date so they don't read as spikes). "
-    f"All {len(cohort)} WC2026 channels included. "
+    f"National federations only — FIFA + the 6 confederations dwarf "
+    f"every team by absolute scale so they're excluded from this "
+    f"leaderboard (cohort + KPIs + chart above still cover everyone). "
     "Not a per-day or last-24h figure."
 )
 
@@ -481,7 +483,18 @@ _MOVER_COLS = [
     ("Δ Subs",              "num", "right"),
 ]
 
-ranked = sorted(team_dviews.items(), key=lambda kv: -kv[1])
+# Drop FIFA + the 6 confederation governing bodies from this specific
+# table. A per-team movers ranking that includes UEFA (≈16M subs)
+# alongside national federations (≈10-400k subs) buries the actual
+# story — the governing bodies dwarf every team purely by absolute
+# scale. The 'Confederations only' option on the WC2026 filter remains
+# the right place to dig into governing-body activity. Cohort + KPIs
+# + the daily chart above are unchanged — only this leaderboard is
+# narrowed.
+ranked = sorted(
+    ((t, dv) for t, dv in team_dviews.items() if not team_is_gov.get(t)),
+    key=lambda kv: -kv[1],
+)
 mover_rows = []
 for i, (team, dv) in enumerate(ranked, 1):
     conf = team_conf.get(team, "") or "—"
