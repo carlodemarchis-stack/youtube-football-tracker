@@ -66,7 +66,13 @@ wc = scope_wc2026(wc, _wc_confed, _wc_team)
 if not wc:
     st.info(f"No WC2026 channels for **{_wc_scope_label(_wc_confed, _wc_team)}**.")
     st.stop()
-FILTERED = bool(_wc_confed or _wc_team)
+# Any narrowing — confederation, team, OR the Z1 sub-scope (Teams /
+# Confeds) — invalidates the cohort-wide viral cache and forces a
+# live recompute over the scoped channel IDs. Without the sub-scope
+# check, picking 'Teams only' still showed FIFA / UEFA viral videos
+# from the cached top-10.
+from src.wc2026_filter import get_wc2026_sub_scope as _get_wc_sub
+FILTERED = bool(_wc_confed or _wc_team) or _get_wc_sub() != "All"
 
 ch_ids = [c["id"] for c in wc if c.get("id")]
 _cids_tuple = tuple(sorted(ch_ids))
