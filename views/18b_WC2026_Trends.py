@@ -285,16 +285,32 @@ first_d, last_d = dates[0], dates[-1]
 import pandas as pd
 import plotly.express as px
 
-# Stable cohort = channels present on EVERY day in the window, so a
-# late-added channel can never masquerade as a spike in growth.
-cohort = set(by_date[dates[0]])
-for d in dates[1:]:
-    cohort &= set(by_date[d])
-cohort = sorted(cohort)
+# Cohort now includes every channel present on the LAST day of the
+# window — that gives us all 62 WC2026 channels even when some were
+# imported mid-window (was 39 with the old "present every single day"
+# intersection rule). To avoid the join-day artefact (a channel's
+# first-ever snapshot would otherwise read as a massive growth spike),
+# each channel's per-window delta is anchored at ITS earliest
+# available snapshot, not the global first_d.
+cohort = sorted(by_date[last_d].keys())
+
+# Per-channel first snapshot (the earliest day in the window where
+# this channel appears). The reference point for KPI + movers deltas.
+ch_first_snap: dict[str, dict] = {}
+ch_first_date: dict[str, str] = {}
+for c in cohort:
+    for d in dates:
+        snap = by_date[d].get(c)
+        if snap is not None:
+            ch_first_snap[c] = snap
+            ch_first_date[c] = d
+            break
+
 
 # ── Per-day deltas (charts) ───────────────────────────────────────
-# Δ views and net-new videos by format, summed over the cohort, for
-# each consecutive day pair.
+# Δ views and net-new videos by format, summed across all channels
+# that have snapshots on BOTH days of a pair — so a channel joining
+# mid-window doesn't contribute a spike on its first day.
 day_rows = []
 for i in range(1, len(dates)):
     d, dp = dates[i], dates[i - 1]
@@ -302,6 +318,8 @@ for i in range(1, len(dates)):
     dv = dl = ds = dli = 0
     for c in cohort:
         cc, pp = cur.get(c), prev.get(c)
+        if cc is None or pp is None:
+            continue
         dv += _g(cc, "total_views") - _g(pp, "total_views")
         dl += _g(cc, "long_form_count") - _g(pp, "long_form_count")
         ds += _g(cc, "shorts_count") - _g(pp, "shorts_count")
@@ -311,12 +329,13 @@ for i in range(1, len(dates)):
 dfd = pd.DataFrame(day_rows)
 dfd["Date"] = pd.to_datetime(dfd["Date"])
 
-# ── Window totals (KPI + movers) — first vs last day ──────────────
-f, l = by_date[first_d], by_date[last_d]
+# ── Window totals (KPI + movers) — per-channel first vs last day ──
+l = by_date[last_d]
 
 
 def _net(key: str) -> int:
-    return sum(_g(l.get(c), key) - _g(f.get(c), key) for c in cohort)
+    return sum(_g(l.get(c), key) - _g(ch_first_snap.get(c), key)
+               for c in cohort)
 
 
 net_views = _net("total_views")
@@ -334,11 +353,13 @@ team_ds: dict[str, int] = defaultdict(int)
 team_dli: dict[str, int] = defaultdict(int)
 for c in cohort:
     t = team_of_id.get(c, "—")
-    team_dviews[t] += _g(l.get(c), "total_views") - _g(f.get(c), "total_views")
-    team_dsubs[t] += _g(l.get(c), "subscriber_count") - _g(f.get(c), "subscriber_count")
-    team_dl[t] += _g(l.get(c), "long_form_count") - _g(f.get(c), "long_form_count")
-    team_ds[t] += _g(l.get(c), "shorts_count") - _g(f.get(c), "shorts_count")
-    team_dli[t] += _g(l.get(c), "live_count") - _g(f.get(c), "live_count")
+    fsnap = ch_first_snap.get(c)
+    lsnap = l.get(c)
+    team_dviews[t] += _g(lsnap, "total_views") - _g(fsnap, "total_views")
+    team_dsubs[t] += _g(lsnap, "subscriber_count") - _g(fsnap, "subscriber_count")
+    team_dl[t] += _g(lsnap, "long_form_count") - _g(fsnap, "long_form_count")
+    team_ds[t] += _g(lsnap, "shorts_count") - _g(fsnap, "shorts_count")
+    team_dli[t] += _g(lsnap, "live_count") - _g(fsnap, "live_count")
 team_dvids = {t: team_dl[t] + team_ds[t] + team_dli[t] for t in team_dviews}
 
 
@@ -394,8 +415,10 @@ with gc2:
     st.plotly_chart(fl, width="stretch")
 
 st.caption(
-    f"Per-day change across the {len(cohort)} channels present every "
-    f"day since {fmt_date(first_d)}. Video counts are channel-level "
+    f"Per-day change across the {len(cohort)} WC2026 channels. On any "
+    "given day pair, only channels with snapshots on both days "
+    "contribute (so a newly-imported channel never shows as a spike "
+    "on its first day). Video counts are channel-level "
     "totals, so a negative bar means videos were removed or made "
     "private. Subscriber numbers are YouTube-rounded — directional only."
 )
@@ -404,10 +427,11 @@ st.caption(
 st.markdown("---")
 st.subheader("🚀 Biggest movers")
 st.caption(
-    f"Cumulative change from {_absd(first_d)} to {_absd(last_d)} "
-    f"({_n_days} daily snapshots) — each team's {_absd(last_d)} channel "
-    f"totals minus its {_absd(first_d)} totals, across the "
-    f"{len(cohort)} channels tracked every day in that window. "
+    f"Cumulative change up to {_absd(last_d)} — each team's "
+    f"{_absd(last_d)} channel totals minus its earliest tracked "
+    f"snapshot (window starts {_absd(first_d)} but newer additions "
+    f"are anchored at their import date so they don't read as spikes). "
+    f"All {len(cohort)} WC2026 channels included. "
     "Not a per-day or last-24h figure."
 )
 
