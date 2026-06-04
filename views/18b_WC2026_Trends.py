@@ -285,25 +285,31 @@ first_d, last_d = dates[0], dates[-1]
 import pandas as pd
 import plotly.express as px
 
-# Cohort now includes every channel present on the LAST day of the
-# window — that gives us all 62 WC2026 channels even when some were
-# imported mid-window (was 39 with the old "present every single day"
-# intersection rule). To avoid the join-day artefact (a channel's
-# first-ever snapshot would otherwise read as a massive growth spike),
-# each channel's per-window delta is anchored at ITS earliest
-# available snapshot, not the global first_d.
-cohort = sorted(by_date[last_d].keys())
+# Cohort = union of every channel observed on ANY day in the window.
+# Was: intersection (only channels present every day) → 39 teams.
+# Then: anchored on last_d → still missed channels when last_d was a
+# partial cron run (e.g. 2026-06-03 only snapped 39 of 62 channels).
+# The union always reflects every WC2026 channel we have data for in
+# the window. Per-channel deltas use that channel's own earliest +
+# latest available snapshots, so a partial cron day no longer drops
+# anyone, and a channel imported mid-window doesn't read as a spike.
+cohort: list[str] = sorted({c for d in dates for c in by_date[d]})
 
-# Per-channel first snapshot (the earliest day in the window where
-# this channel appears). The reference point for KPI + movers deltas.
+# Per-channel first + last snapshots within the window. The reference
+# points for KPI + movers deltas. Walking dates forward for first /
+# backward for last keeps each lookup at O(window length).
 ch_first_snap: dict[str, dict] = {}
-ch_first_date: dict[str, str] = {}
+ch_last_snap:  dict[str, dict] = {}
 for c in cohort:
     for d in dates:
         snap = by_date[d].get(c)
         if snap is not None:
             ch_first_snap[c] = snap
-            ch_first_date[c] = d
+            break
+    for d in reversed(dates):
+        snap = by_date[d].get(c)
+        if snap is not None:
+            ch_last_snap[c] = snap
             break
 
 
@@ -329,12 +335,10 @@ for i in range(1, len(dates)):
 dfd = pd.DataFrame(day_rows)
 dfd["Date"] = pd.to_datetime(dfd["Date"])
 
-# ── Window totals (KPI + movers) — per-channel first vs last day ──
-l = by_date[last_d]
-
-
+# ── Window totals (KPI + movers) — per-channel first vs last snap ──
 def _net(key: str) -> int:
-    return sum(_g(l.get(c), key) - _g(ch_first_snap.get(c), key)
+    return sum(_g(ch_last_snap.get(c), key)
+               - _g(ch_first_snap.get(c), key)
                for c in cohort)
 
 
@@ -354,7 +358,7 @@ team_dli: dict[str, int] = defaultdict(int)
 for c in cohort:
     t = team_of_id.get(c, "—")
     fsnap = ch_first_snap.get(c)
-    lsnap = l.get(c)
+    lsnap = ch_last_snap.get(c)
     team_dviews[t] += _g(lsnap, "total_views") - _g(fsnap, "total_views")
     team_dsubs[t] += _g(lsnap, "subscriber_count") - _g(fsnap, "subscriber_count")
     team_dl[t] += _g(lsnap, "long_form_count") - _g(fsnap, "long_form_count")
