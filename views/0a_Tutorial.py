@@ -96,7 +96,7 @@ st.markdown(
     Its own sidebar group — a self-contained sub-app, separate from the
     Top-5 league views and unaffected by the global filter. It has its
     own **Confederation → Team** filter (top of these pages; the
-    selection persists as you move between them). Six pages, same Z1
+    selection persists as you move between them). Five pages, same Z1
     (cohort) / Z2 (one confederation) / Z3 (one team) zoom-aware
     behaviour as the core Top-5 surface.
 
@@ -115,14 +115,6 @@ st.markdown(
     confederation — or by team / a full thumbnail strip as you filter
     down.
 
-    **Daily Recap** — full structural parity with the Top-5 Daily Recap:
-    date picker for any of the last 30 days, AI commentary note (cohort
-    + per-confederation variants written nightly), headline KPIs,
-    multi-metric daily trends (Δ views + new videos by format), a
-    per-confederation summary table at Z1, view + subscriber gainer
-    leaderboards, the most-watched videos of that day (by Δ views) and
-    the full new-videos-on-day list.
-
     **Trends** — view gains and videos published (long / shorts / live)
     day by day on the road to the tournament, plus a biggest-movers
     leaderboard, built from a daily snapshot of every WC2026 channel.
@@ -139,6 +131,12 @@ st.markdown(
     donuts, canonical video table (same renderer as the Top-5 page),
     Views-by-Rank + Rank-vs-Year + Year-distribution charts, theme
     pie, and a per-channel Top 100 stats table at Z1/Z2.
+
+    (No "Daily Recap" page on purpose — the cohort spans seven
+    confederations across every timezone with the tournament in
+    America. A single UTC day boundary reads weirdly for that mix;
+    Latest / Viral / Trends already answer the same questions
+    without it.)
 
     ---
 

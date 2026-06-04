@@ -305,81 +305,12 @@ def main() -> int:
     except Exception as e:
         log(f"dashboard_cache refresh failed (non-fatal): {e}")
 
-    # ── 6. AI commentary — Z1 cohort + 7 per-confederation notes ──
-    # Mirrors the top-5 daily_note pattern (see src/dashboard_cache.py
-    # rebuild_all step 3) but scoped to WC2026 channels. Writes to the
-    # shared `daily_note` cache table with namespaced scope_keys:
-    #   Z1 cohort  : f"{date}|wc2026"
-    #   Z2 confed  : f"{date}|wc2026|{confederation}"
-    # Z3 (single team) intentionally skipped — matches the top-5
-    # behaviour (single-club view doesn't get an AI note either) and
-    # avoids 48× Claude calls per night.
-    try:
-        from src import ai_note as _an
-        from src.dashboard_cache import write as _dc_write
-        # WC2026 cohort uses the same captured_date convention as the
-        # snapshot step above (UTC day floor), so "yesterday UTC" is
-        # the right target. Keep it consistent with the rest of the
-        # WC2026 pipeline rather than the CET basis the top-5 cron uses.
-        from datetime import datetime as _dt, timedelta as _td
-        target = _dt.utcnow().date() - _td(days=1)
-        _key_present = bool(os.environ.get("ANTHROPIC_API_KEY"))
-        log(f"AI: computing wc2026 daily_note / {target.isoformat()} "
-            f"(ANTHROPIC_API_KEY {'set' if _key_present else 'MISSING'})")
-
-        # Z1 cohort.
-        _payload_z1 = _an.compose_payload_wc2026(db, target)
-        _prev_z1 = _an.fetch_previous_notes_wc2026(db, target, n=3)
-        _note_z1 = _an.generate_wc2026_daily_note(
-            _payload_z1, previous_notes=_prev_z1, log=log)
-        if _note_z1:
-            _html_z1 = _note_z1.replace("\n", "<br>")
-            _dc_write(db, "daily_note", f"{target.isoformat()}|wc2026", {
-                "text": _note_z1,
-                "html": _html_z1,
-                "payload_summary": {
-                    "total_new_videos": _payload_z1["totals"]["new_videos"],
-                    "weekday": _payload_z1["weekday"],
-                },
-            })
-            log(f"AI: wc2026 daily_note WRITTEN ({len(_note_z1)} chars)")
-        else:
-            log("AI: wc2026 daily_note skipped — generator returned empty")
-
-        # Z2 per-confederation. Use the confederations actually present
-        # in the cohort so we don't generate an empty CONMEBOL note if
-        # CONMEBOL has no qualified teams yet.
-        _confeds = sorted({
-            (c.get("competitions") or {}).get("wc2026", {}).get("confederation")
-            for c in wc
-            if (c.get("competitions") or {}).get("wc2026", {}).get("confederation")
-        })
-        for _conf in _confeds:
-            try:
-                _key = f"{target.isoformat()}|wc2026|{_conf}"
-                _pl = _an.compose_payload_wc2026(db, target,
-                                                  confederation=_conf)
-                _prev = _an.fetch_previous_notes_wc2026(
-                    db, target, n=3, confederation=_conf)
-                _nl = _an.generate_wc2026_daily_note(
-                    _pl, previous_notes=_prev, log=log)
-                if _nl:
-                    _hl = _nl.replace("\n", "<br>")
-                    _dc_write(db, "daily_note", _key, {
-                        "text": _nl, "html": _hl,
-                        "payload_summary": {
-                            "total_new_videos": _pl["totals"]["new_videos"],
-                            "weekday": _pl["weekday"],
-                        },
-                    })
-                    log(f"AI: wc2026/{_conf} daily_note WRITTEN "
-                        f"({len(_nl)} chars)")
-                else:
-                    log(f"AI: wc2026/{_conf} skipped — empty")
-            except Exception as _e:
-                log(f"AI: wc2026/{_conf} failed (non-fatal): {_e}")
-    except Exception as e:
-        log(f"AI: wc2026 daily_note failed (non-fatal): {e}")
+    # Step 6 (AI daily commentary) intentionally removed: the WC2026
+    # Daily Recap page was retired because a single UTC day boundary
+    # reads awkwardly for a 7-confederation cohort with the tournament
+    # in NA timezones — Latest / Viral / Trends cover the same needs
+    # without that day-boundary tax. Removing the Claude call also
+    # cuts ~$0.05/day from the budget.
 
     elapsed = time.time() - start
     log(f"Done in {elapsed:.1f}s — ok={ok} failed={len(failed)} "
