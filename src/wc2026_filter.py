@@ -117,15 +117,10 @@ def render_wc2026_filter(wc_channels: list[dict]) -> tuple[str | None, str | Non
     if st.session_state.get(_K_SCOPE) not in _SCOPE_OPTIONS:
         st.session_state[_K_SCOPE] = "All"
 
-    # Three-column row at Z1, two-column once a confederation is picked.
-    # The sub-scope (Teams / Confeds) only makes sense at Z1, since at
-    # Z2 the confederation pick already implies one or the other.
-    _is_z1 = (st.session_state[_K_CONF] == "All")
-    if _is_z1:
-        c1, c2, c3 = st.columns(3)
-    else:
-        c1, c2 = st.columns(2)
-        c3 = None
+    # Two columns, always — D2's contents flip based on D1, mirroring
+    # the Top-5 global filter (Z1 → 'Overall / Leagues only / All clubs',
+    # Z2 → club picker). Saves a column, no disabled placeholders.
+    c1, c2 = st.columns(2)
 
     with c1:
         sel_conf = st.selectbox(
@@ -137,37 +132,12 @@ def render_wc2026_filter(wc_channels: list[dict]) -> tuple[str | None, str | Non
         st.session_state[_K_CONF] = sel_conf
     confed = None if sel_conf == "All" else sel_conf
 
-    teams: list[str] = []
-    if confed is not None:
-        teams = sorted({team_of(c) for c in wc_channels
-                        if confed_of(c) == confed and team_of(c)})
-    team_options = ["All"] + teams
-    # Reset team when its confederation changed or the stored value is
-    # no longer valid (mirrors the core filter's _league_changed reset).
-    if st.session_state.get(_K_TEAM) not in team_options or _conf_changed:
+    if confed is None:
+        # Z1 — D2 is the sub-scope picker. The team key is reset so
+        # navigating to a confederation later starts clean.
         st.session_state[_K_TEAM] = "All"
-
-    with c2:
-        if teams:
-            sel_team = st.selectbox(
-                "Team", team_options,
-                index=team_options.index(st.session_state[_K_TEAM]),
-                key="_wc2026_widget_team",
-            )
-            st.session_state[_K_TEAM] = sel_team
-            team = None if sel_team == "All" else sel_team
-        else:
-            st.selectbox("Team", ["All"], index=0, disabled=True,
-                         key="_wc2026_widget_team_disabled")
-            st.session_state[_K_TEAM] = "All"
-            team = None
-
-    # Sub-scope selector — Z1 only. At Z2/Z3 it would be redundant
-    # (one confederation OR one team is already a tighter scope), so we
-    # snap it back to "All" when leaving Z1 so navigating back doesn't
-    # leave the user staring at an unexpected residual filter.
-    if _is_z1 and c3 is not None:
-        with c3:
+        team = None
+        with c2:
             sel_scope = st.selectbox(
                 "Show", _SCOPE_OPTIONS,
                 index=_SCOPE_OPTIONS.index(st.session_state[_K_SCOPE]),
@@ -176,7 +146,26 @@ def render_wc2026_filter(wc_channels: list[dict]) -> tuple[str | None, str | Non
             )
             st.session_state[_K_SCOPE] = sel_scope
     else:
+        # Z2/Z3 — D2 is the team picker, sub-scope is implicit so it's
+        # snapped back to "All" (mirrors the way Top-5 clears its
+        # scope when leaving 'All Leagues').
         st.session_state[_K_SCOPE] = "All"
+        teams = sorted({team_of(c) for c in wc_channels
+                        if confed_of(c) == confed and team_of(c)})
+        team_options = ["All"] + teams
+        # Reset team when its confederation changed or the stored value
+        # is no longer valid (mirrors _league_changed reset).
+        if (st.session_state.get(_K_TEAM) not in team_options
+                or _conf_changed):
+            st.session_state[_K_TEAM] = "All"
+        with c2:
+            sel_team = st.selectbox(
+                "Team", team_options,
+                index=team_options.index(st.session_state[_K_TEAM]),
+                key="_wc2026_widget_team",
+            )
+            st.session_state[_K_TEAM] = sel_team
+            team = None if sel_team == "All" else sel_team
 
     _sync_qp(sel_conf, st.session_state[_K_TEAM],
              st.session_state[_K_SCOPE])
