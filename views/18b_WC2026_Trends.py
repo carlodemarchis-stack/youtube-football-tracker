@@ -471,11 +471,15 @@ for i, (team, dv) in enumerate(ranked, 1):
         + "</tr>"
     )
 
+# Expand the iframe to fit every team (was capped at 2000px with an
+# inner scrollbar, which hid most of the cohort below the first 6 or
+# so rows). Drop scrolling=True so the page's own scroll handles it,
+# matching how the other tall WC2026 tables render.
 _components.html(
     _render_tbl(_MOVER_COLS, mover_rows, "wc-tbl-movers",
                 default_col=3, default_asc=False),
-    height=min(2000, 36 * len(ranked) + 80),
-    scrolling=True,
+    height=36 * len(ranked) + 80,
+    scrolling=False,
 )
 
 st.caption(
