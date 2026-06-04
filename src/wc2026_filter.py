@@ -17,6 +17,11 @@ Two levels mirroring league→club:
   Z1  confed None, team None  → all WC2026 channels
   Z2  confed set,  team None  → one confederation
   Z3  team set                → one team (incl. its alt channels)
+
+Z1 also carries an optional `sub_scope`:
+  "All"     → everyone (default)
+  "Teams"   → 48 nation channels only (excludes FIFA + the 6 confeds)
+  "Confeds" → FIFA + 6 confederation governing bodies only
 """
 from __future__ import annotations
 
@@ -27,9 +32,20 @@ _CONF_ORDER = ["UEFA", "CONMEBOL", "CONCACAF", "CAF", "AFC", "OFC", "FIFA"]
 # session_state mirrors of the URL truth
 _K_CONF = "_wc2026_confed"
 _K_TEAM = "_wc2026_team"
+_K_SCOPE = "_wc2026_scope"
 # the URL query-param names (the durable store)
 _QP_CONF = "wc_confed"
 _QP_TEAM = "wc_team"
+_QP_SCOPE = "wc_scope"
+
+# Z1 sub-scope options. "All" = everyone (default), "Teams" = exclude
+# FIFA + the 6 confed governing bodies, "Confeds" = only them.
+_SCOPE_OPTIONS = ["All", "Teams", "Confeds"]
+_SCOPE_LABEL = {
+    "All": "All channels",
+    "Teams": "Teams only",
+    "Confeds": "Confederations only",
+}
 
 
 def _wc(c: dict) -> dict:
@@ -44,9 +60,9 @@ def team_of(c: dict) -> str:
     return _wc(c).get("team") or ""
 
 
-def _sync_qp(confed: str, team: str) -> None:
+def _sync_qp(confed: str, team: str, sub_scope: str) -> None:
     """Mirror the active selection into the URL so it survives page
-    navigation + reload. Only our two keys are touched (never a blanket
+    navigation + reload. Only our three keys are touched (never a blanket
     clear — other params like ?view=feed must be left alone), and only
     when something changed (avoids a rerun loop). Same contract as
     src.filters._sync_query_params."""
@@ -55,10 +71,13 @@ def _sync_qp(confed: str, team: str) -> None:
         target[_QP_CONF] = confed
     if team and team != "All":
         target[_QP_TEAM] = team
+    if sub_scope and sub_scope != "All":
+        target[_QP_SCOPE] = sub_scope
     current = {k: st.query_params.get(k)
-               for k in (_QP_CONF, _QP_TEAM) if st.query_params.get(k)}
+               for k in (_QP_CONF, _QP_TEAM, _QP_SCOPE)
+               if st.query_params.get(k)}
     if current != target:
-        for k in (_QP_CONF, _QP_TEAM):
+        for k in (_QP_CONF, _QP_TEAM, _QP_SCOPE):
             if k in st.query_params:
                 del st.query_params[k]
         if target:
@@ -78,20 +97,36 @@ def render_wc2026_filter(wc_channels: list[dict]) -> tuple[str | None, str | Non
     # changed externally (e.g. landed via a deep link / page switch).
     _qp_conf = st.query_params.get(_QP_CONF, "All")
     _qp_team = st.query_params.get(_QP_TEAM, "All")
+    _qp_scope = st.query_params.get(_QP_SCOPE, "All")
     if _K_CONF not in st.session_state:
         st.session_state[_K_CONF] = _qp_conf
         st.session_state[_K_TEAM] = _qp_team
+        st.session_state[_K_SCOPE] = _qp_scope
     elif (st.session_state.get("_wc2026_qp_conf") != _qp_conf
-          or st.session_state.get("_wc2026_qp_team") != _qp_team):
+          or st.session_state.get("_wc2026_qp_team") != _qp_team
+          or st.session_state.get("_wc2026_qp_scope") != _qp_scope):
         st.session_state[_K_CONF] = _qp_conf
         st.session_state[_K_TEAM] = _qp_team
+        st.session_state[_K_SCOPE] = _qp_scope
     st.session_state["_wc2026_qp_conf"] = _qp_conf
     st.session_state["_wc2026_qp_team"] = _qp_team
+    st.session_state["_wc2026_qp_scope"] = _qp_scope
 
     if st.session_state[_K_CONF] not in conf_options:
         st.session_state[_K_CONF] = "All"
+    if st.session_state.get(_K_SCOPE) not in _SCOPE_OPTIONS:
+        st.session_state[_K_SCOPE] = "All"
 
-    c1, c2 = st.columns(2)
+    # Three-column row at Z1, two-column once a confederation is picked.
+    # The sub-scope (Teams / Confeds) only makes sense at Z1, since at
+    # Z2 the confederation pick already implies one or the other.
+    _is_z1 = (st.session_state[_K_CONF] == "All")
+    if _is_z1:
+        c1, c2, c3 = st.columns(3)
+    else:
+        c1, c2 = st.columns(2)
+        c3 = None
+
     with c1:
         sel_conf = st.selectbox(
             "Confederation", conf_options,
@@ -127,12 +162,30 @@ def render_wc2026_filter(wc_channels: list[dict]) -> tuple[str | None, str | Non
             st.session_state[_K_TEAM] = "All"
             team = None
 
-    _sync_qp(sel_conf, st.session_state[_K_TEAM])
+    # Sub-scope selector — Z1 only. At Z2/Z3 it would be redundant
+    # (one confederation OR one team is already a tighter scope), so we
+    # snap it back to "All" when leaving Z1 so navigating back doesn't
+    # leave the user staring at an unexpected residual filter.
+    if _is_z1 and c3 is not None:
+        with c3:
+            sel_scope = st.selectbox(
+                "Show", _SCOPE_OPTIONS,
+                index=_SCOPE_OPTIONS.index(st.session_state[_K_SCOPE]),
+                key="_wc2026_widget_scope",
+                format_func=lambda v: _SCOPE_LABEL.get(v, v),
+            )
+            st.session_state[_K_SCOPE] = sel_scope
+    else:
+        st.session_state[_K_SCOPE] = "All"
+
+    _sync_qp(sel_conf, st.session_state[_K_TEAM],
+             st.session_state[_K_SCOPE])
     # Publish the normalised selection for the pages to read (same
     # render-in-app.py → read-in-page split as the core filter:
     # render_header_filter → get_global_filter).
     st.session_state["_wc2026_sel_confed"] = confed
     st.session_state["_wc2026_sel_team"] = team
+    st.session_state["_wc2026_sel_scope"] = st.session_state[_K_SCOPE]
     return confed, team
 
 
@@ -144,21 +197,51 @@ def get_wc2026_filter() -> tuple[str | None, str | None]:
             st.session_state.get("_wc2026_sel_team"))
 
 
+def get_wc2026_sub_scope() -> str:
+    """Read the active Z1 sub-scope: "All" | "Teams" | "Confeds".
+    Only meaningful when both confed and team are None — anywhere else
+    it's snapped to "All" by render_wc2026_filter()."""
+    return st.session_state.get("_wc2026_sel_scope") or "All"
+
+
 def scope_wc2026(channels: list[dict], confed: str | None,
-                 team: str | None) -> list[dict]:
-    """Apply the (confederation, team) selection to a channel list."""
+                 team: str | None,
+                 sub_scope: str | None = None) -> list[dict]:
+    """Apply the (confederation, team) selection to a channel list, plus
+    the Z1 sub-scope when it's set. ``sub_scope`` defaults to whatever
+    the filter last published, so existing call sites don't need to be
+    updated to pass it explicitly."""
     out = channels
     if confed is not None:
         out = [c for c in out if confed_of(c) == confed]
     if team is not None:
         out = [c for c in out if team_of(c) == team]
+    # Apply the Z1 sub-scope only when we're actually at Z1 (no confed
+    # / team narrowing already). At Z2/Z3 the user's pick implies one
+    # or the other — applying both would surprise.
+    if sub_scope is None:
+        sub_scope = get_wc2026_sub_scope()
+    if confed is None and team is None:
+        if sub_scope == "Teams":
+            out = [c for c in out
+                   if (c.get("entity_type") or "") != "GoverningBody"]
+        elif sub_scope == "Confeds":
+            out = [c for c in out
+                   if (c.get("entity_type") or "") == "GoverningBody"]
     return out
 
 
-def scope_label(confed: str | None, team: str | None) -> str:
+def scope_label(confed: str | None, team: str | None,
+                sub_scope: str | None = None) -> str:
     """Human label for the active scope (for subtitles/headers)."""
     if team:
         return team
     if confed:
         return confed
+    if sub_scope is None:
+        sub_scope = get_wc2026_sub_scope()
+    if sub_scope == "Teams":
+        return "All nations"
+    if sub_scope == "Confeds":
+        return "FIFA + confederations"
     return "All confederations"
