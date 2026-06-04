@@ -2257,6 +2257,31 @@ def compute_wc2026_trends(db, chans: list[dict]) -> dict:
          "by_date": per_conf[cf], "split": conf_splits[i]}
         for i, cf in enumerate(confeds)
     ]
+    # Precompute Z1 sub-scope variants ('Teams only' / 'Confederations
+    # only') for the Viral and Top-25 lists. Without this the page had
+    # to recompute live every time a user picked a sub-scope — minutes
+    # of database scans per session for what is a deterministic
+    # nightly-stable result. A governing-body channel is one whose
+    # wc2026.team matches its wc2026.confederation (catches BOTH the
+    # main FIFA / UEFA / … channels AND alt channels like FIFA+).
+    def _is_gov(c: dict) -> bool:
+        w = (c.get("competitions") or {}).get("wc2026") or {}
+        t  = (w.get("team") or "").strip()
+        cf = (w.get("confederation") or "").strip()
+        return t != "" and t == cf
+
+    wc_teams   = [c for c in wc if not _is_gov(c)]
+    wc_confeds = [c for c in wc if _is_gov(c)]
+    teams_ids   = [c["id"] for c in wc_teams   if c.get("id")]
+    confeds_ids = [c["id"] for c in wc_confeds if c.get("id")]
+
+    # Scope the pubs scan once per sub-scope (only contributes to
+    # top_videos — viral re-queries video_daily_deltas inside
+    # _build_viral). Reusing the cohort-wide pubs would double-count
+    # videos from out-of-scope channels in the Top-25.
+    pubs_teams   = [p for p in pubs if p.get("channel_id") in set(teams_ids)]
+    pubs_confeds = [p for p in pubs if p.get("channel_id") in set(confeds_ids)]
+
     return {
         "as_of": today_cet.isoformat(),
         "window_start": dates[0], "window_end": dates[-1],
@@ -2264,7 +2289,15 @@ def compute_wc2026_trends(db, chans: list[dict]) -> dict:
         "cohort": {"by_date": cohort, "split": cohort_split},
         "breakdown": {"group_label": "confederation", "groups": groups},
         "top_videos": _build_top_videos(pubs, db, wc, dates, limit=25),
+        "top_videos_teams": _build_top_videos(
+            pubs_teams, db, wc_teams, dates, limit=25),
+        "top_videos_confeds": _build_top_videos(
+            pubs_confeds, db, wc_confeds, dates, limit=25),
         "viral": _build_viral(db, cohort_ids, wc, dates, limit=10),
+        "viral_teams": _build_viral(
+            db, teams_ids, wc_teams, dates, limit=10),
+        "viral_confeds": _build_viral(
+            db, confeds_ids, wc_confeds, dates, limit=10),
     }
 
 

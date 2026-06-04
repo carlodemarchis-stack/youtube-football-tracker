@@ -195,13 +195,23 @@ def _load_viral(cids_tuple: tuple[str, ...], since_date: str,
     return out
 
 
-# Cohort-wide → read the precomputed cache. Sub-scope → recompute live.
+# Three precomputed variants in the wc2026_trends cache cover the
+# entire Z1 surface — cohort, Teams only, Confederations only — so
+# picking a sub-scope is now an instant cache read instead of a
+# multi-minute live recompute. Confederation / team filters still
+# fall through to the live path (smaller scopes, cheap enough).
 _viral: list[dict] = []
-if not FILTERED:
+_sub_scope_now = _get_wc_sub()
+if not (_wc_confed or _wc_team):
     _row = _cached_dc_read(db, "wc2026_trends", _dc.scope_all())
     _payload = (_row or {}).get("payload") if _row else None
-    if _payload and _payload.get("viral") is not None:
-        _viral = list(_payload.get("viral") or [])
+    if _payload:
+        if _sub_scope_now == "Teams":
+            _viral = list(_payload.get("viral_teams") or [])
+        elif _sub_scope_now == "Confeds":
+            _viral = list(_payload.get("viral_confeds") or [])
+        else:
+            _viral = list(_payload.get("viral") or [])
 if not _viral:
     _subs_by_id = {c["id"]: int(c.get("subscriber_count") or 0) for c in wc}
     _viral = _load_viral(_cids_tuple, start_d.isoformat(), end_d.isoformat(),

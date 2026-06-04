@@ -542,20 +542,24 @@ from src.season_top import render_top_season_videos_table
 _wc_ids = list(ch_by_id.keys())
 _top_videos: list[dict] = []
 
-# Cache is only valid for the unfiltered cohort (it was built across
-# all 55 channels). Any narrowing (confed, team, or sub-scope) needs a
-# fresh top-25 computed from the scoped channel set — otherwise picking
-# 'Teams only' showed 4 videos (the remainder after FIFA/UEFA uploads
-# were stripped from a cache dominated by them).
-from src.wc2026_filter import get_wc2026_sub_scope
-_filter_active = (_wc_confed or _wc_team
-                  or get_wc2026_sub_scope() != "All")
-
-if not _filter_active:
+# Cohort + Teams-only + Confeds-only top-25 lists are all precomputed
+# nightly in wc2026_trends (top_videos / top_videos_teams /
+# top_videos_confeds). Pick the right key based on the active
+# sub-scope — instant cache read, no live recompute. Confederation /
+# team filters fall through to a live recompute against the scoped
+# channel IDs (smaller scope, cheap enough).
+from src.wc2026_filter import get_wc2026_sub_scope as _wc_sub
+_sub_scope_now = _wc_sub()
+if not (_wc_confed or _wc_team):
     _tv_row = _dc_read(db, "wc2026_trends", _dc.scope_all())
     _tv_pl = (_tv_row or {}).get("payload") if _tv_row else None
-    if _tv_pl and _tv_pl.get("top_videos") is not None:
-        _top_videos = list(_tv_pl.get("top_videos") or [])
+    if _tv_pl:
+        if _sub_scope_now == "Teams":
+            _top_videos = list(_tv_pl.get("top_videos_teams") or [])
+        elif _sub_scope_now == "Confeds":
+            _top_videos = list(_tv_pl.get("top_videos_confeds") or [])
+        else:
+            _top_videos = list(_tv_pl.get("top_videos") or [])
 
 if not _top_videos and _wc_ids:
     _tc, _sc, _si, _ei, _dts = _dc._trends_30d_window()
