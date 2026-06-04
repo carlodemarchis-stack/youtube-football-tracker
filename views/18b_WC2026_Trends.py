@@ -551,11 +551,29 @@ if not _top_videos and _wc_ids:
     _pubs = _dc._scan_pub_videos(db, _wc_ids, _si, _ei)
     _top_videos = _dc._build_top_videos(_pubs, db, wc, _dts, limit=25)
 
+# The cache covers the FULL WC2026 cohort, but `wc` here is the
+# scoped subset (after the sub-scope: Teams / Confeds / All). Two
+# clean-ups before we render:
+#   1. Drop any cached video whose channel isn't in the current
+#      scope — otherwise picking 'Teams only' still surfaced FIFA's
+#      music videos and UEFA's clips.
+#   2. Pass the renderer a channel-lookup keyed on the UNSCOPED full
+#      WC2026 set so a channel never falls back to '?' even on edge
+#      cases (e.g. a future user filter we haven't anticipated).
+_scope_ch_ids = set(ch_by_id.keys())
+if _scope_ch_ids:
+    _top_videos = [v for v in _top_videos
+                   if v.get("channel_id") in _scope_ch_ids]
+_wc_unscoped = [c for c in channels
+                if (c.get("competitions") or {}).get("wc2026")]
+_ch_lookup_full = {c["id"]: c for c in _wc_unscoped if c.get("id")}
+
 if _top_videos:
     render_top_season_videos_table(
-        _top_videos, ch_by_id,
+        _top_videos, _ch_lookup_full,
         header="🏆 Top 25 most-watched videos published in the last 30 days",
         order_by="views", max_height=900,
+        badge_resolver=lambda ch: wc2026_badge(ch, 14),
     )
     st.caption(
         "Most-watched WC2026 videos PUBLISHED in the trailing 30 days, "
