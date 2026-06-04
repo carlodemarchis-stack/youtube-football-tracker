@@ -143,11 +143,39 @@ st.caption(
 
 
 # ── Date picker ──────────────────────────────────────────────────
-# Default to yesterday UTC — that's the timezone the daily cron uses
-# for captured_date in channel_snapshots / video_daily_deltas.
+# Default to the most recent captured_date that actually has WC2026
+# snapshot data for the current scope — same approach as the Top-5
+# recap. Yesterday-UTC is the *target*, but if the cron missed it (or
+# captured_date stamping landed on "today") we drop back to the
+# newest day we have, so the page never opens empty.
 _today_utc = _date.today()
-_default = _today_utc - _td(days=1)
 _min = _today_utc - _td(days=29)
+
+
+@st.cache_data(ttl=180, show_spinner=False)
+def _latest_snap_date(ch_ids: tuple[str, ...]) -> str | None:
+    if not ch_ids:
+        return None
+    try:
+        r = (db.client.table("channel_snapshots")
+             .select("captured_date")
+             .in_("channel_id", list(ch_ids))
+             .order("captured_date", desc=True)
+             .limit(1).execute().data) or []
+    except Exception:
+        r = []
+    return r[0]["captured_date"] if r else None
+
+
+_latest = _latest_snap_date(tuple(c["id"] for c in wc))
+if _latest:
+    _default_str = _latest
+    # Cap at today-UTC just in case the latest is somehow in the future.
+    if _date.fromisoformat(_default_str) > _today_utc:
+        _default_str = _today_utc.isoformat()
+    _default = _date.fromisoformat(_default_str)
+else:
+    _default = _today_utc - _td(days=1)
 pick = st.date_input(
     "Pick a day",
     value=_default, min_value=_min, max_value=_today_utc,
