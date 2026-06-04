@@ -97,20 +97,32 @@ if _wc_confed or _wc_team:
     st.caption(f"Filtered: {_wc_scope_label(_wc_confed, _wc_team)} · "
                f"{len(wc)} channel(s)")
 
-# Amber latency banner — shown only while YouTube's view-count aggregate
-# is still frozen for the WC2026 cohort (independent of top-5). Drops off
-# automatically once the resnap jobs top everyone up. ttl=300 so it
-# clears within ~5 min of recovery without hammering the DB.
+# Amber latency banner — shown only when YouTube's API is in an actual
+# multi-hour latency event for the WC2026 cohort. The shared
+# cohort_frozen_count returns (frozen_n, total) where 'frozen' = same
+# total_views as the previous snapshot for that channel.
+#
+# Why a threshold rather than '> 0' (like top-5): the WC2026 cohort has
+# 62 channels at very different activity levels — a handful of low-traffic
+# federations (Cape Verde, Curaçao, …) routinely show identical view
+# counts day-to-day even when YouTube's API is healthy. So a single
+# frozen channel is noise; an API latency event looks like 20+ frozen
+# at once. Trigger at ≥25% of the cohort, which is well above the
+# baseline noise and well below the typical API-stall pattern (30-60+).
 from src import freshness as _fr
+
+_FROZEN_BANNER_PCT = 0.25
 
 
 @st.cache_data(ttl=300, show_spinner=False)
-def _latency_frozen(_cohort: str) -> int:
-    return _fr.cohort_frozen_count(db, _cohort)[0]
+def _latency_frozen(_cohort: str) -> tuple[int, int]:
+    return _fr.cohort_frozen_count(db, _cohort)
 
 
 try:
-    if _latency_frozen("wc2026") > 0:
+    _frozen_n, _frozen_total = _latency_frozen("wc2026")
+    if (_frozen_total
+            and (_frozen_n / _frozen_total) >= _FROZEN_BANNER_PCT):
         st.markdown(_fr.LATENCY_NOTICE_HTML, unsafe_allow_html=True)
 except Exception:
     pass
