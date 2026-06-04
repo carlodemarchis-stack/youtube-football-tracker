@@ -541,29 +541,30 @@ from src.season_top import render_top_season_videos_table
 
 _wc_ids = list(ch_by_id.keys())
 _top_videos: list[dict] = []
-if not (_wc_confed or _wc_team):
+
+# Cache is only valid for the unfiltered cohort (it was built across
+# all 55 channels). Any narrowing (confed, team, or sub-scope) needs a
+# fresh top-25 computed from the scoped channel set — otherwise picking
+# 'Teams only' showed 4 videos (the remainder after FIFA/UEFA uploads
+# were stripped from a cache dominated by them).
+from src.wc2026_filter import get_wc2026_sub_scope
+_filter_active = (_wc_confed or _wc_team
+                  or get_wc2026_sub_scope() != "All")
+
+if not _filter_active:
     _tv_row = _dc_read(db, "wc2026_trends", _dc.scope_all())
     _tv_pl = (_tv_row or {}).get("payload") if _tv_row else None
     if _tv_pl and _tv_pl.get("top_videos") is not None:
         _top_videos = list(_tv_pl.get("top_videos") or [])
+
 if not _top_videos and _wc_ids:
     _tc, _sc, _si, _ei, _dts = _dc._trends_30d_window()
     _pubs = _dc._scan_pub_videos(db, _wc_ids, _si, _ei)
     _top_videos = _dc._build_top_videos(_pubs, db, wc, _dts, limit=25)
 
-# The cache covers the FULL WC2026 cohort, but `wc` here is the
-# scoped subset (after the sub-scope: Teams / Confeds / All). Two
-# clean-ups before we render:
-#   1. Drop any cached video whose channel isn't in the current
-#      scope — otherwise picking 'Teams only' still surfaced FIFA's
-#      music videos and UEFA's clips.
-#   2. Pass the renderer a channel-lookup keyed on the UNSCOPED full
-#      WC2026 set so a channel never falls back to '?' even on edge
-#      cases (e.g. a future user filter we haven't anticipated).
-_scope_ch_ids = set(ch_by_id.keys())
-if _scope_ch_ids:
-    _top_videos = [v for v in _top_videos
-                   if v.get("channel_id") in _scope_ch_ids]
+# Pass the renderer a channel-lookup keyed on the UNSCOPED full WC2026
+# set so a channel never falls back to '?' (defensive — covers any
+# rendering edge case).
 _wc_unscoped = [c for c in channels
                 if (c.get("competitions") or {}).get("wc2026")]
 _ch_lookup_full = {c["id"]: c for c in _wc_unscoped if c.get("id")}

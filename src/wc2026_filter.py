@@ -193,6 +193,19 @@ def get_wc2026_sub_scope() -> str:
     return st.session_state.get("_wc2026_sel_scope") or "All"
 
 
+def _is_gov_body_channel(c: dict) -> bool:
+    """A channel that represents a governing body itself, not a member
+    nation. Detected by ``wc2026.team == wc2026.confederation`` (FIFA
+    in FIFA, UEFA in UEFA, …) — catches BOTH the main governing-body
+    channels (entity_type=GoverningBody) AND alt channels like FIFA+
+    (entity_type=Federation, role=federation, but still representing
+    FIFA, not a member nation)."""
+    w = _wc(c)
+    t = (w.get("team") or "").strip()
+    cf = (w.get("confederation") or "").strip()
+    return t != "" and t == cf
+
+
 def scope_wc2026(channels: list[dict], confed: str | None,
                  team: str | None,
                  sub_scope: str | None = None) -> list[dict]:
@@ -212,11 +225,9 @@ def scope_wc2026(channels: list[dict], confed: str | None,
         sub_scope = get_wc2026_sub_scope()
     if confed is None and team is None:
         if sub_scope == "Teams":
-            out = [c for c in out
-                   if (c.get("entity_type") or "") != "GoverningBody"]
+            out = [c for c in out if not _is_gov_body_channel(c)]
         elif sub_scope == "Confeds":
-            out = [c for c in out
-                   if (c.get("entity_type") or "") == "GoverningBody"]
+            out = [c for c in out if _is_gov_body_channel(c)]
     return out
 
 
