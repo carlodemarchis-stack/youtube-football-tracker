@@ -316,11 +316,37 @@ def main() -> int:
     log(f"Done in {elapsed:.1f}s — ok={ok} failed={len(failed)} "
         f"new_videos={new_videos_total} video_snapshots={video_snapshots_written}")
 
+    # ── Completeness gate ──
+    # ok + failed must equal len(wc); anything less means the per-channel
+    # loop bailed mid-pass without raising (the 2026-06-03 silent stop at
+    # ok=35/62 failed=0 is the canonical case — process kill, signal, or
+    # Railway restart between iterations). Surface this as a dedicated
+    # status + non-zero exit so the next time it happens the run history
+    # flags it immediately instead of three days later.
+    n_total = len(wc)
+    n_seen = ok + len(failed)
+    incomplete = (n_seen < n_total)
+    if incomplete:
+        log(f"⚠️  INCOMPLETE: {n_seen}/{n_total} channels accounted for "
+            f"({n_total - n_seen} never reached). Likely a process kill "
+            f"mid-loop — check Railway logs / OOM signals around this "
+            f"timestamp.")
+
     # ── Run summary (db log + ntfy) ──
     try:
-        status = "daily_wc2026_partial" if failed else "daily_wc2026"
-        summary = (f"{ok} wc2026 channels, {new_videos_total} new videos, "
-                   f"{video_snapshots_written} video snapshots in {elapsed:.1f}s")
+        if incomplete:
+            status = "daily_wc2026_incomplete"
+        elif failed:
+            status = "daily_wc2026_partial"
+        else:
+            status = "daily_wc2026"
+        summary = (f"{ok}/{n_total} wc2026 channels, "
+                   f"{new_videos_total} new videos, "
+                   f"{video_snapshots_written} video snapshots in "
+                   f"{elapsed:.1f}s")
+        if incomplete:
+            summary += (f" | INCOMPLETE — {n_total - n_seen} channels "
+                        f"never reached (process killed mid-loop)")
         if failed:
             summary += (f" | {len(failed)} failed: "
                         + "; ".join(f"{n}: {e}" for n, e in failed[:5]))
@@ -332,15 +358,20 @@ def main() -> int:
         from src.notify import send_run_alert
         send_run_alert(
             "daily_wc2026",
-            ok=not failed,
-            summary=(f"{ok} wc2026 channels, {new_videos_total} new videos, "
-                     f"{video_snapshots_written} snapshots in {elapsed:.0f}s"),
-            error=(f"{len(failed)} failed" if failed else ""),
+            ok=not (failed or incomplete),
+            summary=(f"{ok}/{n_total} wc2026 channels, "
+                     f"{new_videos_total} new videos, "
+                     f"{video_snapshots_written} snapshots in "
+                     f"{elapsed:.0f}s"),
+            error=(("INCOMPLETE: "
+                    f"{n_total - n_seen} channels never reached"
+                    if incomplete else
+                    (f"{len(failed)} failed" if failed else ""))),
         )
     except Exception as _e:
         log(f"ntfy alert failed (non-fatal): {_e}")
 
-    return 0 if not failed else 1
+    return 0 if (not failed and not incomplete) else 1
 
 
 if __name__ == "__main__":
