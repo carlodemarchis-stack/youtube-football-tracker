@@ -442,95 +442,100 @@ st.caption(
 )
 
 # ── Biggest movers — one row per country ──────────────────────────
-st.markdown("---")
-st.subheader("🚀 Biggest movers")
-st.caption(
-    f"Cumulative change up to {_absd(last_d)} — each team's "
-    f"{_absd(last_d)} channel totals minus its earliest tracked "
-    f"snapshot (window starts {_absd(first_d)} but newer additions "
-    f"are anchored at their import date so they don't read as spikes). "
-    f"All {len(cohort)} WC2026 channels included. "
-    "Not a per-day or last-24h figure."
-)
+# At Z3 (single team selected) the table would render a single row
+# repeating data already shown above (cumulative Δ KPI + per-day
+# charts), so skip it. Z1 (all) and Z2 (one confederation) still
+# benefit from the ranking.
+if not _wc_team:
+    st.markdown("---")
+    st.subheader("🚀 Biggest movers")
+    st.caption(
+        f"Cumulative change up to {_absd(last_d)} — each team's "
+        f"{_absd(last_d)} channel totals minus its earliest tracked "
+        f"snapshot (window starts {_absd(first_d)} but newer additions "
+        f"are anchored at their import date so they don't read as spikes). "
+        f"All {len(cohort)} WC2026 channels included. "
+        "Not a per-day or last-24h figure."
+    )
 
-def _marker(team: str) -> str:
-    """Row marker for a team or governing body. Routes through the
-    shared wc2026_badge resolver so the dual-dot palette (UEFA red+blue
-    etc.) and flag set (England's GB-ENG sequence) stay consistent
-    with every other WC2026 surface."""
-    # Synthesize the minimal channel-shape wc2026_badge expects.
-    if team_is_gov.get(team):
+    def _marker(team: str) -> str:
+        """Row marker for a team or governing body. Routes through the
+        shared wc2026_badge resolver so the dual-dot palette (UEFA red+blue
+        etc.) and flag set (England's GB-ENG sequence) stay consistent
+        with every other WC2026 surface."""
+        # Synthesize the minimal channel-shape wc2026_badge expects.
+        if team_is_gov.get(team):
+            return wc2026_badge(
+                {"entity_type": "GoverningBody", "name": team}, 14)
         return wc2026_badge(
-            {"entity_type": "GoverningBody", "name": team}, 14)
-    return wc2026_badge(
-        {"competitions": {"wc2026": {"team": team}}}, 14)
+            {"competitions": {"wc2026": {"team": team}}}, 14)
 
 
-def _col(x: int) -> str:
-    return _T.POS if x > 0 else (_T.NEG if x < 0 else _T.MUTED)
+    def _col(x: int) -> str:
+        return _T.POS if x > 0 else (_T.NEG if x < 0 else _T.MUTED)
 
 
-# Same look + sort behaviour as the WC2026 All Channels table (shared
-# src.wc_table). "Long / Short / Live" is a composite cell → not
-# sortable (4th tuple element False).
-_MOVER_COLS = [
-    ("#",                   "num", "right"),
-    ("Team",                "str", "left"),
-    ("Confederation",       "str", "left"),
-    ("Δ Views",             "num", "right"),
-    ("Δ Videos",            "num", "right"),
-    ("Long / Short / Live", "str", "right", False),
-    ("Δ Subs",              "num", "right"),
-]
+    # Same look + sort behaviour as the WC2026 All Channels table (shared
+    # src.wc_table). "Long / Short / Live" is a composite cell → not
+    # sortable (4th tuple element False).
+    _MOVER_COLS = [
+        ("#",                   "num", "right"),
+        ("Team",                "str", "left"),
+        ("Confederation",       "str", "left"),
+        ("Δ Views",             "num", "right"),
+        ("Δ Videos",            "num", "right"),
+        ("Long / Short / Live", "str", "right", False),
+        ("Δ Subs",              "num", "right"),
+    ]
 
-ranked = sorted(team_dviews.items(), key=lambda kv: -kv[1])
-mover_rows = []
-for i, (team, dv) in enumerate(ranked, 1):
-    conf = team_conf.get(team, "") or "—"
-    nv = team_dvids.get(team, 0)
-    L, S, Li = team_dl[team], team_ds[team], team_dli[team]
-    dsub = team_dsubs.get(team, 0)
-    url = team_url.get(team, "")
-    name_html = (
-        f"<a href='{url}' target='_blank' rel='noopener'>{team}</a>"
-        if url else f"<span>{team}</span>"
+    ranked = sorted(team_dviews.items(), key=lambda kv: -kv[1])
+    mover_rows = []
+    for i, (team, dv) in enumerate(ranked, 1):
+        conf = team_conf.get(team, "") or "—"
+        nv = team_dvids.get(team, 0)
+        L, S, Li = team_dl[team], team_ds[team], team_dli[team]
+        dsub = team_dsubs.get(team, 0)
+        url = team_url.get(team, "")
+        name_html = (
+            f"<a href='{url}' target='_blank' rel='noopener'>{team}</a>"
+            if url else f"<span>{team}</span>"
+        )
+        mover_rows.append(
+            "<tr>"
+            + _td(i, str(i))
+            + _td(team.lower(),
+                  f"<div style='display:flex;align-items:center;gap:8px'>"
+                  f"{_marker(team)}{name_html}</div>", align="left")
+            + _td(conf.lower(),
+                  f"<span style='color:{_T.MUTED_2}'>{conf}</span>",
+                  align="left")
+            + _td(dv, f"<span style='color:{_col(dv)};font-weight:600'>"
+                      f"{_sg(dv)}</span>")
+            + _td(nv, f"<span style='color:{_col(nv)}'>{_sg(nv)}</span>")
+            + _td(L, f"<span style='color:{_T.MUTED}'>"
+                     f"{_sg(L)} / {_sg(S)} / {_sg(Li)}</span>")
+            + _td(dsub, f"<span style='color:{_col(dsub)}'>{_sg(dsub)}</span>")
+            + "</tr>"
+        )
+
+    # Iframe height tuned to the actual rendered row height. Each row in
+    # .wc-tbl uses padding 6+6 + 14px font + 1px border ≈ 30px; header
+    # adds ~32px. The earlier 36/row formula over-reserved ~330px of
+    # dead space at the bottom of the cohort.
+    _components.html(
+        _render_tbl(_MOVER_COLS, mover_rows, "wc-tbl-movers",
+                    default_col=3, default_asc=False),
+        height=30 * len(ranked) + 50,
+        scrolling=False,
     )
-    mover_rows.append(
-        "<tr>"
-        + _td(i, str(i))
-        + _td(team.lower(),
-              f"<div style='display:flex;align-items:center;gap:8px'>"
-              f"{_marker(team)}{name_html}</div>", align="left")
-        + _td(conf.lower(),
-              f"<span style='color:{_T.MUTED_2}'>{conf}</span>",
-              align="left")
-        + _td(dv, f"<span style='color:{_col(dv)};font-weight:600'>"
-                  f"{_sg(dv)}</span>")
-        + _td(nv, f"<span style='color:{_col(nv)}'>{_sg(nv)}</span>")
-        + _td(L, f"<span style='color:{_T.MUTED}'>"
-                 f"{_sg(L)} / {_sg(S)} / {_sg(Li)}</span>")
-        + _td(dsub, f"<span style='color:{_col(dsub)}'>{_sg(dsub)}</span>")
-        + "</tr>"
+
+    st.caption(
+        "One row per country. Click any column header to sort; click a team "
+        "to open its channel on YouTube. Δ Videos is the net change in "
+        "channel video count split into long / shorts / live. Alt and "
+        "federation channels are summed into their country's row, matching "
+        "the All Channels table."
     )
-
-# Iframe height tuned to the actual rendered row height. Each row in
-# .wc-tbl uses padding 6+6 + 14px font + 1px border ≈ 30px; header
-# adds ~32px. The earlier 36/row formula over-reserved ~330px of
-# dead space at the bottom of the cohort.
-_components.html(
-    _render_tbl(_MOVER_COLS, mover_rows, "wc-tbl-movers",
-                default_col=3, default_asc=False),
-    height=30 * len(ranked) + 50,
-    scrolling=False,
-)
-
-st.caption(
-    "One row per country. Click any column header to sort; click a team "
-    "to open its channel on YouTube. Δ Videos is the net change in "
-    "channel video count split into long / shorts / live. Alt and "
-    "federation channels are summed into their country's row, matching "
-    "the All Channels table."
-)
 
 # ── Top videos published in the last 30 days (video layer) ─────────
 # Cohort-wide → read the precomputed wc2026_trends cache. A narrowed
