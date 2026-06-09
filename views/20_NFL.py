@@ -162,6 +162,91 @@ else:
     ]), unsafe_allow_html=True)
 
 
+# ── 👁️ Views gained per day (since tracking began) ────────────────
+# Mirrors the WC2026 Trends per-day Δ chart: reads channel_snapshots
+# for the scoped channels, computes Δ total_views between consecutive
+# days (only channels with snapshots on BOTH days contribute, so a
+# late-onboarded channel never reads as a spike on its first day).
+# Drops the first row (bootstrap noise — first snapshot has nothing
+# to diff against). Renders in Z1 (cohort sum) and Z2 (single
+# channel) — both shapes use the same code path.
+try:
+    import pandas as _pd
+    import plotly.express as _px
+    from collections import defaultdict as _dd
+    from datetime import datetime as _dt
+    from zoneinfo import ZoneInfo as _ZI
+
+    _ids = [c["id"] for c in nfl]
+    _snaps = []
+    for _i in range(0, len(_ids), 50):
+        _chunk = _ids[_i:_i + 50]
+        _resp = (db.client.table("channel_snapshots")
+                 .select("channel_id,captured_date,total_views")
+                 .in_("channel_id", _chunk)
+                 .order("captured_date", desc=False)
+                 .range(0, 50 * 400 - 1)
+                 .execute().data) or []
+        _snaps.extend(_resp)
+
+    _by_date: dict[str, dict[str, int]] = _dd(dict)
+    for _r in _snaps:
+        _by_date[_r["captured_date"]][_r["channel_id"]] = \
+            int(_r.get("total_views") or 0)
+
+    # Drop today (US/Eastern is where NFL audiences live, but the cron
+    # writes at 04:30 UTC ≈ 00:30 ET — so today's row is partial).
+    _today = _dt.now(_ZI("America/New_York")).date().isoformat()
+    _by_date = {d: v for d, v in _by_date.items() if d < _today}
+    _dates = sorted(_by_date.keys())
+
+    if len(_dates) >= 2:
+        _day_rows = []
+        for _i2 in range(1, len(_dates)):
+            _d, _dp = _dates[_i2], _dates[_i2 - 1]
+            _cur, _prev = _by_date[_d], _by_date[_dp]
+            _dv = sum(_cur[cid] - _prev[cid]
+                      for cid in _cur if cid in _prev)
+            _day_rows.append({"Date": _d, "Δ Views": _dv})
+        _dfd = _pd.DataFrame(_day_rows)
+        _dfd["Date"] = _pd.to_datetime(_dfd["Date"])
+        # Drop first row (partial bootstrap — first day has no prior
+        # to diff cleanly against the rest of the cohort).
+        _dfc = _dfd.iloc[1:] if len(_dfd) > 1 else _dfd
+
+        chart_title("Views gained per day")
+        if IS_Z1:
+            st.caption(
+                f"Daily Δ total_views summed across the {len(nfl)} "
+                f"channels in scope, since the first snapshot on "
+                f"{_dates[0]} ({len(_dates)} days). Only channels "
+                "with snapshots on both days of a pair contribute, "
+                "so a late-onboarded channel never reads as a spike."
+            )
+        else:
+            st.caption(
+                f"Daily Δ total_views for **{_pick}** since the first "
+                f"snapshot on {_dates[0]} ({len(_dates)} days)."
+            )
+        _fv = _px.line(_dfc, x="Date", y="Δ Views", markers=True)
+        _fv.update_traces(line_color=_T.ACCENT,
+                           marker_color=_T.ACCENT)
+        _fv.update_layout(
+            plot_bgcolor=_T.BG, paper_bgcolor=_T.BG,
+            font=dict(color=_T.TEXT), height=340,
+            margin=dict(t=10, l=0, r=0, b=20),
+            yaxis=dict(title="", showgrid=True,
+                       gridcolor="rgba(255,255,255,0.08)"),
+            xaxis=dict(title=""),
+        )
+        st.plotly_chart(_fv, width="stretch")
+    else:
+        st.caption("📈 Views-per-day chart needs ≥ 2 daily snapshots — "
+                   "first one will appear after tomorrow's cron run.")
+except Exception as _e:
+    st.caption(f"(Views-per-day chart unavailable: {_e})")
+
+
 # ── 🥧 Videos by Format ───────────────────────────────────────────
 # Only this pie is meaningful in v0 — the channels API gives us
 # long_form_count / shorts_count / live_count directly. Lifetime
