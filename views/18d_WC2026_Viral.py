@@ -78,10 +78,13 @@ ch_ids = [c["id"] for c in wc if c.get("id")]
 _cids_tuple = tuple(sorted(ch_ids))
 
 st.caption(
-    "Videos ≤30 days old, ranked by views gained ÷ √subscribers "
-    "(magnitude balanced with audience reach), momentum-gated so only "
-    "genuine spikes qualify. Each row's chart is its 30-day daily-views "
-    "trajectory."
+    "📡 **Cohort:** the official YouTube channels of all 48 qualified "
+    "teams + FIFA + the 6 confederations (UEFA · CONMEBOL · CONCACAF "
+    "· CAF · AFC · OFC). **Every video they publish** is eligible — "
+    "not just WC2026-themed content. Videos ≤30 days old, ranked by "
+    "views gained ÷ √subscribers (magnitude balanced with audience "
+    "reach), momentum-gated so only genuine spikes qualify. Each "
+    "row's chart is its 30-day daily-views trajectory."
 )
 if FILTERED:
     st.caption(f"Filtered: {_wc_scope_label(_wc_confed, _wc_team)} · "

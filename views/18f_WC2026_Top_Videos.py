@@ -103,6 +103,12 @@ IS_Z3 = (_team is not None)
 _daily_updated = _cached_last_fetch(db, "daily_wc2026")
 render_page_subtitle("Top 100 most viewed videos all time",
                      updated_raw=_daily_updated)
+st.caption(
+    "📡 **Cohort:** the official YouTube channels of all 48 qualified "
+    "teams + FIFA + the 6 confederations (UEFA · CONMEBOL · CONCACAF "
+    "· CAF · AFC · OFC). **Every video they've ever published** is "
+    "eligible for this ranking — not just WC2026-themed content."
+)
 
 # Scope context line.
 if IS_Z3:

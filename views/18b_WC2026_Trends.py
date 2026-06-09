@@ -56,11 +56,13 @@ def _absd(iso: str) -> str:
 
 st.title("FIFA World Cup 2026 — Trends")
 st.caption(
-    "View gains and videos published (long / shorts / live) for every "
-    "official WC2026 channel, day by day, on the road to the "
-    "tournament. Snapshotted daily (~02:00 CET). Alt channels are "
-    "rolled into their country's totals — same convention as the "
-    "All Channels table."
+    "📡 **Cohort:** the official YouTube channels of all 48 qualified "
+    "teams + FIFA + the 6 confederations (UEFA · CONMEBOL · CONCACAF "
+    "· CAF · AFC · OFC). View gains and videos published (long / "
+    "shorts / live) cover **every video and every view** these "
+    "channels earn — not just WC2026-themed content. Snapshotted "
+    "daily (~02:00 CET). Alt channels are rolled into their country's "
+    "totals — same convention as the All Channels table."
 )
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")

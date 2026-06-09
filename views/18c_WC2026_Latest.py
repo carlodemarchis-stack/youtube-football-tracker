@@ -97,8 +97,15 @@ try:
     _latest_pub = _r[0]["published_at"] if _r else None
 except Exception:
     pass
-render_page_subtitle("Most recently published WC2026 videos · "
-                     f"{len(wc)} channels", updated_raw=_latest_pub)
+render_page_subtitle(
+    "Most recent uploads from the WC2026 cohort · "
+    f"{len(wc)} channels", updated_raw=_latest_pub)
+st.caption(
+    "📡 **Cohort:** the official YouTube channels of all 48 qualified "
+    "teams + FIFA + the 6 confederations (UEFA · CONMEBOL · CONCACAF "
+    "· CAF · AFC · OFC). We surface **every video they publish** "
+    "below, including content unrelated to WC2026."
+)
 
 with st.spinner("Loading latest videos…"):
     try:
