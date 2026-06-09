@@ -306,6 +306,93 @@ try:
 except Exception as _e:
     st.caption(f"(24h timeline unavailable: {_e})")
 
+# ── Last-day Δ views per channel (scoped bar chart) ──────────────
+# One bar per channel in scope, sorted by Δ views desc. Picks the two
+# most-recent captured_dates in channel_snapshots so we always have
+# data — robust against missing/partial days. Coloured by
+# confederation brand colour. Cohort + sub-scope filter cascade
+# automatically via `wc` / `ch_ids` above.
+try:
+    import pandas as _pd
+    import altair as _alt
+    from collections import defaultdict as _dd
+    from src.wc2026_badge import CONF_COLOR as _CC
+
+    _snap_rows = []
+    if ch_ids:
+        _resp = (db.client.table("channel_snapshots")
+                 .select("channel_id,captured_date,total_views")
+                 .in_("channel_id", ch_ids)
+                 .order("captured_date", desc=True)
+                 .range(0, 2 * len(ch_ids) - 1)
+                 .execute().data) or []
+        _snap_rows = _resp
+
+    _by_date = _dd(dict)
+    for _r in _snap_rows:
+        _by_date[_r["captured_date"]][_r["channel_id"]] = \
+            int(_r.get("total_views") or 0)
+    _dates_desc = sorted(_by_date.keys(), reverse=True)
+    if len(_dates_desc) >= 2:
+        _cur_d, _prev_d = _dates_desc[0], _dates_desc[1]
+        _cur, _prev = _by_date[_cur_d], _by_date[_prev_d]
+        _name_of = {c["id"]: (((c.get("competitions") or {})
+                                 .get("wc2026") or {}).get("team")
+                                or c.get("name") or "?")
+                     for c in wc}
+        _conf_of_id = {c["id"]: (((c.get("competitions") or {})
+                                     .get("wc2026") or {})
+                                    .get("confederation") or "Other")
+                        for c in wc}
+        _rows = []
+        for cid, cv in _cur.items():
+            pv = _prev.get(cid)
+            if pv is None:
+                continue
+            _rows.append({
+                "Channel": _name_of.get(cid, "?"),
+                "Δ Views": int(cv - pv),
+                "Confederation": _conf_of_id.get(cid, "Other"),
+            })
+        if _rows:
+            _df = _pd.DataFrame(_rows)\
+                .sort_values("Δ Views", ascending=False)
+            st.subheader("👁️ Δ Views per channel — last full day")
+            st.caption(
+                f"Each WC2026 channel's view-count change between "
+                f"{_prev_d} and {_cur_d}, ordered by most growth. "
+                "Bar colour = confederation. Inherits the filter above."
+            )
+            _conf_seen = list(dict.fromkeys(_df["Confederation"]))
+            _bar = (
+                _alt.Chart(_df)
+                .mark_bar()
+                .encode(
+                    y=_alt.Y("Channel:N",
+                              sort=_df["Channel"].tolist(),
+                              title=None),
+                    x=_alt.X("Δ Views:Q", title="Δ Views",
+                              axis=_alt.Axis(format="~s")),
+                    color=_alt.Color(
+                        "Confederation:N",
+                        scale=_alt.Scale(
+                            domain=_conf_seen,
+                            range=[_CC.get(c, "#888")
+                                   for c in _conf_seen]),
+                        legend=_alt.Legend(orient="bottom",
+                                            title=None)),
+                    tooltip=[
+                        _alt.Tooltip("Channel:N"),
+                        _alt.Tooltip("Confederation:N"),
+                        _alt.Tooltip("Δ Views:Q", format=","),
+                    ],
+                )
+                .properties(height=max(280, 22 * len(_df)))
+            )
+            st.altair_chart(_bar, width="stretch")
+except Exception as _e:
+    st.caption(f"(Δ views chart unavailable: {_e})")
+
 # ── Format / scheduled / mosaic controls ─────────────────────
 _fc1, _fc2, _fc3 = st.columns([4, 1, 1])
 with _fc1:
