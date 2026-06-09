@@ -72,12 +72,28 @@ def _is_hq(c) -> bool:
 # ── Channel filter ────────────────────────────────────────────────
 # The dropdown is rendered above the page title by app.py (same slot
 # as the global / WC2026 filters). Here we just read the selection.
-from src.nfl_filter import get_nfl_filter
+from src.nfl_filter import get_nfl_filter, is_nfl_teams_only
 _pick = get_nfl_filter()  # None for "All channels", else the team name
-nfl = nfl_all if _pick is None else [
-    c for c in nfl_all if c.get("name") == _pick
-]
-_scope_label = "33 channels" if _pick is None else _pick
+_teams_only = is_nfl_teams_only()
+
+# "Teams only" = Z1 multi-channel scope minus the NFL HQ channel.
+# HQ is the one with no conference assigned.
+def _is_nfl_hq(c) -> bool:
+    return ((c.get("competitions") or {}).get("nfl") or {})\
+        .get("conference", "—") == "—"
+
+if _pick is not None:
+    nfl = [c for c in nfl_all if c.get("name") == _pick]
+elif _teams_only:
+    nfl = [c for c in nfl_all if not _is_nfl_hq(c)]
+else:
+    nfl = nfl_all
+if _pick is not None:
+    _scope_label = _pick
+elif _teams_only:
+    _scope_label = f"{len(nfl)} teams (HQ excluded)"
+else:
+    _scope_label = f"{len(nfl_all)} channels"
 IS_Z1 = (_pick is None)
 
 # Precompute ranks across all 33 channels — only used in Z2.
@@ -360,10 +376,17 @@ def _subs_bar(subset, title: str | None = None,
 if _subs_rows:
     if IS_Z1:
         st.subheader(f"📊 Subscribers by channel — {_scope_label}")
-        st.caption("All channels in scope, ranked by subscriber count. "
-                   "Log scale so the long tail (clubs in the ~100k "
-                   "range) stays readable alongside the NFL's "
-                   "~16M-subscriber main channel.")
+        if _teams_only:
+            st.caption("All 32 NFL franchise channels, ranked by "
+                       "subscriber count. Log scale so the long "
+                       "tail (~100k subs) stays readable next to "
+                       "the Chiefs at ~1.6M.")
+        else:
+            st.caption("All channels in scope, ranked by subscriber "
+                       "count. Log scale so the long tail (clubs "
+                       "in the ~100k range) stays readable "
+                       "alongside the NFL's ~16M-subscriber main "
+                       "channel.")
         # Single chart, log Y so the NFL's 16M doesn't flatten every
         # team into invisible nubs (the old split into ≥1M / <1M
         # rows worked around the same problem but hid the relative
@@ -409,7 +432,8 @@ if IS_Z1:
 
     if _yr_counts:
         st.subheader(f"📅 Channels launched per year — {_scope_label}")
-        st.caption("YouTube channel creation year across the 33 channels.")
+        st.caption(f"YouTube channel creation year across the "
+                   f"{len(nfl)} channel(s) in scope.")
         yr_min, yr_max = min(_yr_counts), max(_yr_counts)
         years = list(range(yr_min, yr_max + 1))
         values = [_yr_counts.get(y, 0) for y in years]
