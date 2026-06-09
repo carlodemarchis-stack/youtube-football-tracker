@@ -316,22 +316,41 @@ try:
                 "Confederation": _conf_of_id.get(cid, "Other"),
             })
         if _rows:
-            _df = _pd.DataFrame(_rows)\
+            _df_full = _pd.DataFrame(_rows)\
                 .sort_values("Δ Views", ascending=False)
+            # Cap at top-20 by Δ views. Beyond that the y-axis labels
+            # collide and the chart stops being readable on a normal
+            # screen — better to show fewer rows clearly than 50+
+            # with auto-skipped labels.
+            _MAX_BARS = 20
+            _df = _df_full.head(_MAX_BARS)
+            _total = len(_df_full)
             st.subheader("👁️ Δ Views per channel — last full day")
+            _suffix = (f" Top {len(_df)} of {_total} shown."
+                       if _total > _MAX_BARS else "")
             st.caption(
                 f"Each WC2026 channel's view-count change between "
                 f"{_prev_d} and {_cur_d}, ordered by most growth. "
-                "Bar colour = confederation. Inherits the filter above."
+                f"Bar colour = confederation. Inherits the filter "
+                f"above.{_suffix}"
             )
             _conf_seen = list(dict.fromkeys(_df["Confederation"]))
             _bar = (
                 _alt.Chart(_df)
                 .mark_bar()
                 .encode(
-                    y=_alt.Y("Channel:N",
-                              sort=_df["Channel"].tolist(),
-                              title=None),
+                    y=_alt.Y(
+                        "Channel:N",
+                        sort=_df["Channel"].tolist(),
+                        title=None,
+                        # Force every label to render — no
+                        # auto-skip / overlap suppression — and
+                        # widen the gutter so long team names
+                        # (e.g. 'Bosnia and Herzegovina') don't
+                        # get truncated.
+                        axis=_alt.Axis(labelLimit=240,
+                                        labelOverlap=False,
+                                        labelPadding=4)),
                     x=_alt.X("Δ Views:Q", title="Δ Views",
                               axis=_alt.Axis(format="~s")),
                     color=_alt.Color(
@@ -348,7 +367,9 @@ try:
                         _alt.Tooltip("Δ Views:Q", format=","),
                     ],
                 )
-                .properties(height=max(280, 22 * len(_df)))
+                # 28px per row + 60px header/legend padding keeps
+                # every label readable.
+                .properties(height=28 * len(_df) + 60)
             )
             st.altair_chart(_bar, width="stretch")
 except Exception as _e:
