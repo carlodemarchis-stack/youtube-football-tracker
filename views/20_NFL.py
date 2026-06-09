@@ -361,15 +361,32 @@ if _subs_rows:
     if IS_Z1:
         st.subheader(f"📊 Subscribers by channel — {_scope_label}")
         st.caption("All channels in scope, ranked by subscriber count. "
-                   "Top row: ≥ 1M subs · bottom row: < 1M (the long tail).")
-        big   = [c for c in _subs_rows if int(c.get("subscriber_count") or 0) >= 1_000_000]
-        small = [c for c in _subs_rows if int(c.get("subscriber_count") or 0) <  1_000_000]
-        if big:
-            _subs_bar(big, "≥ 1M subscribers")
-        if small:
-            _subs_bar(small, "< 1M subscribers")
-        if not big and not small:
-            _subs_bar(_subs_rows)
+                   "Log scale so the long tail (clubs in the ~100k "
+                   "range) stays readable alongside the NFL's "
+                   "~16M-subscriber main channel.")
+        # Single chart, log Y so the NFL's 16M doesn't flatten every
+        # team into invisible nubs (the old split into ≥1M / <1M
+        # rows worked around the same problem but hid the relative
+        # gap between groups).
+        _names = [c.get("name") or "?" for c in _subs_rows]
+        _subs  = [int(c.get("subscriber_count") or 0) for c in _subs_rows]
+        fig_subs = go.Figure(go.Bar(
+            x=_names, y=_subs, marker_color=_T.ACCENT,
+            hovertemplate="<b>%{x}</b><br>Subs: %{y:,}<extra></extra>",
+        ))
+        fig_subs.update_layout(
+            height=480,
+            xaxis=dict(title="", tickangle=-45, automargin=True,
+                       tickfont=dict(size=10)),
+            yaxis=dict(title="Subscribers (log)", type="log",
+                       showgrid=True,
+                       gridcolor="rgba(255,255,255,0.08)"),
+            margin=dict(t=10, b=120, l=10, r=10),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color=_T.TEXT), showlegend=False,
+        )
+        st.plotly_chart(fig_subs, width="stretch")
     else:
         st.subheader(f"📊 Subs rank in NFL — {_pick} highlighted")
         st.caption("Where this channel sits among the 33 NFL channels.")
