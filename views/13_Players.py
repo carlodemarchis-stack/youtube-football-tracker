@@ -74,7 +74,12 @@ players.sort(key=lambda c: int(c.get("subscriber_count") or 0), reverse=True)
 # ── Narrative headline stat ──────────────────────────────────
 _top = players[0]
 _top_subs = int(_top.get("subscriber_count") or 0)
-_all_clubs = [c for c in all_channels if c.get("entity_type") not in ("League", "Player")]
+# Clubs only — for the "player has more subs than all clubs in
+# league X combined" headline. Inclusion-based so F1 (country=UK,
+# maps to PL via COUNTRY_TO_LEAGUE), NFL, Federations etc. can't
+# inflate league totals.
+from src.filters import is_club as _is_club
+_all_clubs = [c for c in all_channels if _is_club(c)]
 # Find a league whose aggregate club subs < top player's subs (for the headline)
 _league_totals: dict[str, int] = {}
 for c in _all_clubs:
