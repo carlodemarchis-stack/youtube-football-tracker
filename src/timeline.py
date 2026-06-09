@@ -199,6 +199,7 @@ def render_48h_dots(
     group_resolver=None,
     row_label: str = "club",
     all_channels: list[dict] | None = None,
+    all_groups: list[dict] | None = None,
 ) -> bool:
     """Compact dot version of the 48h timeline.
 
@@ -264,6 +265,25 @@ def render_48h_dots(
                 ch_label[cid] = ch.get("name") or cid
                 ch_last[cid] = sentinel
 
+        # Group-key back-fill: ensures every key in `all_groups` gets a
+        # row, even if it had zero videos in the window. Used when the
+        # caller groups by a derived key (e.g. confederation) and wants
+        # quiet groups visible too. Each entry: {key, label, badge_html}.
+        _group_meta: dict[str, dict] = {}
+        if all_groups and group_resolver is not None:
+            from datetime import datetime as _dt0, timezone as _tz0
+            sentinel = _dt0(1970, 1, 1, tzinfo=_tz0.utc)
+            for g in all_groups:
+                k = g.get("key")
+                if not k:
+                    continue
+                _group_meta[k] = g
+                if k in by_ch:
+                    continue
+                by_ch[k] = []
+                ch_label[k] = g.get("label") or k
+                ch_last[k] = sentinel
+
         # Order rows by video count desc (then by most-recent as tiebreaker).
         # Channels with 0 videos sink to the bottom by construction.
         rows = sorted(by_ch.keys(),
@@ -321,7 +341,13 @@ def render_48h_dots(
             top_px = TOP_PAD + ridx * ROW_H
             label = (ch_label.get(cid, "") or "").replace("<", "&lt;").replace(">", "&gt;")
             badge_html = ""
-            if badge_resolver is not None:
+            # Empty rows back-filled via `all_groups` carry their badge
+            # HTML explicitly — the per-video resolver can't synthesize
+            # one without a real video to sample. Use it when present.
+            if (not by_ch[cid]) and cid in _group_meta \
+                    and _group_meta[cid].get("badge_html"):
+                badge_html = _group_meta[cid]["badge_html"]
+            elif badge_resolver is not None:
                 try:
                     # Empty rows (back-filled from all_channels) have no
                     # video to sample — synthesize a {channel_id} stub so

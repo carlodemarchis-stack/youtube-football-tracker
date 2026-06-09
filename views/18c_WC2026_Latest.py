@@ -241,9 +241,24 @@ try:
     elif _wc_confed:
         # Z2 — one confederation: dots grouped by team within it.
         from src.timeline import render_48h_dots
-        from collections import Counter as _Counter
-        _n_teams = len({_team_of(v) for v in timeline_unscheduled
-                        if _team_of(v)})
+        # Every team in scope gets a row, even if it had 0 uploads,
+        # so the "who's quiet" view is preserved.
+        _all_teams_in_scope = sorted({
+            (((c.get("competitions") or {}).get("wc2026") or {})
+             .get("team")
+             or c.get("country") or c.get("name") or "—")
+            for c in wc
+        })
+        _team_groups = [
+            {"key": t, "label": t,
+             # Synthesize a channel-dict so the shared badge resolver
+             # picks the right flag for the team.
+             "badge_html": wc2026_badge(
+                 {"competitions": {"wc2026": {"team": t}},
+                  "name": t, "country": t}, 14)}
+            for t in _all_teams_in_scope
+        ]
+        _n_teams = len(_all_teams_in_scope)
         render_48h_dots(
             timeline_unscheduled,
             channel_resolver=_team_of,
@@ -251,15 +266,29 @@ try:
             badge_resolver=_team_badge,
             group_resolver=_team_of,
             row_label="team",
+            all_groups=_team_groups,
             caption=(f"{_tl_n} video(s) across {_n_teams} team(s) "
                      f"from {_tl_chans} channel(s) in the last 24h. "
+                     "Quiet teams shown as empty rows. "
                      "Click any dot to open the video."),
         )
     else:
         # Z1 — all WC2026: dots grouped by confederation.
         from src.timeline import render_48h_dots
-        _n_confeds = len({_conf_of(v) for v in timeline_unscheduled
-                          if _conf_of(v)})
+        # Every confederation present in the cohort gets a row, even
+        # if it published 0 videos in the last 24h.
+        _all_confeds_in_scope = sorted({
+            (((c.get("competitions") or {}).get("wc2026") or {})
+             .get("confederation") or "Other")
+            for c in wc
+        })
+        _confed_groups = [
+            {"key": k, "label": k,
+             "badge_html": wc2026_badge(
+                 {"entity_type": "GoverningBody", "name": k}, 14)}
+            for k in _all_confeds_in_scope
+        ]
+        _n_confeds = len(_all_confeds_in_scope)
         render_48h_dots(
             timeline_unscheduled,
             channel_resolver=_conf_of,
@@ -267,9 +296,11 @@ try:
             badge_resolver=_conf_badge,
             group_resolver=_conf_of,
             row_label="confederation",
+            all_groups=_confed_groups,
             caption=(f"{_tl_n} video(s) across {_n_confeds} "
                      f"confederation(s) from {_tl_chans} channel(s) "
-                     "in the last 24h. Click any dot to open the video."),
+                     "in the last 24h. Quiet confederations shown "
+                     "as empty rows. Click any dot to open the video."),
         )
 except Exception as _e:
     st.caption(f"(24h timeline unavailable: {_e})")
