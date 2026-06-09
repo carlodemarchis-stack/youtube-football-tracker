@@ -277,6 +277,12 @@ def _team_badge(v) -> str:
     return wc2026_badge(ch, 14)
 
 try:
+    # Distinct channels actually represented in the timeline window.
+    # Surfaced in the caption so it's clear stats are aggregated
+    # across many channels rather than read as per-row totals.
+    _tl_n = len(timeline_unscheduled)
+    _tl_chans = len({v.get("channel_id") for v in timeline_unscheduled
+                     if v.get("channel_id")})
     if _wc_team:
         # Z3 — single team: rich thumbnail strip (core Z3 analog).
         from src.timeline import render_48h_timeline
@@ -284,6 +290,9 @@ try:
     elif _wc_confed:
         # Z2 — one confederation: dots grouped by team within it.
         from src.timeline import render_48h_dots
+        from collections import Counter as _Counter
+        _n_teams = len({_team_of(v) for v in timeline_unscheduled
+                        if _team_of(v)})
         render_48h_dots(
             timeline_unscheduled,
             channel_resolver=_team_of,
@@ -291,10 +300,15 @@ try:
             badge_resolver=_team_badge,
             group_resolver=_team_of,
             row_label="team",
+            caption=(f"{_tl_n} video(s) across {_n_teams} team(s) "
+                     f"from {_tl_chans} channel(s) in the last 24h. "
+                     "Click any dot to open the video."),
         )
     else:
         # Z1 — all WC2026: dots grouped by confederation.
         from src.timeline import render_48h_dots
+        _n_confeds = len({_conf_of(v) for v in timeline_unscheduled
+                          if _conf_of(v)})
         render_48h_dots(
             timeline_unscheduled,
             channel_resolver=_conf_of,
@@ -302,6 +316,9 @@ try:
             badge_resolver=_conf_badge,
             group_resolver=_conf_of,
             row_label="confederation",
+            caption=(f"{_tl_n} video(s) across {_n_confeds} "
+                     f"confederation(s) from {_tl_chans} channel(s) "
+                     "in the last 24h. Click any dot to open the video."),
         )
 except Exception as _e:
     st.caption(f"(24h timeline unavailable: {_e})")
