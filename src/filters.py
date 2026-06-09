@@ -372,15 +372,13 @@ def get_global_color_map_dual() -> dict[str, tuple[str, str]]:
     return _load_colors()
 
 
-# Entity types whose channels never appear in the per-club / per-league
-# charts — they have their own pages and pick colors there (WC2026 uses
-# ch.get("color") with a fallback, Players page renders flat lists, etc.).
-# Excluding them from _load_colors means we don't issue a flood of
-# UPDATE statements on every page render trying to assign chart colors
-# to channels that will never be plotted.
-_NO_CHART_COLOR_TYPES = frozenset(
-    ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL", "F1")
-)
+# Inclusion-based: only Club + League channels get chart colors
+# generated/persisted by `_load_colors`. Everyone else (Players /
+# Federations / NFL / F1 / WC2026 / future cohorts) lives on their
+# own pages and picks colors there — generating colors for them
+# would flood the DB with UPDATEs for channels that will never be
+# plotted on a shared chart. Mirrors the cohort allowlist above.
+_CHART_COLOR_TYPES = frozenset(_TOP5_COHORT_TYPES)
 
 
 @st.cache_data(ttl=1800, show_spinner=False)
@@ -423,7 +421,7 @@ def _load_colors() -> dict[str, tuple[str, str]]:
             c2 = ch.get("color2") or "#FFFFFF"
             color_map[ch["name"]] = (c1, c2)
             used_colors.add(c1)
-        elif ch.get("entity_type") not in _NO_CHART_COLOR_TYPES:
+        elif ch.get("entity_type") in _CHART_COLOR_TYPES:
             # Only Club/League rows trigger the auto-assign + DB write
             needs_color.append(ch)
         # Else: Player/Federation/etc. without color — leave out of the
@@ -471,15 +469,12 @@ def get_channels_for_filter(channels: list[dict], league: str | None) -> list[di
             return [ch for ch in channels if ch.get("entity_type") == "League"]
         if scope == "All clubs":
             return [ch for ch in channels if is_club(ch)]
-        # Overall: exclude Players + Federations + WC2026 (own pages)
-        # but keep leagues
-        return [ch for ch in channels
-                if ch.get("entity_type") not in ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL", "F1")
-                and not is_wc2026(ch)]
+        # Overall: Club + League channels, excluding Players /
+        # Federations / NFL / F1 / WC2026 (each has its own page).
+        return [ch for ch in channels if is_top5_cohort(ch)]
     return [
         ch for ch in channels
-        if ch.get("entity_type") not in ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL", "F1")
-        and not is_wc2026(ch)
+        if is_top5_cohort(ch)
         and COUNTRY_TO_LEAGUE.get(ch.get("country", ""), ch.get("country", "")) == league
     ]
 
