@@ -22,6 +22,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from src.database import Database
+from src.filters import is_top5_cohort
 
 
 # Mapping is keyed by youtube_channel_id so a name/handle change
@@ -219,8 +220,7 @@ def main() -> int:
 
     # Coverage report
     chs2 = db.get_all_channels()
-    core = [c for c in chs2 if c.get("entity_type") not in
-            ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL", "F1")]
+    core = [c for c in chs2 if is_top5_cohort(c)]
     with_web = sum(1 for c in core if (c.get("website") or "").strip())
     print(f"\nCoverage: {with_web}/{len(core)} core channels have website set "
           f"({100*with_web//len(core)}%).")

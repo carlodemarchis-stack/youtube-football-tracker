@@ -36,6 +36,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from src.database import Database
+from src.filters import is_top5_cohort
 from src.youtube_api import YouTubeClient
 from src.channels import get_season_since
 
@@ -90,7 +91,7 @@ def main() -> int:
     ch_by_yt_id: dict[str, dict] = {}
     for ch in channels:
         yt_id = ch.get("youtube_channel_id")
-        if yt_id and ch.get("entity_type") not in ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL", "F1"):
+        if yt_id and is_top5_cohort(ch):
             ch_by_yt_id[yt_id] = ch
 
     # Collect all new video IDs across all channels

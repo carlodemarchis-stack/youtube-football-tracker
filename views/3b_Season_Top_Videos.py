@@ -10,6 +10,7 @@ from __future__ import annotations
 import os
 
 import streamlit as st
+from src.filters import is_top5_cohort, is_club
 from dotenv import load_dotenv
 
 from src.database import Database
@@ -76,12 +77,10 @@ elif league is not None:
     # story under the same filter).
     if get_include_league():
         scope = [c for c in league_channels
-                 if c.get("entity_type") not in
-                    ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")]
+                 if is_top5_cohort(c)]
     else:
         scope = [c for c in league_channels
-                 if c.get("entity_type") not in
-                    ("League", "Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")]
+                 if is_club(c)]
     _ids = [c["id"] for c in scope]
     _label = league
 
@@ -96,12 +95,10 @@ else:
         scope = [c for c in all_channels if c.get("entity_type") == "League"]
     elif _scope_label == "All clubs":
         scope = [c for c in all_channels
-                 if c.get("entity_type") not in
-                    ("League", "Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")]
+                 if is_club(c)]
     else:
         scope = [c for c in all_channels
-                 if c.get("entity_type") not in
-                    ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")]
+                 if is_top5_cohort(c)]
     _ids = [c["id"] for c in scope]
     _label = "All Leagues"
 
@@ -152,8 +149,7 @@ _z1 = (club is None and league is None)
 _excluded = None
 if _z1:
     _excluded = [c["id"] for c in all_channels
-                 if c.get("entity_type") in
-                    ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")]
+                 if not is_top5_cohort(c)]
 
 top_views = top_likes = top_comments = None
 
@@ -210,8 +206,7 @@ if top_views:
     if club is not None:
         _core_channels = [
             c for c in all_channels
-            if c.get("entity_type") not in
-               ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")
+            if is_top5_cohort(c)
         ]
         _ch_lg = get_league_for_channel(club)
         _league_cohort = [c for c in _core_channels
@@ -334,9 +329,7 @@ if top_views:
             # league-by-league breakdown (their country codes would
             # otherwise pollute the "Other" bucket with FIFA's WW,
             # UEFA's EU, or individual federations' team codes).
-            if ch.get("entity_type") in ("Player", "Federation",
-                                          "GoverningBody",
-                                          "OtherClub", "WomenClub", "NFL"):
+            if not is_top5_cohort(ch):
                 continue
             country = (ch.get("country") or "").upper()
             lg = COUNTRY_TO_LEAGUE.get(country) or "Other"

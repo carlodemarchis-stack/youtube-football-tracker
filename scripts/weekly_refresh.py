@@ -30,6 +30,7 @@ from datetime import datetime, timezone
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.database import Database
+from src.filters import is_top5_cohort, is_club
 from src.youtube_api import YouTubeClient
 from src.channels import get_season_since
 
@@ -61,7 +62,7 @@ def main() -> int:
     # ── 1. Channel stats + channel_snapshots ─────────────────────
     channels = db.get_all_channels()
     # Players + Federations have their own dedicated crons — skip them here
-    channels = [c for c in channels if c.get("entity_type") not in ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL", "F1")]
+    channels = [c for c in channels if is_top5_cohort(c)]
     log(f"Step 1: refreshing stats for {len(channels)} channels (Players + Federations excluded)")
     ch_ok = 0
     ch_failed: list[tuple[str, str]] = []
@@ -105,7 +106,7 @@ def main() -> int:
 
     # Exclude Player + Federation videos — handled by their dedicated crons
     _player_cids = {c["id"] for c in db.get_all_channels()
-                    if c.get("entity_type") in ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL", "F1")}
+                    if not is_top5_cohort(c)}
     if _player_cids:
         rows = [r for r in rows if _vid_to_cid.get(r["id"]) not in _player_cids]
     total_videos = len(rows)
@@ -217,7 +218,7 @@ def main() -> int:
     # Refresh channels list (may have new IDs from step 1)
     channels = db.get_all_channels()
     # Players + Federations have their own dedicated crons — skip them here
-    club_channels = [c for c in channels if c.get("entity_type") not in ("League", "Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL", "F1")]
+    club_channels = [c for c in channels if is_club(c)]
     log(f"Step 3: recomputing top100_stats for {len(club_channels)} club channels")
 
     stats_ok = 0

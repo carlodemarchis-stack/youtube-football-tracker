@@ -23,7 +23,7 @@ except ImportError:
     # Fallback if a prior version of src.analytics is still cached.
     def video_table_height(n_rows: int, header_buffer: int = 50) -> int:
         return max(0, int(n_rows)) * 75 + header_buffer
-from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope, get_league_for_channel, render_page_subtitle
+from src.filters import get_all_leagues_scope, get_channels_for_filter, get_global_channels, get_global_color_map, get_global_color_map_dual, get_global_filter, get_include_league, get_league_for_channel, is_club, is_top5_cohort, render_page_subtitle
 from src.auth import require_login
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, LEAGUE_COLOR, LEAGUE_COLOR_CHART, get_season_since, LEAGUE_SEASON_START
 from src.dot import dual_dot, channel_badge
@@ -221,8 +221,7 @@ def _compute_league_stats(channels):
     Federations / OtherClubs / WomenClubs (they have own pages)."""
     stats: dict[str, dict] = {}
     for ch in channels:
-        if ch.get("entity_type") in ("Player", "Federation", "GoverningBody",
-                                      "OtherClub", "WomenClub", "NFL"):
+        if not is_top5_cohort(ch):
             continue
         lg = get_league_for_channel(ch)
         if not lg:
@@ -952,7 +951,7 @@ if league is None and _scope == "Overall":
         from src.database import _fetch_all
         scoped_ids = {
             c["id"] for c in all_channels
-            if c.get("entity_type") in ("Club", "League")
+            if not is_club(c)
             and get_league_for_channel(c)
         }
         if not scoped_ids:
@@ -1102,8 +1101,7 @@ if league is None and _scope == "Overall":
             from src.database import _fetch_all as _fa_vpd
             from collections import Counter as _Counter
             _vpd_clubs = [c for c in all_channels
-                          if c.get("entity_type") not in
-                             ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")]
+                          if is_top5_cohort(c)]
             _vpd_ids = [c["id"] for c in _vpd_clubs if c.get("id")]
             _vpd_rows = _fa_vpd(
                 db.client.table("videos")
@@ -1267,8 +1265,7 @@ if league is None and _scope == "Overall":
         if not _z1_zd_rows:
             from src.database import _fetch_all as _fa_z1
             _z1_clubs = [c for c in all_channels
-                         if c.get("entity_type") not in
-                            ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")]
+                         if is_top5_cohort(c)]
             _z1_ids = [c["id"] for c in _z1_clubs if c.get("id")]
             _z1_rows = _fa_z1(
                 db.client.table("videos")
@@ -1357,7 +1354,7 @@ if league is None and _scope == "Overall":
             from src import onehit as _oh
             from src.season_top import render_top_season_videos_table as _rtv
             _z1_top5 = [c for c in all_channels
-                        if c.get("entity_type") in ("Club", "League")
+                        if not is_club(c)
                         and c.get("id")]
             _z1_ids = [c["id"] for c in _z1_top5]
             _z1_hits = _oh.top_n(db, _z1_ids, SEASON_SINCE, n=10)
@@ -1404,7 +1401,7 @@ if league is None and _scope == "Overall":
 
     ch_rows = []
     for ch in all_channels:
-        if ch.get("entity_type") in ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL"):
+        if not is_top5_cohort(ch):
             continue  # isolated entity types live on their own pages
         lv = int(ch.get("season_long_views") or 0)
         sv = int(ch.get("season_short_views") or 0)
@@ -1599,7 +1596,7 @@ if club is None:
         if include_league:
             clubs_only = league_channels
         else:
-            clubs_only = [ch for ch in league_channels if ch.get("entity_type") not in ("League", "Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")]
+            clubs_only = [ch for ch in league_channels if is_club(ch)]
 
     if not clubs_only:
         st.info("No clubs in this league yet.")
@@ -2235,7 +2232,7 @@ if club is None:
             # Include both Club and League channels (e.g. @seriea); skip
             # only channels with too few videos to be meaningful.
             _conc_rows = [r for r in _conc_rows
-                          if r.get("entity_type") in ("Club", "League")
+                          if not is_club(r)
                           and r.get("n_videos", 0) >= 5]
             if _conc_rows:
                 import plotly.graph_objects as _go_c
@@ -2393,7 +2390,7 @@ if club is None:
             from src.season_top import render_top_season_videos_table as _rtv
             from src.channels import COUNTRY_TO_LEAGUE as _CTL
             _z2_chs = [c for c in all_channels
-                       if c.get("entity_type") in ("Club", "League")
+                       if not is_club(c)
                        and _CTL.get((c.get("country") or "").strip()) == league
                        and c.get("id")]
             _z2_ids = [c["id"] for c in _z2_chs]
@@ -2509,9 +2506,7 @@ else:
     # stack up?" inline under each KPI. Computed against the same Top-5
     # clubs cohort that drives every other rank on the site.
     _clubs_cohort = [c for c in all_channels
-                     if c.get("entity_type") not in ("League", "Player",
-                                                     "Federation", "OtherClub",
-                                                     "WomenClub")]
+                     if is_club(c)]
     _ch_lg_z3 = get_league_for_channel(club)
     _peers_z3 = [c for c in _clubs_cohort if get_league_for_channel(c) == _ch_lg_z3]
 

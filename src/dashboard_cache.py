@@ -1182,6 +1182,7 @@ DURATION_BUCKETS_LONG = [
 # Derived from src.channels.DEFAULT_SEASON_START so this auto-rolls
 # when the new European season starts. Was hardcoded "2025-08-01".
 from src.channels import DEFAULT_SEASON_START as _DEFAULT_SEASON_START
+from src.filters import is_top5_cohort
 DURATION_SEASON_SINCE: str = _DEFAULT_SEASON_START
 
 
@@ -1695,8 +1696,7 @@ def refresh_latest_vibe(db, log=print, channels: list[dict] | None = None) -> No
         from src.channels import COUNTRY_TO_LEAGUE
         chans = channels if channels is not None else db.get_all_channels()
         chans = [c for c in chans
-                 if c.get("entity_type") not in ("Player", "Federation", "GoverningBody",
-                                 "OtherClub", "WomenClub", "NFL", "F1")]
+                 if is_top5_cohort(c)]
         chans_by_id = {c["id"]: c for c in chans}
 
         def _one(scope_key: str, ids: list[str], label: str,
@@ -1749,8 +1749,7 @@ def refresh_season_vibe(db, log=print, channels: list[dict] | None = None) -> No
         from src.channels import get_season_since as _gss, COUNTRY_TO_LEAGUE
         chans = channels if channels is not None else db.get_all_channels()
         chans = [c for c in chans
-                 if c.get("entity_type") not in ("Player", "Federation",
-                                 "GoverningBody", "OtherClub", "WomenClub", "NFL", "F1")]
+                 if is_top5_cohort(c)]
         season_start = _gss()
 
         def _one(scope_key: str, subset: list[dict], label: str,
@@ -1835,8 +1834,7 @@ def refresh_season_top_vibe(db, log=print, channels: list[dict] | None = None) -
         leagues = sorted({
             COUNTRY_TO_LEAGUE.get((c.get("country") or "").upper())
             for c in chans
-            if c.get("entity_type") not in
-               ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL", "F1")
+            if is_top5_cohort(c)
             and COUNTRY_TO_LEAGUE.get((c.get("country") or "").upper())
         })
         for lg in leagues:
@@ -1900,8 +1898,7 @@ def refresh_publishing_pulse(db, log=print, channels: list[dict] | None = None) 
     from src.channels import COUNTRY_TO_LEAGUE
     chans = channels if channels is not None else db.get_all_channels()
     scope_chans = [c for c in chans
-                   if c.get("entity_type") not in
-                      ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL", "F1")]
+                   if is_top5_cohort(c)]
     if not scope_chans:
         log("[dashboard_cache] publishing_pulse skipped — no channels in scope")
         return
@@ -2013,11 +2010,9 @@ def refresh_season_top(db, log=print, channels: list[dict] | None = None) -> Non
     from src.channels import COUNTRY_TO_LEAGUE
     chans = channels if channels is not None else db.get_all_channels()
     isolated_ids = [c["id"] for c in chans
-                    if c.get("entity_type") in
-                       ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL", "F1")]
+                    if not is_top5_cohort(c)]
     included = [c for c in chans
-                if c.get("entity_type") not in
-                   ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL", "F1")]
+                if is_top5_cohort(c)]
     if not included:
         log("[dashboard_cache] season_top skipped — no channels in scope")
         return
@@ -2068,8 +2063,7 @@ def _refresh_no1_per_channel(
     """
     chans = channels if channels is not None else db.get_all_channels()
     core = [c for c in chans
-            if c.get("entity_type") not in
-               ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL", "F1")
+            if is_top5_cohort(c)
             and c.get("id")]
     core_ids = {c["id"] for c in core}
     if not core_ids:

@@ -15,7 +15,7 @@ from src.cached_db import (
     read_dashboard_cache as _cached_dc_read,
 )
 from src.analytics import fmt_num, yt_popup_js
-from src.filters import get_global_color_map, get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel, render_page_subtitle
+from src.filters import get_channels_for_filter, get_global_channels, get_global_color_map, get_global_filter, get_league_for_channel, is_club, render_page_subtitle
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, get_season_since
 from src.auth import require_premium
 from src.charts import chart_title, readable_hover
@@ -41,7 +41,7 @@ if g_league:
 else:
     filtered_channels = all_channels
 
-clubs = [ch for ch in filtered_channels if ch.get("entity_type") not in ("League", "Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")]
+clubs = [ch for ch in filtered_channels if is_club(ch)]
 
 if not clubs:
     st.warning("No clubs loaded yet.")

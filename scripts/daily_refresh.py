@@ -30,6 +30,7 @@ from datetime import datetime, timezone, timedelta
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.database import Database
+from src.filters import is_top5_cohort
 from src.youtube_api import YouTubeClient
 from src.channels import get_season_since
 # Per-video snapshots are scoped to a rolling window: only videos published
@@ -104,7 +105,7 @@ def main() -> int:
     channels = db.get_all_channels()
     # Players + Federations have their own dedicated crons — skip them here.
     channels = [c for c in channels
-                if c.get("entity_type") not in ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL", "F1")]
+                if is_top5_cohort(c)]
     total = len(channels)
     log(f"Found {total} channels (Players + Federations excluded — handled by their dedicated crons)")
 

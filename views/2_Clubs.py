@@ -17,7 +17,7 @@ from src.cached_db import (
     read_dashboard_cache as _cached_dc_read,
 )
 from src.analytics import compute_channel_comparison, fmt_num, yt_popup_js, kpi_row
-from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope, render_page_subtitle
+from src.filters import get_all_leagues_scope, get_channels_for_filter, get_global_channels, get_global_color_map, get_global_color_map_dual, get_global_filter, get_include_league, get_league_for_channel, is_club, is_top5_cohort, render_page_subtitle
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, get_season_since
 from src.auth import get_current_user, is_admin, require_login
 from src.dot import dual_dot, channel_badge
@@ -43,7 +43,7 @@ def _render_launch_year_chart(channels, league_filter: str | None = None):
     TOP5 = ["Serie A", "Premier League", "La Liga", "Bundesliga", "Ligue 1"]
     rows = []
     for c in channels:
-        if c.get("entity_type") not in ("Club", "League"):
+        if is_club(c):
             continue
         lg = COUNTRY_TO_LEAGUE.get((c.get("country") or "").upper())
         if lg not in TOP5:
@@ -117,7 +117,7 @@ def _render_subs_rank_chart(channels, league_filter: str | None = None):
     TOP5 = {"Serie A", "Premier League", "La Liga", "Bundesliga", "Ligue 1"}
     rows = []
     for c in channels:
-        if c.get("entity_type") not in ("Club", "League"):
+        if is_club(c):
             continue
         lg = COUNTRY_TO_LEAGUE.get((c.get("country") or "").upper())
         if lg not in TOP5:
@@ -244,8 +244,7 @@ if league is None and _scope == "Overall":
     # Aggregate stats per league
     league_stats = {}
     for ch in all_channels:
-        if ch.get("entity_type") in ("Player", "Federation", "GoverningBody",
-                                      "OtherClub", "WomenClub", "NFL"):
+        if not is_top5_cohort(ch):
             continue  # tangential entities live on their own pages
         lg = get_league_for_channel(ch)
         if not lg:
@@ -295,7 +294,7 @@ if league is None and _scope == "Overall":
         # subs aren't per-format and likes/comments aren't aggregated.
         import plotly.graph_objects as go
         _pie_chans = [c for c in all_channels
-                      if c.get("entity_type") not in ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")]
+                      if is_top5_cohort(c)]
         _t_long_v  = sum(int(c.get("lifetime_long_views")  or 0) for c in _pie_chans)
         _t_short_v = sum(int(c.get("lifetime_short_views") or 0) for c in _pie_chans)
         _t_live_v  = sum(int(c.get("lifetime_live_views")  or 0) for c in _pie_chans)
@@ -510,7 +509,7 @@ if league is None and _scope == "Overall":
     # channel record), so the Views and Views/Video groups are single-
     # column and Avg Duration / Engagement are omitted entirely.
     st.subheader("📡 All Channels")
-    _all_clubs = [ch for ch in all_channels if ch.get("entity_type") not in ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")]
+    _all_clubs = [ch for ch in all_channels if is_top5_cohort(ch)]
     _all_color_map = get_global_color_map()
     _all_dual = get_global_color_map_dual()
 
@@ -688,7 +687,7 @@ elif club is None:
     elif include_league:
         clubs_only = league_channels
     else:
-        clubs_only = [ch for ch in league_channels if ch.get("entity_type") not in ("League", "Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")]
+        clubs_only = [ch for ch in league_channels if is_club(ch)]
 
     # League header — same visual signature as render_club_header at Z3.
     if league:
@@ -938,7 +937,7 @@ elif club is None:
             _conc = _dc_conc.read(db, "concentration", _dc_conc.scope_league(league))
             _conc_rows = (_conc or {}).get("payload", {}).get("rows", []) if _conc else []
             _conc_rows = [r for r in _conc_rows
-                          if r.get("entity_type") in ("Club", "League")
+                          if not is_club(r)
                           and r.get("n_videos", 0) >= 5]
             if _conc_rows:
                 import plotly.graph_objects as _go_c
@@ -1049,7 +1048,7 @@ else:
 
     # compute ranks across different metrics, vs league peers and vs all clubs
     from src.filters import get_league_for_channel as _get_lg
-    _clubs = [c for c in all_channels if c.get("entity_type") not in ("League", "Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")]
+    _clubs = [c for c in all_channels if is_club(c)]
     _ch_league = _get_lg(channel)
     _peers = [c for c in _clubs if _get_lg(c) == _ch_league]
     _metric_getters = {

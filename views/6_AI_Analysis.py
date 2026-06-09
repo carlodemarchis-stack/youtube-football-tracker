@@ -14,7 +14,7 @@ from src.cached_db import (
 )
 from src.analytics import fmt_num, kpi_row
 from src.charts import readable_hover
-from src.filters import get_global_filter, get_global_channels, render_page_subtitle
+from src.filters import get_global_channels, get_global_filter, is_club, render_page_subtitle
 from src.auth import require_premium
 
 load_dotenv()
@@ -64,7 +64,7 @@ if is_stale:
 
 # ── Club KPI banner (same as Channels page) ─────────────────
 from src.filters import get_league_for_channel as _get_lg
-_clubs = [c for c in all_channels if c.get("entity_type") not in ("League", "Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")]
+_clubs = [c for c in all_channels if is_club(c)]
 _ch_league = _get_lg(channel)
 _peers = [c for c in _clubs if _get_lg(c) == _ch_league]
 

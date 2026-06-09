@@ -18,7 +18,7 @@ from src.cached_db import (
     read_dashboard_cache as _cached_dc_read,
 )
 from src.analytics import compute_channel_comparison, compute_tier_stats, compute_theme_distribution, fmt_num, yt_popup_js, CATEGORY_COLORS
-from src.filters import get_global_filter, get_global_channels, get_channels_for_filter, get_league_for_channel, get_include_league, get_global_color_map, get_global_color_map_dual, get_all_leagues_scope, render_page_subtitle
+from src.filters import get_all_leagues_scope, get_channels_for_filter, get_global_channels, get_global_color_map, get_global_color_map_dual, get_global_filter, get_include_league, get_league_for_channel, is_club, is_top5_cohort, render_page_subtitle
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG, league_with_flag, LEAGUE_COLOR
 from src.charts import readable_hover, chart_title
 from src.auth import require_login
@@ -105,7 +105,7 @@ else:
     ch_by_name = {ch["name"]: ch for ch in all_channels}
     # Always drop Players + Federations — they live on their own pages
     _exclude_isolated = {n for n, c in ch_by_name.items()
-                         if c.get("entity_type") in ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")}
+                         if not is_top5_cohort(c)}
     if _exclude_isolated:
         df = df[~df["channel_name"].isin(_exclude_isolated)]
     if scope == "Leagues only":
@@ -115,15 +115,11 @@ else:
         color_map = get_global_color_map()
     elif scope == "All clubs":
         keep = {n for n, c in ch_by_name.items()
-                if c.get("entity_type") not in ("League", "Player",
-                                                 "Federation", "GoverningBody",
-                                                 "OtherClub", "WomenClub", "NFL")}
+                if is_club(c)}
         df = df[df["channel_name"].isin(keep)]
         ch_to_league = {n: league_with_flag(get_league_for_channel(c))
                         for n, c in ch_by_name.items()
-                        if c.get("entity_type") not in ("Player", "Federation",
-                                                         "GoverningBody",
-                                                         "OtherClub", "WomenClub", "NFL")}
+                        if is_top5_cohort(c)}
         df["league"] = df["channel_name"].map(ch_to_league).fillna("Other")
         color_field = "league"
         color_map = None
@@ -132,9 +128,7 @@ else:
         # country codes (FIFA=WW, UEFA=EU, etc.) don't pollute the
         # league color buckets via "Other".
         keep = {n for n, c in ch_by_name.items()
-                if c.get("entity_type") not in ("Player", "Federation",
-                                                 "GoverningBody",
-                                                 "OtherClub", "WomenClub", "NFL")}
+                if is_top5_cohort(c)}
         df = df[df["channel_name"].isin(keep)]
         ch_to_league = {n: league_with_flag(get_league_for_channel(c))
                         for n, c in ch_by_name.items() if n in keep}
@@ -165,14 +159,10 @@ try:
                                if c.get("entity_type") == "League"]
         elif _scope == "All clubs":
             _scope_channels = [c for c in all_channels
-                               if c.get("entity_type") not in
-                                  ("League", "Player", "Federation", "GoverningBody",
-                                 "OtherClub", "WomenClub", "NFL")]
+                               if is_club(c)]
         else:
             _scope_channels = [c for c in all_channels
-                               if c.get("entity_type") not in
-                                  ("Player", "Federation", "GoverningBody",
-                                 "OtherClub", "WomenClub", "NFL")]
+                               if is_top5_cohort(c)]
 
     _lifetime_views = sum(int(c.get("total_views") or 0) for c in _scope_channels)
 
@@ -203,8 +193,7 @@ try:
     _row1_subs: dict[str, str] = {}
     if club is not None:
         _core = [c for c in all_channels
-                 if c.get("entity_type") not in
-                    ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")]
+                 if is_top5_cohort(c)]
         _ch_lg = _get_league_for_channel(club)
         _league = [c for c in _core
                    if _get_league_for_channel(c) == _ch_lg]
@@ -288,9 +277,7 @@ if club is None and not filtered.empty:
         _fmt_n[_f] = _fmt_n.get(_f, 0) + 1
         _nm = getattr(_row, "channel_name", "") or ""
         _c = _ch_by_name_lg.get(_nm)
-        if not _c or _c.get("entity_type") in (
-            "Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL"
-        ):
+        if not _c or not is_top5_cohort(_c):
             continue
         _vv = int(getattr(_row, "view_count", 0) or 0)
         _lg = COUNTRY_TO_LEAGUE.get((_c.get("country") or "").upper()) or "Other"
@@ -540,18 +527,18 @@ if not club:
         # One league selected — use its channels
         base_channels = league_channels
         if include_league:
-            table_channels = [ch for ch in base_channels if ch.get("entity_type") not in ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")]
+            table_channels = [ch for ch in base_channels if is_top5_cohort(ch)]
         else:
-            table_channels = [ch for ch in base_channels if ch.get("entity_type") not in ("League", "Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")]
+            table_channels = [ch for ch in base_channels if is_club(ch)]
     else:
         # All leagues — respect scope
         scope = get_all_leagues_scope()
         if scope == "Leagues only":
             table_channels = [ch for ch in all_channels if ch.get("entity_type") == "League"]
         elif scope == "All clubs":
-            table_channels = [ch for ch in all_channels if ch.get("entity_type") not in ("League", "Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")]
+            table_channels = [ch for ch in all_channels if is_club(ch)]
         else:
-            table_channels = [ch for ch in all_channels if ch.get("entity_type") not in ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")]
+            table_channels = [ch for ch in all_channels if is_top5_cohort(ch)]
 
     if not table_channels:
         _loading.empty()

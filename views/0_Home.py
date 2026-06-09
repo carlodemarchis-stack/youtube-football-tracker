@@ -12,7 +12,7 @@ from src.database import Database
 from src.cached_db import get_all_channels as _cached_channels, get_recent_videos as _cached_recent, read_dashboard_cache as _cached_dc_read
 from src.analytics import fmt_num, yt_popup_js
 from src.growth import group_by_channel, delta
-from src.filters import get_global_color_map, get_global_color_map_dual
+from src.filters import get_global_color_map, get_global_color_map_dual, is_club, is_top5_cohort
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
 from src.dot import dual_dot, channel_badge
 from src import theme as _T
@@ -33,7 +33,7 @@ if st.session_state.get("_feed_mode"):
     db = Database(SUPABASE_URL, SUPABASE_KEY)
     all_channels = get_global_channels() or _cached_channels(db)
     # Players are isolated — never show in the public feed
-    all_channels = [c for c in all_channels if c.get("entity_type") not in ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")]
+    all_channels = [c for c in all_channels if is_top5_cohort(c)]
     color_map = get_global_color_map() or {}
     dual = get_global_color_map_dual() or {}
 
@@ -177,8 +177,7 @@ if not is_logged_in():
         _league_counts: dict[str, int] = {}
         _league_has_channel: dict[str, bool] = {}
         for _c in _chs:
-            if _c.get("entity_type") in ("Player", "Federation", "GoverningBody",
-                                          "OtherClub", "WomenClub", "NFL"):
+            if not is_top5_cohort(_c):
                 continue  # tangential entities live on their own pages
             _lg = COUNTRY_TO_LEAGUE.get((_c.get("country") or "").upper(), _c.get("country") or "—")
             if _c.get("entity_type") == "League":
@@ -486,7 +485,7 @@ if is_logged_in():
         from src.analytics import kpi_row as _kpi_row
         _chs2 = st.session_state.get("_global_channels") or []
         _top5 = [c for c in _chs2
-                 if c.get("entity_type") in ("Club", "League")
+                 if not is_club(c)
                  and COUNTRY_TO_LEAGUE.get((c.get("country") or "").upper())
                      in {"Serie A", "Premier League", "La Liga",
                          "Bundesliga", "Ligue 1"}]
@@ -524,12 +523,10 @@ if is_logged_in():
                                      channel_ids=_top5_ids,
                                      since_hours=25)
             _ch_by_id_tl = {c["id"]: c for c in _top5}
-            _SKIP = ("Player", "Federation", "GoverningBody",
-                     "OtherClub", "WomenClub", "NFL")
             _tl_videos = []
             for v in (_tl_raw or []):
                 _ch = _ch_by_id_tl.get(v.get("channel_id")) or {}
-                if _ch.get("entity_type") in _SKIP:
+                if not is_top5_cohort(_ch):
                     continue
                 # Drop unaired scheduled streams the same way Latest does
                 # — keep live-now even if marked scheduled.

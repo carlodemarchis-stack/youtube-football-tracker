@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 CET = ZoneInfo("Europe/Rome")
 
 import streamlit as st
+from src.filters import is_top5_cohort
 from src import components_compat as components
 import pandas as pd
 from dotenv import load_dotenv
@@ -285,12 +286,12 @@ g_league, g_club = get_global_filter()
 ONE_CLUB = g_club is not None
 # The channel_id(s) to restrict computations to.
 # Players are always excluded — they live on their own page.
-_non_player_ids = {c["id"] for c in all_channels if c.get("entity_type") not in ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")}
+_non_player_ids = {c["id"] for c in all_channels if is_top5_cohort(c)}
 if ONE_CLUB:
     filter_cids = {g_club["id"]}
 elif g_league:
     filter_cids = {c["id"] for c in all_channels
-                   if c.get("entity_type") not in ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")
+                   if is_top5_cohort(c)
                    and get_league_for_channel(c) == g_league}
 else:
     # All Leagues — honour the sub-scope from the header filter:
@@ -503,7 +504,7 @@ if ONE_CLUB:
     for v in _all_new_rows:
         _all_new_counts[v["channel_id"]] = _all_new_counts.get(v["channel_id"], 0) + 1
 
-    _clubs_only = [c for c in all_channels if c.get("entity_type") not in ("League", "Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")]
+    _clubs_only = [c for c in all_channels if is_club(c)]
     _ch_league = get_league_for_channel(g_club)
     _peers = [c for c in _clubs_only if get_league_for_channel(c) == _ch_league]
 
@@ -617,7 +618,7 @@ if g_league and not ONE_CLUB:
     from src.filters import render_league_header
     _lg_chans = [c for c in all_channels
                  if get_league_for_channel(c) == g_league
-                 and c.get("entity_type") in ("Club", "League")]
+                 and not is_club(c)]
     render_league_header(g_league, channels_in_scope=_lg_chans)
 
 # ── Trend chart ──────────────────────────────────────────────
@@ -855,13 +856,11 @@ if _show_per_league_summary:
     # / Women Clubs would otherwise leak in as phantom "leagues" via
     # their country code (e.g. UEFA's country is "EU", which falls
     # through COUNTRY_TO_LEAGUE and creates a row labelled "EU").
-    _SKIP_TYPES = ("Federation", "GoverningBody", "Player",
-                   "OtherClub", "WomenClub", "NFL")
     for cid, snap in chan_day.items():
         ch = ch_by_id.get(cid)
         if not ch:
             continue
-        if ch.get("entity_type") in _SKIP_TYPES:
+        if not is_top5_cohort(ch):
             continue
         lg = get_league_for_channel(ch)
         if not lg:
@@ -874,7 +873,7 @@ if _show_per_league_summary:
         ch = ch_by_id.get(v["channel_id"])
         if not ch:
             continue
-        if ch.get("entity_type") in _SKIP_TYPES:
+        if not is_top5_cohort(ch):
             continue
         lg = get_league_for_channel(ch)
         if lg and lg in lg_agg:
@@ -886,7 +885,7 @@ if _show_per_league_summary:
             # Track per-league, per-channel counts (include league channels;
             # exclude only tangential entity types — Players/Federations/
             # GoverningBody/etc.)
-            if ch.get("entity_type") not in _SKIP_TYPES:
+            if is_top5_cohort(ch):
                 lg_club_counts.setdefault(lg, {})[ch["id"]] = \
                     lg_club_counts.setdefault(lg, {}).get(ch["id"], 0) + 1
 
@@ -953,7 +952,7 @@ if _show_per_league_summary:
             _per = {lg: 0 for lg in _PLG_ORDER}
             for _cid, _snap in _cur.items():
                 _ch = ch_by_id.get(_cid)
-                if not _ch or _ch.get("entity_type") in _SKIP_TYPES:
+                if not _ch or not is_top5_cohort(_ch):
                     continue
                 _lg = get_league_for_channel(_ch)
                 if _lg not in _per:

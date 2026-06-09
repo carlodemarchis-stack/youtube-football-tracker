@@ -13,6 +13,7 @@ from datetime import datetime, timedelta, timezone, date
 from zoneinfo import ZoneInfo
 
 import streamlit as st
+from src.filters import is_top5_cohort
 import pandas as pd
 import altair as alt
 from dotenv import load_dotenv
@@ -53,8 +54,7 @@ LOOKBACK_DAYS = 30
 all_channels = get_global_channels() or _cached_channels(db)
 all_channels = [
     c for c in all_channels
-    if c.get("entity_type") not in ("Player", "Federation", "GoverningBody",
-                                    "OtherClub", "WomenClub", "NFL")
+    if is_top5_cohort(c)
 ]
 
 g_league, g_club = get_global_filter()

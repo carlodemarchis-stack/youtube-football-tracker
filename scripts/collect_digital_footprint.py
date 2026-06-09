@@ -42,6 +42,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from src.channels import COUNTRY_TO_LEAGUE
+from src.filters import is_top5_cohort
 from src.database import Database
 
 UA = "ytft-lab/1.0 (https://ytft.aguywithascarf.com)"
@@ -927,8 +928,7 @@ def main() -> int:
 
     db = Database(url, key)
     chs = db.get_all_channels()
-    core = [c for c in chs if c.get("entity_type") not in
-            ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL", "F1")]
+    core = [c for c in chs if is_top5_cohort(c)]
     slate = [c for c in core if (c.get("website") or "").strip()]
     skipped = [c for c in core if not (c.get("website") or "").strip()]
 

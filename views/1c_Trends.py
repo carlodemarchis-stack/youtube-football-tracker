@@ -21,6 +21,7 @@ from datetime import datetime, timedelta, timezone, date
 from zoneinfo import ZoneInfo
 
 import streamlit as st
+from src.filters import is_top5_cohort, is_club
 import pandas as pd
 import altair as alt
 from dotenv import load_dotenv
@@ -63,9 +64,7 @@ all_channels = get_global_channels() or _cached_channels(db)
 # clubs) live on their own pages and would muddy the headline trends.
 all_channels = [
     c for c in all_channels
-    if c.get("entity_type") not in ("Player", "Federation",
-                                    "GoverningBody",
-                                    "OtherClub", "WomenClub", "NFL")
+    if is_top5_cohort(c)
 ]
 
 g_league, g_club = get_global_filter()
@@ -589,7 +588,7 @@ if not ONE_CLUB and not g_league:
     # Cohort channel counts per league (cheap — small in-memory loop).
     _ch_count_by_lg: dict[str, int] = {lg: 0 for lg in LEAGUES}
     for _c in all_channels:
-        if _c.get("entity_type") in ("Club", "League"):
+        if not is_club(_c):
             _lg = COUNTRY_TO_LEAGUE.get((_c.get("country") or "").strip())
             if _lg in _ch_count_by_lg:
                 _ch_count_by_lg[_lg] += 1

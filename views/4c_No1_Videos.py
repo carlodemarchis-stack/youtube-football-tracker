@@ -18,6 +18,7 @@ from __future__ import annotations
 import os
 
 import streamlit as st
+from src.filters import is_top5_cohort
 from dotenv import load_dotenv
 
 from src.database import Database
@@ -64,8 +65,7 @@ def _live_top1_per_channel(since: str | None) -> list[dict]:
     won't appear until the next cron tick."""
     core_ids = {
         c["id"] for c in all_channels
-        if c.get("entity_type") not in
-           ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")
+        if is_top5_cohort(c)
         and c.get("id")
     }
     q = (db.client.table("videos")
