@@ -8,7 +8,7 @@ from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
 # Players live on their own page and are excluded from everything else
 # to keep that feature isolated and killable without ripple effects.
 _NON_CLUB_TYPES = ("League", "Player", "Federation", "GoverningBody",
-                   "OtherClub", "WomenClub", "NFL")
+                   "OtherClub", "WomenClub", "NFL", "F1")
 
 
 def is_wc2026(ch: dict) -> bool:
@@ -339,7 +339,7 @@ def get_global_color_map_dual() -> dict[str, tuple[str, str]]:
 # UPDATE statements on every page render trying to assign chart colors
 # to channels that will never be plotted.
 _NO_CHART_COLOR_TYPES = frozenset(
-    ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")
+    ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL", "F1")
 )
 
 
@@ -434,11 +434,11 @@ def get_channels_for_filter(channels: list[dict], league: str | None) -> list[di
         # Overall: exclude Players + Federations + WC2026 (own pages)
         # but keep leagues
         return [ch for ch in channels
-                if ch.get("entity_type") not in ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")
+                if ch.get("entity_type") not in ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL", "F1")
                 and not is_wc2026(ch)]
     return [
         ch for ch in channels
-        if ch.get("entity_type") not in ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")
+        if ch.get("entity_type") not in ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL", "F1")
         and not is_wc2026(ch)
         and COUNTRY_TO_LEAGUE.get(ch.get("country", ""), ch.get("country", "")) == league
     ]

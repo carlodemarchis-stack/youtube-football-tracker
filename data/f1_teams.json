@@ -1,0 +1,83 @@
+[
+  {
+    "team": "Red Bull Racing",
+    "team_full": "Oracle Red Bull Racing",
+    "channel_id": "UCQIyqMWCdx1GBvbw_Yi6lEA",
+    "handle": "redbullracing",
+    "url": "https://www.youtube.com/@redbullracing"
+  },
+  {
+    "team": "Scuderia Ferrari",
+    "team_full": "Scuderia Ferrari HP",
+    "channel_id": "UCd8iY-kEHtaB8qt8MH--zGw",
+    "handle": "ferrari",
+    "url": "https://www.youtube.com/@ferrari",
+    "notes": "Shared brand channel for Ferrari road cars + Scuderia Ferrari F1 — the team's only official YouTube presence."
+  },
+  {
+    "team": "Mercedes",
+    "team_full": "Mercedes-AMG PETRONAS F1 Team",
+    "channel_id": "UC7_VGkwCoKfqh1eZEkzey3A",
+    "handle": "mercedesamgf1",
+    "url": "https://www.youtube.com/@MercedesAMGF1"
+  },
+  {
+    "team": "McLaren",
+    "team_full": "McLaren F1 Team",
+    "channel_id": "UC8dxVgZl9u5HeCOXnosCtuQ",
+    "handle": "mclarenracing",
+    "url": "https://www.youtube.com/@mclarenracing"
+  },
+  {
+    "team": "Aston Martin",
+    "team_full": "Aston Martin Aramco F1 Team",
+    "channel_id": "UC8pLH6_Dz4QwKYE-dtcaxeg",
+    "handle": "astonmartinf1team",
+    "url": "https://www.youtube.com/@astonmartinf1team"
+  },
+  {
+    "team": "Alpine",
+    "team_full": "BWT Alpine F1 Team",
+    "channel_id": "UCzH4Iwlm8kI09wXbgHvFfIg",
+    "handle": "alpinecars",
+    "url": "https://www.youtube.com/@alpinecars",
+    "notes": "Shared brand channel for Alpine road cars + BWT Alpine F1 Team."
+  },
+  {
+    "team": "Williams",
+    "team_full": "Atlassian Williams Racing",
+    "channel_id": "UC4AnEj7Pj9ODVhwojHPqAMA",
+    "handle": "williamsf1tv",
+    "url": "https://www.youtube.com/@williamsf1tv"
+  },
+  {
+    "team": "Racing Bulls",
+    "team_full": "Visa Cash App Racing Bulls",
+    "channel_id": "UCU56G7ZKkB7xkua6EhMz5dg",
+    "handle": "visacashapprb",
+    "url": "https://www.youtube.com/@VisaCashAppRB"
+  },
+  {
+    "team": "Haas",
+    "team_full": "MoneyGram Haas F1 Team",
+    "channel_id": "UCaGImPpcZdJ_8Iu20lCbHHw",
+    "handle": "HaasF1Team",
+    "url": "https://www.youtube.com/@HaasF1Team"
+  },
+  {
+    "team": "Audi",
+    "team_full": "Audi Revolut F1 Team",
+    "channel_id": "UCcicfsG1VMbBqV0jlM7caZw",
+    "handle": "audif1tv",
+    "url": "https://www.youtube.com/@audif1tv",
+    "notes": "Replaces Kick Sauber for 2026 — Audi's official F1 team channel (dedicated, not the @audi brand channel)."
+  },
+  {
+    "team": "Cadillac",
+    "team_full": "Cadillac Formula 1® Team",
+    "channel_id": "UCARJ7OAocZ3D9k1F3DHGftQ",
+    "handle": "cadillacf1teamofficial",
+    "url": "https://www.youtube.com/@cadillacf1teamofficial",
+    "notes": "11th F1 team for 2026 — General Motors' first F1 entry."
+  }
+]

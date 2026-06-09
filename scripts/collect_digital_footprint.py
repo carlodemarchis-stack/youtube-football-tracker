@@ -928,7 +928,7 @@ def main() -> int:
     db = Database(url, key)
     chs = db.get_all_channels()
     core = [c for c in chs if c.get("entity_type") not in
-            ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL")]
+            ("Player", "Federation", "GoverningBody", "OtherClub", "WomenClub", "NFL", "F1")]
     slate = [c for c in core if (c.get("website") or "").strip()]
     skipped = [c for c in core if not (c.get("website") or "").strip()]
 

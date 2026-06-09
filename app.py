@@ -108,6 +108,11 @@ public_pages = [
 nfl_hidden_pages = [
     st.Page("views/20_NFL.py", title="NFL", url_path="nfl"),
 ]
+# Hidden v0 F1 surface — see docs/F1_V0.md. Same pattern as NFL:
+# registered so /f1 routes, but the sidebar link is CSS-hidden below.
+f1_hidden_pages = [
+    st.Page("views/21_F1.py", title="F1", url_path="f1"),
+]
 
 # Tier 1 — viewer (any signed-in user) — "Top 5 Leagues" group
 # Season title carries the current label dynamically (`current_season_label_safe()`
@@ -210,12 +215,12 @@ elif is_logged_in():
 if is_admin():
     nav["Admin"] = admin_pages
 
-# Hidden NFL v0 — append to nav[""] (the ungrouped/Home slot, no
-# section header) so st.navigation routes /nfl while the link itself
-# is CSS-hidden below. Using nav[""] avoids inventing a dummy section
-# header just to hide it.
+# Hidden NFL + F1 v0 — append to nav[""] (the ungrouped/Home slot, no
+# section header) so st.navigation routes /nfl and /f1 while the
+# links themselves are CSS-hidden below. Using nav[""] avoids
+# inventing a dummy section header just to hide them.
 if is_logged_in():
-    nav[""] = nav.get("", public_pages) + nfl_hidden_pages
+    nav[""] = nav.get("", public_pages) + nfl_hidden_pages + f1_hidden_pages
 
 # "About" (Release Notes) sits last so it lands at the bottom of the
 # sidebar — public, available signed-out too.
@@ -326,7 +331,9 @@ st.markdown("""
          matches any section header whose text happens to start with
          an underscore (defensive against Streamlit renaming things). */
       [data-testid="stSidebarNav"] a[href$="/nfl"],
-      [data-testid="stSidebarNav"] a[href*="/nfl?"] {
+      [data-testid="stSidebarNav"] a[href*="/nfl?"],
+      [data-testid="stSidebarNav"] a[href$="/f1"],
+      [data-testid="stSidebarNav"] a[href*="/f1?"] {
         display: none !important;
       }
       /* Desktop-first notice: this is a data-dense dashboard (wide
@@ -451,6 +458,7 @@ _no_filter_url_paths = {
     "wc2026-latest", "wc2026-viral", "wc2026-top",
     "release-notes",
     "nfl",  # hidden NFL v0 (see docs/NFL_V0.md)
+    "f1",   # hidden F1 v0 (see docs/F1_V0.md)
     # Admin pages — the league/club filter has no meaning here.
     "data", "channel-mgmt", "user-mgmt", "email-users", "usage",
     "snapshot-debug", "quota-monitor",
@@ -496,6 +504,13 @@ if SUPABASE_URL and SUPABASE_KEY:
                       if c.get("entity_type") == "NFL"]
             if _nflch:
                 render_nfl_filter(_nflch)
+        elif getattr(pg, "url_path", "") == "f1":
+            # F1 sub-app — same single-channel filter pattern as NFL.
+            from src.f1_filter import render_f1_filter
+            _f1ch = [c for c in all_channels
+                     if c.get("entity_type") == "F1"]
+            if _f1ch:
+                render_f1_filter(_f1ch)
 
 # Removed the horizontal divider that used to sit between the global
 # filter and the page title — the filter row already reads as its
