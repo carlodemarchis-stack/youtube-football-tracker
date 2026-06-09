@@ -392,7 +392,14 @@ if live_now:
         title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;").replace("'", "&#39;").replace('"', "&quot;")
         ch = ch_by_id.get(v.get("channel_id")) or {}
         ch_name = v.get("channel_name", "") or ch.get("name", "")
+        # YouTube serves a `_live.jpg` placeholder while a stream is
+        # in progress, but it 404s in iframe contexts roughly half the
+        # time (and ages out the second the stream ends). Fall back
+        # to the always-present hqdefault.jpg for the same video so
+        # the card never shows a broken-image icon.
         thumb = v.get("thumbnail_url") or ""
+        if (not thumb or "_live.jpg" in thumb) and yt_id:
+            thumb = f"https://i.ytimg.com/vi/{yt_id}/hqdefault.jpg"
         _ast = v.get("actual_start_time") or ""
         _live_label = ""
         if _ast:
@@ -403,9 +410,13 @@ if live_now:
             except Exception:
                 pass
         views = int(v.get("view_count") or 0)
-        _ln_cards += f"""<a href="https://www.youtube.com/watch?v={yt_id}" class="ln-card">
+        _ln_fallback = (f"https://i.ytimg.com/vi/{yt_id}/hqdefault.jpg"
+                        if yt_id else "")
+        _ln_onerror = (f"this.onerror=null;this.src='{_ln_fallback}'"
+                       if _ln_fallback and thumb != _ln_fallback else "")
+        _ln_cards += f"""<a href="https://www.youtube.com/watch?v={yt_id}" target="_blank" rel="noopener" class="ln-card">
           <div class="ln-thumb">
-            <img src="{thumb}" alt="">
+            <img src="{thumb}" alt="" onerror="{_ln_onerror}">
             <span class="ln-badge">● LIVE</span>
             {'<span class="ln-dur">' + _live_label + '</span>' if _live_label else ''}
           </div>
@@ -420,8 +431,11 @@ if live_now:
     components.html(f"""
     <style>
       * {{ box-sizing:border-box; }}
-      body {{ margin:0; font-family:"Source Sans Pro",sans-serif; }}
-      .ln-grid {{ display:flex; gap:12px; overflow-x:auto; padding:4px 0 8px 0; }}
+      html, body {{ margin:0; padding:0; background:#0E1117;
+                    font-family:"Source Sans Pro",sans-serif; }}
+      .ln-grid {{ display:flex; gap:12px; overflow-x:auto;
+                  padding:4px 0 8px 0;
+                  background:#0E1117; }}
       .ln-card {{ display:block; text-decoration:none; color:#FAFAFA; border-radius:8px;
                   background:#1a1c24; overflow:hidden; min-width:220px; max-width:260px;
                   flex-shrink:0; border:1px solid #EF553B44; transition:transform 0.15s; }}
@@ -443,7 +457,7 @@ if live_now:
     <div style="color:#FAFAFA;font-size:15px;font-weight:600;margin:0 0 10px 4px">🔴 Live Now</div>
     <div class="ln-grid">{_ln_cards}</div>
     {yt_popup_js()}
-    """, height=310, scrolling=False)
+    """, height=240, scrolling=False)
 
 # ── Format / scheduled / mosaic controls ─────────────────────
 _fc1, _fc2, _fc3 = st.columns([4, 1, 1])
