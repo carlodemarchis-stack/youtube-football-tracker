@@ -156,66 +156,10 @@ except Exception:
 timeline_unscheduled = [v for v in _timeline_raw
                         if not _is_scheduled(v) or _is_live_now(v)]
 
-# ── Live Now banner (verbatim from core Latest) ──────────────
-if live_now:
-    _ln_cards = ""
-    for v in live_now:
-        yt_id = v.get("youtube_video_id", "") or ""
-        title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;").replace("'", "&#39;").replace('"', "&quot;")
-        ch = ch_by_id.get(v.get("channel_id")) or {}
-        ch_name = v.get("channel_name", "") or ch.get("name", "")
-        thumb = v.get("thumbnail_url") or ""
-        _ast = v.get("actual_start_time") or ""
-        _live_label = ""
-        if _ast:
-            try:
-                _ast_dt = datetime.fromisoformat(_ast.replace("Z", "+00:00"))
-                _mins = int((_now_utc - _ast_dt).total_seconds() / 60)
-                _live_label = f"{_mins}m" if _mins < 60 else f"{_mins // 60}h{_mins % 60:02d}m"
-            except Exception:
-                pass
-        views = int(v.get("view_count") or 0)
-        _ln_cards += f"""<a href="https://www.youtube.com/watch?v={yt_id}" class="ln-card">
-          <div class="ln-thumb">
-            <img src="{thumb}" alt="">
-            <span class="ln-badge">● LIVE</span>
-            {'<span class="ln-dur">' + _live_label + '</span>' if _live_label else ''}
-          </div>
-          <div class="ln-info">
-            {wc2026_badge(ch, 12)}
-            <span class="ln-club">{ch_name}</span>
-            {('<span class="ln-views">' + fmt_num(views) + ' views</span>') if views else ''}
-          </div>
-          <div class="ln-title" title="{title}">{title}</div>
-        </a>"""
-
-    components.html(f"""
-    <style>
-      * {{ box-sizing:border-box; }}
-      body {{ margin:0; font-family:"Source Sans Pro",sans-serif; }}
-      .ln-grid {{ display:flex; gap:12px; overflow-x:auto; padding:4px 0 8px 0; }}
-      .ln-card {{ display:block; text-decoration:none; color:#FAFAFA; border-radius:8px;
-                  background:#1a1c24; overflow:hidden; min-width:220px; max-width:260px;
-                  flex-shrink:0; border:1px solid #EF553B44; transition:transform 0.15s; }}
-      .ln-card:hover {{ transform:scale(1.03); background:#22252e; border-color:#EF553B88; }}
-      .ln-thumb {{ position:relative; width:100%; aspect-ratio:16/9; overflow:hidden; }}
-      .ln-thumb img {{ width:100%; height:100%; object-fit:cover; display:block; }}
-      .ln-badge {{ position:absolute; top:6px; left:6px; background:#EF553B;
-                   color:#fff; font-size:10px; font-weight:700; padding:2px 7px;
-                   border-radius:3px; letter-spacing:0.5px; }}
-      .ln-dur {{ position:absolute; bottom:4px; right:4px; background:rgba(0,0,0,0.8);
-                 color:#fff; font-size:11px; padding:1px 5px; border-radius:3px; }}
-      .ln-info {{ padding:6px 8px 2px; display:flex; align-items:center; gap:5px; }}
-      .ln-club {{ font-size:11px; color:#999; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }}
-      .ln-views {{ font-size:10px; color:#666; margin-left:auto; white-space:nowrap; }}
-      .ln-title {{ padding:2px 8px 8px; font-size:12px; line-height:1.3;
-                   display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
-                   overflow:hidden; color:#ddd; }}
-    </style>
-    <div style="color:#FAFAFA;font-size:15px;font-weight:600;margin:0 0 10px 4px">🔴 Live Now</div>
-    <div class="ln-grid">{_ln_cards}</div>
-    {yt_popup_js()}
-    """, height=310, scrolling=False)
+# Live Now banner is rendered later — right above the video display
+# block (Format controls → mosaic / table) — so it sits adjacent to
+# whichever view the user picks rather than hovering near the
+# subtitle.
 
 # ── 24h published timeline — scope-adaptive (mirrors core Z1/Z2/Z3)
 # Core Latest groups by Top-5 league; WC2026 has no league dimension,
@@ -409,6 +353,69 @@ try:
             st.altair_chart(_bar, width="stretch")
 except Exception as _e:
     st.caption(f"(Δ views chart unavailable: {_e})")
+
+# ── Live Now banner (verbatim from core Latest) ──────────────
+# Sits right above the Format controls + video display so it stays
+# adjacent to whichever view (mosaic or table) the user picks.
+if live_now:
+    _ln_cards = ""
+    for v in live_now:
+        yt_id = v.get("youtube_video_id", "") or ""
+        title = (v.get("title") or "").replace("<", "&lt;").replace(">", "&gt;").replace("'", "&#39;").replace('"', "&quot;")
+        ch = ch_by_id.get(v.get("channel_id")) or {}
+        ch_name = v.get("channel_name", "") or ch.get("name", "")
+        thumb = v.get("thumbnail_url") or ""
+        _ast = v.get("actual_start_time") or ""
+        _live_label = ""
+        if _ast:
+            try:
+                _ast_dt = datetime.fromisoformat(_ast.replace("Z", "+00:00"))
+                _mins = int((_now_utc - _ast_dt).total_seconds() / 60)
+                _live_label = f"{_mins}m" if _mins < 60 else f"{_mins // 60}h{_mins % 60:02d}m"
+            except Exception:
+                pass
+        views = int(v.get("view_count") or 0)
+        _ln_cards += f"""<a href="https://www.youtube.com/watch?v={yt_id}" class="ln-card">
+          <div class="ln-thumb">
+            <img src="{thumb}" alt="">
+            <span class="ln-badge">● LIVE</span>
+            {'<span class="ln-dur">' + _live_label + '</span>' if _live_label else ''}
+          </div>
+          <div class="ln-info">
+            {wc2026_badge(ch, 12)}
+            <span class="ln-club">{ch_name}</span>
+            {('<span class="ln-views">' + fmt_num(views) + ' views</span>') if views else ''}
+          </div>
+          <div class="ln-title" title="{title}">{title}</div>
+        </a>"""
+
+    components.html(f"""
+    <style>
+      * {{ box-sizing:border-box; }}
+      body {{ margin:0; font-family:"Source Sans Pro",sans-serif; }}
+      .ln-grid {{ display:flex; gap:12px; overflow-x:auto; padding:4px 0 8px 0; }}
+      .ln-card {{ display:block; text-decoration:none; color:#FAFAFA; border-radius:8px;
+                  background:#1a1c24; overflow:hidden; min-width:220px; max-width:260px;
+                  flex-shrink:0; border:1px solid #EF553B44; transition:transform 0.15s; }}
+      .ln-card:hover {{ transform:scale(1.03); background:#22252e; border-color:#EF553B88; }}
+      .ln-thumb {{ position:relative; width:100%; aspect-ratio:16/9; overflow:hidden; }}
+      .ln-thumb img {{ width:100%; height:100%; object-fit:cover; display:block; }}
+      .ln-badge {{ position:absolute; top:6px; left:6px; background:#EF553B;
+                   color:#fff; font-size:10px; font-weight:700; padding:2px 7px;
+                   border-radius:3px; letter-spacing:0.5px; }}
+      .ln-dur {{ position:absolute; bottom:4px; right:4px; background:rgba(0,0,0,0.8);
+                 color:#fff; font-size:11px; padding:1px 5px; border-radius:3px; }}
+      .ln-info {{ padding:6px 8px 2px; display:flex; align-items:center; gap:5px; }}
+      .ln-club {{ font-size:11px; color:#999; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }}
+      .ln-views {{ font-size:10px; color:#666; margin-left:auto; white-space:nowrap; }}
+      .ln-title {{ padding:2px 8px 8px; font-size:12px; line-height:1.3;
+                   display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+                   overflow:hidden; color:#ddd; }}
+    </style>
+    <div style="color:#FAFAFA;font-size:15px;font-weight:600;margin:0 0 10px 4px">🔴 Live Now</div>
+    <div class="ln-grid">{_ln_cards}</div>
+    {yt_popup_js()}
+    """, height=310, scrolling=False)
 
 # ── Format / scheduled / mosaic controls ─────────────────────
 _fc1, _fc2, _fc3 = st.columns([4, 1, 1])
