@@ -87,7 +87,7 @@ def _sponsored(channel_ids: tuple[str, ...], order_col: str,
     return (db.client.table("videos")
             .select("id,youtube_video_id,title,channel_id,thumbnail_url,"
                     "duration_seconds,format,published_at,view_count,"
-                    "like_count,comment_count,category")
+                    "like_count,comment_count,category,has_paid_promotion")
             .in_("channel_id", list(channel_ids))
             .eq("has_paid_promotion", True)
             .order(order_col, desc=True)

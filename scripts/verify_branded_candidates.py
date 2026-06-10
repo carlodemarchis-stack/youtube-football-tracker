@@ -146,14 +146,24 @@ n_canon=n_false=n_flag=n_auto=0
 for r in rows:
     bnorm=r.get('brand_norm')
     bn=(bnorm or '').lower()
+    flag=bool(r.get('has_paid_flag'))
     rec={"video_id":r["video_id"]}
-    if bn in CANON:
+    if flag:
+        # YouTube discloses paid promotion → ALWAYS branded, whatever
+        # the text capture was. Use the CANON brand when we have one;
+        # otherwise leave brand_canonical untouched (extract_flag_brands
+        # fills it later from @mentions). This must come first so a
+        # flagged video with a non-CANON brand_norm isn't left unreviewed.
+        rec.update({"is_branded":True,"reviewed":True})
+        if bn in CANON:
+            rec.update({"brand_canonical":CANON[bn],"llm_confidence":"high"}); n_canon+=1
+        else:
+            rec["llm_confidence"]="flag"; n_flag+=1
+    elif bn in CANON:
         rec.update({"brand_canonical":CANON[bn],"is_branded":True,"reviewed":True,"llm_confidence":"high"}); n_canon+=1
     elif bn in FALSE:
         rec.update({"is_branded":False,"reviewed":True,"llm_confidence":"high"}); n_false+=1
-    elif not bnorm and r.get('has_paid_flag'):
-        rec.update({"is_branded":True,"reviewed":True,"llm_confidence":"flag"}); n_flag+=1
-    elif (bnorm and not r.get('has_paid_flag')
+    elif (bnorm and not flag
           and len(bnorm) <= 28 and len(bnorm.split()) <= 4):
         # Auto-confirm NEW text-detected sponsors not yet in the curated
         # CANON map, using the normalized name as a best-effort brand —
