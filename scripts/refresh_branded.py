@@ -11,8 +11,11 @@ Runs, in order:
   4. extract_flag_brands        — pull the sponsor for flag-only videos
                                   from @mentions / possessives.
 
-Idempotent end to end. Schedule weekly on Railway (cheap: the scan is
-the only heavy step, ~10-15 min over the full catalogue, once a week).
+Idempotent end to end. Cheap by design: the scan is INCREMENTAL
+(only videos published in the last ~10 days), so the whole weekly run
+is ~1 min, not a 187k-video re-scan. Pass nothing for the normal
+weekly run; to rebuild from scratch run
+`scan_branded_content.py --full` once by hand.
 
 Usage:
   python3 scripts/refresh_branded.py
