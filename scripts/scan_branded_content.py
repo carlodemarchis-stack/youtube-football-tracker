@@ -111,6 +111,10 @@ def _scan(title: str, desc: str):
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=None)
+    ap.add_argument("--full", action="store_true",
+                    help="Re-scan the whole catalogue (ignore the "
+                         "branded_scanned_at marker). Default is "
+                         "INCREMENTAL: only videos not yet scanned.")
     args = ap.parse_args()
 
     sb_url = os.environ.get("SUPABASE_URL", "").strip()
@@ -121,17 +125,28 @@ def main() -> int:
         return 1
     db = Database(sb_url, sb_key)
 
+    from datetime import datetime, timezone
+    _now_iso = datetime.now(timezone.utc).isoformat()
+
     PAGE = 1000
     last_id = "00000000-0000-0000-0000-000000000000"
     seen = 0
     candidates = 0
     sig_counts: Counter = Counter()
+    mode = "FULL re-scan" if args.full else "INCREMENTAL (unscanned only)"
+    log(f"Mode: {mode}")
     while True:
-        rows = (db.client.table("videos")
-                .select("id,channel_id,title,description,language,"
-                        "has_paid_promotion")
-                .gt("id", last_id).order("id", desc=False)
-                .limit(PAGE).execute().data) or []
+        q = (db.client.table("videos")
+             .select("id,channel_id,title,description,language,"
+                     "has_paid_promotion"))
+        if args.full:
+            # Keyset over the whole catalogue.
+            q = q.gt("id", last_id).order("id", desc=False)
+        else:
+            # Only videos never scanned. Each iteration the set shrinks
+            # as we mark the page, so a plain LIMIT walks forward.
+            q = q.is_("branded_scanned_at", "null").order("id", desc=False)
+        rows = (q.limit(PAGE).execute().data) or []
         if not rows:
             break
         batch = []
@@ -159,6 +174,12 @@ def main() -> int:
             db.client.table("branded_content_candidates").upsert(
                 batch, on_conflict="video_id").execute()
             candidates += len(batch)
+        # Mark this page scanned so incremental runs skip it next time
+        # (every video, candidate or not).
+        if not args.full:
+            page_ids = [r["id"] for r in rows]
+            db.client.table("videos").update(
+                {"branded_scanned_at": _now_iso}).in_("id", page_ids).execute()
         seen += len(rows)
         last_id = rows[-1]["id"]
         if seen % 10000 == 0 or len(rows) < PAGE:
