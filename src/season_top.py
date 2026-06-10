@@ -18,6 +18,54 @@ from src import theme as _T
 from src.filters import get_global_color_map, get_global_color_map_dual
 
 
+# Compact signal labels for the inline "detected sponsor" chip.
+_BRANDED_SIGNAL = {
+    "presented_by": "presented by", "powered_by": "powered by",
+    "partnership": "partner", "sponsored_by": "sponsored by",
+    "brought_by": "brought to you by", "promo_code": "promo code",
+    "cjk_provided": "provided by", "ar_sponsor": "sponsor",
+}
+
+
+@st.cache_data(ttl=600, show_spinner=False)
+def _branded_lookup(video_ids: tuple) -> dict:
+    """Map video_id → {brand, signal} from branded_content_candidates
+    for the given videos. Self-contained (own DB from env) + cached so
+    ANY video table can show the detected sponsor with no caller changes.
+    Only rows with a confirmed canonical brand are returned."""
+    if not video_ids:
+        return {}
+    import os
+    from src.database import Database
+    url = os.environ.get("SUPABASE_URL", "")
+    key = os.environ.get("SUPABASE_KEY", "")
+    if not (url and key):
+        return {}
+    try:
+        db = Database(url, key)
+    except Exception:
+        return {}
+    out: dict = {}
+    ids = list(video_ids)
+    for i in range(0, len(ids), 150):
+        try:
+            rows = (db.client.table("branded_content_candidates")
+                    .select("video_id,brand_canonical,signals")
+                    .in_("video_id", ids[i:i + 150])
+                    .not_.is_("brand_canonical", "null")
+                    .execute().data) or []
+        except Exception:
+            rows = []
+        for r in rows:
+            sig = next((s for s in (r.get("signals") or [])
+                        if s != "youtube_flag"), None)
+            out[r["video_id"]] = {
+                "brand": r["brand_canonical"],
+                "signal": _BRANDED_SIGNAL.get(sig, ""),
+            }
+    return out
+
+
 def fetch_top_season_videos(
     db,
     channel_ids: list[str],
@@ -162,6 +210,12 @@ def render_top_season_videos_table(
             "format": _c.get("format"),
         })
 
+    # Detected-sponsor lookup for every video in this table (one cached
+    # batch query). Surfaces the branded_content_candidates brand+signal
+    # on the meta line of ANY video list, app-wide.
+    _branded = _branded_lookup(tuple(
+        v.get("id") for v in vids if v.get("id")))
+
     rows = ""
     for i, v in enumerate(vids, 1):
         ch = channels_by_id.get(v.get("channel_id")) or v.get("channels") or {}
@@ -193,6 +247,15 @@ def render_top_season_videos_table(
             ' · <span style="color:#E0A800;font-weight:600">💰 Sponsored</span>'
             if v.get("has_paid_promotion") else ""
         )
+        # Detected-sponsor chip (branded_content_candidates) — the brand
+        # we extracted from the text + the signal that revealed it.
+        _bd = _branded.get(v.get("id"))
+        _brand_span = ""
+        if _bd:
+            _sig = (f' <span style="color:{_T.MUTED}">({_bd["signal"]})</span>'
+                    if _bd.get("signal") else "")
+            _brand_span = (' · <span style="color:#4FC3F7">🔎 '
+                           f'{_bd["brand"]}</span>{_sig}')
         # 3rd row — attributes stay inline (format · duration · date · cat).
         _context = (
             f'<span style="color:{fmt_color}">{fmt_label}</span>'
@@ -200,6 +263,7 @@ def render_top_season_videos_table(
             f' · <span style="color:{_T.MUTED}">{pub}</span>'
             f'{_cat_span}'
             f'{_paid_span}'
+            f'{_brand_span}'
         )
         _extra_cell = ""
         for _xi, _xc in enumerate(_xcs):
