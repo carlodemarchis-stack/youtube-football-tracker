@@ -145,7 +145,9 @@ def _sponsored_counts(channel_ids: tuple[str, ...]) -> dict[str, int]:
     return dict(Counter(out))
 
 
-_counts = _sponsored_counts(_ids_t)
+# Per-channel charts are meaningless for a single club (one bar) —
+# skip them at Z3. The video tables above still apply.
+_counts = _sponsored_counts(_ids_t) if not club else {}
 if _counts:
     _TOP_N = 25
     _ranked = sorted(_counts.items(), key=lambda kv: kv[1], reverse=True)
@@ -340,7 +342,8 @@ else:
 st.markdown("---")
 
 # ── Channels with most branded candidates (detection set) ─────────
-_bcounts = _branded_counts(_ids_t)
+# Also per-channel — skip at Z3 (single club).
+_bcounts = _branded_counts(_ids_t) if not club else {}
 if _bcounts:
     _BTOP = 25
     _branked = sorted(_bcounts.items(), key=lambda kv: kv[1], reverse=True)

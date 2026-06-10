@@ -151,7 +151,9 @@ def _conf_color(cid: str) -> str:
     return CONF_COLOR.get(w.get("confederation") or "", "#E0A800")
 
 
-_counts = _sponsored_counts(_ids_t)
+# Per-channel charts are meaningless for a single team (one bar) —
+# skip them at Z3. The video tables above still apply.
+_counts = _sponsored_counts(_ids_t) if not _team else {}
 if _counts:
     _TOP_N = 25
     _ranked = sorted(_counts.items(), key=lambda kv: kv[1], reverse=True)
@@ -332,7 +334,8 @@ else:
 st.markdown("---")
 
 # ── Channels with most branded candidates (detection set) ─────────
-_bcounts = _branded_counts(_ids_t)
+# Also per-channel — skip at Z3 (single team).
+_bcounts = _branded_counts(_ids_t) if not _team else {}
 if _bcounts:
     _BTOP = 25
     _branked = sorted(_bcounts.items(), key=lambda kv: kv[1], reverse=True)
