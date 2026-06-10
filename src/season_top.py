@@ -57,11 +57,17 @@ def _branded_lookup(video_ids: tuple) -> dict:
         except Exception:
             rows = []
         for r in rows:
-            sig = next((s for s in (r.get("signals") or [])
-                        if s != "youtube_flag"), None)
+            _sigs = r.get("signals") or []
+            sig = next((s for s in _sigs if s != "youtube_flag"), None)
+            label = _BRANDED_SIGNAL.get(sig, "")
+            # Flag-only brands (pulled from @mention/possessive on a
+            # YouTube-disclosed video) have no text phrase → label as
+            # 'disclosed' so the chip still carries a signal.
+            if not label and "youtube_flag" in _sigs:
+                label = "disclosed"
             out[r["video_id"]] = {
                 "brand": r["brand_canonical"],
-                "signal": _BRANDED_SIGNAL.get(sig, ""),
+                "signal": label,
             }
     return out
 
