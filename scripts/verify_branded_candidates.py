@@ -141,6 +141,11 @@ while True:
     if len(r)<1000: break
     off+=1000
 
+# Self-promotion code prefixes — a club promoting its OWN product
+# (e.g. Liverpool's GOFREE codes for their LFC streaming service) is
+# NOT a third-party paid promotion. Reject by brand_norm prefix.
+SELF_PROMO_PREFIX = ("gofree",)
+
 upd=[]
 n_canon=n_false=n_flag=n_auto=0
 for r in rows:
@@ -148,7 +153,10 @@ for r in rows:
     bn=(bnorm or '').lower()
     flag=bool(r.get('has_paid_flag'))
     rec={"video_id":r["video_id"]}
-    if flag:
+    if (not flag) and bn.startswith(SELF_PROMO_PREFIX):
+        rec.update({"is_branded":False,"reviewed":True,
+                    "brand_canonical":None,"llm_confidence":"self_promo"}); n_false+=1
+    elif flag:
         # YouTube discloses paid promotion → ALWAYS branded, whatever
         # the text capture was. Use the CANON brand when we have one;
         # otherwise leave brand_canonical untouched (extract_flag_brands
