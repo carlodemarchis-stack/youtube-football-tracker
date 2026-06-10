@@ -120,8 +120,8 @@ f1_hidden_pages = [
 # passes). url_path is season-neutral so bookmarks survive the rollover.
 from src.channels import current_season_label_safe as _csl
 viewer_pages = [
-    st.Page("views/1_Daily_Recap.py",       title="Daily Recap",       url_path="daily-recap"),
     st.Page("views/1b_Latest.py",           title="Latest Videos",     url_path="latest-videos"),
+    st.Page("views/1_Daily_Recap.py",       title="Daily Recap",       url_path="daily-recap"),
     st.Page("views/1d_Viral.py",            title="Viral Videos",      url_path="viral"),
     st.Page("views/1c_Trends.py",           title="30-Day Trends",     url_path="trends-30d"),
     st.Page("views/3_Season.py",            title=f"Season ({_csl()})", url_path="season"),
@@ -150,7 +150,7 @@ wc2026_pages = [
     st.Page("views/18c_WC2026_Latest.py",      title="Latest Videos",  url_path="wc2026-latest"),
     st.Page("views/18b_WC2026_Trends.py",      title="Trends",         url_path="wc2026-trends"),
     st.Page("views/18d_WC2026_Viral.py",       title="Viral Videos",   url_path="wc2026-viral"),
-    st.Page("views/18_WC2026.py",              title="All Channels",   url_path="wc2026"),
+    st.Page("views/18_WC2026.py",              title="All-time",       url_path="wc2026"),
     st.Page("views/18f_WC2026_Top_Videos.py",  title="All-time Top",   url_path="wc2026-top"),
 ]
 
