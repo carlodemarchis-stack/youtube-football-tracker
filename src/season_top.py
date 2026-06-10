@@ -18,21 +18,17 @@ from src import theme as _T
 from src.filters import get_global_color_map, get_global_color_map_dual
 
 
-# Compact signal labels for the inline "detected sponsor" chip.
-_BRANDED_SIGNAL = {
-    "presented_by": "presented by", "powered_by": "powered by",
-    "partnership": "partner", "sponsored_by": "sponsored by",
-    "brought_by": "brought to you by", "promo_code": "promo code",
-    "cjk_provided": "provided by", "ar_sponsor": "sponsor",
-}
-
-
 @st.cache_data(ttl=600, show_spinner=False)
 def _branded_lookup(video_ids: tuple) -> dict:
-    """Map video_id → {brand, signal} from branded_content_candidates
-    for the given videos. Self-contained (own DB from env) + cached so
-    ANY video table can show the detected sponsor with no caller changes.
-    Only rows with a confirmed canonical brand are returned."""
+    """Map video_id → {brand, flag} from branded_content_candidates for
+    the given videos. Self-contained (own DB from env) + cached so ANY
+    video table can show promotion status with no caller changes.
+
+      flag=True  → YouTube discloses paid promotion (has_paid_flag).
+      flag=False → we DETECTED a promotion candidate, but YouTube's
+                   metadata is NOT set (potential undisclosed promotion).
+      brand      → canonical sponsor, or None if not extractable.
+    """
     if not video_ids:
         return {}
     import os
@@ -50,24 +46,16 @@ def _branded_lookup(video_ids: tuple) -> dict:
     for i in range(0, len(ids), 150):
         try:
             rows = (db.client.table("branded_content_candidates")
-                    .select("video_id,brand_canonical,signals")
+                    .select("video_id,brand_canonical,has_paid_flag")
                     .in_("video_id", ids[i:i + 150])
-                    .not_.is_("brand_canonical", "null")
+                    .eq("is_branded", True)
                     .execute().data) or []
         except Exception:
             rows = []
         for r in rows:
-            _sigs = r.get("signals") or []
-            sig = next((s for s in _sigs if s != "youtube_flag"), None)
-            label = _BRANDED_SIGNAL.get(sig, "")
-            # Flag-only brands (pulled from @mention/possessive on a
-            # YouTube-disclosed video) have no text phrase → label as
-            # 'disclosed' so the chip still carries a signal.
-            if not label and "youtube_flag" in _sigs:
-                label = "disclosed"
             out[r["video_id"]] = {
-                "brand": r["brand_canonical"],
-                "signal": label,
+                "brand": r.get("brand_canonical"),
+                "flag": bool(r.get("has_paid_flag")),
             }
     return out
 
@@ -246,30 +234,31 @@ def render_top_season_videos_table(
         _cat_color = CATEGORY_COLORS.get(cat, _T.MUTED)
         _cat_span = (f' · <span style="color:{_cat_color}">{cat}</span>'
                      if cat and cat != "Other" else "")
-        # "💰 Sponsored" chip when the creator disclosed paid promotion
-        # (YouTube's "Includes paid promotion" tag). Rare in football
-        # content, so it reads as a meaningful low-noise signal.
-        _paid_span = (
-            ' · <span style="color:#E0A800;font-weight:600">💰 Sponsored</span>'
-            if v.get("has_paid_promotion") else ""
-        )
-        # Detected-sponsor chip (branded_content_candidates) — the brand
-        # we extracted from the text + the signal that revealed it.
+        # Promotion status chip — two clear states:
+        #   • YouTube discloses paid promotion → gold "💰 Paid Promotion".
+        #   • We detected a promotion candidate but YT metadata is NOT
+        #     set → pink "⚠️ Potential promotion — not disclosed".
+        # Brand appended in parentheses when we extracted one.
         _bd = _branded.get(v.get("id"))
-        _brand_span = ""
-        if _bd:
-            _sig = (f' <span style="color:{_T.MUTED}">({_bd["signal"]})</span>'
-                    if _bd.get("signal") else "")
-            _brand_span = (' · <span style="color:#4FC3F7">🔎 '
-                           f'{_bd["brand"]}</span>{_sig}')
+        _disclosed = bool(v.get("has_paid_promotion")) or (
+            _bd is not None and _bd.get("flag"))
+        _brand = _bd.get("brand") if _bd else None
+        _brand_txt = f" ({_brand})" if _brand else ""
+        _promo_span = ""
+        if _disclosed:
+            _promo_span = (' · <span style="color:#E0A800;font-weight:600">'
+                           f'💰 Paid Promotion{_brand_txt}</span>')
+        elif _bd is not None:
+            _promo_span = (' · <span style="color:#FF66B3;font-weight:600">'
+                           '⚠️ Potential promotion — not disclosed'
+                           f'{_brand_txt}</span>')
         # 3rd row — attributes stay inline (format · duration · date · cat).
         _context = (
             f'<span style="color:{fmt_color}">{fmt_label}</span>'
             f' · {dur_s}'
             f' · <span style="color:{_T.MUTED}">{pub}</span>'
             f'{_cat_span}'
-            f'{_paid_span}'
-            f'{_brand_span}'
+            f'{_promo_span}'
         )
         _extra_cell = ""
         for _xi, _xc in enumerate(_xcs):
