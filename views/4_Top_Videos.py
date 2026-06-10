@@ -394,6 +394,7 @@ for r in filtered.itertuples(index=False):
         "like_count": int(getattr(r, "like_count", 0) or 0),
         "comment_count": int(getattr(r, "comment_count", 0) or 0),
         "category": getattr(r, "category", "") or "",
+        "has_paid_promotion": bool(getattr(r, "has_paid_promotion", False)),
     })
 render_top_season_videos_table(
     _vids_list, _ch_by_id,

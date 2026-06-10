@@ -643,6 +643,12 @@ class YouTubeClient:
         _yt_lang = (snippet.get("defaultAudioLanguage")
                     or snippet.get("defaultLanguage")
                     or None)
+        # "Includes paid promotion" disclosure (brand sponsorship /
+        # paid product placement). The part is free and returns via a
+        # plain API key. Absent on items fetched without the part →
+        # default False.
+        _paid = bool((item.get("paidProductPlacementDetails") or {})
+                     .get("hasPaidProductPlacement", False))
         return {
             "youtube_video_id": item["id"],
             "title": snippet.get("title", ""),
@@ -655,6 +661,7 @@ class YouTubeClient:
             "duration_seconds": duration_sec,
             "thumbnail_url": snippet.get("thumbnails", {}).get("high", {}).get("url", ""),
             "youtube_language": _yt_lang,
+            "has_paid_promotion": _paid,
         }
 
     def get_video_details(
@@ -681,7 +688,8 @@ class YouTubeClient:
         def _fetch_batch(batch: list[str]) -> None:
             _ids = ",".join(batch)
             resp = self._call(lambda yt: yt.videos().list(
-                part="snippet,statistics,contentDetails,liveStreamingDetails",
+                part="snippet,statistics,contentDetails,"
+                     "liveStreamingDetails,paidProductPlacementDetails",
                 id=_ids,
             ))
             for item in resp.get("items", []):

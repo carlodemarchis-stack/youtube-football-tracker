@@ -186,12 +186,20 @@ def render_top_season_videos_table(
         _cat_color = CATEGORY_COLORS.get(cat, _T.MUTED)
         _cat_span = (f' · <span style="color:{_cat_color}">{cat}</span>'
                      if cat and cat != "Other" else "")
+        # "💰 Sponsored" chip when the creator disclosed paid promotion
+        # (YouTube's "Includes paid promotion" tag). Rare in football
+        # content, so it reads as a meaningful low-noise signal.
+        _paid_span = (
+            ' · <span style="color:#E0A800;font-weight:600">💰 Sponsored</span>'
+            if v.get("has_paid_promotion") else ""
+        )
         # 3rd row — attributes stay inline (format · duration · date · cat).
         _context = (
             f'<span style="color:{fmt_color}">{fmt_label}</span>'
             f' · {dur_s}'
             f' · <span style="color:{_T.MUTED}">{pub}</span>'
             f'{_cat_span}'
+            f'{_paid_span}'
         )
         _extra_cell = ""
         for _xi, _xc in enumerate(_xcs):

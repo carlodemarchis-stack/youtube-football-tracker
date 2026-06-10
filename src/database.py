@@ -519,6 +519,11 @@ class Database:
                 row["format"] = v["format"]
             if v.get("actual_start_time"):
                 row["actual_start_time"] = v["actual_start_time"]
+            # Paid-promotion disclosure. Guarded so a caller that didn't
+            # fetch the paidProductPlacementDetails part never clobbers a
+            # previously-stored True back to False.
+            if "has_paid_promotion" in v:
+                row["has_paid_promotion"] = bool(v["has_paid_promotion"])
             # Language detection (best-effort). Priority: YouTube field >
             # lingua-py title detection > channel country prior. Stored
             # together with the source so we can rebuild signals later.
