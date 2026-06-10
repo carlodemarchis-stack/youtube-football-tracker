@@ -13,8 +13,11 @@ catalogue) so this page is a focused view of brand-deal content.
 from __future__ import annotations
 
 import os
+from collections import Counter
 
 import streamlit as st
+import pandas as pd
+import plotly.express as px
 from dotenv import load_dotenv
 
 from src.database import Database
@@ -86,6 +89,17 @@ if not _latest and not _top:
     st.info("No sponsored videos found in the current filter scope.")
     st.stop()
 
+# ── Latest ────────────────────────────────────────────────────────
+render_top_season_videos_table(
+    _latest, _ch_by_id,
+    header="🆕 Latest sponsored videos",
+    subtitle="Most recently published, newest first.",
+    order_by="views",
+    max_height=1200,
+)
+
+st.markdown("---")
+
 # ── Top views ─────────────────────────────────────────────────────
 render_top_season_videos_table(
     _top, _ch_by_id,
@@ -96,11 +110,59 @@ render_top_season_videos_table(
 
 st.markdown("---")
 
-# ── Latest ────────────────────────────────────────────────────────
-render_top_season_videos_table(
-    _latest, _ch_by_id,
-    header="🆕 Latest sponsored videos",
-    subtitle="Most recently published, newest first.",
-    order_by="views",
-    max_height=1200,
-)
+
+# ── Sponsored videos per channel (top 25) ─────────────────────────
+@st.cache_data(ttl=300, show_spinner=False)
+def _sponsored_counts(channel_ids: tuple[str, ...]) -> dict[str, int]:
+    """Count sponsored videos per channel across the scope. Paginated
+    so a scope with >1000 sponsored videos still totals correctly.
+    Fast thanks to the partial index on has_paid_promotion."""
+    if not channel_ids:
+        return {}
+    out: list[str] = []
+    off = 0
+    while True:
+        rows = (db.client.table("videos").select("channel_id")
+                .in_("channel_id", list(channel_ids))
+                .eq("has_paid_promotion", True)
+                .range(off, off + 999).execute().data) or []
+        out.extend(r["channel_id"] for r in rows if r.get("channel_id"))
+        if len(rows) < 1000:
+            break
+        off += 1000
+    return dict(Counter(out))
+
+
+_counts = _sponsored_counts(_ids_t)
+if _counts:
+    _TOP_N = 25
+    _ranked = sorted(_counts.items(), key=lambda kv: kv[1], reverse=True)
+    _shown = _ranked[:_TOP_N]
+    _df = pd.DataFrame(
+        [{"Channel": (_ch_by_id.get(cid) or {}).get("name", "?"),
+          "Sponsored videos": n}
+         for cid, n in _shown]
+    )
+    st.subheader("📊 Sponsored videos per channel")
+    _cap = (f"Channels in scope with the most disclosed paid-promotion "
+            f"videos. {len(_counts)} channel(s) have ≥1; ")
+    _cap += (f"showing the top {_TOP_N}." if len(_counts) > _TOP_N
+             else "showing all.")
+    st.caption(_cap)
+    # Horizontal bars, highest at top.
+    fig = px.bar(
+        _df.iloc[::-1], x="Sponsored videos", y="Channel",
+        orientation="h",
+        text="Sponsored videos",
+    )
+    fig.update_traces(marker_color="#E0A800", textposition="outside",
+                      cliponaxis=False)
+    fig.update_layout(
+        height=max(320, 26 * len(_shown) + 80),
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        margin=dict(t=10, l=0, r=30, b=20),
+        xaxis=dict(title="", showgrid=True,
+                   gridcolor="rgba(255,255,255,0.08)"),
+        yaxis=dict(title=""),
+    )
+    st.plotly_chart(fig, width="stretch")
