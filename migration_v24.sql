@@ -19,7 +19,8 @@ CREATE TABLE IF NOT EXISTS branded_content_candidates (
     channel_id     uuid,
     has_paid_flag  boolean NOT NULL DEFAULT false,
     signals        text[]  NOT NULL DEFAULT '{}',
-    brand_guess    text,
+    brand_guess    text,            -- raw "by X" capture from the scanner
+    brand_norm     text,            -- normalized for grouping (pass 2)
     score          int     NOT NULL DEFAULT 0,
     lang           text,
     reviewed       boolean NOT NULL DEFAULT false,
