@@ -4,71 +4,19 @@ import streamlit as st
 from src.channels import COUNTRY_TO_LEAGUE, LEAGUE_FLAG
 
 
-# ── Inclusion-based cohort filters (single source of truth) ──────
-#
-# The OLD pattern (~25 inlined blocklist tuples across views/) was
-# anti-fragile: any new entity_type (NFL, F1, future cricket / G3
-# racing / women-league-2 / …) silently leaked into the Top-5 league
-# UX until 25 spots were each updated by hand.
-#
-# The NEW pattern is opt-IN: a channel only enters the Top-5 cohort
-# if its entity_type is explicitly in the allowlist. New types are
-# excluded by default — they can never leak.
-#
-# Two helpers, named honestly:
-#   - is_club()         → Club channels only (no League).
-#   - is_top5_cohort()  → Club + League channels (the headline cohort
-#                         that powers /home, /clubs, /season,
-#                         /top-videos, /latest, /viral, /trends, etc.).
-#
-# Both also exclude WC2026-tagged rows (CONVENTIONS §10 isolation).
-
-# Allowlist source of truth — adding a new core entity_type means
-# touching ONE line here, not 25 inline tuples across views/.
-_CLUB_TYPES = ("Club",)
-_TOP5_COHORT_TYPES = ("Club", "League")
+# Pure-Python cohort predicates live in src/cohort.py so unattended
+# scripts (Railway crons, no Streamlit in the image) can import them
+# without pulling Streamlit transitively through this file.
+from src.cohort import (
+    _CLUB_TYPES, _TOP5_COHORT_TYPES,
+    is_wc2026, is_club, is_top5_cohort,
+)
 
 # Legacy blocklist — kept only because src/dashboard_cache.py still
 # uses it for some SQL-side `.not.in_()` filters. New code should use
 # is_top5_cohort() / is_club() instead.
 _NON_CLUB_TYPES = ("League", "Player", "Federation", "GoverningBody",
                    "OtherClub", "WomenClub", "NFL", "F1")
-
-
-def is_wc2026(ch: dict) -> bool:
-    """True if the channel is tagged for the WC2026 feature.
-
-    WC2026 lives on its own pages and — exactly like Players /
-    Federations — must be excluded from every core league/club view,
-    aggregate, leaderboard, Latest / Top / Season / Daily Recap
-    (CONVENTIONS §10). This is **tag-based**, so isolation holds even
-    if a WC2026 channel isn't a Federation/GoverningBody (today they
-    all are, so this is currently a no-op — it exists so adding
-    WC2026 *videos* to the shared tables can't leak into core
-    surfaces now or in future)."""
-    return bool((ch.get("competitions") or {}).get("wc2026"))
-
-
-def is_club(ch: dict) -> bool:
-    """True only for Club entities (no Leagues, no Players, no
-    Federations, no NFL/F1/Women/Other). Use this when the surface
-    aggregates per-club (a leaderboard, a club picker, etc.)."""
-    return (ch.get("entity_type") in _CLUB_TYPES
-            and not is_wc2026(ch))
-
-
-def is_top5_cohort(ch: dict) -> bool:
-    """True for the core Top-5 cohort: Club + League channels, no
-    WC2026 tag. Use this for any surface that shows "everything in
-    the Top-5 universe" — Home, the All-Channels table on /clubs,
-    /latest, /viral, /trends, /season, /top-videos, etc.
-
-    Inclusion-based on purpose: any new entity_type (cricket teams,
-    F2/F3, women-league-2, …) is excluded by default, so it can
-    never silently leak into the headline UX. Onboard a new type by
-    adding it to ``_TOP5_COHORT_TYPES`` above."""
-    return (ch.get("entity_type") in _TOP5_COHORT_TYPES
-            and not is_wc2026(ch))
 
 
 def _sync_query_params(league: str, club: str):

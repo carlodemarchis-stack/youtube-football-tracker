@@ -36,7 +36,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from src.database import Database
-from src.filters import is_top5_cohort
+from src.cohort import is_top5_cohort
 from src.youtube_api import YouTubeClient
 from src.channels import get_season_since
 

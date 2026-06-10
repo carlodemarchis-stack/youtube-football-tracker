@@ -42,7 +42,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from src.channels import COUNTRY_TO_LEAGUE
-from src.filters import is_top5_cohort
+from src.cohort import is_top5_cohort
 from src.database import Database
 
 UA = "ytft-lab/1.0 (https://ytft.aguywithascarf.com)"

@@ -1182,7 +1182,7 @@ DURATION_BUCKETS_LONG = [
 # Derived from src.channels.DEFAULT_SEASON_START so this auto-rolls
 # when the new European season starts. Was hardcoded "2025-08-01".
 from src.channels import DEFAULT_SEASON_START as _DEFAULT_SEASON_START
-from src.filters import is_top5_cohort
+from src.cohort import is_top5_cohort
 DURATION_SEASON_SINCE: str = _DEFAULT_SEASON_START
 
 

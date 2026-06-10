@@ -22,7 +22,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from src.database import Database
-from src.filters import is_top5_cohort
+from src.cohort import is_top5_cohort
 
 
 # Mapping is keyed by youtube_channel_id so a name/handle change
