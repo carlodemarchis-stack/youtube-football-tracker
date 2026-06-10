@@ -296,8 +296,8 @@ else:
         # or per-team values) would otherwise create phantom league
         # rows like "WW" or "AS" in the timeline.
         _z1_videos = [v for v in timeline_unscheduled
-                      if (ch_by_id.get(v.get("channel_id")) or {})
-                         .get("entity_type") not in _SKIP_TYPES]
+                      if is_top5_cohort(
+                          ch_by_id.get(v.get("channel_id")) or {})]
         def _league_of(v):
             ch = ch_by_id.get(v.get("channel_id")) or {}
             return get_league_for_channel(ch) or "Other"
