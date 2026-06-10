@@ -129,6 +129,7 @@ viewer_pages = [
     st.Page("views/2_Clubs.py",             title="All-time",          url_path="all-channels"),
     st.Page("views/4_Top_Videos.py",        title="All-Time Top",      url_path="all-time-top"),
     st.Page("views/4c_No1_Videos.py",       title="No. 1 Videos",      url_path="no1-videos"),
+    st.Page("views/16c_Sponsored.py",       title="Sponsored",         url_path="sponsored"),
 ]
 
 # Tier 1.7 — "Others": tangential entity types we track but don't
@@ -160,7 +161,6 @@ wc2026_pages = [
 # know these are exploratory features, not core data.
 lab_pages = [
     st.Page("views/4b_Outliers.py",            title="Outliers",          url_path="outliers"),
-    st.Page("views/16c_Sponsored.py",          title="Sponsored",         url_path="sponsored"),
     st.Page("views/16_Socials.py",             title="Other Social",      url_path="other-social"),
     st.Page("views/16b_Digital_Footprint.py",  title="Digital Footprint", url_path="digital-footprint"),
 ]
