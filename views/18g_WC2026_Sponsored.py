@@ -249,6 +249,8 @@ def _branded_candidates(channel_ids: tuple[str, ...], limit: int = 40):
 
 @st.cache_data(ttl=300, show_spinner=False)
 def _branded_counts(channel_ids: tuple[str, ...]) -> dict[str, int]:
+    """Text-detected branded candidates per channel — undisclosed only
+    (has_paid_flag=False), matching the candidates table above."""
     if not channel_ids:
         return {}
     out: list[str] = []
@@ -258,6 +260,7 @@ def _branded_counts(channel_ids: tuple[str, ...]) -> dict[str, int]:
                 .select("channel_id")
                 .in_("channel_id", list(channel_ids))
                 .eq("is_branded", True)
+                .eq("has_paid_flag", False)
                 .range(off, off + 999).execute().data) or []
         out.extend(r["channel_id"] for r in rows if r.get("channel_id"))
         if len(rows) < 1000:
@@ -339,9 +342,9 @@ if _bcounts:
          for cid, n in _bshown]
     ).iloc[::-1]
     st.subheader("📊 Channels with the most branded candidates")
-    _bc = (f"Confirmed branded candidates (YouTube-disclosed + "
-           f"text-detected) per channel. {len(_bcounts)} channel(s) "
-           f"have ≥1; ")
+    _bc = (f"Text-detected, **undisclosed** branded candidates per "
+           f"channel (excludes anything with YouTube's flag — same set "
+           f"as the table above). {len(_bcounts)} channel(s) have ≥1; ")
     _bc += (f"showing the top {_BTOP}." if len(_bcounts) > _BTOP
             else "showing all.")
     st.caption(_bc)
