@@ -72,6 +72,8 @@ render_page_subtitle(
     caveat=("Source: YouTube's 'Includes paid promotion' flag. Covers "
             "every video these channels publish — not just WC2026 "
             "content."),
+    show_filter=False,  # WC2026 pages use the confederation/team filter,
+                        # not the global Top-5 league/club filter.
 )
 if _confed or _team:
     st.caption(f"Filtered: {_wc_scope_label(_confed, _team)}")

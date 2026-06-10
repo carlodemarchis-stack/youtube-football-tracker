@@ -99,7 +99,7 @@ except Exception:
     pass
 render_page_subtitle(
     "Most recent uploads from the WC2026 cohort · "
-    f"{len(wc)} channels", updated_raw=_latest_pub)
+    f"{len(wc)} channels", updated_raw=_latest_pub, show_filter=False)
 st.caption(
     "📡 **Cohort:** the official YouTube channels of all 48 qualified "
     "teams + FIFA + the 6 confederations (UEFA · CONMEBOL · CONCACAF "
