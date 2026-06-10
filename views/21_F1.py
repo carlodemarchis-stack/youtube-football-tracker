@@ -226,14 +226,11 @@ _TABLE_CSS = (
 
 
 def _row_html(c) -> str:
-    n = _f1(c)
     yt_id = c.get("youtube_channel_id") or ""
     handle = (c.get("handle") or "").lstrip("@")
     yt_url = (f"https://www.youtube.com/@{handle}" if handle
               else f"https://www.youtube.com/channel/{yt_id}")
     team = c.get("name") or "—"
-    conf = n.get("conference") or "—"
-    div  = n.get("division")   or "—"
     subs   = int(c.get("subscriber_count") or 0)
     views  = int(c.get("total_views")      or 0)
     videos = int(c.get("video_count")      or 0)
@@ -250,8 +247,6 @@ def _row_html(c) -> str:
     return (
         "<tr>"
         + team_cell
-        + td(conf,   conf, align="left")
-        + td(div,    div,  align="left")
         + td(subs,   fmt_num(subs))
         + td(views,  fmt_num(views))
         + td(videos, fmt_num(videos))
@@ -265,8 +260,6 @@ def _row_html(c) -> str:
 
 _COLS = [
     ("Team",          "str", "left"),
-    ("Conference",    "str", "left"),
-    ("Division",      "str", "left"),
     ("Subscribers",   "num", "right"),
     ("Total views",   "num", "right"),
     ("Videos",        "num", "right"),
