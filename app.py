@@ -159,6 +159,7 @@ wc2026_pages = [
 # know these are exploratory features, not core data.
 lab_pages = [
     st.Page("views/4b_Outliers.py",            title="Outliers",          url_path="outliers"),
+    st.Page("views/16c_Sponsored.py",          title="Sponsored",         url_path="sponsored"),
     st.Page("views/16_Socials.py",             title="Other Social",      url_path="other-social"),
     st.Page("views/16b_Digital_Footprint.py",  title="Digital Footprint", url_path="digital-footprint"),
 ]
