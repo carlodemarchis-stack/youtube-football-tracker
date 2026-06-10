@@ -24,7 +24,7 @@ from src.database import Database
 from src.cached_db import get_all_channels as _cached_channels
 from src.filters import (
     get_global_filter, get_global_channels, get_channels_for_filter,
-    render_page_subtitle,
+    get_global_color_map, render_page_subtitle,
 )
 from src.season_top import render_top_season_videos_table
 from src.auth import require_login
@@ -138,25 +138,31 @@ if _counts:
     _TOP_N = 25
     _ranked = sorted(_counts.items(), key=lambda kv: kv[1], reverse=True)
     _shown = _ranked[:_TOP_N]
+    # Per-channel brand colour from the global colour map (same source
+    # the channel badge / other charts use). Reverse so highest-count
+    # is at the top; colours stay aligned with their bars.
+    _cmap = get_global_color_map() or {}
     _df = pd.DataFrame(
         [{"Channel": (_ch_by_id.get(cid) or {}).get("name", "?"),
-          "Sponsored videos": n}
+          "Sponsored videos": n,
+          "_color": _cmap.get((_ch_by_id.get(cid) or {}).get("name", ""),
+                              "#E0A800")}
          for cid, n in _shown]
-    )
+    ).iloc[::-1]
     st.subheader("📊 Sponsored videos per channel")
     _cap = (f"Channels in scope with the most disclosed paid-promotion "
             f"videos. {len(_counts)} channel(s) have ≥1; ")
     _cap += (f"showing the top {_TOP_N}." if len(_counts) > _TOP_N
              else "showing all.")
     st.caption(_cap)
-    # Horizontal bars, highest at top.
+    # Horizontal bars, highest at top, coloured by channel brand.
     fig = px.bar(
-        _df.iloc[::-1], x="Sponsored videos", y="Channel",
+        _df, x="Sponsored videos", y="Channel",
         orientation="h",
         text="Sponsored videos",
     )
-    fig.update_traces(marker_color="#E0A800", textposition="outside",
-                      cliponaxis=False)
+    fig.update_traces(marker_color=list(_df["_color"]),
+                      textposition="outside", cliponaxis=False)
     fig.update_layout(
         height=max(320, 26 * len(_shown) + 80),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
