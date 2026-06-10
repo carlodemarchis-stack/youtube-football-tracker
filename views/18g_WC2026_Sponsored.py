@@ -215,6 +215,9 @@ def _branded_candidates(channel_ids: tuple[str, ...], limit: int = 40):
                 .select("video_id,brand_canonical,signals,has_paid_flag")
                 .in_("channel_id", list(channel_ids))
                 .eq("is_branded", True)
+                # Text-detected ONLY — exclude videos YouTube already
+                # flags (those are in the disclosed sections above).
+                .eq("has_paid_flag", False)
                 .not_.is_("brand_canonical", "null")
                 .range(off, off + 999).execute().data) or []
         cand.extend(rows)
@@ -266,12 +269,14 @@ def _branded_counts(channel_ids: tuple[str, ...]) -> dict[str, int]:
 _cands = _branded_candidates(_ids_t)
 st.subheader("🔎 Branded-content candidates — detected from the text")
 st.caption(
-    "⚠️ **Experimental / speculative.** Not YouTube's flag — we scanned "
-    "each video's title & description for explicit sponsor language "
+    "⚠️ **Experimental / speculative — and deliberately EXCLUDES "
+    "anything YouTube already flags above.** These are WC2026 videos "
+    "that did **not** carry YouTube's “paid promotion” disclosure, yet "
+    "whose title/description contains explicit sponsor language "
     "(“presented by …”, “powered by …”, plus ES/IT/DE/FR/PT and "
-    "CJK/Arabic variants) and extracted the brand. Surfaces brand "
-    "deals a channel never formally disclosed, but it's a heuristic — "
-    "an informed guess, not a confirmation."
+    "CJK/Arabic variants) — so we extracted the brand ourselves. This "
+    "is the *undisclosed* branded content the flag misses. It's a "
+    "heuristic, so treat it as an informed guess, not a confirmation."
 )
 
 if not _cands:
@@ -286,8 +291,6 @@ else:
         thumb = v.get("thumbnail_url") or ""
         brand = (v.get("brand") or "—").replace("<", "&lt;")
         sigs = " · ".join(_SIGNAL_LABEL.get(s, s) for s in v["signals"]) or "—"
-        flag_chip = ('<span style="color:#E0A800;font-size:11px">💰 also '
-                     'YT-disclosed</span>' if v.get("flag") else "")
         badge = wc2026_badge(ch, 16) if ch else ""
         _rows_html += f"""<tr onclick="window.open('{url}','_blank','noopener')" style="cursor:pointer;border-bottom:1px solid {_T.SURFACE}">
           <td style="padding:7px 10px"><img src="{thumb}" style="width:96px;height:54px;object-fit:cover;border-radius:4px;display:block"></td>
@@ -297,14 +300,13 @@ else:
           </td>
           <td style="padding:7px 10px;vertical-align:top;white-space:nowrap">
             <span style="background:#E0A80022;color:#E0A800;padding:2px 9px;border-radius:11px;font-size:12px;font-weight:600">{brand}</span>
-            <div style="color:{_T.MUTED};font-size:11px;margin-top:4px">{sigs} {flag_chip}</div>
+            <div style="color:{_T.MUTED};font-size:11px;margin-top:4px">{sigs}</div>
           </td>
           <td style="padding:7px 10px;text-align:right;color:{_T.TEXT};font-size:13px;vertical-align:top;white-space:nowrap">{fmt_num(int(v.get('view_count') or 0))}</td>
         </tr>"""
 
-    _n_untagged = sum(1 for v in _cands if not v.get("flag"))
-    st.caption(f"Top {len(_cands)} by views · {_n_untagged} of these were "
-               "**not** YouTube-disclosed — found purely from the text.")
+    st.caption(f"Top {len(_cands)} by views — all undisclosed "
+               "(none carry YouTube's paid-promotion flag).")
     components.html(f"""
     <style>
       * {{ box-sizing:border-box; }}
