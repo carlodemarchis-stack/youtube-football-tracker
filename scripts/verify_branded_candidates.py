@@ -142,16 +142,27 @@ while True:
     off+=1000
 
 upd=[]
-n_canon=n_false=n_flag=0
+n_canon=n_false=n_flag=n_auto=0
 for r in rows:
-    bn=(r.get('brand_norm') or '').lower()
+    bnorm=r.get('brand_norm')
+    bn=(bnorm or '').lower()
     rec={"video_id":r["video_id"]}
     if bn in CANON:
         rec.update({"brand_canonical":CANON[bn],"is_branded":True,"reviewed":True,"llm_confidence":"high"}); n_canon+=1
     elif bn in FALSE:
         rec.update({"is_branded":False,"reviewed":True,"llm_confidence":"high"}); n_false+=1
-    elif not r.get('brand_norm') and r.get('has_paid_flag'):
+    elif not bnorm and r.get('has_paid_flag'):
         rec.update({"is_branded":True,"reviewed":True,"llm_confidence":"flag"}); n_flag+=1
+    elif (bnorm and not r.get('has_paid_flag')
+          and len(bnorm) <= 28 and len(bnorm.split()) <= 4):
+        # Auto-confirm NEW text-detected sponsors not yet in the curated
+        # CANON map, using the normalized name as a best-effort brand —
+        # so fresh sponsors surface on a weekly re-run without waiting
+        # for a manual map update. The short/few-word guard filters the
+        # phrase-fragment junk. Promote common ones into CANON later.
+        disp = bnorm if any(c.isupper() for c in bnorm) else bnorm.title()
+        rec.update({"brand_canonical":disp,"is_branded":True,
+                    "reviewed":True,"llm_confidence":"auto"}); n_auto+=1
     else:
         continue
     upd.append(rec)
@@ -161,6 +172,7 @@ for i in range(0,len(upd),200):
 
 print(f"Applied verdicts to {len(upd)} rows:")
 print(f"  canonical brand confirmed: {n_canon}")
+print(f"  auto-confirmed (new sponsor, normalized name): {n_auto}")
 print(f"  false positive (not a sponsor): {n_false}")
 print(f"  flag-only auto-confirmed (brand unknown): {n_flag}")
 print(f"  left unreviewed (long tail): {len(rows)-len(upd)}")
