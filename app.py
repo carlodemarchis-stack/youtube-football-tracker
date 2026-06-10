@@ -152,6 +152,7 @@ wc2026_pages = [
     st.Page("views/18d_WC2026_Viral.py",       title="Viral Videos",   url_path="wc2026-viral"),
     st.Page("views/18_WC2026.py",              title="All-time",       url_path="wc2026"),
     st.Page("views/18f_WC2026_Top_Videos.py",  title="All-time Top",   url_path="wc2026-top"),
+    st.Page("views/18g_WC2026_Sponsored.py",   title="Sponsored",      url_path="wc2026-sponsored"),
 ]
 
 # Tier 1.5 — "The Lab": experimental / analytical pages, viewer-tier
@@ -457,6 +458,7 @@ _no_filter_url_paths = {
     "", "home", "players", "federations", "other-clubs",
     "women", "no1-videos", "wc2026", "wc2026-trends",
     "wc2026-latest", "wc2026-viral", "wc2026-top",
+    "wc2026-sponsored",
     "release-notes",
     "nfl",  # hidden NFL v0 (see docs/NFL_V0.md)
     "f1",   # hidden F1 v0 (see docs/F1_V0.md)
@@ -484,7 +486,7 @@ if SUPABASE_URL and SUPABASE_KEY:
             st.session_state["_global_club"] = club
         elif getattr(pg, "url_path", "") in (
             "wc2026", "wc2026-trends", "wc2026-latest", "wc2026-viral",
-            "wc2026-top",
+            "wc2026-top", "wc2026-sponsored",
         ):
             # WC2026 sub-app has its own Confederation→Team filter.
             # Rendered here (above the page title) so it sits in the

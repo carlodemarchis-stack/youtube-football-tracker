@@ -451,7 +451,7 @@ def _build_top_videos(pub_videos: list[dict], db, chans: list[dict],
         rs = (db.client.table("videos")
               .select("id,youtube_video_id,title,channel_id,thumbnail_url,"
                       "duration_seconds,format,published_at,view_count,"
-                      "like_count,comment_count,category")
+                      "like_count,comment_count,category,has_paid_promotion")
               .in_("id", chunk).execute()).data or []
         for r in rs:
             meta_by_id[r["id"]] = r
@@ -475,6 +475,7 @@ def _build_top_videos(pub_videos: list[dict], db, chans: list[dict],
             "like_count": int(m.get("like_count") or 0),
             "comment_count": int(m.get("comment_count") or 0),
             "category": m.get("category") or "",
+            "has_paid_promotion": bool(m.get("has_paid_promotion")),
             "channel_id": m.get("channel_id"),
             "channel_name": ch.get("name") or "?",
             "channel_color": ch.get("color") or "#888",
