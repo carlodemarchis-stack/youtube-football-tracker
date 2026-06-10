@@ -252,6 +252,11 @@ def main() -> int:
                 id_to_cid[yt_id_db] = r.get("channel_id") or ""
             yt_ids = list(id_to_dbid.keys())
             snap_rows: list[dict] = []
+            # Persist the paid-promotion flag for recent videos as we
+            # re-read them — covers the case where a creator adds the
+            # "Includes paid promotion" disclosure after upload, within
+            # the video's first 30 days (the recent-snapshot window).
+            _paid_dbids: list[str] = []
             for b in range(0, len(yt_ids), 50):
                 batch = yt_ids[b:b+50]
                 details = yt.get_video_details(batch)
@@ -262,6 +267,8 @@ def main() -> int:
                     dbid = id_to_dbid.get(yt_id)
                     if not dbid:
                         continue
+                    if v.get("has_paid_promotion"):
+                        _paid_dbids.append(dbid)
                     snap_rows.append({
                         "video_id": dbid,
                         # Carry yt_id + channel_id so the freshness upsert
@@ -280,6 +287,17 @@ def main() -> int:
                 snap_rows, captured_date=capture_date)
             log(f"  wrote {video_snapshots_written} video_snapshots rows "
                 f"for {capture_date}")
+
+            # Flush any newly-disclosed paid promotions (rare → cheap).
+            if _paid_dbids:
+                try:
+                    db.client.table("videos").update(
+                        {"has_paid_promotion": True}
+                    ).in_("id", _paid_dbids).execute()
+                    log(f"  marked {len(_paid_dbids)} recent video(s) "
+                        f"has_paid_promotion=True")
+                except Exception as _e:
+                    log(f"  paid-promotion flag update skipped: {_e}")
 
             # Pre-compute per-video daily deltas — powers the Daily Recap
             # "Most watched" section without scanning raw snapshots at page load.
