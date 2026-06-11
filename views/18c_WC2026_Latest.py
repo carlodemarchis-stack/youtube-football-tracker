@@ -56,6 +56,7 @@ db = Database(SUPABASE_URL, SUPABASE_KEY)
 from src.cached_db import (
     get_all_channels as _cached_channels,
     get_recent_videos as _cached_recent,
+    read_dashboard_cache as _cached_dc_read,
 )
 from src.filters import get_global_color_map, get_global_color_map_dual
 
@@ -106,6 +107,27 @@ st.caption(
     "· CAF · AFC · OFC). We surface **every video they publish** "
     "below, including content unrelated to WC2026."
 )
+
+# 🤖 WC2026 Latest vibe — cohort-wide AI note (refreshed hourly by the
+# WC2026 cron). Stored under its own dimension so it never collides
+# with the Top-5 latest_vibe.
+try:
+    from src import dashboard_cache as _dc_lv
+    _wc_vibe_row = _cached_dc_read(db, "wc2026_latest_vibe", _dc_lv.scope_all())
+    _wc_vibe_html = (_wc_vibe_row or {}).get("payload", {}).get("html") or ""
+except Exception:
+    _wc_vibe_html = ""
+if _wc_vibe_html:
+    st.markdown(
+        '<div style="background:#1a1c24;border-left:3px solid #58A6FF;'
+        'padding:12px 16px;margin:8px 0 18px 0;border-radius:4px;'
+        'font-size:14px;line-height:1.6;color:#FAFAFA">'
+        '<span style="color:#888;font-size:11px;font-weight:600;'
+        'letter-spacing:0.5px;text-transform:uppercase">'
+        '🤖 WC2026 vibe check · updated hourly</span>'
+        f'<div style="margin-top:6px">{_wc_vibe_html}</div></div>',
+        unsafe_allow_html=True,
+    )
 
 with st.spinner("Loading latest videos…"):
     try:

@@ -1739,6 +1739,41 @@ def refresh_latest_vibe(db, log=print, channels: list[dict] | None = None) -> No
         log(f"[dashboard_cache] latest_vibe failed (non-fatal): {e}")
 
 
+def refresh_wc2026_latest_vibe(db, log=print,
+                               channels: list[dict] | None = None) -> None:
+    """Generate a 'latest vibe' note over the WC2026 cohort's recent
+    videos and persist it under its OWN dimension (wc2026_latest_vibe)
+    so it doesn't collide with the Top-5 latest_vibe. One Anthropic
+    call; called from the WC2026 cron alongside refresh_wc2026."""
+    try:
+        from src import ai_note as _an2
+        chans = channels if channels is not None else db.get_all_channels()
+        wc = [c for c in chans
+              if (c.get("competitions") or {}).get("wc2026")]
+        if not wc:
+            return
+        chans_by_id = {c["id"]: c for c in wc}
+        ids = [c["id"] for c in wc]
+        recent = db.get_recent_videos(limit=60, channel_ids=ids,
+                                      with_description=True)
+        log(f"[dashboard_cache] computing wc2026_latest_vibe "
+            f"({len(ids)} channels, {len(recent)} videos)")
+        vibe = _an2.generate_latest_vibe(recent, channels_by_id=chans_by_id,
+                                         log=log)
+        if vibe:
+            # Plain line-break HTML — skip the Top-5 badge decoration
+            # (tuned for club names, would misfire on national teams).
+            _html = vibe.replace("\n", "<br>")
+            write(db, "wc2026_latest_vibe", scope_all(),
+                  {"text": vibe, "html": _html, "n_videos": len(recent)})
+            log(f"[dashboard_cache] wc2026_latest_vibe WRITTEN "
+                f"({len(vibe)} chars)")
+        else:
+            log("[dashboard_cache] wc2026_latest_vibe skipped — empty")
+    except Exception as e:
+        log(f"[dashboard_cache] wc2026_latest_vibe failed (non-fatal): {e}")
+
+
 def refresh_season_vibe(db, log=print, channels: list[dict] | None = None) -> None:
     """Generate the 'season so far' note and persist to dashboard_cache.
     Nightly only (season aggregates move once a day). Z1 (All Leagues,

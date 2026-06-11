@@ -305,13 +305,17 @@ def main() -> int:
     # upload" column reflects the new clips within the hour. DB-only
     # (no YouTube quota); only runs when something actually changed.
     try:
-        from src.dashboard_cache import refresh_wc2026, refresh_wc2026_trends
+        from src.dashboard_cache import (refresh_wc2026, refresh_wc2026_trends,
+                                          refresh_wc2026_latest_vibe)
         _fresh_chans = db.get_all_channels()
         refresh_wc2026(db, log=log, channels=_fresh_chans)
         # Video-layer trends only need a rebuild when new clips arrived —
         # the Δ-views series itself moves on the daily snapshot, not hourly.
         if total_inserted:
             refresh_wc2026_trends(db, log=log, channels=_fresh_chans)
+            # Refresh the WC2026 Latest AI note only when new videos landed
+            # (one Anthropic call — no point re-firing on a no-op hour).
+            refresh_wc2026_latest_vibe(db, log=log, channels=_fresh_chans)
     except Exception as e:
         log(f"dashboard_cache refresh failed (non-fatal): {e}")
 

@@ -21,7 +21,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from src.database import Database
-from src.dashboard_cache import refresh_wc2026, refresh_wc2026_trends
+from src.dashboard_cache import (refresh_wc2026, refresh_wc2026_trends,
+                                 refresh_wc2026_latest_vibe)
 
 
 def main() -> int:
@@ -36,6 +37,7 @@ def main() -> int:
     chans = db.get_all_channels()
     refresh_wc2026(db, channels=chans)
     refresh_wc2026_trends(db, channels=chans)
+    refresh_wc2026_latest_vibe(db, channels=chans)
     return 0
 
 
