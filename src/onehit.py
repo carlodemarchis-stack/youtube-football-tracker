@@ -21,9 +21,17 @@ from __future__ import annotations
 
 import statistics
 
-import streamlit as st
-
 from src.database import _fetch_all
+
+# Streamlit is only here for the @cache_data decorator. Make it optional
+# so unattended crons (daily_refresh → season_compute → onehit) can
+# import this without Streamlit in the image — they just run uncached.
+try:
+    import streamlit as st
+    _cache = st.cache_data(ttl=1800, show_spinner=False)
+except Exception:
+    def _cache(fn):
+        return fn
 
 MIN_VIEWS = 500_000
 MIN_LIFT = 10
@@ -31,7 +39,7 @@ MIN_SHARE = 0.15
 MIN_VIDEOS = 20
 
 
-@st.cache_data(ttl=1800, show_spinner=False)
+@_cache
 def _load(_db, ids_tuple: tuple[str, ...], since: str) -> list[dict]:
     """One paginated scan of season videos for the given channels. Pulls
     every field render_top_season_videos_table needs."""
