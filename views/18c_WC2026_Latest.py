@@ -30,7 +30,7 @@ from src import components_compat as components
 from dotenv import load_dotenv
 
 from src.database import Database
-from src.analytics import fmt_num, yt_popup_js, CATEGORY_COLORS
+from src.analytics import fmt_num, yt_popup_js, CATEGORY_COLORS, kpi_row
 try:
     from src.analytics import video_table_height
 except ImportError:
@@ -248,6 +248,34 @@ def _team_badge(v) -> str:
     shared resolver."""
     ch = ch_by_id.get(v.get("channel_id")) or {}
     return wc2026_badge(ch, 14)
+
+
+# ── KPI bar — last-24h stats (same style as other pages) ──────────
+def _kpi_fmt(v) -> str:
+    f = (v.get("format") or "").lower()
+    if f in ("long", "short", "live"):
+        return f
+    return "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
+
+_k_n = len(timeline_unscheduled)
+if _k_n:
+    _k_long = sum(1 for v in timeline_unscheduled if _kpi_fmt(v) == "long")
+    _k_short = sum(1 for v in timeline_unscheduled if _kpi_fmt(v) == "short")
+    _k_live = sum(1 for v in timeline_unscheduled if _kpi_fmt(v) == "live")
+    _k_chans = len({v.get("channel_id") for v in timeline_unscheduled
+                    if v.get("channel_id")})
+    _k_confeds = len({_conf_of(v) for v in timeline_unscheduled
+                      if _conf_of(v)})
+    _k_views = sum(int(v.get("view_count") or 0)
+                   for v in timeline_unscheduled)
+    st.markdown(kpi_row([
+        ("🎬 Videos · 24h", fmt_num(_k_n),
+         f"{_k_chans} channels · {_k_confeds} confederations"),
+        ("▶️ Long", fmt_num(_k_long)),
+        ("📱 Shorts", fmt_num(_k_short)),
+        ("🔴 Live", fmt_num(_k_live)),
+        ("👁️ Views so far", fmt_num(_k_views), "on these uploads"),
+    ]), unsafe_allow_html=True)
 
 try:
     # Distinct channels actually represented in the timeline window.
