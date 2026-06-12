@@ -1758,8 +1758,19 @@ def refresh_wc2026_latest_vibe(db, log=print,
                                       with_description=True)
         log(f"[dashboard_cache] computing wc2026_latest_vibe "
             f"({len(ids)} channels, {len(recent)} videos)")
+        _wc_guidance = (
+            "COHORT CONTEXT: these are national-team, FIFA and "
+            "confederation channels in the run-up to the 2026 World "
+            "Cup. It is OBVIOUS and not worth saying that the feed is "
+            "World-Cup-related — NEVER state that the content is about "
+            "the World Cup, that it's 'almost entirely WC2026', or "
+            "anything to that effect. Skip the generality entirely and "
+            "go straight to the SPECIFIC stories in the titles: which "
+            "nations posted, standout clips, named players / managers / "
+            "matches, qualifiers, friendlies, draws."
+        )
         vibe = _an2.generate_latest_vibe(recent, channels_by_id=chans_by_id,
-                                         log=log)
+                                         log=log, extra_guidance=_wc_guidance)
         if vibe:
             # Plain line-break HTML — skip the Top-5 badge decoration
             # (tuned for club names, would misfire on national teams).

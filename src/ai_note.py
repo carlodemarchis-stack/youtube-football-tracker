@@ -853,9 +853,13 @@ def compose_latest_payload(videos: list[dict],
 def generate_latest_vibe(videos: list[dict],
                          channels_by_id: dict | None = None,
                          log=print,
-                         league: str | None = None) -> str | None:
+                         league: str | None = None,
+                         extra_guidance: str | None = None) -> str | None:
     """Call Claude for a short vibe note on the latest videos. Returns
-    plain text (one sentence per line) or None on failure / empty input."""
+    plain text (one sentence per line) or None on failure / empty input.
+
+    extra_guidance: optional extra system-prompt text for a non-Top-5
+    cohort (e.g. WC2026 national teams) — appended verbatim."""
     if not videos:
         return None
 
@@ -882,7 +886,8 @@ def generate_latest_vibe(videos: list[dict],
                 model="claude-haiku-4-5",
                 max_tokens=220,
                 temperature=0.6,
-                system=LATEST_VIBE_PROMPT,
+                system=(LATEST_VIBE_PROMPT
+                        + ("\n\n" + extra_guidance if extra_guidance else "")),
                 messages=[{"role": "user", "content": user_message}],
             )
             break
