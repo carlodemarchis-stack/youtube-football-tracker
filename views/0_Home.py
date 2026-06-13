@@ -307,7 +307,7 @@ st.markdown(
     '<div style="background:#1a1c24;border-left:3px solid #FFA15A;'
     'padding:10px 14px;margin:6px 0 12px 0;border-radius:4px;'
     'font-size:13px;line-height:1.55;color:#FAFAFA">'
-    '<span style="color:#FFA15A;font-weight:600">🚧 Work in progress · pre-beta</span>'
+    '<span style="color:#FFA15A;font-weight:600">🚧 Work in progress</span>'
     ' &nbsp;—&nbsp; this is an early build that will keep evolving. '
     'Bumps and rough edges are expected. '
     '<a href="mailto:carlodemarchis@gmail.com?subject=YTFT%20feedback" '
