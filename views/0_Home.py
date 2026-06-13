@@ -349,6 +349,89 @@ try:
 except Exception:
     pass  # never block the page on a missing/broken note
 
+# ── 🏆 FIFA World Cup 2026 special (logged-in) ───────────────────
+# A KPI bar + last-24h published timeline for the WC2026 cohort, up
+# top before the Top-5 stats. Mirrors the WC2026 Latest page (18c).
+if is_logged_in():
+    try:
+        from src.analytics import kpi_row as _wc_kpi, fmt_num as _wc_fmt
+        from src.timeline import render_48h_dots as _wc_dots
+        from src.wc2026_badge import (wc2026_badge as _wc_badge,
+                                       CONF_COLOR as _WC_CC)
+        _SU = os.getenv("SUPABASE_URL", ""); _SK = os.getenv("SUPABASE_KEY", "")
+        if _SU and _SK:
+            _wdb = Database(_SU, _SK)
+            _wchs = (st.session_state.get("_global_channels")
+                     or _cached_channels(_wdb))
+            _wc = [c for c in _wchs
+                   if (c.get("competitions") or {}).get("wc2026")]
+            if _wc:
+                _wc_by_id = {c["id"]: c for c in _wc}
+                _wc_raw = _cached_recent(_wdb, limit=2000,
+                                         channel_ids=tuple(c["id"] for c in _wc),
+                                         since_hours=25)
+
+                def _wconf(v):
+                    ch = _wc_by_id.get(v.get("channel_id")) or {}
+                    return (((ch.get("competitions") or {}).get("wc2026")
+                             or {}).get("confederation") or "Other")
+
+                def _wfmt(v):
+                    f = (v.get("format") or "").lower()
+                    if f in ("long", "short", "live"):
+                        return f
+                    return ("long" if (v.get("duration_seconds") or 0) >= 60
+                            else "short")
+
+                _wc_vids = []
+                for v in (_wc_raw or []):
+                    _ls = (v.get("live_status") or "").lower()
+                    _ast = v.get("actual_start_time") or ""
+                    _live_now = (_ls == "live") and bool(_ast)
+                    _sched = (_ls == "upcoming") or (
+                        _ls != "live" and bool(v.get("scheduled_start_time"))
+                        and not _ast)
+                    if _sched and not _live_now:
+                        continue
+                    _wc_vids.append(v)
+
+                if _wc_vids:
+                    st.subheader("🏆 FIFA World Cup 2026")
+                    _wn = len(_wc_vids)
+                    _wcn = len({v.get("channel_id") for v in _wc_vids
+                                if v.get("channel_id")})
+                    _wcf = len({_wconf(v) for v in _wc_vids if _wconf(v)})
+                    st.markdown(_wc_kpi([
+                        ("🎬 Videos · 24h", _wc_fmt(_wn),
+                         f"{_wcn} channels · {_wcf} confederations"),
+                        ("▶️ Long",
+                         _wc_fmt(sum(1 for v in _wc_vids if _wfmt(v) == "long"))),
+                        ("📱 Shorts",
+                         _wc_fmt(sum(1 for v in _wc_vids if _wfmt(v) == "short"))),
+                        ("🔴 Live",
+                         _wc_fmt(sum(1 for v in _wc_vids if _wfmt(v) == "live"))),
+                        ("👁️ Views so far",
+                         _wc_fmt(sum(int(v.get("view_count") or 0)
+                                     for v in _wc_vids)), "on these uploads"),
+                    ]), unsafe_allow_html=True)
+                    _wc_dots(
+                        _wc_vids, hours=24,
+                        channel_resolver=_wconf,
+                        color_resolver=lambda v: _WC_CC.get(_wconf(v), "#888"),
+                        badge_resolver=lambda v: _wc_badge(
+                            {"entity_type": "GoverningBody",
+                             "name": _wconf(v)}, 14),
+                        group_resolver=_wconf, row_label="confederation",
+                        header="⏱️ WC2026 — last 24 hours",
+                        caption=(f"{_wn} video(s) from {_wcn} channel(s) "
+                                 f"across {_wcf} confederation(s) in the "
+                                 "last 24h. Click any dot to open the video."),
+                    )
+                    st.markdown("---")
+    except Exception:
+        pass
+
+
 # ── Biggest gainers this week (cached: dashboard_cache.home_top) ─────────────
 try:
     SUPABASE_URL = os.getenv("SUPABASE_URL", "")
