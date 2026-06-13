@@ -101,19 +101,6 @@ public_pages = [
     st.Page("views/0_Home.py", title="Home", url_path="home", default=True),
 ]
 
-# Hidden v0 NFL surface — see docs/NFL_V0.md. Registered as a real page
-# (so /nfl resolves) but the sidebar link is CSS-hidden below; the page
-# itself calls require_login() so signed-out drive-bys land on auth.
-# Drop it into a proper "🏈 NFL" nav-group dict when v1 ships.
-nfl_hidden_pages = [
-    st.Page("views/20_NFL.py", title="NFL", url_path="nfl"),
-]
-# Hidden v0 F1 surface — see docs/F1_V0.md. Same pattern as NFL:
-# registered so /f1 routes, but the sidebar link is CSS-hidden below.
-f1_hidden_pages = [
-    st.Page("views/21_F1.py", title="F1", url_path="f1"),
-]
-
 # Tier 1 — viewer (any signed-in user) — "Top 5 Leagues" group
 # Season title carries the current label dynamically (`current_season_label_safe()`
 # returns e.g. "25/26" today, "26/27" once the 1 Jul 2026 boundary
@@ -163,6 +150,8 @@ lab_pages = [
     st.Page("views/4b_Outliers.py",            title="Outliers",          url_path="outliers"),
     st.Page("views/16_Socials.py",             title="Other Social",      url_path="other-social"),
     st.Page("views/16b_Digital_Footprint.py",  title="Digital Footprint", url_path="digital-footprint"),
+    st.Page("views/20_NFL.py",                 title="NFL",               url_path="nfl"),
+    st.Page("views/21_F1.py",                  title="F1",                url_path="f1"),
 ]
 
 # Tier 2 — premium (promote users via User Management)
@@ -216,13 +205,6 @@ elif is_logged_in():
     nav["Invite-only"] = premium_pages_locked
 if is_admin():
     nav["Admin"] = admin_pages
-
-# Hidden NFL + F1 v0 — append to nav[""] (the ungrouped/Home slot, no
-# section header) so st.navigation routes /nfl and /f1 while the
-# links themselves are CSS-hidden below. Using nav[""] avoids
-# inventing a dummy section header just to hide them.
-if is_logged_in():
-    nav[""] = nav.get("", public_pages) + nfl_hidden_pages + f1_hidden_pages
 
 # "About" (Release Notes) sits last so it lands at the bottom of the
 # sidebar — public, available signed-out too.
@@ -325,18 +307,6 @@ st.markdown("""
       [data-testid="stSidebarNav"] h3 {
         color: #FFA15A !important;
         font-weight: 700 !important;
-      }
-      /* Hidden NFL v0 — the page is registered (so /nfl routes) but
-         the sidebar link is suppressed; we also blank out the
-         deliberately-ugly "_hidden_" section header that holds it.
-         Two selectors: one matches the anchor by URL, the other
-         matches any section header whose text happens to start with
-         an underscore (defensive against Streamlit renaming things). */
-      [data-testid="stSidebarNav"] a[href$="/nfl"],
-      [data-testid="stSidebarNav"] a[href*="/nfl?"],
-      [data-testid="stSidebarNav"] a[href$="/f1"],
-      [data-testid="stSidebarNav"] a[href*="/f1?"] {
-        display: none !important;
       }
       /* Desktop-first notice: this is a data-dense dashboard (wide
          non-squashing tables, fixed-height component iframes) — making

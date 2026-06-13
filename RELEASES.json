@@ -2,6 +2,17 @@
   "major": 1,
   "releases": [
     {
+      "version": "1.12",
+      "date": "2026-06-13",
+      "notes": [
+        "💰 New Sponsored pages (Top 5 + World Cup 2026) — see which videos carry a paid promotion, who the brand is when we can tell, and the channels running the most sponsored content. A 💰 badge now appears on sponsored videos across every video list.",
+        "🔎 Beyond YouTube's own disclosure, we now read the title and description in multiple languages to surface likely brand placements that aren't formally flagged — shown separately as \"potential promotion, not disclosed.\"",
+        "⚽ World Cup 2026 Latest is richer — an AI \"vibe check\", a last-24h KPI bar, and a per-channel Δ-views chart, all scoped to the full cohort (48 teams + FIFA + 6 confederations).",
+        "🏈 New NFL page in The Lab — all 32 teams' subscriber trends on one chart, a \"Teams only\" filter to drop the league HQ, and a daily Δ-views chart.",
+        "🏎️ New F1 page in The Lab — the full 2026 grid (all 11 teams), with per-team subscriber trends and daily Δ-views."
+      ]
+    },
+    {
       "version": "1.11",
       "date": "2026-05-26",
       "notes": [
