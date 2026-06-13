@@ -383,8 +383,15 @@ if is_logged_in():
                     return ("long" if (v.get("duration_seconds") or 0) >= 60
                             else "short")
 
+                # Fetched on a 25h window; count exactly the last 24h by
+                # published_at so the KPI matches the WC2026 Latest page.
+                from datetime import (datetime as _wdt, timezone as _wtz,
+                                      timedelta as _wtd)
+                _wcut = (_wdt.now(_wtz.utc) - _wtd(hours=24)).isoformat()
                 _wc_vids = []
                 for v in (_wc_raw or []):
+                    if (v.get("published_at") or "") < _wcut:
+                        continue
                     _ls = (v.get("live_status") or "").lower()
                     _ast = v.get("actual_start_time") or ""
                     _live_now = (_ls == "live") and bool(_ast)
@@ -430,6 +437,11 @@ if is_logged_in():
                     st.markdown("---")
     except Exception:
         pass
+
+# Section divider title — only when the WC2026 block above rendered
+# (logged-in), so the Top-5 stats below read as their own section.
+if is_logged_in():
+    st.subheader("⚽ Top 5 Leagues")
 
 
 # ── Biggest gainers this week (cached: dashboard_cache.home_top) ─────────────

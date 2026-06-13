@@ -257,17 +257,24 @@ def _kpi_fmt(v) -> str:
         return f
     return "long" if (v.get("duration_seconds") or 0) >= 60 else "short"
 
-_k_n = len(timeline_unscheduled)
+# timeline_unscheduled is fetched on a wide (49h) window so the dot
+# timeline never loses its oldest hours to the row cap — but the KPI
+# tile says "24h", so count ONLY the last 24h by published_at.
+from datetime import datetime as _kdt, timezone as _ktz, timedelta as _ktd
+_k_cut = (_kdt.now(_ktz.utc) - _ktd(hours=24)).isoformat()
+_k_vids = [v for v in timeline_unscheduled
+           if (v.get("published_at") or "") >= _k_cut]
+_k_n = len(_k_vids)
 if _k_n:
-    _k_long = sum(1 for v in timeline_unscheduled if _kpi_fmt(v) == "long")
-    _k_short = sum(1 for v in timeline_unscheduled if _kpi_fmt(v) == "short")
-    _k_live = sum(1 for v in timeline_unscheduled if _kpi_fmt(v) == "live")
-    _k_chans = len({v.get("channel_id") for v in timeline_unscheduled
+    _k_long = sum(1 for v in _k_vids if _kpi_fmt(v) == "long")
+    _k_short = sum(1 for v in _k_vids if _kpi_fmt(v) == "short")
+    _k_live = sum(1 for v in _k_vids if _kpi_fmt(v) == "live")
+    _k_chans = len({v.get("channel_id") for v in _k_vids
                     if v.get("channel_id")})
-    _k_confeds = len({_conf_of(v) for v in timeline_unscheduled
+    _k_confeds = len({_conf_of(v) for v in _k_vids
                       if _conf_of(v)})
     _k_views = sum(int(v.get("view_count") or 0)
-                   for v in timeline_unscheduled)
+                   for v in _k_vids)
     st.markdown(kpi_row([
         ("🎬 Videos · 24h", fmt_num(_k_n),
          f"{_k_chans} channels · {_k_confeds} confederations"),
@@ -278,14 +285,15 @@ if _k_n:
     ]), unsafe_allow_html=True)
 
 try:
-    # Distinct channels actually represented in the timeline window.
-    # Surfaced in the caption so it's clear stats are aggregated
-    # across many channels rather than read as per-row totals.
-    _tl_n = len(timeline_unscheduled)
-    _tl_chans = len({v.get("channel_id") for v in timeline_unscheduled
+    # Use the SAME last-24h set as the KPI bar so the caption count
+    # matches the tile (and the dots) — timeline_unscheduled spans 49h
+    # for row-cap headroom, but this section is "the last 24h".
+    _tl_n = len(_k_vids)
+    _tl_chans = len({v.get("channel_id") for v in _k_vids
                      if v.get("channel_id")})
     if _wc_team:
-        # Z3 — single team: rich thumbnail strip (core Z3 analog).
+        # Z3 — single team: rich thumbnail strip (core Z3 analog). Keep
+        # the wider set — it's a "latest videos" strip, not the 24h dots.
         from src.timeline import render_48h_timeline
         render_48h_timeline(timeline_unscheduled)
     elif _wc_confed:
@@ -310,7 +318,7 @@ try:
         ]
         _n_teams = len(_all_teams_in_scope)
         render_48h_dots(
-            timeline_unscheduled,
+            _k_vids,
             channel_resolver=_team_of,
             color_resolver=lambda v: _team_color.get(_team_of(v), "#888"),
             badge_resolver=_team_badge,
@@ -340,7 +348,7 @@ try:
         ]
         _n_confeds = len(_all_confeds_in_scope)
         render_48h_dots(
-            timeline_unscheduled,
+            _k_vids,
             channel_resolver=_conf_of,
             color_resolver=lambda v: _CONF_COLOR.get(_conf_of(v), "#888"),
             badge_resolver=_conf_badge,
