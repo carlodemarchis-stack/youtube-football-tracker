@@ -252,19 +252,34 @@ class Database:
 
         # 2) For each video_id, find the most recent snapshot strictly before
         #    captured_date. Fetch in chunks of 500 video_ids.
+        #
+        # Baseline lookback is bounded to the last 14 days. These videos are
+        # in the rolling 30-day snapshot window, so they're snapshotted
+        # daily — the most-recent prior snapshot is virtually always
+        # yesterday. The OLD query had no lower bound, so it ordered EVERY
+        # historical snapshot for each video (the table is >1M rows and
+        # grows ~10K/day); on heavy nights a single page of that ordered
+        # scan exceeded the Postgres statement timeout (error 57014),
+        # silently writing 0 deltas and leaving the Daily Recap empty.
+        # Bounding the scan keeps it small and flat as the table grows;
+        # measured against production it dropped zero baselines and changed
+        # zero most-recent-prior values vs the unbounded version.
+        from datetime import date as _date, timedelta as _td
+        _baseline_floor = (_date.fromisoformat(captured_date)
+                           - _td(days=14)).isoformat()
         video_ids = [r["video_id"] for r in today_rows]
         prev_by_vid: dict[str, tuple[str, int]] = {}  # video_id -> (prev_date, prev_view_count)
         for i in range(0, len(video_ids), 500):
             chunk = video_ids[i:i + 500]
-            # Paginated — 500 videos × ~30 prior snapshots each could
-            # easily exceed the 1000-row cap. Without _fetch_all the
-            # delta lookup would silently miss earlier-than-yesterday
-            # baselines for some videos.
+            # Paginated — 500 videos × up to 14 prior snapshots each could
+            # exceed the 1000-row cap. Without _fetch_all the delta lookup
+            # would silently miss baselines for some videos.
             rows_chunk = _fetch_all(
                 self.client.table("video_snapshots")
                 .select("video_id,captured_date,view_count")
                 .in_("video_id", chunk)
                 .lt("captured_date", captured_date)
+                .gte("captured_date", _baseline_floor)
                 .order("captured_date", desc=True)
             )
             for row in rows_chunk:
@@ -343,26 +358,36 @@ class Database:
     def get_season_video_rows(self, since: str | None = None) -> list[dict]:
         """All videos with published_at >= since (minimal columns).
         Used by daily cron to decide which videos to snapshot.
-        Paginates to bypass Supabase's default 1000-row limit."""
+
+        Keyset-paginated by `id` (NOT offset). Offset pagination made each
+        deep page re-scan and skip `offset` rows of the 188K-row videos
+        table; the last pages ballooned (measured: ~0.2s shallow → ~4s at
+        offset 11K) and intermittently crossed the Postgres statement
+        timeout (57014) under the 22:15 UTC load peak — which silently
+        aborted the whole video-snapshot step and left the Daily Recap
+        empty (seen Jun 11 & 13). Keyset uses the primary-key index and
+        is O(page_size) regardless of depth, so every page stays flat."""
         if since is None:
             from src.channels import DEFAULT_SEASON_START as _ds
             since = _ds
         all_rows: list[dict] = []
         page_size = 1000
-        offset = 0
+        last_id = ""
         while True:
-            resp = (
+            q = (
                 self.client.table("videos")
                 .select("id,youtube_video_id,channel_id,published_at")
                 .gte("published_at", since)
-                .range(offset, offset + page_size - 1)
-                .execute()
+                .order("id")
+                .limit(page_size)
             )
-            batch = resp.data or []
+            if last_id:
+                q = q.gt("id", last_id)
+            batch = q.execute().data or []
             all_rows.extend(batch)
             if len(batch) < page_size:
                 break
-            offset += page_size
+            last_id = batch[-1]["id"]
         return all_rows
 
     def get_all_video_rows(self) -> list[dict]:
