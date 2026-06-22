@@ -42,7 +42,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from dotenv import load_dotenv
 load_dotenv()
 
-from src.database import Database, _fetch_all
+from src.database import Database
 from src.youtube_api import YouTubeClient
 from src.analytics import classify_videos
 
@@ -114,12 +114,26 @@ def _refresh_video_stats(yt, db, channel_ids) -> tuple[int, int]:
     Returns (refreshed_count, total_in_scope)."""
     if not channel_ids:
         return 0, 0
-    rows = _fetch_all(
-        db.client.table("videos")
-        .select("id,youtube_video_id,channel_id")
-        .in_("channel_id", channel_ids)
-        .order("id")
-    )
+    # Keyset-paginate by id — NOT _fetch_all's offset paging, which on this
+    # WC2026-wide result (tens of thousands of rows across 62 high-volume
+    # channels) made a deep-offset page exceed the Postgres statement
+    # timeout (error 57014) and killed the whole weekly run. Each keyset
+    # page is an indexed id-range scan, flat regardless of depth.
+    rows: list[dict] = []
+    _last_id = ""
+    while True:
+        _q = (db.client.table("videos")
+              .select("id,youtube_video_id,channel_id")
+              .in_("channel_id", channel_ids)
+              .order("id", desc=False)
+              .limit(1000))
+        if _last_id:
+            _q = _q.gt("id", _last_id)
+        _page = _q.execute().data or []
+        rows.extend(_page)
+        if len(_page) < 1000:
+            break
+        _last_id = _page[-1]["id"]
     expected = len(rows)
     log(f"  {expected:,} WC2026 video rows in scope")
     id_to_dbid: dict[str, str] = {}
