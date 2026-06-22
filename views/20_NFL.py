@@ -174,7 +174,7 @@ try:
     import pandas as _pd
     import plotly.express as _px
     from collections import defaultdict as _dd
-    from datetime import datetime as _dt
+    from datetime import datetime as _dt, timedelta as _td
     from zoneinfo import ZoneInfo as _ZI
 
     _ids = [c["id"] for c in nfl]
@@ -207,7 +207,17 @@ try:
             _cur, _prev = _by_date[_d], _by_date[_dp]
             _dv = sum(_cur[cid] - _prev[cid]
                       for cid in _cur if cid in _prev)
-            _day_rows.append({"Date": _d, "Δ Views": _dv})
+            # A missed snapshot day would otherwise dump the whole
+            # multi-day delta onto the later date as a fake spike. Spread
+            # it evenly across the gap so a skipped cron self-heals.
+            _gap = (_dt.fromisoformat(_d) - _dt.fromisoformat(_dp)).days or 1
+            if _gap <= 1:
+                _day_rows.append({"Date": _d, "Δ Views": _dv})
+            else:
+                for _k in range(1, _gap + 1):
+                    _fd = (_dt.fromisoformat(_dp)
+                           + _td(days=_k)).date().isoformat()
+                    _day_rows.append({"Date": _fd, "Δ Views": _dv // _gap})
         _dfd = _pd.DataFrame(_day_rows)
         _dfd["Date"] = _pd.to_datetime(_dfd["Date"])
         # Drop first row (partial bootstrap — first day has no prior

@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import os
 from collections import defaultdict
-from datetime import date as _date, datetime as _datetime
+from datetime import date as _date, datetime as _datetime, timedelta as _timedelta
 from zoneinfo import ZoneInfo as _ZoneInfo
 
 import streamlit as st
@@ -344,8 +344,19 @@ for i in range(1, len(dates)):
         dl += _g(cc, "long_form_count") - _g(pp, "long_form_count")
         ds += _g(cc, "shorts_count") - _g(pp, "shorts_count")
         dli += _g(cc, "live_count") - _g(pp, "live_count")
-    day_rows.append({"Date": d, "Δ Views": dv,
-                     "Long": dl, "Shorts": ds, "Live": dli})
+    # A missed snapshot day (e.g. a skipped daily cron) would otherwise
+    # dump the whole multi-day delta onto the later date as a fake spike.
+    # Spread it evenly across the gap so one missed day self-heals.
+    gap = (_date.fromisoformat(d) - _date.fromisoformat(dp)).days or 1
+    if gap <= 1:
+        day_rows.append({"Date": d, "Δ Views": dv,
+                         "Long": dl, "Shorts": ds, "Live": dli})
+    else:
+        for k in range(1, gap + 1):
+            _fd = (_date.fromisoformat(dp) + _timedelta(days=k)).isoformat()
+            day_rows.append({"Date": _fd, "Δ Views": dv // gap,
+                             "Long": dl // gap, "Shorts": ds // gap,
+                             "Live": dli // gap})
 dfd = pd.DataFrame(day_rows)
 dfd["Date"] = pd.to_datetime(dfd["Date"])
 
