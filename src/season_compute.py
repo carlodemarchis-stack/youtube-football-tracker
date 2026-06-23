@@ -49,6 +49,13 @@ def _scan(db, channel_ids: list[str], since: str) -> list[dict]:
 def refresh(db, log=print, channels: list[dict] | None = None) -> None:
     """Scan once + write the three season caches at scope_all()."""
     chans = channels if channels is not None else db.get_all_channels()
+    # Season cohort gate (Top-5): drop CLUBS not in the active season so a
+    # promoted club tracked-but-not-yet-shown writes no season caches.
+    # No-op at 25/26. (Called directly by daily_refresh, no channels=.)
+    from src.season_cohort import (
+        resolve_active_season, get_season_cohort_ids, filter_to_season_cohort)
+    chans = filter_to_season_cohort(
+        chans, get_season_cohort_ids(db, resolve_active_season(db)))
     top5 = [c for c in chans
             if c.get("entity_type") in ("Club", "League")
             and COUNTRY_TO_LEAGUE.get((c.get("country") or "").strip())

@@ -1597,6 +1597,12 @@ def refresh_home_top(db, log=print, channels: list[dict] | None = None) -> None:
 
     try:
         chans = channels if channels is not None else db.get_all_channels()
+        # Season cohort gate — see rebuild_all. Covers the direct
+        # hourly_rss call (no channels=). No-op at 25/26.
+        from src.season_cohort import (
+            resolve_active_season, get_season_cohort_ids, filter_to_season_cohort)
+        chans = filter_to_season_cohort(
+            chans, get_season_cohort_ids(db, resolve_active_season(db)))
         ch_by_id = {c["id"]: c for c in chans}
 
         def _in_scope(ch: dict) -> bool:
@@ -1714,6 +1720,12 @@ def refresh_latest_vibe(db, log=print, channels: list[dict] | None = None) -> No
         chans = channels if channels is not None else db.get_all_channels()
         chans = [c for c in chans
                  if is_top5_cohort(c)]
+        # Season cohort gate — see rebuild_all. Covers the direct
+        # hourly_rss call (no channels=). No-op at 25/26.
+        from src.season_cohort import (
+            resolve_active_season, get_season_cohort_ids, filter_to_season_cohort)
+        chans = filter_to_season_cohort(
+            chans, get_season_cohort_ids(db, resolve_active_season(db)))
         chans_by_id = {c["id"]: c for c in chans}
 
         def _one(scope_key: str, ids: list[str], label: str,
