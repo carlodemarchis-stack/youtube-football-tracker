@@ -2194,19 +2194,24 @@ def refresh_wc2026(db, log=print, channels: list[dict] | None = None) -> None:
     # write-time (same pattern as refresh_last_upload) so the page never
     # scans the videos table on render. WC2026 videos are collected by
     # the daily_wc2026 cron — "" for channels we have no videos for yet.
-    from src.database import _fetch_all
+    # Each channel's latest upload date. Query the MAX per channel (62
+    # tiny limit-1 lookups) instead of paginating EVERY WC2026 video row
+    # (~52K, growing) just to take the first per channel — that offset
+    # scan crossed the Postgres statement timeout (57014) and silently
+    # skipped the whole wc2026 cache rebuild.
     _wc_ids = [c["id"] for c in wc if c.get("id")]
     _last_up: dict[str, str] = {}
-    if _wc_ids:
-        for r in _fetch_all(
-            db.client.table("videos")
-            .select("channel_id,published_at")
-            .in_("channel_id", _wc_ids)
-            .order("published_at", desc=True)
-        ):
-            cid = r.get("channel_id")
-            if cid and cid not in _last_up:
-                _last_up[cid] = (r.get("published_at") or "")[:10]
+    for _cid in _wc_ids:
+        try:
+            _r = (db.client.table("videos")
+                  .select("published_at")
+                  .eq("channel_id", _cid)
+                  .order("published_at", desc=True)
+                  .limit(1).execute().data or [])
+            if _r:
+                _last_up[_cid] = (_r[0].get("published_at") or "")[:10]
+        except Exception:
+            pass
     # Keep the same shape the page expects — channel-like dict with
     # nested `competitions.wc2026`. Lets the view consume cache rows
     # and live-channel rows interchangeably with no extra branching.
