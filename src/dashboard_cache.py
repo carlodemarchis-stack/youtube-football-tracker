@@ -885,6 +885,13 @@ def refresh_trends_30d(db, log=print, channels: list[dict] | None = None,
     """
     from src.channels import COUNTRY_TO_LEAGUE
     chans = channels if channels is not None else db.get_all_channels()
+    # Season cohort gate (Top-5) — see rebuild_all. Idempotent if `chans`
+    # was already gated upstream. No-op at 25/26.
+    from src.season_cohort import (
+        resolve_active_season, get_season_cohort_ids, filter_to_season_cohort,
+    )
+    chans = filter_to_season_cohort(
+        chans, get_season_cohort_ids(db, resolve_active_season(db)))
     clubs = [c for c in chans if c.get("entity_type") == "Club"]
     # All 5 top-5 League HQ channels — entity_type alone identifies them.
     leagues_chs = [c for c in chans if c.get("entity_type") == "League"]
@@ -999,6 +1006,15 @@ def rebuild_all(db, log=print) -> None:
     Cheap: ~6 queries × ≤5K rows each, ~5–10 seconds total.
     """
     chans = db.get_all_channels()
+    # Season cohort gate (Top-5): drop CLUBS not in the ACTIVE season so
+    # the cron-built caches match the display gate — a promoted club that's
+    # tracked but not yet shown contributes no cached rows. Non-club
+    # channels (Leagues, WC2026, …) pass through. No-op at 25/26.
+    from src.season_cohort import (
+        resolve_active_season, get_season_cohort_ids, filter_to_season_cohort,
+    )
+    chans = filter_to_season_cohort(
+        chans, get_season_cohort_ids(db, resolve_active_season(db)))
     clubs = [c for c in chans
              if c.get("entity_type") == "Club"]
     leagues_to_clubs: dict[str, list[str]] = {}
