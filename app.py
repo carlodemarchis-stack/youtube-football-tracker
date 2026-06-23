@@ -447,6 +447,27 @@ if SUPABASE_URL and SUPABASE_KEY:
     from src.cached_db import get_all_channels as _cached_channels_app
     all_channels = _cached_channels_app(db)
     if all_channels:
+        # ── Season cohort gate (Top-5 only) ──────────────────────────
+        # Show only the CLUBS in the ACTIVE season's season_channels
+        # membership; every non-club channel passes through. Tracking is
+        # separate (channels.is_active), so promoted clubs accrue history
+        # while hidden until the season flips. An admin can preview a
+        # different season with ?season=26/27 without affecting anyone
+        # else. No-op today: 25/26 membership == the current 96 clubs.
+        from src.season_cohort import (
+            resolve_active_season, get_season_cohort_ids,
+            filter_to_season_cohort,
+        )
+        _season_override = None
+        try:
+            _qs = st.query_params.get("season")
+            if _qs and is_admin():
+                _season_override = _qs
+        except Exception:
+            pass
+        _active_season = resolve_active_season(db, _season_override)
+        all_channels = filter_to_season_cohort(
+            all_channels, get_season_cohort_ids(db, _active_season))
         # Always cache the channel list so isolated pages can read it,
         # but only render the league/club filter on pages where it applies.
         st.session_state["_global_channels"] = all_channels
