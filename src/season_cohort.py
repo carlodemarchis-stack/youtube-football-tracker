@@ -17,7 +17,32 @@ preview), `app_settings.active_top5_season`, else the date-driven
 """
 from __future__ import annotations
 
+import os
+
 from src.cohort import is_club
+
+_SVC_CLIENT = None
+
+
+def _read_client(db):
+    """A client that can READ the season tables regardless of RLS.
+
+    The live app connects with the anon key, but the new `season_channels`
+    / `app_settings` tables have RLS enabled with no anon read policy, so
+    anon SELECTs come back empty → the cohort gate would fail open and
+    show every club. These two tables are tiny, non-sensitive reference
+    data (which club is in which season), so we read them with the
+    service key when it's present (server-side only — never exposed to a
+    browser). Falls back to the passed `db` when no service key is set."""
+    global _SVC_CLIENT
+    url = os.environ.get("SUPABASE_URL")
+    svc = os.environ.get("SUPABASE_SERVICE_KEY")
+    if url and svc:
+        if _SVC_CLIENT is None:
+            from src.database import Database
+            _SVC_CLIENT = Database(url, svc).client
+        return _SVC_CLIENT
+    return db.client
 
 
 def resolve_active_season(db, override: str | None = None) -> str:
@@ -26,7 +51,7 @@ def resolve_active_season(db, override: str | None = None) -> str:
     if override:
         return override
     try:
-        r = (db.client.table("app_settings")
+        r = (_read_client(db).table("app_settings")
              .select("value").eq("key", "active_top5_season")
              .limit(1).execute().data or [])
         if r and (r[0].get("value") or "").strip():
@@ -44,7 +69,7 @@ def get_season_cohort_ids(db, season: str) -> set[str]:
     try:
         off = 0
         while True:
-            rows = (db.client.table("season_channels")
+            rows = (_read_client(db).table("season_channels")
                     .select("channel_id").eq("season", season)
                     .range(off, off + 999).execute().data or [])
             ids.update(r["channel_id"] for r in rows)
