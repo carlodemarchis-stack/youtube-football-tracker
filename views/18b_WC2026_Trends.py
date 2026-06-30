@@ -245,6 +245,16 @@ def _load_wc_snapshots(cid_tuple: tuple[str, ...], version: str) -> list[dict]:
     return out
 
 
+@st.cache_data(ttl=1800, show_spinner=False)
+def _load_wc_pub_videos(cid_tuple: tuple[str, ...],
+                        start_iso: str, end_iso: str) -> list[dict]:
+    """WC2026 cohort videos by published_at in [start, end) — powers the
+    publish-date-accurate 'videos added per day' series (mirrors the
+    Top-5 method). Reuses the proven core scanner."""
+    from src.dashboard_cache import _scan_pub_videos
+    return _scan_pub_videos(db, list(cid_tuple), start_iso, end_iso)
+
+
 _cids = tuple(sorted(ch_by_id.keys()))
 snaps = _load_wc_snapshots(_cids, _wc_data_version(_cids))
 
@@ -327,36 +337,49 @@ for c in cohort:
             break
 
 
-# ── Per-day deltas (charts) ───────────────────────────────────────
-# Δ views and net-new videos by format, summed across all channels
-# that have snapshots on BOTH days of a pair — so a channel joining
-# mid-window doesn't contribute a spike on its first day.
+# ── Published-date video counts (publish-date accurate, mirrors Top-5)
+# The *videos* series (chart + KPI + per-team) counts each video on the
+# day it was actually PUBLISHED (videos.published_at, CET-bucketed) —
+# not the capture-timed channel-count delta, which is subject to
+# snapshot timing / YouTube freezes. Views + subs stay snapshot-based.
+from src.dashboard_cache import _pub_to_cet_date as _pcet, _format_of as _vfmt
+_pub_start = (_date.fromisoformat(first_d) - _timedelta(days=1)).isoformat()
+_pub_end = (_date.fromisoformat(last_d) + _timedelta(days=2)).isoformat()
+_pub_vids = _load_wc_pub_videos(tuple(cohort), _pub_start, _pub_end)
+_FMT_IX = {"long": 0, "short": 1, "live": 2}
+_date_set = set(dates)
+pub_day: dict[str, list[int]] = {}                      # date -> [long, short, live]
+pub_team: dict[str, list[int]] = defaultdict(lambda: [0, 0, 0])
+pub_tot = [0, 0, 0]
+for _v in _pub_vids:
+    _pcd = _pcet(_v.get("published_at") or "")
+    if _pcd not in _date_set:
+        continue
+    _ix = _FMT_IX.get(_vfmt(_v), 2)
+    pub_day.setdefault(_pcd, [0, 0, 0])[_ix] += 1
+    pub_tot[_ix] += 1
+    pub_team[team_of_id.get(_v.get("channel_id"), "—")][_ix] += 1
+
+# ── Per-day series (charts) ───────────────────────────────────────
+# Δ Views = snapshot total_views delta (gap-split so a missed snapshot
+# day doesn't spike). Videos = published count per real date (no split
+# needed — publish dates are exact).
 day_rows = []
 for i in range(1, len(dates)):
     d, dp = dates[i], dates[i - 1]
     cur, prev = by_date[d], by_date[dp]
-    dv = dl = ds = dli = 0
+    dv = 0
     for c in cohort:
         cc, pp = cur.get(c), prev.get(c)
         if cc is None or pp is None:
             continue
         dv += _g(cc, "total_views") - _g(pp, "total_views")
-        dl += _g(cc, "long_form_count") - _g(pp, "long_form_count")
-        ds += _g(cc, "shorts_count") - _g(pp, "shorts_count")
-        dli += _g(cc, "live_count") - _g(pp, "live_count")
-    # A missed snapshot day (e.g. a skipped daily cron) would otherwise
-    # dump the whole multi-day delta onto the later date as a fake spike.
-    # Spread it evenly across the gap so one missed day self-heals.
     gap = (_date.fromisoformat(d) - _date.fromisoformat(dp)).days or 1
-    if gap <= 1:
-        day_rows.append({"Date": d, "Δ Views": dv,
-                         "Long": dl, "Shorts": ds, "Live": dli})
-    else:
-        for k in range(1, gap + 1):
-            _fd = (_date.fromisoformat(dp) + _timedelta(days=k)).isoformat()
-            day_rows.append({"Date": _fd, "Δ Views": dv // gap,
-                             "Long": dl // gap, "Shorts": ds // gap,
-                             "Live": dli // gap})
+    for k in range(1, gap + 1):
+        _rd = (_date.fromisoformat(dp) + _timedelta(days=k)).isoformat()
+        _pl, _ps, _pli = pub_day.get(_rd, (0, 0, 0))
+        day_rows.append({"Date": _rd, "Δ Views": dv // gap,
+                         "Long": _pl, "Shorts": _ps, "Live": _pli})
 dfd = pd.DataFrame(day_rows)
 dfd["Date"] = pd.to_datetime(dfd["Date"])
 
@@ -369,27 +392,25 @@ def _net(key: str) -> int:
 
 net_views = _net("total_views")
 net_subs = _net("subscriber_count")
-net_long = _net("long_form_count")
-net_short = _net("shorts_count")
-net_live = _net("live_count")
+# Videos added = count of cohort videos PUBLISHED in the window
+# (publish-date accurate, mirrors Top-5), not the snapshot count delta.
+net_long, net_short, net_live = pub_tot
 net_vids = net_long + net_short + net_live
 
 # Per-team rollup (alts + governing bodies fold into their country).
 team_dviews: dict[str, int] = defaultdict(int)
 team_dsubs: dict[str, int] = defaultdict(int)
-team_dl: dict[str, int] = defaultdict(int)
-team_ds: dict[str, int] = defaultdict(int)
-team_dli: dict[str, int] = defaultdict(int)
 for c in cohort:
     t = team_of_id.get(c, "—")
     fsnap = ch_first_snap.get(c)
     lsnap = ch_last_snap.get(c)
     team_dviews[t] += _g(lsnap, "total_views") - _g(fsnap, "total_views")
     team_dsubs[t] += _g(lsnap, "subscriber_count") - _g(fsnap, "subscriber_count")
-    team_dl[t] += _g(lsnap, "long_form_count") - _g(fsnap, "long_form_count")
-    team_ds[t] += _g(lsnap, "shorts_count") - _g(fsnap, "shorts_count")
-    team_dli[t] += _g(lsnap, "live_count") - _g(fsnap, "live_count")
-team_dvids = {t: team_dl[t] + team_ds[t] + team_dli[t] for t in team_dviews}
+# Per-team video counts come from published-date data (mirrors Top-5).
+team_dl = defaultdict(int, {t: pub_team[t][0] for t in pub_team})
+team_ds = defaultdict(int, {t: pub_team[t][1] for t in pub_team})
+team_dli = defaultdict(int, {t: pub_team[t][2] for t in pub_team})
+team_dvids = {t: sum(pub_team[t]) for t in pub_team}
 
 
 def _sg(x: int) -> str:
