@@ -347,13 +347,17 @@ _pub_start = (_date.fromisoformat(first_d) - _timedelta(days=1)).isoformat()
 _pub_end = (_date.fromisoformat(last_d) + _timedelta(days=2)).isoformat()
 _pub_vids = _load_wc_pub_videos(tuple(cohort), _pub_start, _pub_end)
 _FMT_IX = {"long": 0, "short": 1, "live": 2}
-_date_set = set(dates)
 pub_day: dict[str, list[int]] = {}                      # date -> [long, short, live]
 pub_team: dict[str, list[int]] = defaultdict(lambda: [0, 0, 0])
 pub_tot = [0, 0, 0]
 for _v in _pub_vids:
     _pcd = _pcet(_v.get("published_at") or "")
-    if _pcd not in _date_set:
+    # Keep every publish date within the window RANGE — not just snapshot
+    # dates. The snapshot list can have gaps (a missed daily cron, e.g.
+    # Jun 27), which the per-day chart fills via the views gap-split; the
+    # videos published on those days must still be counted, or the
+    # gap-filled date renders as an empty bar.
+    if not _pcd or _pcd < first_d or _pcd > last_d:
         continue
     _ix = _FMT_IX.get(_vfmt(_v), 2)
     pub_day.setdefault(_pcd, [0, 0, 0])[_ix] += 1
