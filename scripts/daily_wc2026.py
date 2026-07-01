@@ -293,7 +293,8 @@ def main() -> int:
     # Same logic as scripts/refresh_wc2026_cache.py — keep the page's
     # read-side cache in sync with the freshly-snapshotted numbers.
     try:
-        from src.dashboard_cache import refresh_wc2026, refresh_wc2026_trends
+        from src.dashboard_cache import (
+            refresh_wc2026, refresh_wc2026_trends, refresh_wc2026_pub_daily)
         # Re-pull channels so the cache payload reflects the just-written
         # stats (we mutated channels in step 2). Pass them explicitly so
         # refresh_wc2026 doesn't do a redundant DB read.
@@ -302,6 +303,9 @@ def main() -> int:
         # Video-layer trends (Δ-views, top videos, viral) — depends on the
         # video_daily_deltas just computed above.
         refresh_wc2026_trends(db, log=log, channels=_fresh_chans)
+        # Per-day published-video counts for the Trends 'videos added'
+        # chart — precomputed so the page never scans ~10K videos live.
+        refresh_wc2026_pub_daily(db, log=log, channels=_fresh_chans)
     except Exception as e:
         log(f"dashboard_cache refresh failed (non-fatal): {e}")
 

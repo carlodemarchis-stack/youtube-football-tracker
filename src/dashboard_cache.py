@@ -2390,6 +2390,57 @@ def refresh_wc2026_trends(db, log=print,
         f"{len(payload['top_videos'])} top videos")
 
 
+def refresh_wc2026_pub_daily(db, log=print, channels=None) -> None:
+    """Per-day + per-channel PUBLISHED video counts (long/short/live) for
+    the WC2026 cohort across the whole tracking window.
+
+    Precomputed here (cron) so the WC2026 Trends page reads a tiny cached
+    payload instead of scanning ~10K videos live on every cold render —
+    that live scan (~9s) made the page hang after the KPIs. by_channel is
+    stored raw so the page rolls it into per-team using its own mapping
+    (no team-mapping coupling in the cron).
+
+    Cache key: ('wc2026_pub_daily', 'all').
+    """
+    chans = channels if channels is not None else db.get_all_channels()
+    wc = [c for c in chans if (c.get("competitions") or {}).get("wc2026")]
+    ids = [c["id"] for c in wc if c.get("id")]
+    if not ids:
+        write(db, "wc2026_pub_daily", scope_all(),
+              {"by_date": {}, "by_channel": {}, "tot": [0, 0, 0]})
+        return
+    # Window = earliest cohort snapshot date → tomorrow (CET), matching the
+    # page's snapshot-driven date axis.
+    mn = None
+    for i in range(0, len(ids), 50):
+        r = (db.client.table("channel_snapshots").select("captured_date")
+             .in_("channel_id", ids[i:i + 50])
+             .order("captured_date").limit(1).execute().data or [])
+        if r and (mn is None or r[0]["captured_date"] < mn):
+            mn = r[0]["captured_date"]
+    _today = datetime.now(CET).date()
+    start = ((date.fromisoformat(mn) if mn else _today)
+             - timedelta(days=1)).isoformat()
+    end = (_today + timedelta(days=1)).isoformat()
+    pubs = _scan_pub_videos(db, ids, start, end)
+    _IX = {"long": 0, "short": 1, "live": 2}
+    by_date: dict[str, list[int]] = {}
+    by_channel: dict[str, list[int]] = {}
+    tot = [0, 0, 0]
+    for v in pubs:
+        d = _pub_to_cet_date(v.get("published_at") or "")
+        if not d:
+            continue
+        ix = _IX.get(_format_of(v), 2)
+        by_date.setdefault(d, [0, 0, 0])[ix] += 1
+        by_channel.setdefault(v.get("channel_id") or "", [0, 0, 0])[ix] += 1
+        tot[ix] += 1
+    write(db, "wc2026_pub_daily", scope_all(),
+          {"by_date": by_date, "by_channel": by_channel, "tot": tot})
+    log(f"  ✓ wc2026_pub_daily rebuilt — {len(pubs)} videos, "
+        f"{len(by_date)} days")
+
+
 def refresh_last_upload(db, entity_type: str, log=print,
                         channels: list[dict] | None = None) -> None:
     """Pre-compute {channel_id: 'YYYY-MM-DD'} of each channel's most

@@ -342,27 +342,36 @@ for c in cohort:
 # day it was actually PUBLISHED (videos.published_at, CET-bucketed) —
 # not the capture-timed channel-count delta, which is subject to
 # snapshot timing / YouTube freezes. Views + subs stay snapshot-based.
-from src.dashboard_cache import _pub_to_cet_date as _pcet, _format_of as _vfmt
-_pub_start = (_date.fromisoformat(first_d) - _timedelta(days=1)).isoformat()
-_pub_end = (_date.fromisoformat(last_d) + _timedelta(days=2)).isoformat()
-_pub_vids = _load_wc_pub_videos(tuple(cohort), _pub_start, _pub_end)
-_FMT_IX = {"long": 0, "short": 1, "live": 2}
+from src import dashboard_cache as _dc_pub
+from src.cached_db import read_dashboard_cache as _cached_dc_read
 pub_day: dict[str, list[int]] = {}                      # date -> [long, short, live]
 pub_team: dict[str, list[int]] = defaultdict(lambda: [0, 0, 0])
 pub_tot = [0, 0, 0]
-for _v in _pub_vids:
-    _pcd = _pcet(_v.get("published_at") or "")
-    # Keep every publish date within the window RANGE — not just snapshot
-    # dates. The snapshot list can have gaps (a missed daily cron, e.g.
-    # Jun 27), which the per-day chart fills via the views gap-split; the
-    # videos published on those days must still be counted, or the
-    # gap-filled date renders as an empty bar.
-    if not _pcd or _pcd < first_d or _pcd > last_d:
-        continue
-    _ix = _FMT_IX.get(_vfmt(_v), 2)
-    pub_day.setdefault(_pcd, [0, 0, 0])[_ix] += 1
-    pub_tot[_ix] += 1
-    pub_team[team_of_id.get(_v.get("channel_id"), "—")][_ix] += 1
+# Read the cron-precomputed per-day + per-channel published counts so the
+# page never scans ~10K videos live (that scan made the page hang after
+# the KPIs). Per-team is rolled up here from by_channel via this page's
+# team mapping. If the cache isn't built yet, fall back to a live scan.
+_pub_cache = (_cached_dc_read(db, "wc2026_pub_daily", _dc_pub.scope_all())
+              or {}).get("payload") or {}
+if _pub_cache.get("by_date"):
+    pub_day = {d: list(v) for d, v in _pub_cache["by_date"].items()}
+    pub_tot = list(_pub_cache.get("tot") or [0, 0, 0])
+    for _cid, _cnt in (_pub_cache.get("by_channel") or {}).items():
+        _tc = pub_team[team_of_id.get(_cid, "—")]
+        _tc[0] += _cnt[0]; _tc[1] += _cnt[1]; _tc[2] += _cnt[2]
+else:
+    from src.dashboard_cache import _pub_to_cet_date as _pcet, _format_of as _vfmt
+    _FMT_IX = {"long": 0, "short": 1, "live": 2}
+    _ps = (_date.fromisoformat(first_d) - _timedelta(days=1)).isoformat()
+    _pe = (_date.fromisoformat(last_d) + _timedelta(days=2)).isoformat()
+    for _v in _load_wc_pub_videos(tuple(cohort), _ps, _pe):
+        _pcd = _pcet(_v.get("published_at") or "")
+        if not _pcd or _pcd < first_d or _pcd > last_d:
+            continue
+        _ix = _FMT_IX.get(_vfmt(_v), 2)
+        pub_day.setdefault(_pcd, [0, 0, 0])[_ix] += 1
+        pub_tot[_ix] += 1
+        pub_team[team_of_id.get(_v.get("channel_id"), "—")][_ix] += 1
 
 # ── Per-day series (charts) ───────────────────────────────────────
 # Δ Views = snapshot total_views delta (gap-split so a missed snapshot
