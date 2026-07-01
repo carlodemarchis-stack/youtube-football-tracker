@@ -442,6 +442,26 @@ if is_logged_in():
 # (logged-in), so the Top-5 stats below read as their own section.
 if is_logged_in():
     st.subheader("⚽ Top 5 Leagues")
+    # ── New-season announcement ─────────────────────────────────────
+    from src.channels import current_season_label_safe as _csl_home
+    _season_label = f"20{_csl_home()}"   # '26/27' → '2026/27'
+    st.markdown(
+        '<div style="background:#12261c;border-left:3px solid #00CC96;'
+        'padding:12px 16px;margin:4px 0 16px 0;border-radius:4px;'
+        'font-size:14px;line-height:1.6;color:#FAFAFA">'
+        '<span style="color:#00CC96;font-weight:700;font-size:15px">'
+        f'🎉 The {_season_label} season is under way</span>'
+        '<div style="margin-top:6px">'
+        'The Top 5 tables have rolled over to the new campaign — the '
+        '<b>14 newly-promoted clubs</b> are in, last season\'s relegated '
+        'sides are out, and <b>every season stat has reset to start '
+        'fresh</b>. Season leaderboards will be quiet for a little while, '
+        'then fill out as the matches get going. '
+        '<span style="color:#8b949e">All-time and 30-day-trend views keep '
+        'their full history.</span>'
+        '</div></div>',
+        unsafe_allow_html=True,
+    )
 
 
 # ── Biggest gainers this week (cached: dashboard_cache.home_top) ─────────────
