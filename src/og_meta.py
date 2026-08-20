@@ -33,8 +33,19 @@ _DESC = (
 )
 # Bumped on every change to the injected block so a redeploy always
 # re-patches even if an old patched index.html persisted in the
-# container. v4 = socket-state-aware reconnect watchdog.
-_MARKER = "<!-- ytft-og v4 -->"
+# container. v5 = + Cloudflare Web Analytics beacon.
+_MARKER = "<!-- ytft-og v5 -->"
+
+# Cloudflare Web Analytics — a privacy-first, cookieless page-view
+# beacon. Must sit in the real top-level <head> (not a components.html
+# iframe) to report the actual page URL, so it rides along with the OG
+# head-patch here and is loaded once per document, site-wide.
+_CF_ANALYTICS = (
+    '<!-- Cloudflare Web Analytics -->'
+    '<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" '
+    'data-cf-beacon=\'{"token": "b3e26f8f72234e7bb9de048e87db9249"}\'></script>'
+    '<!-- End Cloudflare Web Analytics -->'
+)
 
 # Streamlit keeps the app alive over a WebSocket. When the tab is
 # backgrounded / the machine sleeps, that socket is closed (browser
@@ -148,7 +159,8 @@ def inject_og_tags() -> bool:
             f'    <meta name="twitter:card" content="{_tw_card}" />\n'
             f'    <meta name="twitter:title" content="{_TITLE}" />\n'
             f'    <meta name="twitter:description" content="{_DESC}" />\n'
-            f'    {_RECONNECT_JS}'
+            f'    {_RECONNECT_JS}\n'
+            f'    {_CF_ANALYTICS}'
         )
 
         # Replace Streamlit's default <title> with our marker+tags so
