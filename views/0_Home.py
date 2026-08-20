@@ -159,7 +159,7 @@ st.title("YouTube Football Tracker")
 # one-line "what is this".
 st.markdown(
     "Track YouTube performance for 100+ football clubs across Europe's top "
-    "leagues — plus the road to the **FIFA World Cup 2026**."
+    "leagues."
 )
 
 # ── Leagues covered ─────────────────────────────────────────────
@@ -191,19 +191,6 @@ if not is_logged_in():
             ]
             st.caption(f"Covering {len(_league_counts)} leagues "
                         "(Clubs and League Channels): " + " · ".join(_parts))
-
-        # WC2026 coverage — its own prominent line (dedicated sidebar group,
-        # tournament ~1 month out). Counts every channel tagged
-        # competitions.wc2026 (teams + FIFA + confederations + alt channels).
-        _wc2026 = [c for c in _chs if (c.get("competitions") or {}).get("wc2026")]
-        if _wc2026:
-            from src.analytics import fmt_num as _fmt_wc
-            _wc_subs = sum(int(c.get("subscriber_count") or 0) for c in _wc2026)
-            st.caption(
-                f"🏆 **FIFA World Cup 2026** — tracking **{len(_wc2026)} official "
-                f"channels** ({_fmt_wc(_wc_subs)} subs): the 48 qualified national "
-                "teams plus FIFA and the 6 confederations. See the dedicated page."
-            )
 
         # Also-tracking line: Players + Other Clubs + Women (isolated).
         # Federations parked until after WC2026 — intentionally omitted here.
@@ -349,97 +336,8 @@ try:
 except Exception:
     pass  # never block the page on a missing/broken note
 
-# ── 🏆 FIFA World Cup 2026 special (logged-in) ───────────────────
-# A KPI bar + last-24h published timeline for the WC2026 cohort, up
-# top before the Top-5 stats. Mirrors the WC2026 Latest page (18c).
-if is_logged_in():
-    try:
-        from src.analytics import kpi_row as _wc_kpi, fmt_num as _wc_fmt
-        from src.timeline import render_48h_dots as _wc_dots
-        from src.wc2026_badge import (wc2026_badge as _wc_badge,
-                                       CONF_COLOR as _WC_CC)
-        _SU = os.getenv("SUPABASE_URL", ""); _SK = os.getenv("SUPABASE_KEY", "")
-        if _SU and _SK:
-            _wdb = Database(_SU, _SK)
-            _wchs = (st.session_state.get("_global_channels")
-                     or _cached_channels(_wdb))
-            _wc = [c for c in _wchs
-                   if (c.get("competitions") or {}).get("wc2026")]
-            if _wc:
-                _wc_by_id = {c["id"]: c for c in _wc}
-                _wc_raw = _cached_recent(_wdb, limit=2000,
-                                         channel_ids=tuple(c["id"] for c in _wc),
-                                         since_hours=25)
-
-                def _wconf(v):
-                    ch = _wc_by_id.get(v.get("channel_id")) or {}
-                    return (((ch.get("competitions") or {}).get("wc2026")
-                             or {}).get("confederation") or "Other")
-
-                def _wfmt(v):
-                    f = (v.get("format") or "").lower()
-                    if f in ("long", "short", "live"):
-                        return f
-                    return ("long" if (v.get("duration_seconds") or 0) >= 60
-                            else "short")
-
-                # Fetched on a 25h window; count exactly the last 24h by
-                # published_at so the KPI matches the WC2026 Latest page.
-                from datetime import (datetime as _wdt, timezone as _wtz,
-                                      timedelta as _wtd)
-                _wcut = (_wdt.now(_wtz.utc) - _wtd(hours=24)).isoformat()
-                _wc_vids = []
-                for v in (_wc_raw or []):
-                    if (v.get("published_at") or "") < _wcut:
-                        continue
-                    _ls = (v.get("live_status") or "").lower()
-                    _ast = v.get("actual_start_time") or ""
-                    _live_now = (_ls == "live") and bool(_ast)
-                    _sched = (_ls == "upcoming") or (
-                        _ls != "live" and bool(v.get("scheduled_start_time"))
-                        and not _ast)
-                    if _sched and not _live_now:
-                        continue
-                    _wc_vids.append(v)
-
-                if _wc_vids:
-                    st.subheader("🏆 FIFA World Cup 2026")
-                    _wn = len(_wc_vids)
-                    _wcn = len({v.get("channel_id") for v in _wc_vids
-                                if v.get("channel_id")})
-                    _wcf = len({_wconf(v) for v in _wc_vids if _wconf(v)})
-                    st.markdown(_wc_kpi([
-                        ("🎬 Videos · 24h", _wc_fmt(_wn),
-                         f"{_wcn} channels · {_wcf} confederations"),
-                        ("▶️ Long",
-                         _wc_fmt(sum(1 for v in _wc_vids if _wfmt(v) == "long"))),
-                        ("📱 Shorts",
-                         _wc_fmt(sum(1 for v in _wc_vids if _wfmt(v) == "short"))),
-                        ("🔴 Live",
-                         _wc_fmt(sum(1 for v in _wc_vids if _wfmt(v) == "live"))),
-                        ("👁️ Views so far",
-                         _wc_fmt(sum(int(v.get("view_count") or 0)
-                                     for v in _wc_vids)), "on these uploads"),
-                    ]), unsafe_allow_html=True)
-                    _wc_dots(
-                        _wc_vids, hours=24,
-                        channel_resolver=_wconf,
-                        color_resolver=lambda v: _WC_CC.get(_wconf(v), "#888"),
-                        badge_resolver=lambda v: _wc_badge(
-                            {"entity_type": "GoverningBody",
-                             "name": _wconf(v)}, 14),
-                        group_resolver=_wconf, row_label="confederation",
-                        header="⏱️ WC2026 — last 24 hours",
-                        caption=(f"{_wn} video(s) from {_wcn} channel(s) "
-                                 f"across {_wcf} confederation(s) in the "
-                                 "last 24h. Click any dot to open the video."),
-                    )
-                    st.markdown("---")
-    except Exception:
-        pass
-
-# Section divider title — only when the WC2026 block above rendered
-# (logged-in), so the Top-5 stats below read as their own section.
+# Section divider title (logged-in) so the Top-5 stats below read as
+# their own section.
 if is_logged_in():
     st.subheader("⚽ Top 5 Leagues")
     # ── New-season announcement ─────────────────────────────────────
@@ -704,9 +602,7 @@ st.markdown(
     ### 🎛️ Global filter
     At the top of the core **Top 5 Leagues** pages you'll find a cascading
     filter that sets the zoom level for those views. Your selection persists
-    as you navigate. (Home, the FIFA World Cup 2026 sub-app, and the
-    standalone *Others* pages don't use it — WC2026 has its own
-    Confederation → Team filter instead.)
+    as you navigate. (Home and the standalone *Others* pages don't use it.)
 
     - **All Leagues** — site-wide view with a secondary scope selector:
       *Overall* (aggregated by league), *Leagues only* (league channels),
@@ -762,55 +658,6 @@ st.markdown(
 
     **No. 1 Videos** — every channel's single most-viewed video,
     side by side: the one upload that defines each club's reach.
-
-    ---
-
-    ### 🏆 FIFA World Cup 2026
-
-    Its own sidebar group — a self-contained sub-app, separate from the
-    Top-5 league views and unaffected by the global filter. It has its
-    own **Confederation → Team** filter (top of these pages; the
-    selection persists as you move between them). Five pages, same Z1
-    (cohort) / Z2 (one confederation) / Z3 (one team) zoom-aware
-    behaviour as the core Top-5 surface.
-
-    **All Channels** — the official YouTube channels of all 48 qualified
-    national teams, plus FIFA and the 6 confederations. When a country
-    runs more than one official channel, the stats are summed into the
-    country's row with a +N alt chip; every channel is also listed
-    individually. Row marker: country flag for teams, brand dual-dot
-    for FIFA and the 6 confederations. Sortable by subscribers, views,
-    season output and views/video.
-
-    **Latest Videos** — the most recently published videos across every
-    WC2026 channel: the same feed as the core Latest page (sortable
-    list, format/scheduled controls, live-now banner), scoped to the
-    World Cup, with a 24h published-timeline strip that groups by
-    confederation — or by team / a full thumbnail strip as you filter
-    down.
-
-    **Trends** — view gains and videos published (long / shorts / live)
-    day by day on the road to the tournament, plus a biggest-movers
-    leaderboard, built from a daily snapshot of every WC2026 channel.
-
-    **Viral Videos** — videos that took off in the last 30 days,
-    scored by a publish-aware viral metric (peak Δ views per day and
-    reach as % of subs). Cohort-wide at Z1, narrows to one
-    confederation at Z2, one team at Z3. Trajectory chart per video.
-
-    **All-time Top** — the cohort's 100 most-viewed videos ever,
-    scope-aware: top 100 across all confederations at Z1, within one
-    confederation at Z2, for a single team at Z3. KPI strip (total
-    views, share of lifetime, avg, cutoff, age), format + scope mix
-    donuts, canonical video table (same renderer as the Top-5 page),
-    Views-by-Rank + Rank-vs-Year + Year-distribution charts, theme
-    pie, and a per-channel Top 100 stats table at Z1/Z2.
-
-    (No "Daily Recap" page on purpose — the cohort spans seven
-    confederations across every timezone with the tournament in
-    America. A single UTC day boundary reads weirdly for that mix;
-    Latest / Viral / Trends already answer the same questions
-    without it.)
 
     ---
 
@@ -920,7 +767,7 @@ st.caption(
     "**When we fetch data.** New video discovery runs **hourly** via RSS feeds (fast, lightweight). "
     "Full stats refresh runs **daily** — subscriber counts, view counts, and snapshots for ranks and deltas. "
     "A **weekly** sweep recomputes top-100 aggregates and back-fills any missed videos. "
-    "**Players**, **Other Clubs**, **Women's clubs** and **WC2026** each have "
+    "**Players**, **Other Clubs** and **Women's clubs** each have "
     "their own dedicated daily crons, so each of those features can be paused "
     "or killed independently of the main pipeline.\n\n"
     "**Players, Other Clubs and Women's clubs are isolated.** They live on their "
