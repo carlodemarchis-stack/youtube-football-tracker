@@ -130,7 +130,7 @@ c4.metric("Page views (30d)", f"{total_views:,}")
 # KPI row so the admin can see "what's happening RIGHT NOW" without
 # having to read the trend chart's last bar.
 _today_events = [e for e in events if _d(e["created_at"]) == today]
-st.markdown("#### 📅 Today")
+st.markdown("#### Today")
 if not _today_events:
     st.caption("No traffic yet today.")
 else:

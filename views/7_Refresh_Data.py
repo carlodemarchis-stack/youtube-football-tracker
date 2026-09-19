@@ -218,7 +218,7 @@ if history:
     st.caption(f"Last refresh: {fmt_date(last['fetched_at'])} · {last['status']} · {last['channels_updated']} channels · {last['videos_fetched']} videos")
 
 # ── Daily Snapshot Health ──────────────────────────────────────
-with st.expander("📅 Daily Snapshot Health", expanded=False):
+with st.expander("Daily Snapshot Health", expanded=False):
     _all_hist = db.get_fetch_history(limit=100)
     _snap_rows = [h for h in _all_hist if (h.get("status") or "").startswith("daily_snapshot")]
     if not _snap_rows:

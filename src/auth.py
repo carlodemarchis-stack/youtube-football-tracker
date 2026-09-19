@@ -343,7 +343,7 @@ def _show_onboarding_card(user: dict):
     default_company = ("" if domain in _GENERIC_EMAIL_DOMAINS or not domain
                        else domain.split(".")[0].title())
 
-    st.markdown("## 👋 Welcome")
+    st.markdown("## Welcome")
     st.caption(
         "Quick one-time intro so I know who's using this. "
         "Takes 10 seconds, we'll never ask again."

@@ -120,7 +120,7 @@ def _to_html(text: str) -> str:
 
 _ready = bool(_subject.strip() and _body.strip() and _sender_email.strip())
 if _subject.strip() and _body.strip():
-    with st.expander("👁️ Preview"):
+    with st.expander("Preview"):
         st.markdown(_to_html(_body), unsafe_allow_html=True)
 
 # ── 3. Test send ──────────────────────────────────────────────────────

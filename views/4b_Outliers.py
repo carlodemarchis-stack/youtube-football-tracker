@@ -333,7 +333,7 @@ else:
 # ──────────────────────────────────────────────────────────────
 # Tag glossary (collapsible)
 # ──────────────────────────────────────────────────────────────
-with st.expander("📖 Tag glossary — what each label means"):
+with st.expander("Tag glossary — what each label means"):
     st.markdown("""
 Each axis is a structural ratio. A tag fires when a channel sits
 ≥1.5 *median-absolute-deviations* (log-scaled) from peer median, on

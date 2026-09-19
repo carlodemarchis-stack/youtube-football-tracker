@@ -107,7 +107,7 @@ for msg in st.session_state["_ask_history"]:
         with st.chat_message("assistant"):
             st.markdown(msg.get("text", ""))
             for tool in (msg.get("tools", []) if show_details else []):
-                with st.expander(f"🔧 run_pandas — {tool['expr'][:80]}"):
+                with st.expander(f"run_pandas — {tool['expr'][:80]}"):
                     st.code(tool["expr"], language="python")
                     res = tool["result"]
                     if res.get("type") == "dataframe":
@@ -212,7 +212,7 @@ if prompt:
         # Render this turn
         st.markdown(text_acc or "_(no text response)_")
         for tool in (tools_acc if show_details else []):
-            with st.expander(f"🔧 run_pandas — {tool['expr'][:80]}"):
+            with st.expander(f"run_pandas — {tool['expr'][:80]}"):
                 st.code(tool["expr"], language="python")
                 res = tool["result"]
                 if res.get("type") == "dataframe":

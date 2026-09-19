@@ -599,7 +599,7 @@ if is_logged_in():
 from src.channels import current_season_label_safe as _csl_home
 st.markdown(
     ("""
-    ### 🎛️ Global filter
+    ### Global filter
     At the top of the core **Top 5 Leagues** pages you'll find a cascading
     filter that sets the zoom level for those views. Your selection persists
     as you navigate. (Home and the standalone *Others* pages don't use it.)
@@ -617,7 +617,7 @@ st.markdown(
 
     ---
 
-    ### ⚽ Top 5 Leagues
+    ### Top 5 Leagues
 
     The core of the site — Serie A, Premier League, La Liga, Bundesliga
     and Ligue 1, all responding to the global filter above. A quick
@@ -661,7 +661,7 @@ st.markdown(
 
     ---
 
-    ### 🧪 The Lab — experimental views
+    ### The Lab — experimental views
 
     **Outliers** — channels whose profile sits unusually far from their
     peers on key metrics. Surfaces "interesting" channels worth a look.
@@ -676,7 +676,7 @@ st.markdown(
 
     ---
 
-    ### 🗂️ Others — Players, Other Clubs & Women
+    ### Others — Players, Other Clubs & Women
 
     These are tracked but deliberately excluded from every league/club
     view, leaderboard, and aggregate above. They live on their own
@@ -743,7 +743,7 @@ _about_cols[3].link_button("Course", "https://a-guy-with-a-scarf.mykajabi.com/co
 _about_cols[4].link_button("Book on Amazon", "https://amzn.eu/d/09cuCSkB", width="stretch")
 
 st.markdown("---")
-st.markdown("#### 🔍 Read the fine print")
+st.markdown("#### Read the fine print")
 st.caption(
     "**Public info only.** Everything shown here — subscribers, views, videos, titles, thumbnails — "
     "is publicly available on YouTube. No private data, no scraping, no login tricks. "

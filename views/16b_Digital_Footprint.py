@@ -636,8 +636,8 @@ def render_z3(c: dict) -> None:
     # ── Tabs: Overview (summary) + one tab per section ───────────
     (tab_overview, tab_perf, tab_stack, tab_aud, tab_content,
      tab_app, tab_gaps, tab_cmp) = st.tabs([
-        "Overview", "⚡ Performance", "🏗️ Stack", "🌍 Audience",
-        "📚 Content", "📱 Mobile app", "🔍 Gaps", "⚖️ Compare",
+        "Overview", "Performance", "Stack", "Audience",
+        "Content", "Mobile app", "Gaps", "Compare",
     ])
 
     # ── Overview tab — narrative card + 5-card highlight strip ───
@@ -1468,7 +1468,7 @@ league leader on that metric.
 
 ---
 
-### ⚡ Performance tab — real user data
+### Performance tab — real user data
 
 Real Chrome users on **mobile**, p75 across the last 28 days, from
 Google's Chrome User Experience Report (CrUX). p75 means "75% of
@@ -1497,7 +1497,7 @@ feel it — we use real-user CrUX above instead).
 
 ---
 
-### 🏗️ Stack tab
+### Stack tab
 
 The layered table shows what powers the site, from delivery surface
 to content layer:
@@ -1521,7 +1521,7 @@ that triggered the regex) are cleared manually.
 
 ---
 
-### 🌍 Audience tab
+### Audience tab
 
 **Wikipedia pageviews** are our proxy for global interest — they're
 the closest available signal to "how many people search for and
@@ -1551,7 +1551,7 @@ layered probe (most reliable signal wins):
 
 ---
 
-### 📚 Content tab
+### Content tab
 
 What the site offers beyond just having a homepage. Three layers:
 
@@ -1582,7 +1582,7 @@ patterns + own-subdomain prefix matching). Same caveats as the
 Stack tab — clubs whose homepage is a JS-only shell may return
 empty results.
 
-### 📱 Mobile app tab — iOS only
+### Mobile app tab — iOS only
 
 Data from Apple's iTunes Search/Lookup API. Android is not tracked
 (no official free API; scraping is brittle).
@@ -1599,7 +1599,7 @@ Below: size in MB and number of languages the app ships with.
 
 ---
 
-### 🔍 Gaps tab
+### Gaps tab
 
 Explicit list of notable absences. Negative space is insight —
 "no iOS app" / "single locale" / "no fingerprint detected" tells
@@ -1607,7 +1607,7 @@ you something about the club's digital posture.
 
 ---
 
-### ⚖️ Compare tab
+### Compare tab
 
 Side-by-side overlay against a peer club from the same league.
 Defaults to the closest peer in Wikipedia views (most natural
