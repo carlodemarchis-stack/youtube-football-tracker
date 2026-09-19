@@ -220,12 +220,14 @@ def kpi_card_html(label: str, value: str, color: str = _T.LINK,
         sub_html = (f'<div style="color:{_T.MUTED};font-size:11px;'
                     f'margin-top:2px;line-height:1.3">{subtitle}</div>')
     return (
-        f'<div style="background:{_T.SURFACE};border-radius:6px;padding:10px 14px;'
-        f'border-left:3px solid {color}">'
+        f'<div style="background:{_T.SURFACE};border:1px solid {_T.BORDER};'
+        f'border-top:2px solid {color};border-radius:8px;padding:12px 14px 11px">'
         f'<div style="color:{_T.MUTED};font-size:11px;font-weight:600;'
-        f'text-transform:uppercase;letter-spacing:0.5px">{label}</div>'
-        f'<div style="color:{_T.TEXT};font-size:22px;font-weight:700;'
-        f'margin-top:2px">{value}</div>{sub_html}</div>'
+        f'text-transform:uppercase;letter-spacing:0.7px">{label}</div>'
+        f'<div style="color:{_T.TEXT};font-family:\'IBM Plex Mono\',ui-monospace,'
+        f'SFMono-Regular,monospace;font-size:23px;font-weight:600;'
+        f'letter-spacing:-0.01em;font-variant-numeric:tabular-nums;'
+        f'margin-top:6px;line-height:1.08">{value}</div>{sub_html}</div>'
     )
 
 

@@ -33,8 +33,23 @@ _DESC = (
 )
 # Bumped on every change to the injected block so a redeploy always
 # re-patches even if an old patched index.html persisted in the
-# container. v5 = + Cloudflare Web Analytics beacon.
-_MARKER = "<!-- ytft-og v5 -->"
+# container. v6 = + refined-dark web fonts (Archivo / IBM Plex Sans+Mono).
+_MARKER = "<!-- ytft-og v6 -->"
+
+# Refined-dark type system. Loaded in <head> (not via st.markdown, which
+# strips <link>) so the families are available to BOTH Streamlit's own
+# chrome/charts (driven by .streamlit/config.toml theme.font/headingFont/
+# codeFont) and our custom-HTML components. display=swap keeps text
+# visible during the font fetch. Fully additive — if the fetch fails the
+# config fallbacks render, so it can never break the page.
+_FONTS = (
+    '<link rel="preconnect" href="https://fonts.googleapis.com">'
+    '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
+    '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?'
+    'family=Archivo:wght@500;600;700&'
+    'family=IBM+Plex+Mono:wght@400;500;600&'
+    'family=IBM+Plex+Sans:wght@400;500;600&display=swap">'
+)
 
 # Cloudflare Web Analytics — a privacy-first, cookieless page-view
 # beacon. Must sit in the real top-level <head> (not a components.html
@@ -159,6 +174,7 @@ def inject_og_tags() -> bool:
             f'    <meta name="twitter:card" content="{_tw_card}" />\n'
             f'    <meta name="twitter:title" content="{_TITLE}" />\n'
             f'    <meta name="twitter:description" content="{_DESC}" />\n'
+            f'    {_FONTS}\n'
             f'    {_RECONNECT_JS}\n'
             f'    {_CF_ANALYTICS}'
         )
