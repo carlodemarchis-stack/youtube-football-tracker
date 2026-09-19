@@ -37,7 +37,7 @@ from src import theme as _T
 load_dotenv()
 require_login()
 
-st.title("🏈 NFL — All Channels")
+st.title("NFL — All Channels")
 st.markdown(
     f'<div style="background:{_T.SURFACE};border-left:3px solid {_T.WARN};'
     'padding:10px 14px;margin:6px 0 14px 0;border-radius:4px;'
@@ -114,11 +114,11 @@ if IS_Z1:
     avg_vps      = (total_views // total_subs)   if total_subs   else 0
     avg_vpv      = (total_views // total_videos) if total_videos else 0
     st.markdown(kpi_row([
-        ("👥 Total Subscribers", fmt_num(total_subs)),
-        ("👁️ Total Views",       fmt_num(total_views)),
-        ("🎯 Views / Sub",       fmt_num(avg_vps)),
-        ("🎬 Total Videos",      fmt_num(total_videos)),
-        ("🎯 Avg Views / Video", fmt_num(avg_vpv)),
+        ("Total Subscribers", fmt_num(total_subs)),
+        ("Total Views",       fmt_num(total_views)),
+        ("Views / Sub",       fmt_num(avg_vps)),
+        ("Total Videos",      fmt_num(total_videos)),
+        ("Avg Views / Video", fmt_num(avg_vpv)),
     ]), unsafe_allow_html=True)
 else:
     # Z2 — channel detail. KPI tiles carry NFL rank chips ("3 / 33").
@@ -150,14 +150,14 @@ else:
         unsafe_allow_html=True,
     )
     st.markdown(kpi_row([
-        ("👥 Subscribers", fmt_num(_subs),
+        ("Subscribers", fmt_num(_subs),
             f"#{_rank_subs.get(_yt, '?')} / {_N} in NFL"),
-        ("👁️ Total Views", fmt_num(_views),
+        ("Total Views", fmt_num(_views),
             f"#{_rank_views.get(_yt, '?')} / {_N} in NFL"),
-        ("🎬 Videos", fmt_num(_videos),
+        ("Videos", fmt_num(_videos),
             f"#{_rank_videos.get(_yt, '?')} / {_N} in NFL"),
-        ("🎯 Views / Video", fmt_num(_vpv), ""),
-        ("📅 Launched", _launched,
+        ("Views / Video", fmt_num(_vpv), ""),
+        ("Launched", _launched,
             f"Views/Sub: {fmt_num(_vps)}"),
     ]), unsafe_allow_html=True)
 
@@ -251,7 +251,7 @@ try:
         )
         st.plotly_chart(_fv, width="stretch")
     else:
-        st.caption("📈 Views-per-day chart needs ≥ 2 daily snapshots — "
+        st.caption("Views-per-day chart needs ≥ 2 daily snapshots — "
                    "first one will appear after tomorrow's cron run.")
 except Exception as _e:
     st.caption(f"(Views-per-day chart unavailable: {_e})")
@@ -408,7 +408,7 @@ def _sort_js(table_id: str, default_col: int = 3) -> str:
 
 
 if IS_Z1:
-    st.subheader("📡 All Channels")
+    st.subheader("All Channels")
     ordered = sorted(nfl, key=lambda c: -(int(c.get("subscriber_count") or 0)))
     rows_html = [_row_html(c) for c in ordered]
     iframe_h = min(2400, 31 * len(ordered) + 44)
@@ -470,7 +470,7 @@ def _subs_bar(subset, title: str | None = None,
 
 if _subs_rows:
     if IS_Z1:
-        st.subheader(f"📊 Subscribers by channel — {_scope_label}")
+        st.subheader(f"Subscribers by channel — {_scope_label}")
         if _teams_only:
             st.caption("All 32 NFL franchise channels, ranked by "
                        "subscriber count. Log scale so the long "
@@ -506,7 +506,7 @@ if _subs_rows:
         )
         st.plotly_chart(fig_subs, width="stretch")
     else:
-        st.subheader(f"📊 Subs rank in NFL — {_pick} highlighted")
+        st.subheader(f"Subs rank in NFL — {_pick} highlighted")
         st.caption("Where this channel sits among the 33 NFL channels.")
         _subs_bar(_subs_rows,
                   highlight_yt=nfl[0].get("youtube_channel_id"))
@@ -526,7 +526,7 @@ if IS_Z1:
         _yr_counts[y] = _yr_counts.get(y, 0) + 1
 
     if _yr_counts:
-        st.subheader(f"📅 Channels launched per year — {_scope_label}")
+        st.subheader(f"Channels launched per year — {_scope_label}")
         st.caption(f"YouTube channel creation year across the "
                    f"{len(nfl)} channel(s) in scope.")
         yr_min, yr_max = min(_yr_counts), max(_yr_counts)

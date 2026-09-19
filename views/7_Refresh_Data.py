@@ -707,7 +707,7 @@ if ai_start and selected:
 # BENCHMARK SOCIAL FOLLOWERS  (manual / interactive only for now)
 # ══════════════════════════════════════════════════════════════
 st.markdown("---")
-st.subheader("📊 Benchmark social followers")
+st.subheader("Benchmark social followers")
 st.caption(
     "Capture follower counts across the non-YouTube platforms we track. "
     "Pick a club / league channel that has socials, open each link in a new "
@@ -784,7 +784,7 @@ else:
         _notes = _src_col2.text_input("Notes (optional)",
                                         key=f"_bench_notes_{_ch['id']}")
 
-        if st.button("💾 Save snapshot", key=f"_bench_save_{_ch['id']}", type="primary"):
+        if st.button("Save snapshot", key=f"_bench_save_{_ch['id']}", type="primary"):
             saved = 0
             errors = 0
             for k, v in _new_values.items():

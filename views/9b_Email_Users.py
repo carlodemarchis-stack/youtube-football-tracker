@@ -17,7 +17,7 @@ from src import brevo
 load_dotenv()
 require_admin()
 
-st.title("✉️ Email Users")
+st.title("Email Users")
 st.caption("Broadcast to your users via Brevo. Sync the list, compose, "
            "send a test to yourself, then send to everyone.")
 
@@ -83,7 +83,7 @@ _opts = {f"{l['name']}  (#{l['id']} · {l.get('totalSubscribers', 0)} subs)": l[
 _pick = st.selectbox("Send to which Brevo list?", list(_opts.keys()))
 _list_id = _opts[_pick]
 
-if st.button(f"🔄 Sync {_n_users} app users → this list"):
+if st.button(f"Sync {_n_users} app users → this list"):
     with st.spinner("Syncing contacts to Brevo…"):
         res = brevo.sync_contacts(_users, _list_id)
     st.success(f"Synced: {res['ok']} ok, {res['failed']} failed.")
@@ -126,7 +126,7 @@ if _subject.strip() and _body.strip():
 # ── 3. Test send ──────────────────────────────────────────────────────
 st.subheader("3 · Test")
 st.caption(f"Sends a test of this exact email to **{_me or '(your account email)'}** only.")
-if st.button("📨 Send test to me", disabled=not (_ready and _me)):
+if st.button("Send test to me", disabled=not (_ready and _me)):
     camp = brevo.create_campaign(
         name=f"[YTFT test] {_subject[:60]} {_dt.datetime.now():%H:%M}",
         subject=_subject, sender_name=_sender_name, sender_email=_sender_email,
@@ -148,7 +148,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 _confirm = st.text_input("Type SEND to confirm")
-if st.button("🚀 Send to all now",
+if st.button("Send to all now",
              type="primary", disabled=not (_ready and _confirm.strip() == "SEND")):
     camp = brevo.create_campaign(
         name=f"YTFT {_dt.date.today().isoformat()} — {_subject[:60]}",

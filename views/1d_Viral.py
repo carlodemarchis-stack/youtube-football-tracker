@@ -32,7 +32,7 @@ from src import theme as _T
 load_dotenv()
 require_login()
 
-st.title("🚀 Viral Videos")
+st.title("Viral Videos")
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")

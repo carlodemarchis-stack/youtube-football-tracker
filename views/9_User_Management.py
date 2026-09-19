@@ -210,7 +210,7 @@ def _row(u: dict):
 
     with col_edit:
         edit_key = f"_editing_{email}"
-        if st.button("✏️ Edit", key=f"edit_btn_{email}", width="stretch"):
+        if st.button("Edit", key=f"edit_btn_{email}", width="stretch"):
             st.session_state[edit_key] = not st.session_state.get(edit_key, False)
 
     # Expanded edit form
@@ -228,7 +228,7 @@ def _row(u: dict):
 
             bc1, bc2, _ = st.columns([1, 1, 4])
             with bc1:
-                if st.button("💾 Save changes", key=f"save_edit_{email}", type="primary"):
+                if st.button("Save changes", key=f"save_edit_{email}", type="primary"):
                     try:
                         db.client.table("user_profiles").update({
                             "first_name": new_first.strip(),

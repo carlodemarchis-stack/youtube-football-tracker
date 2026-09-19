@@ -44,7 +44,7 @@ from src import theme as _T
 load_dotenv()
 require_login()
 
-st.title("💰 Sponsored")
+st.title("Sponsored")
 render_page_subtitle(
     "Videos that disclose paid promotion (brand deals / product "
     "placement), within the current league/club filter.",
@@ -163,7 +163,7 @@ if _counts:
                               "#E0A800")}
          for cid, n in _shown]
     ).iloc[::-1]
-    st.subheader("📊 Sponsored videos per channel")
+    st.subheader("Sponsored videos per channel")
     _cap = (f"Channels in scope with the most disclosed paid-promotion "
             f"videos. {len(_counts)} channel(s) have ≥1; ")
     _cap += (f"showing the top {_TOP_N}." if len(_counts) > _TOP_N
@@ -280,7 +280,7 @@ def _branded_counts(channel_ids: tuple[str, ...]) -> dict[str, int]:
 
 
 _cands = _branded_candidates(_ids_t)
-st.subheader("🔎 Branded-content candidates — detected from the text")
+st.subheader("Branded-content candidates — detected from the text")
 st.caption(
     "⚠️ **Experimental / speculative — and deliberately EXCLUDES "
     "anything YouTube already flags above.** These are videos that "
@@ -356,7 +356,7 @@ if _bcounts:
                                "#E0A800")}
          for cid, n in _bshown]
     ).iloc[::-1]
-    st.subheader("📊 Channels with the most branded candidates")
+    st.subheader("Channels with the most branded candidates")
     _bc = (f"Text-detected, **undisclosed** branded candidates per "
            f"channel (excludes anything with YouTube's flag — same set "
            f"as the table above). {len(_bcounts)} channel(s) have ≥1; ")

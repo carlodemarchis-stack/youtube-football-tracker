@@ -66,7 +66,7 @@ def _render_launch_year_chart(channels, league_filter: str | None = None):
     years = list(range(yr_min, yr_max + 1))
 
     if league_filter:
-        st.subheader(f"📅 Channels launched per year — {_LF.get(league_filter, '')} {league_filter}")
+        st.subheader(f"Channels launched per year — {_LF.get(league_filter, '')} {league_filter}")
         st.caption("YouTube channel creation year for clubs and the league channel.")
         counts = df.groupby("year").size().reindex(years, fill_value=0)
         fig = _go.Figure(_go.Bar(
@@ -75,7 +75,7 @@ def _render_launch_year_chart(channels, league_filter: str | None = None):
             hovertemplate="%{x}: %{y} channel(s)<extra></extra>",
         ))
     else:
-        st.subheader("📅 Channels launched per year — by league")
+        st.subheader("Channels launched per year — by league")
         st.caption("YouTube channel creation year for clubs and league channels (Top-5 leagues).")
         fig = _go.Figure()
         # Stack in a stable order so colors line up across reloads.
@@ -135,11 +135,11 @@ def _render_subs_rank_chart(channels, league_filter: str | None = None):
     rows.sort(key=lambda r: r["subs"], reverse=True)
 
     if league_filter:
-        st.subheader(f"📊 Subscribers by channel — {_LF.get(league_filter, '')} {league_filter}")
+        st.subheader(f"Subscribers by channel — {_LF.get(league_filter, '')} {league_filter}")
         st.caption("All channels in scope, ranked by subscriber count "
                    "(highest left).")
     else:
-        st.subheader("📊 Subscribers by channel — Top-5 leagues")
+        st.subheader("Subscribers by channel — Top-5 leagues")
         st.caption("All clubs and league channels across the Top-5 leagues, "
                    "ranked by subscriber count. Bar color = league. "
                    "Top row: ≥ 1M subs · bottom row: < 1M (the long tail).")
@@ -281,11 +281,11 @@ if league is None and _scope == "Overall":
         tot_vps = tot["total_views"] // max(tot["total_subs"], 1)
         tot_avg_v = tot["total_views"] // max(tot["total_videos"], 1)
         st.markdown(kpi_row([
-            ("👥 Total Subscribers", fmt_num(tot["total_subs"])),
-            ("👁️ Total Views",       fmt_num(tot["total_views"])),
-            ("🎯 Views/Sub",         fmt_num(tot_vps)),
-            ("🎬 Total Videos",      fmt_num(tot["total_videos"])),
-            ("🎯 Avg Views/Video",   fmt_num(tot_avg_v)),
+            ("Total Subscribers", fmt_num(tot["total_subs"])),
+            ("Total Views",       fmt_num(tot["total_views"])),
+            ("Views/Sub",         fmt_num(tot_vps)),
+            ("Total Videos",      fmt_num(tot["total_videos"])),
+            ("Avg Views/Video",   fmt_num(tot_avg_v)),
         ]), unsafe_allow_html=True)
 
         # ── 3 pies: where the lifetime views / videos / per-video
@@ -508,7 +508,7 @@ if league is None and _scope == "Overall":
     # channel level (those live in the video rows, not aggregated on the
     # channel record), so the Views and Views/Video groups are single-
     # column and Avg Duration / Engagement are omitted entirely.
-    st.subheader("📡 All Channels")
+    st.subheader("All Channels")
     _all_clubs = [ch for ch in all_channels if is_top5_cohort(ch)]
     _all_color_map = get_global_color_map()
     _all_dual = get_global_color_map_dual()
@@ -701,11 +701,11 @@ elif club is None:
     avg_vpv = total_views // max(total_videos, 1)
     avg_vps = total_views // max(total_subs, 1)
     st.markdown(kpi_row([
-        ("👥 Total Subscribers", fmt_num(total_subs)),
-        ("👁️ Total Views",       fmt_num(total_views)),
-        ("🎯 Views/Sub",         fmt_num(avg_vps)),
-        ("🎬 Total Videos",      fmt_num(total_videos)),
-        ("🎯 Avg Views/Video",   fmt_num(avg_vpv)),
+        ("Total Subscribers", fmt_num(total_subs)),
+        ("Total Views",       fmt_num(total_views)),
+        ("Views/Sub",         fmt_num(avg_vps)),
+        ("Total Videos",      fmt_num(total_videos)),
+        ("Avg Views/Video",   fmt_num(avg_vpv)),
     ]), unsafe_allow_html=True)
     if not clubs_only:
         st.info("No clubs in this league yet.")
@@ -941,7 +941,7 @@ elif club is None:
                           and r.get("n_videos", 0) >= 5]
             if _conc_rows:
                 import plotly.graph_objects as _go_c
-                st.subheader(f"📊 Season views concentration — {league}")
+                st.subheader(f"Season views concentration — {league}")
                 st.caption("Season-scoped: % of each club's videos that account "
                            "for 80% of season views. Lower = hit-driven (long "
                            "tail). Hover for top-1 / top-10 share, median vs avg.")
@@ -1090,11 +1090,11 @@ else:
         return " · ".join(parts)
 
     st.markdown(kpi_row([
-        ("👥 Total Subscribers", fmt_num(subs_ch),         _rank_subtitle("subs")),
-        ("👁️ Total Views",       fmt_num(total_views_ch), _rank_subtitle("views")),
-        ("🎯 Views/Sub",         fmt_num(vps_ch),         _rank_subtitle("vps")),
-        ("🎬 Total Videos",      fmt_num(video_count_ch), _rank_subtitle("videos")),
-        ("🎯 Avg Views/Video",   fmt_num(avg_vpv_ch),     _rank_subtitle("vpv")),
+        ("Total Subscribers", fmt_num(subs_ch),         _rank_subtitle("subs")),
+        ("Total Views",       fmt_num(total_views_ch), _rank_subtitle("views")),
+        ("Views/Sub",         fmt_num(vps_ch),         _rank_subtitle("vps")),
+        ("Total Videos",      fmt_num(video_count_ch), _rank_subtitle("videos")),
+        ("Avg Views/Video",   fmt_num(avg_vpv_ch),     _rank_subtitle("vpv")),
     ]), unsafe_allow_html=True)
 
     # ── 3 lifetime per-format donuts — same set used at All-Leagues
@@ -1262,7 +1262,7 @@ else:
             if fig_pub_trend:
                 st.plotly_chart(fig_pub_trend, width="stretch")
 
-    st.subheader("📈 Growth")
+    st.subheader("Growth")
     if not _snaps or len(_snaps) < 2:
         st.caption(
             "Growth tracking starts now — the daily snapshot job has "
@@ -1296,12 +1296,12 @@ else:
             _since_label = "all-time"
 
         st.markdown(kpi_row([
-            ("👥 Subs Δ 7d",                 _sgn(d7)),
-            ("👥 Subs Δ 30d",                _sgn(d30)),
-            (f"👥 Subs {_since_label}",      _sgn(dssn)),
-            ("👁️ Views Δ 7d",                _sgn(v7)),
-            ("👁️ Views Δ 30d",               _sgn(v30)),
-            (f"👁️ Views {_since_label}",     _sgn(vssn)),
+            ("Subs Δ 7d",                 _sgn(d7)),
+            ("Subs Δ 30d",                _sgn(d30)),
+            (f"Subs {_since_label}",      _sgn(dssn)),
+            ("Views Δ 7d",                _sgn(v7)),
+            ("Views Δ 30d",               _sgn(v30)),
+            (f"Views {_since_label}",     _sgn(vssn)),
         ]), unsafe_allow_html=True)
 
     # ── Top + Top Season + Latest video rows ────────────────────

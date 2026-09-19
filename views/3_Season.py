@@ -520,12 +520,12 @@ if league is None and _scope == "Overall":
     avg_vpv = total_views // max(total_videos, 1)
     eng_rate = ((total_likes + total_comments) / total_views * 100) if total_views else 0.0
     st.markdown(kpi_row([
-        ("👁️ Total Season Views",  fmt_num(total_views)),
-        ("🎬 Total Season Videos", fmt_num(total_videos)),
-        ("🎯 Avg Views/Video",     fmt_num(avg_vpv)),
-        ("❤️ Total Likes",         fmt_num(total_likes)),
-        ("💬 Total Comments",      fmt_num(total_comments)),
-        ("⚡ Engagement Rate",     f"{eng_rate:.2f}%"),
+        ("Total Season Views",  fmt_num(total_views)),
+        ("Total Season Videos", fmt_num(total_videos)),
+        ("Avg Views/Video",     fmt_num(avg_vpv)),
+        ("Total Likes",         fmt_num(total_likes)),
+        ("Total Comments",      fmt_num(total_comments)),
+        ("Engagement Rate",     f"{eng_rate:.2f}%"),
     ]), unsafe_allow_html=True)
 
     # Pie charts: long/short/live split
@@ -596,7 +596,7 @@ if league is None and _scope == "Overall":
         _pie_title("Comments")
         st.plotly_chart(_make_pie(_zv(total_long_comments, total_short_comments, total_live_comments), _pie_labels, _pie_colors, "comments"), width="stretch")
 
-    st.subheader("🏆 Leagues — Season")
+    st.subheader("Leagues — Season")
     sorted_leagues = sorted(league_stats.items(), key=lambda kv: kv[1]["views"], reverse=True)
 
     def _v(v):
@@ -753,7 +753,7 @@ if league is None and _scope == "Overall":
     if any(b["videos"] > 0 for b in _season_buckets):
         import altair as alt
         bucket_df = pd.DataFrame(_season_buckets)
-        st.subheader("⚡ Season Shorts — duration distribution")
+        st.subheader("Season Shorts — duration distribution")
         st.caption(f"Every season short ({SEASON_SINCE} →) bucketed in 6-second bins. "
                    "Hover for exact totals.")
 
@@ -868,7 +868,7 @@ if league is None and _scope == "Overall":
     _long_buckets = _load_season_long_buckets(SEASON_SINCE)
     if any(b["videos"] > 0 for b in _long_buckets):
         long_df = pd.DataFrame(_long_buckets)
-        st.subheader("🎞️ Season Long videos — duration distribution")
+        st.subheader("Season Long videos — duration distribution")
         st.caption(f"Every season long ({SEASON_SINCE} →) bucketed by content-shape "
                    "(1-3m clips up to 90m+ full matches). Hover for exact totals.")
 
@@ -1009,7 +1009,7 @@ if league is None and _scope == "Overall":
                     f"{days_elapsed} of {days_in_month} days."
                 )
 
-        st.subheader("📅 Publish cadence — videos per month")
+        st.subheader("Publish cadence — videos per month")
         st.caption(f"Videos published per month since {SEASON_SINCE}, by league.{projection_note}")
         league_order = [lg for lg, _ in sorted_leagues]
         league_palette = [LEAGUE_COLOR_CHART.get(lg, "#888") for lg in league_order]
@@ -1132,7 +1132,7 @@ if league is None and _scope == "Overall":
             _avg = sum(_vals) / len(_vals) if _vals else 0
             _vpd_th_z1, _vpd_tl_z1 = st.columns([3, 1])
             with _vpd_th_z1:
-                st.subheader("📈 Videos per day — All Leagues")
+                st.subheader("Videos per day — All Leagues")
             with _vpd_tl_z1:
                 st.markdown(
                     "<div style='text-align:right;padding-top:16px'>"
@@ -1200,7 +1200,7 @@ if league is None and _scope == "Overall":
         _conc_all_rows = (_conc_all or {}).get("payload", {}).get("rows", []) if _conc_all else []
         if _conc_all_rows:
             import plotly.graph_objects as _go_ca
-            st.subheader("📊 Views concentration — by league")
+            st.subheader("Views concentration — by league")
             st.caption("How concentrated are views in each league's catalog (all clubs combined)? "
                        "Bar = % of videos that account for 80% of total views. "
                        "Lower = a few hits drive the league. Higher = views spread evenly. "
@@ -1306,7 +1306,7 @@ if league is None and _scope == "Overall":
 
         if _z1_zd_rows:
             import plotly.graph_objects as _go_z1
-            st.subheader("📅 Days with zero videos — worst 25 channels")
+            st.subheader("Days with zero videos — worst 25 channels")
             st.caption(
                 f"Out of {_total_days_z1} season days "
                 f"(since {_start_z1.strftime('%b %d, %Y')}), the 25 "
@@ -1377,7 +1377,7 @@ if league is None and _scope == "Overall":
             st.caption(f"(one-hit wonders unavailable: {_e})")
 
     # ── All channels table — precomputed columns (zero video queries) ───
-    st.subheader("📡 All Channels — Season")
+    st.subheader("All Channels — Season")
     # Re-emphasize the season-scope disclaimer right before the channels
     # table — same styling as the top-of-page version (see _SEASON_SCOPE_NOTE).
     st.markdown(
@@ -1667,12 +1667,12 @@ if club is None:
 
     # KPI banner row (likes/comments + engagement rate alongside pie totals)
     st.markdown(kpi_row([
-        ("👁️ Total Views",     fmt_num(total_views)),
-        ("🎬 Total Videos",    fmt_num(total_videos)),
-        ("🎯 Avg Views/Video", fmt_num(total_views // max(total_videos, 1))),
-        ("❤️ Total Likes",     fmt_num(total_likes)),
-        ("💬 Total Comments",  fmt_num(total_comments)),
-        ("⚡ Engagement Rate", f"{total_eng_rate:.2f}%"),
+        ("Total Views",     fmt_num(total_views)),
+        ("Total Videos",    fmt_num(total_videos)),
+        ("Avg Views/Video", fmt_num(total_views // max(total_videos, 1))),
+        ("Total Likes",     fmt_num(total_likes)),
+        ("Total Comments",  fmt_num(total_comments)),
+        ("Engagement Rate", f"{total_eng_rate:.2f}%"),
     ]), unsafe_allow_html=True)
 
     # Pie charts: long/short split
@@ -2061,7 +2061,7 @@ if club is None:
                         projection_note = (f" {today_d.strftime('%b %Y')} "
                                            f"projected from {de} of {dim} days.")
 
-                st.subheader(f"📅 Publish cadence — {league}")
+                st.subheader(f"Publish cadence — {league}")
                 st.caption(f"Videos per month, stacked by format, "
                            f"since {SEASON_SINCE}.{projection_note}")
                 fmt_order = ["Long", "Shorts", "Live"]
@@ -2156,7 +2156,7 @@ if club is None:
                 ]
                 _vpd_th, _vpd_tl = st.columns([3, 1])
                 with _vpd_th:
-                    st.subheader(f"📈 Videos per day — {league}")
+                    st.subheader(f"Videos per day — {league}")
                 with _vpd_tl:
                     import urllib.parse as _up_lg
                     _grid_href = f"?view=league-grid&league={_up_lg.quote(league)}"
@@ -2236,7 +2236,7 @@ if club is None:
                           and r.get("n_videos", 0) >= 5]
             if _conc_rows:
                 import plotly.graph_objects as _go_c
-                st.subheader(f"📊 Views concentration — {league}")
+                st.subheader(f"Views concentration — {league}")
                 st.caption("How concentrated are season views in each club's catalog? "
                            "Bar = % of videos that account for 80% of total views. "
                            "Lower = a few hits drive the channel (long tail). "
@@ -2339,7 +2339,7 @@ if club is None:
                 _r.setdefault("total_days", _total_days)
             _zd_rows.sort(key=lambda r: r.get("zero_days", 0), reverse=True)
             if _zd_rows:
-                st.subheader(f"📅 Days with zero videos — {league}")
+                st.subheader(f"Days with zero videos — {league}")
                 st.caption(
                     f"Out of {_total_days} season days "
                     f"(since {_start.strftime('%b %d, %Y')}), how many "
@@ -2565,12 +2565,12 @@ else:
         return m.group(1).strip() if m else ""
 
     st.markdown(kpi_row([
-        ("👁️ Total Views",     fmt_num(_total_v_banner),     _rank_subtitle_z3("views")),
-        ("🎬 Total Videos",    fmt_num(_total_n_banner),     _rank_subtitle_z3("videos")),
-        ("🎯 Avg Views/Video", fmt_num(_avg_vpv_banner),     _rank_subtitle_z3("vpv")),
-        ("❤️ Total Likes",     fmt_num(total_likes),         _rank_subtitle_z3("likes")),
-        ("💬 Total Comments",  fmt_num(total_comments),      _rank_subtitle_z3("comments")),
-        ("⚡ Engagement Rate", f"{_eng_rate:.2f}%",           _rank_subtitle_z3("eng")),
+        ("Total Views",     fmt_num(_total_v_banner),     _rank_subtitle_z3("views")),
+        ("Total Videos",    fmt_num(_total_n_banner),     _rank_subtitle_z3("videos")),
+        ("Avg Views/Video", fmt_num(_avg_vpv_banner),     _rank_subtitle_z3("vpv")),
+        ("Total Likes",     fmt_num(total_likes),         _rank_subtitle_z3("likes")),
+        ("Total Comments",  fmt_num(total_comments),      _rank_subtitle_z3("comments")),
+        ("Engagement Rate", f"{_eng_rate:.2f}%",           _rank_subtitle_z3("eng")),
     ]), unsafe_allow_html=True)
 
     # ── Season one-hit wonder (Z3) ────────────────────────────
@@ -2629,7 +2629,7 @@ else:
         st.plotly_chart(_make_pie_club(_vals(long_comments, short_comments, live_comments), pie_labels, pie_colors, "comments", "Comments"), width="stretch")
 
     # ── Breakdown table ────────────────────────────────────────
-    st.subheader("📊 Breakdown")
+    st.subheader("Breakdown")
     st.markdown(f"""
 <table style="width:100%;border-collapse:collapse;font-size:14px;color:#FAFAFA">
 <thead><tr style="border-bottom:2px solid #444">
@@ -2723,7 +2723,7 @@ else:
             _bar_colors_vpd_c = [
                 "#FFA15A" if d.weekday() >= 5 else "#636EFA" for d in _dates_c
             ]
-            st.subheader(f"📈 Videos per day — {club['name']}")
+            st.subheader(f"Videos per day — {club['name']}")
             st.caption(
                 f"{int(sum(_vals_c)):,} videos across {len(_dates_c)} "
                 f"days with at least one upload (avg {_avg_c:.1f}/day "
@@ -2755,7 +2755,7 @@ else:
     except Exception as _e:
         st.caption(f"(videos-per-day chart unavailable: {_e})")
 
-    st.subheader("📅 Monthly output")
+    st.subheader("Monthly output")
 
     # Avg-views-per-video can't be stacked or summed across formats —
     # each (fmt, month) cell is a ratio. Compute it explicitly here.
@@ -2835,7 +2835,7 @@ else:
         else:
             _peak_caption = ""
 
-        st.subheader("📅 Publishing heatmap — when does this club post?")
+        st.subheader("Publishing heatmap — when does this club post?")
         st.caption(f"Day-of-week × hour (CET) for the season. Brighter / "
                    f"redder = more videos. Hover for count and average views "
                    f"per slot. {_peak_caption}")
@@ -2871,7 +2871,7 @@ else:
         st.caption(f"(publishing heatmap unavailable: {_e})")
 
     # ── Views distribution (Pareto) ────────────────────────────
-    st.subheader("👁️ Views distribution")
+    st.subheader("Views distribution")
     st.caption("Are season views balanced across videos, or driven by a few hits? "
                "Bars = views per video (sorted high→low). Line = cumulative share of total views.")
 
@@ -2900,10 +2900,10 @@ else:
     pct_videos_to_80 = (n_to_80 / n_total * 100.0) if n_total else 0.0
 
     st.markdown(kpi_row([
-        ("🔥 Top video",     f"{top1_pct:.0f}% of views"),
-        ("🔥 Top 10 videos", f"{top10_pct:.0f}% of views"),
-        (f"🔥 Top 20% ({top20pct_n} videos)", f"{top20pct_pct:.0f}% of views"),
-        ("👁️ Median vs Avg", f"{_fmt(int(median_v))} / {_fmt(int(avg_v))}"),
+        ("Top video",     f"{top1_pct:.0f}% of views"),
+        ("Top 10 videos", f"{top10_pct:.0f}% of views"),
+        (f"Top 20% ({top20pct_n} videos)", f"{top20pct_pct:.0f}% of views"),
+        ("Median vs Avg", f"{_fmt(int(median_v))} / {_fmt(int(avg_v))}"),
     ]), unsafe_allow_html=True)
 
     fig_par = go.Figure()

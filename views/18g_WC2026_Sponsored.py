@@ -41,7 +41,7 @@ from src import theme as _T
 load_dotenv()
 require_login()
 
-st.title("💰 World Cup 2026 — Sponsored")
+st.title("World Cup 2026 — Sponsored")
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
@@ -164,7 +164,7 @@ if _counts:
           "_color": _conf_color(cid)}
          for cid, n in _shown]
     ).iloc[::-1]
-    st.subheader("📊 Sponsored videos per channel")
+    st.subheader("Sponsored videos per channel")
     _cap = (f"WC2026 channels in scope with the most disclosed "
             f"paid-promotion videos. {len(_counts)} channel(s) have ≥1; ")
     _cap += (f"showing the top {_TOP_N}." if len(_counts) > _TOP_N
@@ -274,7 +274,7 @@ def _branded_counts(channel_ids: tuple[str, ...]) -> dict[str, int]:
 
 
 _cands = _branded_candidates(_ids_t)
-st.subheader("🔎 Branded-content candidates — detected from the text")
+st.subheader("Branded-content candidates — detected from the text")
 st.caption(
     "⚠️ **Experimental / speculative — and deliberately EXCLUDES "
     "anything YouTube already flags above.** These are WC2026 videos "
@@ -346,7 +346,7 @@ if _bcounts:
           "_color": _conf_color(cid)}
          for cid, n in _bshown]
     ).iloc[::-1]
-    st.subheader("📊 Channels with the most branded candidates")
+    st.subheader("Channels with the most branded candidates")
     _bc = (f"Text-detected, **undisclosed** branded candidates per "
            f"channel (excludes anything with YouTube's flag — same set "
            f"as the table above). {len(_bcounts)} channel(s) have ≥1; ")

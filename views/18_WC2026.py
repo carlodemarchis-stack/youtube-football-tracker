@@ -140,11 +140,11 @@ if alts:
 st.markdown(kpi_row([
     # Total = primary (teams + FIFA + 6 confederations) + alt channels.
     # Subscribers / Views / Videos already sum over `wc` (primary + alts).
-    ("📡 Channels", str(len(wc)), ch_sub),
-    ("👥 Subscribers", fmt_num(total_subs), ""),
-    ("👁️ Views",       fmt_num(total_views), ""),
-    ("🎬 Videos",      fmt_num(total_videos), ""),
-    ("🎯 Views / video", fmt_num(avg_vpv), ""),
+    ("Channels", str(len(wc)), ch_sub),
+    ("Subscribers", fmt_num(total_subs), ""),
+    ("Views",       fmt_num(total_views), ""),
+    ("Videos",      fmt_num(total_videos), ""),
+    ("Views / video", fmt_num(avg_vpv), ""),
 ]), unsafe_allow_html=True)
 
 
@@ -436,7 +436,7 @@ for _c in wc:
     _s["li"] += int(_c.get("live_count") or 0)
 
 if _cf:
-    st.subheader("🌐 By confederation")
+    st.subheader("By confederation")
     _cf_rows = []
     for _name, _s in sorted(_cf.items(), key=lambda kv: -kv[1]["subs"]):
         _vps = (_s["v"] // _s["subs"]) if _s["subs"] else 0
@@ -470,7 +470,7 @@ if _cf:
         "to sort."
     )
 
-st.subheader("📋 All channels")
+st.subheader("All channels")
 # Real .wc-tbl row ≈ 30px (6+6 padding + 14px line + 1px border),
 # header ≈ 31px. The old 36/row + 80 over-reserved AND hit the
 # 2000 cap on the full list, leaving a big empty band before the

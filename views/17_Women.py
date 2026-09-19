@@ -75,10 +75,10 @@ _tot_views = sum(int(c.get("total_views") or 0) for c in clubs_o)
 _tot_videos = sum(int(c.get("video_count") or 0) for c in clubs_o)
 
 st.markdown(kpi_row([
-    ("📡 Channels tracked",       str(len(clubs_o))),
-    ("👥 Total subscribers", fmt_num(_tot_subs)),
-    ("👁️ Total views",       fmt_num(_tot_views)),
-    ("🎬 Total videos",      fmt_num(_tot_videos)),
+    ("Channels tracked",       str(len(clubs_o))),
+    ("Total subscribers", fmt_num(_tot_subs)),
+    ("Total views",       fmt_num(_tot_views)),
+    ("Total videos",      fmt_num(_tot_videos)),
 ]), unsafe_allow_html=True)
 
 # ── Helpers ──────────────────────────────────────────────────
@@ -156,7 +156,7 @@ def _status_dot(days: int | None) -> str:
 
 # ── Leaderboard table ────────────────────────────────────────
 st.markdown("---")
-st.subheader("🏆 Leaderboard")
+st.subheader("Leaderboard")
 st.caption(
     "Every tracked women's club ranked by subscribers. "
     "Click any row to open the channel on YouTube; click any column header to re-sort."
@@ -279,7 +279,7 @@ components.html(f"""
 
 # ── Charts ───────────────────────────────────────────────────
 st.markdown("---")
-st.subheader("📊 How they compare")
+st.subheader("How they compare")
 
 _df = pd.DataFrame([{
     "Club": p.get("name"),
@@ -317,7 +317,7 @@ with col2:
 
 # ── Posting activity ─────────────────────────────────────────
 st.markdown("---")
-st.subheader("📅 Posting activity")
+st.subheader("Posting activity")
 st.caption(
     "Other clubs spike around tournaments and qualifiers, then go quiet. "
     "This shows who's currently posting."

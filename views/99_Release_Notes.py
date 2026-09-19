@@ -7,7 +7,7 @@ the sidebar version badge.
 import streamlit as st
 from src import releases as _rel
 
-st.title("📋 Release Notes")
+st.title("Release Notes")
 
 _d = _rel.load()
 _ver = _rel.current_version()

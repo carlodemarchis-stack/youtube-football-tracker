@@ -133,7 +133,7 @@ def _views_by_rank(rows: list[dict], label: str) -> None:
             "Comments": int(v.get("comment_count") or 0),
         })
     df = pd.DataFrame(recs)
-    st.subheader(f"👁️ Views by rank — {label}")
+    st.subheader(f"Views by rank — {label}")
     fig = px.bar(
         df, x="Rank", y="Views", color="League",
         color_discrete_map=LEAGUE_COLOR,

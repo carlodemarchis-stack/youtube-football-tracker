@@ -38,7 +38,7 @@ from src import theme as _T
 load_dotenv()
 require_login()
 
-st.title("🚀 World Cup 2026 — Viral Videos")
+st.title("World Cup 2026 — Viral Videos")
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")

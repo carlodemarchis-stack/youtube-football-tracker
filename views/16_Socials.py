@@ -339,7 +339,7 @@ if g_club:
 
 # ── Followers leaderboard ──────────────────────────────────────────
 st.markdown("---")
-st.subheader("👥 Followers across platforms")
+st.subheader("Followers across platforms")
 st.caption(
     "Latest follower count per platform — YouTube updates daily, the rest "
     "are point-in-time snapshots. Click any column header to re-sort. "
@@ -558,7 +558,7 @@ if g_club:
     st.stop()
 
 st.markdown("---")
-st.subheader("🌍 Top X regional families")
+st.subheader("Top X regional families")
 st.caption(
     "Clubs running a main X account plus regional language siblings. "
     "Most of European football's multi-region energy lives on X — "

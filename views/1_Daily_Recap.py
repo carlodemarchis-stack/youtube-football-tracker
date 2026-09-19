@@ -578,14 +578,14 @@ if ONE_CLUB:
         _viral_sub = "no Δ today"
 
     st.markdown(kpi_row([
-        ("👁️ Δ Channel Views",
+        ("Δ Channel Views",
          f"{'+' if total_view_delta >= 0 else ''}{fmt_num(total_view_delta)}",
          _rank_subtitle(_all_view_deltas)),
-        ("🎬 New videos",
+        ("New videos",
          fmt_num(total_new_videos),
          _rank_subtitle(_all_new_counts)),
-        ("📺 Long / Shorts / Live", _fmt_combined),
-        ("🔥 Top viral today", _viral_value, _viral_sub),
+        ("Long / Shorts / Live", _fmt_combined),
+        ("Top viral today", _viral_value, _viral_sub),
     ]), unsafe_allow_html=True)
 else:
     # Most active club: posted most videos yesterday
@@ -606,11 +606,11 @@ else:
     )
     _ma_sub = f"{most_active[1]} videos posted" if most_active[0] else ""
     st.markdown(kpi_row([
-        ("👁️ Δ Channel Views",
+        ("Δ Channel Views",
          f"{'+' if total_view_delta >= 0 else ''}{fmt_num(total_view_delta)}"),
-        ("🎬 New videos",          fmt_num(total_new_videos)),
-        ("📺 Long / Shorts / Live", _fmt_combined),
-        ("🔥 Most active",         _ma_value, _ma_sub),
+        ("New videos",          fmt_num(total_new_videos)),
+        ("Long / Shorts / Live", _fmt_combined),
+        ("Most active",         _ma_value, _ma_sub),
     ]), unsafe_allow_html=True)
 
 # League header at zoom-2 — same visual signature as render_club_header.
@@ -623,7 +623,7 @@ if g_league and not ONE_CLUB:
 
 # ── Trend chart ──────────────────────────────────────────────
 # Show Δ Views and New Videos per day across all available snapshot dates.
-st.subheader("📈 Daily trends")
+st.subheader("Daily trends")
 
 # We already loaded chan_snaps (lookback window). Build per-date aggregates.
 # Group all channel snapshots by captured_date
@@ -767,7 +767,7 @@ if len(_all_dates) >= 2:
 
     tc1, tc2 = st.columns(2)
     with tc1:
-        st.caption("👁️ Δ Channel Views per day")
+        st.caption("Δ Channel Views per day")
         _ymax_v = max(r["Δ Channel Views"] for r in trend_rows) if trend_rows else 0
         _ymin_v = min(r["Δ Channel Views"] for r in trend_rows) if trend_rows else 0
         _pad_v = max((_ymax_v - _ymin_v) * 0.1, 1)
@@ -846,7 +846,7 @@ _show_per_league_summary = (
     and not (g_league is None and get_all_leagues_scope() == "Leagues only")
 )
 if _show_per_league_summary:
-    st.subheader("📊 Per-league summary")
+    st.subheader("Per-league summary")
     lg_agg: dict[str, dict] = {}
     # Per-league per-club video counts — used to determine most-active club per league
     lg_club_counts: dict[str, dict[str, int]] = {}
@@ -1005,7 +1005,7 @@ if _show_per_league_summary:
 # ── Gainer leaderboards side-by-side ─ skip when viewing one club ─
 if ONE_CLUB:
     # New videos published by this club on the picked day
-    st.subheader(f"🎬 Videos published on {day.strftime('%b %d, %Y')}")
+    st.subheader(f"Videos published on {day.strftime('%b %d, %Y')}")
     if not new_video_rows:
         st.caption("No new videos published that day.")
     else:
@@ -1262,7 +1262,7 @@ if not ONE_CLUB:
 # Most-watched block; got out of scope when the two blocks were swapped).
 _mw_scope = ""
 if new_video_rows and not ONE_CLUB:
-    st.subheader(f"🎬 {_mw_scope}New videos published on {day.strftime('%b %d, %Y')}")
+    st.subheader(f"{_mw_scope}New videos published on {day.strftime('%b %d, %Y')}")
     _mw_sorted = sorted(new_video_rows, key=lambda v: int(v.get("view_count") or 0), reverse=True)
     _mw_top_n = 10 if ONE_CLUB else 20
     _mw_rows = ""
@@ -1349,7 +1349,7 @@ else:
     trending.sort(key=lambda t: t["delta"], reverse=True)
     trending = trending[:_top_n]
 
-st.subheader(f"🔥 {_mw_scope}Most watched videos on {day.strftime('%b %d, %Y')}")
+st.subheader(f"{_mw_scope}Most watched videos on {day.strftime('%b %d, %Y')}")
 
 if not trending:
     st.caption("No video snapshot data available for this day yet.")

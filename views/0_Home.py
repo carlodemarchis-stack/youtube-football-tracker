@@ -258,7 +258,7 @@ if not is_logged_in():
     )
     _cta_c1, _cta_c2 = st.columns([2, 3])
     with _cta_c1:
-        if st.button("🔓 Sign in free with Google",
+        if st.button("Sign in free with Google",
                      type="primary", width="stretch",
                      key="hero_cta_signin"):
             st.login("google")
@@ -339,7 +339,7 @@ except Exception:
 # Section divider title (logged-in) so the Top-5 stats below read as
 # their own section.
 if is_logged_in():
-    st.subheader("⚽ Top 5 Leagues")
+    st.subheader("Top 5 Leagues")
     # ── New-season announcement ─────────────────────────────────────
     from src.channels import current_season_label_safe as _csl_home
     _season_label = f"20{_csl_home()}"   # '26/27' → '2026/27'
@@ -421,7 +421,7 @@ try:
             # ── Two side-by-side tables ─────────────────────────────
             _gcol1, _gcol2 = st.columns(2)
             with _gcol1:
-                st.subheader("👁️ Biggest view gains (last 7 days)")
+                st.subheader("Biggest view gains (last 7 days)")
                 rows = ""
                 for i, g in enumerate(top5_views, 1):
                     ch = g.get("_ch") or {}
@@ -453,7 +453,7 @@ try:
                 """, height=len(top5_views) * 31 + 40, scrolling=False)
 
             with _gcol2:
-                st.subheader("🎬 Most videos published (last 7 days)")
+                st.subheader("Most videos published (last 7 days)")
                 if top5_pubs:
                     rows2 = ""
                     for i, r in enumerate(top5_pubs, 1):
@@ -508,13 +508,13 @@ if is_logged_in():
             t_views  = sum(int(c.get("total_views")      or 0) for c in _top5)
             t_videos = sum(int(c.get("video_count")      or 0) for c in _top5)
             avg_vpv  = (t_views // t_videos) if t_videos else 0
-            st.subheader("📊 Top-5 leagues at a glance")
+            st.subheader("Top-5 leagues at a glance")
             st.markdown(_kpi_row([
-                ("📡 Channels",      str(n_ch), "clubs + league channels"),
-                ("👥 Subscribers",   fmt_num(t_subs), ""),
-                ("👁️ Total Views",   fmt_num(t_views), ""),
-                ("🎬 Videos",        fmt_num(t_videos), ""),
-                ("🎯 Views / Video", fmt_num(avg_vpv), ""),
+                ("Channels",      str(n_ch), "clubs + league channels"),
+                ("Subscribers",   fmt_num(t_subs), ""),
+                ("Total Views",   fmt_num(t_views), ""),
+                ("Videos",        fmt_num(t_videos), ""),
+                ("Views / Video", fmt_num(avg_vpv), ""),
             ]), unsafe_allow_html=True)
     except Exception:
         pass
@@ -736,11 +736,11 @@ st.markdown(
 )
 
 _about_cols = st.columns(5)
-_about_cols[0].link_button("📬 Newsletter", "https://www.linkedin.com/newsletters/a-guy-with-a-scarf-6998145822441775104/", width="stretch")
-_about_cols[1].link_button("💼 LinkedIn", "https://linkedin.com/in/carlodemarchis", width="stretch")
-_about_cols[2].link_button("✍️ Substack", "https://aguywithascarf.substack.com", width="stretch")
-_about_cols[3].link_button("📖 Course", "https://a-guy-with-a-scarf.mykajabi.com/course", width="stretch")
-_about_cols[4].link_button("📕 Book on Amazon", "https://amzn.eu/d/09cuCSkB", width="stretch")
+_about_cols[0].link_button("Newsletter", "https://www.linkedin.com/newsletters/a-guy-with-a-scarf-6998145822441775104/", width="stretch")
+_about_cols[1].link_button("LinkedIn", "https://linkedin.com/in/carlodemarchis", width="stretch")
+_about_cols[2].link_button("Substack", "https://aguywithascarf.substack.com", width="stretch")
+_about_cols[3].link_button("Course", "https://a-guy-with-a-scarf.mykajabi.com/course", width="stretch")
+_about_cols[4].link_button("Book on Amazon", "https://amzn.eu/d/09cuCSkB", width="stretch")
 
 st.markdown("---")
 st.markdown("#### 🔍 Read the fine print")

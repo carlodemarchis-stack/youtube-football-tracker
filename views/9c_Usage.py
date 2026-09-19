@@ -18,7 +18,7 @@ from src.auth import require_admin, get_current_user
 load_dotenv()
 require_admin()
 
-st.title("📊 Usage Analytics")
+st.title("Usage Analytics")
 
 # Admin's own traffic dominates dev sessions; default the toggle to
 # "exclude" so the numbers reflect real users. Reads the current admin
@@ -230,7 +230,7 @@ st.dataframe(
 # only useful signal here is "how many hit Home this period". One
 # session → one event, deliberately.
 st.markdown("---")
-st.subheader("👤 Anonymous home visits")
+st.subheader("Anonymous home visits")
 _an_today = sum(1 for e in _anon_events if _d(e["created_at"]) == today)
 _an_7d = sum(1 for e in _anon_events
              if (today - _d(e["created_at"])).days < 7)

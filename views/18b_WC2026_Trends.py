@@ -453,7 +453,7 @@ _PLOT = dict(
 dfc = dfd.iloc[1:] if len(dfd) > 1 else dfd
 gc1, gc2 = st.columns(2)
 with gc1:
-    st.subheader("👁️ Views gained per day")
+    st.subheader("Views gained per day")
     fv = px.line(dfc, x="Date", y="Δ Views", markers=True)
     fv.update_traces(line_color=_T.ACCENT, marker_color=_T.ACCENT)
     fv.update_layout(**_PLOT)
@@ -462,7 +462,7 @@ with gc1:
     readable_hover(fv, x_date=True)
     st.plotly_chart(fv, width="stretch")
 with gc2:
-    st.subheader("🎬 Videos added per day")
+    st.subheader("Videos added per day")
     fl = px.bar(
         dfc, x="Date", y=["Long", "Shorts", "Live"],
         color_discrete_map={"Long": _T.ACCENT, "Shorts": _T.POS,
@@ -493,7 +493,7 @@ st.caption(
 # benefit from the ranking.
 if not _wc_team:
     st.markdown("---")
-    st.subheader("🚀 Biggest movers")
+    st.subheader("Biggest movers")
     st.caption(
         f"Cumulative change up to {_absd(last_d)} — each team's "
         f"{_absd(last_d)} channel totals minus its earliest tracked "

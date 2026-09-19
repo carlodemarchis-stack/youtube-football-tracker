@@ -39,7 +39,7 @@ from src import theme as _T
 load_dotenv()
 require_login()
 
-st.title("📈 30-Day Trends")
+st.title("30-Day Trends")
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
@@ -307,7 +307,7 @@ _fresh_abs = int(_split.get("fresh_view_total") or 0)
 from src.analytics import fmt_num, kpi_row
 st.markdown(kpi_row([
     ("Δ Channel views (30d)", fmt_num(total_dv), "across cohort channels"),
-    ("🗄️ Older videos (>30d)",
+    ("Older videos (>30d)",
      f"≈{_archive_pct:.1f}%" if _split else "—",
      f"≈{fmt_num(_archive_abs)} of {fmt_num(total_dv)} Δ views"),
     ("New videos (30d)", fmt_num(total_new),
@@ -356,7 +356,7 @@ def _with_sundays(chart):
 
 
 # ── Chart 1 — Δ video views per day (cohort total) ───────────────
-st.caption("👁️ Δ Channel views per day (summed across cohort)")
+st.caption("Δ Channel views per day (summed across cohort)")
 _vals = [r["Δ Views"] for r in trend_rows]
 if _vals and max(_vals) > 0:
     _ymax = max(_vals); _ymin = min(_vals)
@@ -620,7 +620,7 @@ if not ONE_CLUB and not g_league:
         })
     _lg_summary_rows.sort(key=lambda r: -r["dv"])
 
-    st.subheader("📊 Per-league summary (30-day totals)")
+    st.subheader("Per-league summary (30-day totals)")
     _lg_html = ""
     for r in _lg_summary_rows:
         _dv_col = _T.POS if r["dv"] > 0 else (_T.NEG if r["dv"] < 0 else _T.MUTED)
@@ -855,7 +855,7 @@ elif g_league and not ONE_CLUB:
         })
     _ch_summary_rows.sort(key=lambda r: -r["dv"])
 
-    st.subheader(f"📊 Per-channel summary — {g_league} (30-day totals)")
+    st.subheader(f"Per-channel summary — {g_league} (30-day totals)")
     _ch_html = ""
     for r in _ch_summary_rows:
         _dv_col = _T.POS if r["dv"] > 0 else (_T.NEG if r["dv"] < 0 else _T.MUTED)

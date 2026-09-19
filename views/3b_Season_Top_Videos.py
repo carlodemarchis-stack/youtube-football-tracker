@@ -247,9 +247,9 @@ if top_views:
 
     # KPI labels lead with the canonical metric emoji (CONVENTIONS §2/§4).
     pairs = [
-        (f"👁️ Total views (top {_n})", fmt_num(_total),         _rank_by.get("total", "")),
-        ("🎯 Avg Views/Video",          fmt_num(_avg),           _rank_by.get("avg", "")),
-        ("🔥 Top-1 share",              f"{_top1_share:.1f}%",   _rank_by.get("top1", "")),
+        (f"Total views (top {_n})", fmt_num(_total),         _rank_by.get("total", "")),
+        ("Avg Views/Video",          fmt_num(_avg),           _rank_by.get("avg", "")),
+        ("Top-1 share",              f"{_top1_share:.1f}%",   _rank_by.get("top1", "")),
         ("⏱️ Avg age",                  f"{_avg_age_days:.0f}d", _rank_by.get("age", "")),
     ]
     # 5th card depends on zoom:

@@ -235,10 +235,10 @@ try:
         unsafe_allow_html=True,
     )
     st.markdown(_kpi_row([
-        ("👁️ Total views (top 100)", fmt_num(_ctx_total),    _row1_subs.get("total", "")),
-        ("🔥 Share of lifetime",     f"{_ctx_pct:.1f}%",     _row1_subs.get("share", "")),
-        ("🎯 Avg views / video",     fmt_num(_ctx_avg),      _row1_subs.get("avg", "")),
-        ("👁️ Cutoff (rank 100)",     fmt_num(_ctx_cutoff)),
+        ("Total views (top 100)", fmt_num(_ctx_total),    _row1_subs.get("total", "")),
+        ("Share of lifetime",     f"{_ctx_pct:.1f}%",     _row1_subs.get("share", "")),
+        ("Avg views / video",     fmt_num(_ctx_avg),      _row1_subs.get("avg", "")),
+        ("Cutoff (rank 100)",     fmt_num(_ctx_cutoff)),
         ("⏱️ Avg age",               f"{_ctx_avg_age:.1f}y", _row1_subs.get("age", "")),
     ], colors=["#58A6FF", "#00CC96", "#FFA15A", "#AB63FA", "#EF553B"]),
                 unsafe_allow_html=True)
@@ -403,7 +403,7 @@ render_top_season_videos_table(
     max_height=1400,
 )
 # ── Views by Rank chart ───────────────────────────────────────
-st.subheader("👁️ Views by Rank")
+st.subheader("Views by Rank")
 chart_df = filtered[["view_count", "title", "channel_name"]].copy()
 chart_df[color_field] = filtered[color_field] if color_field in filtered.columns else filtered["channel_name"]
 chart_df["rank"] = range(1, len(chart_df) + 1)
@@ -423,7 +423,7 @@ fig.update_layout(
 st.plotly_chart(fig, width="stretch")
 
 # ── Rank vs Year ──────────────────────────────────────────────
-st.subheader("📅 Rank vs Publication Year")
+st.subheader("Rank vs Publication Year")
 scatter_df = filtered[["title", "channel_name", "view_count", "published_at"]].copy()
 scatter_df[color_field] = filtered[color_field] if color_field in filtered.columns else filtered["channel_name"]
 scatter_df["rank"] = range(1, len(scatter_df) + 1)
@@ -456,7 +456,7 @@ fig_scatter.update_layout(
 st.plotly_chart(fig_scatter, width="stretch")
 
 # ── Videos by Year ────────────────────────────────────────────
-st.subheader("🎬 Top 100 Videos by Publication Year")
+st.subheader("Top 100 Videos by Publication Year")
 year_df = filtered.copy()
 year_df["year"] = pd.to_datetime(year_df["published_at"], utc=True).dt.year
 year_counts = year_df.groupby("year").size().reset_index(name="count").sort_values("year")
@@ -479,7 +479,7 @@ if not theme_df.empty:
 # KPI Row 2 (Z1/Z2 only) is the sum of every channel's own top 100;
 # its numbers tie out to the channel-stats table directly below.
 if not club:
-    st.subheader("📡 Each channel's Top 100")
+    st.subheader("Each channel's Top 100")
     try:
         _agg_total = sum(int(c.get("top100_views") or 0) for c in _scope_channels)
         _agg_n = sum(1 for c in _scope_channels if int(c.get("top100_views") or 0) > 0)

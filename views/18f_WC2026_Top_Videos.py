@@ -61,7 +61,7 @@ from src.wc2026_filter import (
 load_dotenv()
 require_login()
 
-st.title("🏆 World Cup 2026 — All-Time Top")
+st.title("World Cup 2026 — All-Time Top")
 
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
@@ -229,13 +229,13 @@ st.markdown(
     unsafe_allow_html=True,
 )
 st.markdown(kpi_row([
-    ("👁️ Total views (top 100)", fmt_num(_ctx_total),
+    ("Total views (top 100)", fmt_num(_ctx_total),
      _row1_subs.get("total", "")),
-    ("🔥 Share of lifetime",     f"{_ctx_pct:.1f}%",
+    ("Share of lifetime",     f"{_ctx_pct:.1f}%",
      _row1_subs.get("share", "")),
-    ("🎯 Avg views / video",     fmt_num(_ctx_avg),
+    ("Avg views / video",     fmt_num(_ctx_avg),
      _row1_subs.get("avg", "")),
-    ("👁️ Cutoff (rank 100)",     fmt_num(_ctx_cutoff)),
+    ("Cutoff (rank 100)",     fmt_num(_ctx_cutoff)),
     ("⏱️ Avg age",               f"{_ctx_avg_age:.1f}y",
      _row1_subs.get("age", "")),
 ], colors=["#58A6FF", "#00CC96", "#FFA15A", "#AB63FA", "#EF553B"]),
@@ -382,7 +382,7 @@ render_top_season_videos_table(
 
 
 # ── 👁️ Views by Rank ──────────────────────────────────────────────
-st.subheader("👁️ Views by Rank")
+st.subheader("Views by Rank")
 chart_df = filtered[["view_count", "title", "channel_name",
                      "team_grp", "confed_grp"]].copy()
 chart_df["rank"] = range(1, len(chart_df) + 1)
@@ -418,7 +418,7 @@ st.plotly_chart(fig, width="stretch")
 
 
 # ── 📅 Rank vs Publication Year ───────────────────────────────────
-st.subheader("📅 Rank vs Publication Year")
+st.subheader("Rank vs Publication Year")
 from zoneinfo import ZoneInfo as _ZoneInfo
 _current_year = datetime.now(_ZoneInfo("Europe/Rome")).year
 
@@ -457,7 +457,7 @@ st.plotly_chart(fig_scatter, width="stretch")
 
 
 # ── 🎬 Top 100 Videos by Publication Year ─────────────────────────
-st.subheader("🎬 Top 100 Videos by Publication Year")
+st.subheader("Top 100 Videos by Publication Year")
 year_df = filtered.copy()
 year_df["year"] = pd.to_datetime(year_df["published_at"],
                                   utc=True).dt.year
@@ -489,7 +489,7 @@ if not theme_df.empty:
 
 # ── 📡 Each channel's Top 100 (Z1 + Z2 only) ──────────────────────
 if not IS_Z3:
-    st.subheader("📡 Each channel's Top 100")
+    st.subheader("Each channel's Top 100")
     try:
         _agg_total = sum(int(c.get("top100_views") or 0)
                          for c in _scope_channels)

@@ -35,7 +35,7 @@ from src import profile as _prof
 load_dotenv()
 require_login()
 
-st.title("🎯 Outliers")
+st.title("Outliers")
 render_page_subtitle(
     "Clubs whose profile sits unusually far from their peers.",
     caveat=("Two lenses: against league peers, and against similar-sized "
@@ -121,7 +121,7 @@ def _largest_z_per_axis():
 
 
 if not g_club and visible:
-    st.subheader("✨ Spotlight")
+    st.subheader("Spotlight")
     spotlight = _largest_z_per_axis()
     if spotlight:
         # Render as 5 small cards in a row (one per axis we have a hit for).
@@ -223,7 +223,7 @@ if g_club:
                         )
 
     st.markdown("---")
-    st.subheader("🎯 Ratios")
+    st.subheader("Ratios")
     r = p["ratios"]
 
     # 8 metrics in 2 rows of 4 — keeps each cell legible at typical viewports.
@@ -256,7 +256,7 @@ if g_club:
 # ──────────────────────────────────────────────────────────────
 # All flagged channels table
 # ──────────────────────────────────────────────────────────────
-st.subheader("📊 Profile breakdown")
+st.subheader("Profile breakdown")
 st.caption(f"{len(visible)} clubs in scope · sorted by total tag count")
 
 # Filter to clubs with at least one tag

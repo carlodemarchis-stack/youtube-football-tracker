@@ -276,12 +276,12 @@ if _k_n:
     _k_views = sum(int(v.get("view_count") or 0)
                    for v in _k_vids)
     st.markdown(kpi_row([
-        ("🎬 Videos · 24h", fmt_num(_k_n),
+        ("Videos · 24h", fmt_num(_k_n),
          f"{_k_chans} channels · {_k_confeds} confederations"),
         ("▶️ Long", fmt_num(_k_long)),
-        ("📱 Shorts", fmt_num(_k_short)),
-        ("🔴 Live", fmt_num(_k_live)),
-        ("👁️ Views so far", fmt_num(_k_views), "on these uploads"),
+        ("Shorts", fmt_num(_k_short)),
+        ("Live", fmt_num(_k_live)),
+        ("Views so far", fmt_num(_k_views), "on these uploads"),
     ]), unsafe_allow_html=True)
 
 try:
@@ -421,7 +421,7 @@ try:
             _MAX_BARS = 20
             _df = _df_full.head(_MAX_BARS)
             _total = len(_df_full)
-            st.subheader("👁️ Δ Views per channel — last full day")
+            st.subheader("Δ Views per channel — last full day")
             _suffix = (f" Top {len(_df)} of {_total} shown."
                        if _total > _MAX_BARS else "")
             st.caption(

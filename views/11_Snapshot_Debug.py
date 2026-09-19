@@ -54,7 +54,7 @@ else:
 filtered_channels = [c for c in all_channels if filter_cids is None or c["id"] in filter_cids]
 
 # ── Overview: snapshot dates ─────────────────────────────────
-st.subheader("📅 Snapshot overview — last 3 days")
+st.subheader("Snapshot overview — last 3 days")
 all_snaps_meta = db.client.table("channel_snapshots") \
     .select("captured_date,channel_id,subscriber_count,total_views,video_count,captured_at") \
     .order("captured_date", desc=True) \
@@ -127,7 +127,7 @@ for s in all_full:
     snaps_by_ch.setdefault(s["channel_id"], []).append(s)
 
 # ── All-channels table ───────────────────────────────────────
-st.subheader("🔍 All channels — snapshot summary")
+st.subheader("All channels — snapshot summary")
 if g_club:
     st.caption(f"Filtered to **{g_club['name']}**")
 elif g_league:
@@ -244,7 +244,7 @@ if g_club:
     ch_snaps = sorted(snaps_by_ch.get(g_club["id"], []), key=lambda x: x["captured_date"])
     if ch_snaps:
         st.markdown("---")
-        st.subheader("📋 All snapshots")
+        st.subheader("All snapshots")
         st.caption(f"**{len(ch_snaps)}** snapshots")
 
         detail_html = ""
@@ -300,7 +300,7 @@ if g_club:
 
 # ── Raw counts ───────────────────────────────────────────────
 st.markdown("---")
-st.subheader("📊 Raw counts")
+st.subheader("Raw counts")
 c1, c2, c3 = st.columns(3)
 ch_count = db.client.table("channel_snapshots").select("id", count="exact").limit(1).execute()
 v_count = db.client.table("video_snapshots").select("id", count="exact").limit(1).execute()

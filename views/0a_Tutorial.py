@@ -14,7 +14,7 @@ import streamlit as st
 
 from src.channels import current_season_label_safe as _csl_home
 
-st.title("📖 Tutorial")
+st.title("Tutorial")
 st.caption(
     "How the tracker is organised, what each page does, and the "
     "house rules. Pulled out of the home page so it doesn't get in "
@@ -206,11 +206,11 @@ st.markdown(
 )
 
 _about_cols = st.columns(5)
-_about_cols[0].link_button("📬 Newsletter", "https://www.linkedin.com/newsletters/a-guy-with-a-scarf-6998145822441775104/", width="stretch")
-_about_cols[1].link_button("💼 LinkedIn", "https://linkedin.com/in/carlodemarchis", width="stretch")
-_about_cols[2].link_button("✍️ Substack", "https://aguywithascarf.substack.com", width="stretch")
-_about_cols[3].link_button("📖 Course", "https://a-guy-with-a-scarf.mykajabi.com/course", width="stretch")
-_about_cols[4].link_button("📕 Book on Amazon", "https://amzn.eu/d/09cuCSkB", width="stretch")
+_about_cols[0].link_button("Newsletter", "https://www.linkedin.com/newsletters/a-guy-with-a-scarf-6998145822441775104/", width="stretch")
+_about_cols[1].link_button("LinkedIn", "https://linkedin.com/in/carlodemarchis", width="stretch")
+_about_cols[2].link_button("Substack", "https://aguywithascarf.substack.com", width="stretch")
+_about_cols[3].link_button("Course", "https://a-guy-with-a-scarf.mykajabi.com/course", width="stretch")
+_about_cols[4].link_button("Book on Amazon", "https://amzn.eu/d/09cuCSkB", width="stretch")
 
 st.markdown("---")
 st.markdown("#### 🔍 Read the fine print")
