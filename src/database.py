@@ -53,16 +53,59 @@ def _fetch_all(query_builder):
     silently produces duplicates of some rows and skips others — fatal
     for any aggregation with > _PAGE_SIZE result rows.
     """
+    import copy
+    import time
     all_rows = []
-    offset = 0
     # All tables in this codebase use a UUID `id` PK, which is always
     # present and unique — perfect stable sort key. Append rather than
     # replace any existing order; PostgreSQL will treat (caller_order, id)
     # as a stable composite.
     ordered = query_builder.order("id", desc=False)
+
+    def _run(builder):
+        for attempt in range(3):
+            try:
+                return builder.execute().data or []
+            except Exception:
+                if attempt == 2:
+                    raise
+                time.sleep(2 * (attempt + 1))
+
+    # Keyset (id > last) when id is the only sort key: deep OFFSETs make
+    # Postgres scan and discard every earlier row, which hit the 57014
+    # statement timeout once `videos` passed ~200k rows. Each page runs on
+    # a fresh copy of the builder so the id filter doesn't accumulate.
+    order_param = str(dict(ordered.request.params).get("order", ""))
+    if order_param == "id.asc":
+        # Keyset needs `id` in each row. Many callers select only a few
+        # columns, so add it for paging and strip it back off afterwards —
+        # the returned row shape is unchanged for every caller.
+        sel = str(dict(ordered.request.params).get("select", "*"))
+        cols = [c.strip() for c in sel.split(",")]
+        strip_id = sel.strip() != "*" and "id" not in cols
+        if strip_id:
+            ordered.request.params = ordered.request.params.set("select", sel + ",id")
+        last_id = None
+        while True:
+            page = copy.copy(ordered)
+            page.request = copy.copy(ordered.request)
+            if last_id is not None:
+                page = page.gt("id", last_id)
+            rows = _run(page.limit(_PAGE_SIZE))
+            all_rows.extend(rows)
+            if len(rows) < _PAGE_SIZE:
+                break
+            last_id = rows[-1]["id"]
+        if strip_id:
+            for r in all_rows:
+                r.pop("id", None)
+        return all_rows
+
+    # Caller imposed its own order → keyset on id alone would skip rows;
+    # keep offset paging (these are small, filtered queries).
+    offset = 0
     while True:
-        resp = ordered.range(offset, offset + _PAGE_SIZE - 1).execute()
-        rows = resp.data or []
+        rows = _run(ordered.range(offset, offset + _PAGE_SIZE - 1))
         all_rows.extend(rows)
         if len(rows) < _PAGE_SIZE:
             break
