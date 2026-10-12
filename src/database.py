@@ -399,23 +399,33 @@ class Database:
         others never appear — which is exactly what made weekly_refresh
         leak ~45k videos per run (the 2026-05-24 run only updated
         49,774 of ~80k in-scope videos with no errors logged because
-        the pagination silently dropped them)."""
+        the pagination silently dropped them).
+
+        Keyset (id > last) rather than offset: deep offsets make Postgres
+        walk and discard every earlier row, so late pages hit the 57014
+        statement timeout once the table grew past ~100k rows."""
+        import time
         all_rows: list[dict] = []
         page_size = 1000
-        offset = 0
+        last_id = None
         while True:
-            resp = (
-                self.client.table("videos")
-                .select("id,youtube_video_id")
-                .order("id")
-                .range(offset, offset + page_size - 1)
-                .execute()
-            )
-            batch = resp.data or []
+            for attempt in range(3):
+                try:
+                    q = (self.client.table("videos")
+                         .select("id,youtube_video_id")
+                         .order("id"))
+                    if last_id is not None:
+                        q = q.gt("id", last_id)
+                    batch = q.limit(page_size).execute().data or []
+                    break
+                except Exception:
+                    if attempt == 2:
+                        raise
+                    time.sleep(2 * (attempt + 1))
             all_rows.extend(batch)
             if len(batch) < page_size:
                 break
-            offset += page_size
+            last_id = batch[-1]["id"]
         return all_rows
 
     def get_all_snapshots(self, since_date: str | None = None) -> list[dict]:
