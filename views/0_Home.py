@@ -498,7 +498,7 @@ if is_logged_in():
         from src.analytics import kpi_row as _kpi_row
         _chs2 = st.session_state.get("_global_channels") or []
         _top5 = [c for c in _chs2
-                 if not is_club(c)
+                 if is_top5_cohort(c)
                  and COUNTRY_TO_LEAGUE.get((c.get("country") or "").upper())
                      in {"Serie A", "Premier League", "La Liga",
                          "Bundesliga", "Ligue 1"}]

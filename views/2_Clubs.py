@@ -937,7 +937,7 @@ elif club is None:
             _conc = _dc_conc.read(db, "concentration", _dc_conc.scope_league(league))
             _conc_rows = (_conc or {}).get("payload", {}).get("rows", []) if _conc else []
             _conc_rows = [r for r in _conc_rows
-                          if not is_club(r)
+                          if is_top5_cohort(r)
                           and r.get("n_videos", 0) >= 5]
             if _conc_rows:
                 import plotly.graph_objects as _go_c

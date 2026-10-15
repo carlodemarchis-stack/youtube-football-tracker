@@ -618,7 +618,7 @@ if g_league and not ONE_CLUB:
     from src.filters import render_league_header
     _lg_chans = [c for c in all_channels
                  if get_league_for_channel(c) == g_league
-                 and not is_club(c)]
+                 and is_top5_cohort(c)]
     render_league_header(g_league, channels_in_scope=_lg_chans)
 
 # ── Trend chart ──────────────────────────────────────────────

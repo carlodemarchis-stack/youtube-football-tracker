@@ -951,7 +951,7 @@ if league is None and _scope == "Overall":
         from src.database import _fetch_all
         scoped_ids = {
             c["id"] for c in all_channels
-            if not is_club(c)
+            if is_top5_cohort(c)
             and get_league_for_channel(c)
         }
         if not scoped_ids:
@@ -1354,7 +1354,7 @@ if league is None and _scope == "Overall":
             from src import onehit as _oh
             from src.season_top import render_top_season_videos_table as _rtv
             _z1_top5 = [c for c in all_channels
-                        if not is_club(c)
+                        if is_top5_cohort(c)
                         and c.get("id")]
             _z1_ids = [c["id"] for c in _z1_top5]
             _z1_hits = _oh.top_n(db, _z1_ids, SEASON_SINCE, n=10)
@@ -2232,7 +2232,7 @@ if club is None:
             # Include both Club and League channels (e.g. @seriea); skip
             # only channels with too few videos to be meaningful.
             _conc_rows = [r for r in _conc_rows
-                          if not is_club(r)
+                          if is_top5_cohort(r)
                           and r.get("n_videos", 0) >= 5]
             if _conc_rows:
                 import plotly.graph_objects as _go_c
@@ -2390,7 +2390,7 @@ if club is None:
             from src.season_top import render_top_season_videos_table as _rtv
             from src.channels import COUNTRY_TO_LEAGUE as _CTL
             _z2_chs = [c for c in all_channels
-                       if not is_club(c)
+                       if is_top5_cohort(c)
                        and _CTL.get((c.get("country") or "").strip()) == league
                        and c.get("id")]
             _z2_ids = [c["id"] for c in _z2_chs]

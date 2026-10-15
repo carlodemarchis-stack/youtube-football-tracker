@@ -588,7 +588,7 @@ if not ONE_CLUB and not g_league:
     # Cohort channel counts per league (cheap — small in-memory loop).
     _ch_count_by_lg: dict[str, int] = {lg: 0 for lg in LEAGUES}
     for _c in all_channels:
-        if not is_club(_c):
+        if is_top5_cohort(_c):
             _lg = COUNTRY_TO_LEAGUE.get((_c.get("country") or "").strip())
             if _lg in _ch_count_by_lg:
                 _ch_count_by_lg[_lg] += 1
