@@ -224,6 +224,7 @@ def main() -> int:
                         db.client.table("videos").upsert(
                             update_rows[b:b + 500], on_conflict="id"
                         ).execute()
+                    video_snapshots_written = len(update_rows)
                 except Exception as e:
                     log(f"videos freshness update skipped: {e}")
     except Exception as e:
@@ -240,12 +241,12 @@ def main() -> int:
 
     elapsed = time.time() - start
     log(f"Done in {elapsed:.1f}s — ok={ok} failed={len(failed)} "
-        f"new_videos={new_videos_total} video_snapshots={video_snapshots_written}")
+        f"new_videos={new_videos_total} videos_refreshed={video_snapshots_written}")
 
     try:
         status = "daily_players_partial" if failed else "daily_players"
         summary = (f"{ok} players, {new_videos_total} new videos, "
-                   f"{video_snapshots_written} video snapshots in {elapsed:.1f}s")
+                   f"{video_snapshots_written} videos refreshed in {elapsed:.1f}s")
         if failed:
             summary += f" | {len(failed)} failed: {'; '.join(f'{n}: {e}' for n, e in failed[:5])}"
         db.log_fetch(ok, new_videos_total, status, summary)
@@ -257,7 +258,7 @@ def main() -> int:
         send_run_alert("daily_players",
                        ok=not failed,
                        summary=(f"{ok} players, {new_videos_total} new videos, "
-                                f"{video_snapshots_written} snapshots in {elapsed:.0f}s"),
+                                f"{video_snapshots_written} videos refreshed in {elapsed:.0f}s"),
                        error=(f"{len(failed)} failed" if failed else ""))
     except Exception as _e:
         log(f"ntfy alert failed (non-fatal): {_e}")

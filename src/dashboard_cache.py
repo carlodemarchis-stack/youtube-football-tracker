@@ -2463,18 +2463,17 @@ def refresh_last_upload(db, entity_type: str, log=print,
         write(db, "last_upload", entity_type, {"map": {}})
         log(f"  ✓ last_upload[{entity_type}] — 0 channels")
         return
-    # Newest-first scan; first row seen per channel = its latest upload.
-    # Same query the page used to run every render — now once per night.
-    rows = _fetch_all(
-        db.client.table("videos")
-        .select("channel_id,published_at")
-        .in_("channel_id", ids)
-        .order("published_at", desc=True)
-    )
+    # Per channel, no ORDER BY published_at: any ordering on published_at
+    # (even with .limit(1)) makes Postgres walk the global published_at
+    # index across every video and hit the 57014 statement timeout. An
+    # unordered read stays on the channel_id index; take the max here.
     m: dict[str, str] = {}
-    for r in rows:
-        cid = r.get("channel_id")
-        if cid and cid not in m:
-            m[cid] = (r.get("published_at") or "")[:10]
+    for cid in ids:
+        rows = _fetch_all(db.client.table("videos")
+                          .select("published_at")
+                          .eq("channel_id", cid))
+        latest = max((r.get("published_at") or "" for r in rows), default="")
+        if latest:
+            m[cid] = latest[:10]
     write(db, "last_upload", entity_type, {"map": m})
     log(f"  ✓ last_upload[{entity_type}] — {len(m)}/{len(ids)} channels")
