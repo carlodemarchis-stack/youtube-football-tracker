@@ -43,14 +43,27 @@ _FC = {"long": "#5B8DEF", "shorts": "#2FCB74", "live": "#E7A93B"}
 _FL = {"long": "Long", "shorts": "Shorts", "live": "Live"}
 
 # ── Player picker, synced with ?id= ──────────────────────────
-_ids = [p.get("youtube_channel_id") or "" for p in players]
-_want = st.query_params.get("id", "")
-_idx = _ids.index(_want) if _want in _ids else 0
-p = st.selectbox("Player", players, index=_idx,
-                 format_func=lambda c: c.get("name", "?"),
-                 label_visibility="collapsed")
-if (p.get("youtube_channel_id") or "") != _want:
-    st.query_params["id"] = p.get("youtube_channel_id") or ""
+_by_id = {c.get("youtube_channel_id") or "": c for c in players}
+_ids = list(_by_id)
+_qp = st.query_params.get("id", "")
+# Seed the picker from ?id= on first load, or when the URL was changed
+# from outside (e.g. a new link); afterwards the widget owns the choice.
+if _qp in _by_id and _qp != st.session_state.get("_player_qp_seen"):
+    st.session_state["player_pick"] = _qp
+st.session_state["_player_qp_seen"] = _qp
+if st.session_state.get("player_pick") not in _by_id:
+    st.session_state["player_pick"] = _ids[0]
+
+
+def _on_pick() -> None:
+    st.query_params["id"] = st.session_state["player_pick"]
+    st.session_state["_player_qp_seen"] = st.session_state["player_pick"]
+
+
+st.selectbox("Player", _ids, key="player_pick", on_change=_on_pick,
+             format_func=lambda i: _by_id[i].get("name", "?"),
+             label_visibility="collapsed")
+p = _by_id[st.session_state["player_pick"]]
 
 st.title(p.get("name", "Player"))
 handle = p.get("handle") or ""
