@@ -2,6 +2,13 @@
   "major": 1,
   "releases": [
     {
+      "version": "1.14",
+      "date": "2026-11-06",
+      "notes": [
+        "📈 Players: click a player's Updates dot to see their whole YouTube story — every upload since the channel started, month by month and split into Long, Shorts and Live, plus their 10 most-watched videos."
+      ]
+    },
+    {
       "version": "1.13",
       "date": "2026-06-14",
       "notes": [

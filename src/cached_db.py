@@ -119,6 +119,20 @@ def get_last_upload_by_channel(_db, channel_ids_tuple: tuple[str, ...],
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
+def get_player_history(_db) -> dict[str, dict]:
+    """{channel db id: payload} of the nightly 'player_history' rows
+    (see src.player_history) for the Players page modal."""
+    try:
+        rows = (_db.client.table("dashboard_cache")
+                .select("scope_key,payload")
+                .eq("name", "player_history")
+                .execute().data or [])
+    except Exception:
+        return {}
+    return {r["scope_key"]: r.get("payload") or {} for r in rows}
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
 def get_last_upload_via_youtube(yt_channel_ids_tuple: tuple[str, ...]) -> dict[str, str]:
     """For each YouTube channel ID with no videos in our DB, fetch the
     most recent upload date directly from the YouTube Data API.

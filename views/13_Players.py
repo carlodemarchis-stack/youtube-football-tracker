@@ -11,6 +11,7 @@ its Railway service, and the Player rows in `channels`. Zero impact elsewhere.
 """
 from __future__ import annotations
 
+import json
 import os
 from datetime import datetime, timezone
 
@@ -28,6 +29,7 @@ from src.cached_db import (
     read_dashboard_cache as _cached_dc_read,
     get_last_upload_by_channel as _cached_last_upload_db,
     get_last_upload_via_youtube as _cached_last_upload_yt,
+    get_player_history as _cached_player_history,
 )
 from src.analytics import fmt_num, kpi_row
 from src.charts import readable_hover
@@ -213,6 +215,100 @@ def _status_dot(days: int | None) -> str:
     return "🔴"
 
 
+# Modal for the Updates dot: full upload timeline + top videos. Plain
+# (non-f) string so the JS needs no brace escaping; data is injected as
+# window.HIST before it.
+_HIST_MODAL = """
+<style>
+  .hist-dot { cursor:zoom-in; }
+  .hist-dot:hover { outline:1px solid #636EFA; border-radius:6px; }
+  #hm { display:none; position:absolute; left:0; right:0; z-index:10;
+        background:#0E1117; border:1px solid #333; border-radius:10px;
+        padding:18px 22px; color:#FAFAFA; font-family:"Source Sans Pro",sans-serif;
+        box-shadow:0 12px 40px rgba(0,0,0,.6); }
+  #hm h3 { margin:0 0 2px; font-size:20px; }
+  #hm .sub { color:#999; font-size:13px; margin-bottom:12px; }
+  #hm .x { position:absolute; top:10px; right:14px; cursor:pointer; color:#aaa;
+           font-size:22px; line-height:1; }
+  #hm .x:hover { color:#fff; }
+  #hm .lbl { font-size:12px; letter-spacing:.08em; text-transform:uppercase;
+             color:#888; margin:14px 0 6px; }
+  #hm .leg span { margin-right:14px; font-size:12px; color:#bbb; }
+  #hm .leg i { display:inline-block; width:10px; height:10px; border-radius:2px;
+               margin-right:5px; vertical-align:-1px; }
+  #hm .tv { display:grid; grid-template-columns: 1fr 70px; gap:4px 10px;
+            align-items:center; font-size:13px; }
+  #hm .tv a { color:#FAFAFA; text-decoration:none; white-space:nowrap;
+              overflow:hidden; text-overflow:ellipsis; display:block; }
+  #hm .tv a:hover { color:#636EFA; }
+  #hm .bar { height:6px; border-radius:3px; margin-top:3px; }
+  #hm .num { text-align:right; color:#ccc; font-variant-numeric:tabular-nums; }
+</style>
+<div id="hm"><span class="x" onclick="closeHist()">×</span><div id="hmb"></div></div>
+<script>
+const FC = {long:'#5B8DEF', shorts:'#2FCB74', live:'#E7A93B'};
+function fmtN(n){ return n>=1e9?(n/1e9).toFixed(1)+'B':n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(1)+'K':''+n; }
+function esc(s){ return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function timeline(h){
+  // Monthly stacked bars from the first upload month to now.
+  const keys = Object.keys(h.months); if(!keys.length) return '<div class="sub">No uploads found.</div>';
+  const start = keys[0], now = new Date();
+  let y=+start.slice(0,4), m=+start.slice(5,7); const mo=[];
+  while (y<now.getUTCFullYear() || (y===now.getUTCFullYear() && m<=now.getUTCMonth()+1)) {
+    mo.push(y+'-'+String(m).padStart(2,'0')); m++; if(m>12){m=1;y++;}
+  }
+  const W=860, H=170, pad=26, n=mo.length, bw=(W-pad)/n;
+  let max=1; mo.forEach(k=>{const v=h.months[k]; if(v) max=Math.max(max,v[0]+v[1]+v[2]);});
+  let s='<svg viewBox="0 0 '+W+' '+(H+20)+'" width="100%" style="display:block">';
+  s+='<text x="0" y="10" fill="#777" font-size="10">'+max+'</text>';
+  s+='<line x1="'+pad+'" x2="'+W+'" y1="'+H+'" y2="'+H+'" stroke="#333"/>';
+  mo.forEach((k,i)=>{
+    const v=h.months[k]||[0,0,0]; let yy=H; const x=pad+i*bw;
+    [['long',0],['shorts',1],['live',2]].forEach(([f,j])=>{
+      if(!v[j]) return; const hh=v[j]/max*(H-14); yy-=hh;
+      s+='<rect x="'+x.toFixed(1)+'" y="'+yy.toFixed(1)+'" width="'+Math.max(bw-1,0.6).toFixed(1)+'" height="'+hh.toFixed(1)+'" fill="'+FC[f]+'"><title>'+k+' · '+f+': '+v[j]+'</title></rect>';
+    });
+    if (k.endsWith('-01') || i===0) s+='<text x="'+x.toFixed(1)+'" y="'+(H+14)+'" fill="#888" font-size="10">'+k.slice(0,4)+'</text>';
+  });
+  return s+'</svg>';
+}
+function topVideos(h){
+  if(!h.top || !h.top.length) return '<div class="sub">No view data.</div>';
+  const max=h.top[0].v||1; let s='<div class="tv">';
+  h.top.forEach(v=>{
+    s+='<div><a href="https://www.youtube.com/watch?v='+v.id+'" target="_blank" rel="noopener" title="'+esc(v.t)+'">'+esc(v.t)+'</a>'
+     +'<div class="bar" style="width:'+(v.v/max*100).toFixed(1)+'%;background:'+FC[v.f]+'"></div></div>'
+     +'<div class="num">'+fmtN(v.v)+'<br><span style="color:#777;font-size:11px">'+v.d.slice(0,4)+'</span></div>';
+  });
+  return s+'</div>';
+}
+function openHist(pid, el){
+  const h = window.HIST[pid]; if(!h) return;
+  let tot=0; Object.values(h.months).forEach(v=>tot+=v[0]+v[1]+v[2]);
+  document.getElementById('hmb').innerHTML =
+    '<h3><span style="color:'+h.c+'">●</span> '+esc(h.name)+'</h3>'
+   +'<div class="sub">'+tot.toLocaleString()+' uploads since '+(h.first||'—')+'</div>'
+   +'<div class="lbl">Uploads per month</div>'
+   +'<div class="leg"><span><i style="background:'+FC.long+'"></i>Long</span><span><i style="background:'+FC.shorts+'"></i>Shorts</span><span><i style="background:'+FC.live+'"></i>Live</span></div>'
+   + timeline(h)
+   +'<div class="lbl">Top 10 videos by views</div>' + topVideos(h);
+  const m = document.getElementById('hm');
+  const row = el.closest('tr');
+  m.style.display='block';
+  document.body.style.minHeight = '0px';
+  const top = Math.max(0, row.offsetTop - 40);
+  m.style.top = top+'px';
+  document.body.style.minHeight = (top + m.offsetHeight + 20)+'px';
+}
+function closeHist(){
+  document.getElementById('hm').style.display='none';
+  document.body.style.minHeight='0px';
+}
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeHist(); });
+</script>
+"""
+
+
 # ── Leaderboard table ────────────────────────────────────────
 st.markdown("---")
 st.subheader("Leaderboard")
@@ -222,7 +318,7 @@ st.caption(
 )
 st.caption(
     "**Updates** — days since the player's latest YouTube upload: "
-    "🟢 ≤14d  ·  🟡 ≤30d  ·  🟠 ≤90d  ·  🔴 >90d.  "
+    "🟢 ≤14d  ·  🟡 ≤30d  ·  🟠 ≤90d  ·  🔴 >90d — click a dot for the player's full upload history.  "
     "**Career** — 🟢 currently playing  ·  🔴 retired."
 )
 _career_filter = st.radio(
@@ -238,6 +334,11 @@ elif _career_filter == "Retired":
     _filtered = [p for p in players if _is_retired(p.get("name", ""))]
 else:
     _filtered = players
+
+# Per-player history for the modal opened from the Updates dot
+# (precomputed nightly by daily_players → src.player_history).
+_hist_by_cid = _cached_player_history(db)
+_hist_js = {}
 
 rows_html = ""
 for i, p in enumerate(_filtered, 1):
@@ -270,6 +371,12 @@ for i, p in enumerate(_filtered, 1):
     yt_url = f"https://www.youtube.com/{handle}" if handle else ""
     row_click = (f'onclick="window.open(\'{yt_url}\',\'_blank\',\'noopener\')" '
                  f'style="cursor:pointer"') if yt_url else ""
+    _h = _hist_by_cid.get(p["id"])
+    if _h:
+        _hist_js[p["id"]] = {"name": name, "c": c1, **_h}
+    _dot_attrs = (f'class="hist-dot" data-pid="{p["id"]}" '
+                  f'onclick="event.stopPropagation();openHist(this.dataset.pid,this)"'
+                  if _h else "")
     rows_html += f"""<tr {row_click}>
         <td style="padding:6px 12px;text-align:right;color:#888" data-val="{i}">{i}</td>
         <td style="padding:6px 12px">{dot}</td>
@@ -284,8 +391,11 @@ for i, p in enumerate(_filtered, 1):
         <td style="padding:6px 12px;text-align:right" data-val="{videos}">{fmt_num(videos)}</td>
         <td style="padding:6px 12px;text-align:center;white-space:nowrap;color:#aaa" data-val="{_slsv}">{_ln} / {_sn} / {_lv}</td>
         <td style="padding:6px 12px;text-align:right" data-val="{vpv}">{fmt_num(vpv)}</td>
-        <td style="padding:6px 12px;text-align:center" data-val="{_status_sort}" title="{_status_label} · last upload {(_days if _days is not None else '—')}d ago">{_status_dot_s}</td>
+        <td style="padding:6px 12px;text-align:center" data-val="{_status_sort}" title="{_status_label} · last upload {(_days if _days is not None else '—')}d ago{' · click for upload history' if _h else ''}" {_dot_attrs}>{_status_dot_s}</td>
     </tr>"""
+
+# '</' escaped so a video title can't close the <script> early.
+_hist_json = json.dumps(_hist_js).replace("</", "<\\/")
 
 # Initial iframe height — JS below auto-resizes to real scrollHeight on load.
 _tbl_h = max(len(_filtered), 1) * 32 + 50  # tightened: rows ~30px, single-row header ~50px
@@ -297,6 +407,7 @@ components.html(f"""
   .pl th[data-col] {{ cursor:pointer; }}
   .pl th[data-col]:hover {{ color:#636EFA; }}
   .pl td {{ padding:6px 12px; border-bottom:1px solid #262730; vertical-align:middle; }}
+  body {{ position:relative; }}
   .pl tr:hover td {{ background:#1a1c24; }}
   .pl .active {{ color:#636EFA; }}
 </style>
@@ -319,6 +430,8 @@ components.html(f"""
 </tr></thead>
 <tbody>{rows_html}</tbody>
 </table>
+<script>window.HIST = {_hist_json};</script>
+{_HIST_MODAL}
 <script>
 (function() {{
   const table = document.querySelector('.pl');

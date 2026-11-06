@@ -239,6 +239,14 @@ def main() -> int:
     except Exception as e:
         log(f"last_upload cache refresh skipped (non-fatal): {e}")
 
+    # ── 6. Full upload history + top videos per player, for the
+    # Players page modal (opened from the Updates dot). ──
+    try:
+        from src.player_history import refresh as refresh_player_history
+        refresh_player_history(db, yt, players, log=log)
+    except Exception as e:
+        log(f"player_history refresh skipped (non-fatal): {e}")
+
     elapsed = time.time() - start
     log(f"Done in {elapsed:.1f}s — ok={ok} failed={len(failed)} "
         f"new_videos={new_videos_total} videos_refreshed={video_snapshots_written}")

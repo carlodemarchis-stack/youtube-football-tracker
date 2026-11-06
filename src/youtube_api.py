@@ -562,6 +562,34 @@ class YouTubeClient:
                 pass
         return counts
 
+    def get_dated_ids_by_format(self, channel_id: str) -> dict[str, list[tuple[str, str]]]:
+        """Full upload history split by format (UULF + UUSH + UULV), each
+        entry (video_id, published ISO). 1 unit per 50 videos per format.
+        Returns {"long": [...], "shorts": [...], "live": [...]}."""
+        result = {"long": [], "shorts": [], "live": []}
+        for key, prefix in [("long", self.PREFIX_LONG), ("shorts", self.PREFIX_SHORTS), ("live", self.PREFIX_LIVE)]:
+            pl_id = self._playlist_id(channel_id, prefix)
+            next_page = None
+            while True:
+                try:
+                    _pl_id = pl_id
+                    _tok = next_page
+                    resp = self._call(lambda yt: yt.playlistItems().list(
+                        part="contentDetails",
+                        playlistId=_pl_id,
+                        maxResults=50,
+                        pageToken=_tok,
+                    ))
+                except Exception:
+                    break  # Playlist may not exist for some channels
+                for item in resp.get("items", []):
+                    cd = item["contentDetails"]
+                    result[key].append((cd["videoId"], cd.get("videoPublishedAt", "")))
+                next_page = resp.get("nextPageToken")
+                if not next_page:
+                    break
+        return result
+
     def get_video_ids_since_by_format(self, channel_id: str, since: str) -> dict[str, list[str]]:
         """Fetch season video IDs split by format using UULF + UUSH + UULV playlists.
         Walks each playlist newest-first, stops at cutoff date.
