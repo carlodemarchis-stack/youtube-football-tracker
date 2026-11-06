@@ -1,54 +1,41 @@
-"""Per-player channel history for the Players page modal.
+"""Per-player channel history for the Player detail page.
 
 Computed by the nightly Daily Players cron and stored in dashboard_cache
 (name='player_history', scope_key=<channel db id>). The `videos` table
 only holds this season's videos, so the full history comes straight from
-YouTube's per-format upload playlists (dates only, cheap) plus the
-popular-video playlists for the top-by-views list.
+YouTube: the per-format upload playlists (ids, dates, format) and
+videos.list for each video's views and title.
 
 Payload:
     {"first": "YYYY-MM-DD",
-     "months": {"YYYY-MM": [long, shorts, live], ...},
-     "top": [{"id", "t", "v", "d", "f"}, ...]}   # top 10 by views
+     "videos": [[youtube_id, "YYYY-MM-DD", views, format, title], ...]}
+format is "long" | "shorts" | "live"; title is cut to 90 chars.
 """
 from __future__ import annotations
 
-from collections import defaultdict
-
 from src.dashboard_cache import write
 
-_TOP_N = 10
-_POP_PER_FORMAT = 50
+_TITLE_MAX = 90
 
 
 def compute(yt, youtube_channel_id: str) -> dict:
     dated = yt.get_dated_ids_by_format(youtube_channel_id)
-    months: dict[str, list[int]] = defaultdict(lambda: [0, 0, 0])
-    dates: list[str] = []
-    for idx, key in enumerate(("long", "shorts", "live")):
-        for _vid, published in dated[key]:
-            if not published:
-                continue
-            months[published[:7]][idx] += 1
-            dates.append(published[:10])
-
-    pop = yt.get_popular_video_ids(youtube_channel_id)
     fmt_of: dict[str, str] = {}
+    date_of: dict[str, str] = {}
     for key in ("long", "shorts", "live"):
-        for vid in pop[key][:_POP_PER_FORMAT]:
-            fmt_of.setdefault(vid, key)
+        for vid, published in dated[key]:
+            if published:
+                fmt_of.setdefault(vid, key)
+                date_of.setdefault(vid, published[:10])
     details = yt.get_video_details(list(fmt_of), retries=0) if fmt_of else []
-    details.sort(key=lambda v: -(v.get("view_count") or 0))
-    top = [{"id": v["youtube_video_id"],
-            "t": v.get("title", ""),
-            "v": int(v.get("view_count") or 0),
-            "d": (v.get("published_at") or "")[:10],
-            "f": fmt_of.get(v["youtube_video_id"], "long")}
-           for v in details[:_TOP_N]]
-
-    return {"first": min(dates) if dates else "",
-            "months": dict(sorted(months.items())),
-            "top": top}
+    videos = [[v["youtube_video_id"],
+               date_of[v["youtube_video_id"]],
+               int(v.get("view_count") or 0),
+               fmt_of[v["youtube_video_id"]],
+               (v.get("title") or "")[:_TITLE_MAX]]
+              for v in details if v["youtube_video_id"] in date_of]
+    videos.sort(key=lambda r: r[1])
+    return {"first": videos[0][1] if videos else "", "videos": videos}
 
 
 def refresh(db, yt, players: list[dict], log=print) -> None:

@@ -119,17 +119,19 @@ def get_last_upload_by_channel(_db, channel_ids_tuple: tuple[str, ...],
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def get_player_history(_db) -> dict[str, dict]:
-    """{channel db id: payload} of the nightly 'player_history' rows
-    (see src.player_history) for the Players page modal."""
+def get_player_history(_db, channel_id: str) -> dict:
+    """One player's nightly 'player_history' payload (see
+    src.player_history) for the Player detail page, or {}."""
     try:
         rows = (_db.client.table("dashboard_cache")
-                .select("scope_key,payload")
+                .select("payload")
                 .eq("name", "player_history")
+                .eq("scope_key", channel_id)
+                .limit(1)
                 .execute().data or [])
     except Exception:
         return {}
-    return {r["scope_key"]: r.get("payload") or {} for r in rows}
+    return (rows[0].get("payload") or {}) if rows else {}
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
