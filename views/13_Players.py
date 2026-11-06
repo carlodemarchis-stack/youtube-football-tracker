@@ -28,6 +28,7 @@ from src.cached_db import (
     read_dashboard_cache as _cached_dc_read,
     get_last_upload_by_channel as _cached_last_upload_db,
     get_last_upload_via_youtube as _cached_last_upload_yt,
+    get_player_summaries as _cached_player_summaries,
 )
 from src.analytics import fmt_num, kpi_row
 from src.charts import readable_hover
@@ -239,6 +240,11 @@ elif _career_filter == "Retired":
 else:
     _filtered = players
 
+# All-videos Long/Shorts/Live split + uploads this calendar year, from
+# the nightly full-history pull (src.player_history).
+_summ = _cached_player_summaries(db)
+_this_year = str(now.year)
+
 rows_html = ""
 for i, p in enumerate(_filtered, 1):
     name = p.get("name", "?")
@@ -262,10 +268,18 @@ for i, p in enumerate(_filtered, 1):
     vps = views // max(subs, 1)
     vpv = views // max(videos, 1)
     spy = _subs_per_year(subs, p.get("launched_at"))
-    _ln = int(p.get("season_long_videos") or 0)
-    _sn = int(p.get("season_short_videos") or 0)
-    _lv = int(p.get("season_live_videos") or 0)
+    _sm = _summ.get(p["id"]) or {}
+    _tot = _sm.get("totals") or []
+    if len(_tot) == 3:
+        _ln, _sn, _lv = (int(x) for x in _tot)
+        _lsl_disp = f"{_ln} / {_sn} / {_lv}"
+    else:
+        _ln = _sn = _lv = 0
+        _lsl_disp = "—"
     _slsv = _ln + _sn + _lv
+    _yr = int((_sm.get("per_year") or {}).get(_this_year, 0)) if _sm else None
+    _yr_disp = fmt_num(_yr) if _yr is not None else "—"
+    _yr_sort = _yr if _yr is not None else -1
     handle = p.get("handle", "") or ""
     yt_url = f"https://www.youtube.com/{handle}" if handle else ""
     row_click = (f'onclick="window.open(\'{yt_url}\',\'_blank\',\'noopener\')" '
@@ -290,7 +304,8 @@ for i, p in enumerate(_filtered, 1):
         <td style="padding:6px 12px;text-align:right" data-val="{views}">{fmt_num(views)}</td>
         <td style="padding:6px 12px;text-align:right" data-val="{vps}">{fmt_num(vps)}</td>
         <td style="padding:6px 12px;text-align:right" data-val="{videos}">{fmt_num(videos)}</td>
-        <td style="padding:6px 12px;text-align:center;white-space:nowrap;color:#aaa" data-val="{_slsv}">{_ln} / {_sn} / {_lv}</td>
+        <td style="padding:6px 12px;text-align:center;white-space:nowrap;color:#aaa" data-val="{_slsv}">{_lsl_disp}</td>
+        <td style="padding:6px 12px;text-align:right" data-val="{_yr_sort}">{_yr_disp}</td>
         <td style="padding:6px 12px;text-align:right" data-val="{vpv}">{fmt_num(vpv)}</td>
         <td style="padding:6px 12px;text-align:center" data-val="{_status_sort}" title="{_status_label} · last upload {(_days if _days is not None else '—')}d ago">{_status_cell}</td>
     </tr>"""
@@ -321,9 +336,10 @@ components.html(f"""
   <th data-col="8" data-type="num" style="text-align:right">Total Views</th>
   <th data-col="9" data-type="num" style="text-align:right">Views/Sub</th>
   <th data-col="10" data-type="num" style="text-align:right">Videos</th>
-  <th data-col="11" data-type="num" style="text-align:center" title="Season: Long / Shorts / Live">L/S/Lv</th>
-  <th data-col="12" data-type="num" style="text-align:right">Views/Video</th>
-  <th data-col="13" data-type="num" style="text-align:center">Updates</th>
+  <th data-col="11" data-type="num" style="text-align:center" title="All videos: Long / Shorts / Live">L/S/Lv</th>
+  <th data-col="12" data-type="num" style="text-align:right" title="Videos posted in {_this_year}">{_this_year}</th>
+  <th data-col="13" data-type="num" style="text-align:right">Views/Video</th>
+  <th data-col="14" data-type="num" style="text-align:center">Updates</th>
 </tr></thead>
 <tbody>{rows_html}</tbody>
 </table>

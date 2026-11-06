@@ -119,6 +119,22 @@ def get_last_upload_by_channel(_db, channel_ids_tuple: tuple[str, ...],
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
+def get_player_summaries(_db) -> dict[str, dict]:
+    """{channel db id: {"totals": [l, s, lv], "per_year": {...}}} from the
+    nightly 'player_history' rows — only those two small fields, not the
+    per-video list."""
+    try:
+        rows = (_db.client.table("dashboard_cache")
+                .select("scope_key,totals:payload->totals,per_year:payload->per_year")
+                .eq("name", "player_history")
+                .execute().data or [])
+    except Exception:
+        return {}
+    return {r["scope_key"]: {"totals": r.get("totals") or [],
+                             "per_year": r.get("per_year") or {}} for r in rows}
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
 def get_player_history(_db, channel_id: str) -> dict:
     """One player's nightly 'player_history' payload (see
     src.player_history) for the Player detail page, or {}."""

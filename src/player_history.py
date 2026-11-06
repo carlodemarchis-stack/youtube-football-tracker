@@ -8,7 +8,9 @@ videos.list for each video's views and title.
 
 Payload:
     {"first": "YYYY-MM-DD",
-     "videos": [[youtube_id, "YYYY-MM-DD", views, format, title], ...]}
+     "videos": [[youtube_id, "YYYY-MM-DD", views, format, title], ...],
+     "totals": [long, shorts, live],          # all videos, for the Players table
+     "per_year": {"YYYY": uploads, ...}}
 format is "long" | "shorts" | "live"; title is cut to 90 chars.
 """
 from __future__ import annotations
@@ -35,7 +37,19 @@ def compute(yt, youtube_channel_id: str) -> dict:
                (v.get("title") or "")[:_TITLE_MAX]]
               for v in details if v["youtube_video_id"] in date_of]
     videos.sort(key=lambda r: r[1])
-    return {"first": videos[0][1] if videos else "", "videos": videos}
+    return {"first": videos[0][1] if videos else "", "videos": videos,
+            **summarize(videos)}
+
+
+def summarize(videos: list[list]) -> dict:
+    """Small per-player totals the Players table reads without the
+    full video list."""
+    totals = [0, 0, 0]
+    per_year: dict[str, int] = {}
+    for _id, day, _views, fmt, _title in videos:
+        totals[("long", "shorts", "live").index(fmt)] += 1
+        per_year[day[:4]] = per_year.get(day[:4], 0) + 1
+    return {"totals": totals, "per_year": per_year}
 
 
 def refresh(db, yt, players: list[dict], log=print) -> None:
