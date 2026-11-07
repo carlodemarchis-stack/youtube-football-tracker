@@ -143,7 +143,7 @@ HANDLE_SEED: dict[str, tuple[str, str]] = {
     "@losc": ("https://www.losc.fr/en/", "Lille_OSC"),
     "@staderennaisfc": ("https://www.staderennais.com/en/", "Stade_Rennais_F.C."),
     "@ogcnice": ("https://www.ogcnice.com/en/", "OGC_Nice"),
-    "@rclens": ("https://www.rclens.fr/en", "RC_Lens"),
+    "@rclens": ("https://www.rclens.fr/", "RC_Lens"),
     "@stadebrestois29": ("https://www.stadebrestois.com/en/", "Stade_Brestois_29"),
     "@strasbourg": ("https://www.rcstrasbourgalsace.fr/en/", "RC_Strasbourg_Alsace"),
     "@rcsa": ("https://www.rcstrasbourgalsace.fr/en/", "RC_Strasbourg_Alsace"),
