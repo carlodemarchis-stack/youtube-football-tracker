@@ -112,6 +112,7 @@ viewer_pages = [
     st.Page("views/1d_Viral.py",            title="Viral Videos",      url_path="viral"),
     st.Page("views/1c_Trends.py",           title="30-Day Trends",     url_path="trends-30d"),
     st.Page("views/3_Season.py",            title=f"Season ({_csl()})", url_path="season"),
+    st.Page("views/3c_Season_Highlights.py",title="Highlights",        url_path="highlights"),
     st.Page("views/3b_Season_Top_Videos.py",title="Season Top",        url_path="season-top"),
     st.Page("views/2_Clubs.py",             title="All-time",          url_path="all-channels"),
     st.Page("views/4_Top_Videos.py",        title="All-Time Top",      url_path="all-time-top"),

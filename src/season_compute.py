@@ -1,12 +1,14 @@
 """Pre-compute Season heavy surfaces once per refresh.
 
-Three Season-level surfaces all share the same paginated scan of every
+Four Season-level surfaces all share the same paginated scan of every
 top-5 season video — running them live on each render hits Supabase
-hard. This module does ONE scan + writes THREE single-row caches:
+hard. This module does ONE scan + writes FOUR single-row caches:
 
   - season_one_hits        — the ~30 enriched one-hit-wonder videos.
   - season_videos_per_day  — per-channel daily upload counts.
   - season_heatmap         — per-channel 7×24 (CET) post counts + view-sums.
+  - season_highlights      — per-channel highlight stats + weekly series
+                             + the top highlight videos (Highlights page).
 
 Each cache is a single dashboard_cache row at scope_all(); pages filter
 to a league / club in memory. Wired into daily_refresh after the
@@ -111,3 +113,55 @@ def refresh(db, log=print, channels: list[dict] | None = None) -> None:
         g["sums"][dow][hr] += int(r.get("view_count") or 0)
     write(db, "season_heatmap", scope_all(), {"per_channel": hm})
     log(f"[season_compute] season_heatmap WRITTEN ({len(hm)} channels)")
+
+    # 4. Highlights — videos the theme classifier tagged "Highlights"
+    # (title says highlights / sintesi / resumen / … in any language).
+    write(db, "season_highlights", scope_all(), highlights_payload(rows))
+    log("[season_compute] season_highlights WRITTEN")
+
+
+_HL_TOP_PER_CHANNEL = 20
+_HL_VIDEO_KEYS = ("id", "youtube_video_id", "channel_id", "title",
+                  "view_count", "like_count", "comment_count",
+                  "published_at", "duration_seconds", "format",
+                  "thumbnail_url", "category")
+
+
+def highlights_payload(rows: list[dict]) -> dict:
+    """{"per_channel": {cid: {"n", "views", "short_n", "short_views",
+                              "season_views", "weekly": {monday: [n, views]},
+                              "top": [that channel's top highlight videos]}}}
+    Pages merge the per-channel tops for any scope (all / league / club)."""
+    per: dict[str, dict] = {}
+    hl: list[dict] = []
+    for r in rows:
+        cid = r.get("channel_id")
+        if not cid:
+            continue
+        g = per.setdefault(cid, {"n": 0, "views": 0, "short_n": 0,
+                                 "short_views": 0, "season_views": 0,
+                                 "weekly": {}, "top": []})
+        vc = int(r.get("view_count") or 0)
+        g["season_views"] += vc
+        if r.get("category") != "Highlights":
+            continue
+        hl.append(r)
+        g["n"] += 1
+        g["views"] += vc
+        if (r.get("format") or "").lower() == "short":
+            g["short_n"] += 1
+            g["short_views"] += vc
+        try:
+            d = pd.to_datetime(r.get("published_at"), utc=True).date()
+        except Exception:
+            continue
+        wk = (d - pd.Timedelta(days=d.weekday())).isoformat()
+        w = g["weekly"].setdefault(wk, [0, 0])
+        w[0] += 1
+        w[1] += vc
+    hl.sort(key=lambda r: -int(r.get("view_count") or 0))
+    for r in hl:
+        top = per[r["channel_id"]]["top"]
+        if len(top) < _HL_TOP_PER_CHANNEL:
+            top.append({k: r.get(k) for k in _HL_VIDEO_KEYS})
+    return {"per_channel": per}

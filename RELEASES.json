@@ -2,6 +2,13 @@
   "major": 1,
   "releases": [
     {
+      "version": "1.15",
+      "date": "2026-11-10",
+      "notes": [
+        "🎬 New Highlights page, right after Season: every match-highlight video posted by Top 5 clubs this season — how much of each league's views they bring, week-by-week views, a sortable club table, and the season's 50 most-watched highlights."
+      ]
+    },
+    {
       "version": "1.14",
       "date": "2026-11-06",
       "notes": [
